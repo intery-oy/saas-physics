@@ -29,6 +29,7 @@ node checks.js            # 35 economic, measurement and state integrity checks
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
 node capital-study.js     # Capital Loop concept study: payback calibration and experiments
+node pulse-study.js       # Flow / Pulse concept study: intra-month law and reconciliation
 node build.js             # build both single-file surfaces
 open saas-physics-visual-1.html
 ```
@@ -66,6 +67,9 @@ creates; gross margin decides how fast that investment is recovered.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
+- [`docs/PULSE.md`](docs/PULSE.md) — **the flow / pulse concept study**: the engine's exact
+  intra-month order, one month proved step by step, and the Δ-stock accumulator showing that
+  Δ ARR today is the sum of every monthly Δflow
 - [`docs/CAPITAL-LOOP.md`](docs/CAPITAL-LOOP.md) — **the capital loop concept study**: capital
   leaves today and returns gradually as a cohort's gross profit, which turns CAC payback from a
   ratio into a measured distance

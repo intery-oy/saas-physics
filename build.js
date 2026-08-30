@@ -16,6 +16,7 @@ var capital = fs.readFileSync('capital.js', 'utf8');
 var vis = fs.readFileSync('visual.template.html', 'utf8')
   .replace('/*__ENGINE__*/', function () { return engine; })
   .replace('/*__KPI__*/', function () { return kpi; })
-  .replace('/*__CAPITAL__*/', function () { return capital; });
+  .replace('/*__CAPITAL__*/', function () { return capital; })
+  .replace('/*__PULSE__*/', function () { return fs.readFileSync('pulse.js', 'utf8'); });
 fs.writeFileSync('saas-physics-visual-1.html', vis);
 console.log('built saas-physics-visual-1.html — ' + (vis.length / 1024).toFixed(1) + ' KB');

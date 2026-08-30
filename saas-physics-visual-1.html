@@ -31,7 +31,20 @@ button,input{font:inherit;color:inherit}
 .eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
 
 /* ---------- shell ---------- */
-.app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr) auto;height:100vh}
+.app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;transition:grid-template-columns .2s}
+.app.flow{grid-template-columns:0 minmax(0,1fr) 320px}
+.app.flow .rail{opacity:0;pointer-events:none;overflow:hidden}
+.lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
+.lawchip:hover{border-color:var(--exp);color:var(--ink)}
+.lawchip b{font-family:var(--mono);color:var(--exp);font-weight:500}
+.lawchip input[type=range]{width:118px;margin-top:5px;display:block}
+.lawchip.open{border-color:var(--exp)}
+.pulsebar{display:flex;align-items:center;gap:10px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
+.pulsebar .stepname{font-family:var(--mono);font-size:11.5px;color:var(--exp);min-width:210px}
+.pulsebar .lawnote{font-size:10.5px;color:var(--ink-3);line-height:1.5}
+.recon{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:11px;margin-top:5px}
+.recon span{color:var(--ink-3)} .recon b{font-family:var(--mono);font-weight:500}
+.recon .tot{color:var(--ink);border-top:1px solid var(--line);padding-top:3px}
 .head{grid-column:1/-1;display:flex;align-items:baseline;gap:16px;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
 .head h1{margin:0;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.005em}
 .head .sub{font-size:11.5px;color:var(--ink-3);font-style:italic;font-family:var(--display)}
@@ -136,8 +149,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <span class="sub">an economic system, observed</span>
     <span class="spacer"></span>
     <span class="chip" id="mode-chip">base vs experiment</span>
-    <button class="btn" id="capital">Capital loop</button>
-    <button class="btn" id="anatomy">Anatomy</button>
+    <span class="eyebrow">Layer</span>
+    <div class="btn-row"><button class="btn on" id="layer-stock">Stock</button><button class="btn" id="layer-flow">Flow</button></div>
+    <span class="eyebrow">Lens</span>
+    <button class="btn" id="anatomy">Inspect</button>
+    <span class="eyebrow">Compare</span>
+    <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
     <button class="btn" id="keybtn">Visual key</button>
   </header>
 
@@ -158,6 +175,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   <main class="stage">
     <canvas id="scene"></canvas>
+    <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
+    <div class="pulsebar" id="pulsebar" hidden>
+      <button class="tbtn" id="pulse-prev" aria-label="Previous step">◀</button>
+      <button class="tbtn play" id="pulse-play" aria-label="Run the pulse">▶</button>
+      <button class="tbtn" id="pulse-next" aria-label="Next step">▶|</button>
+      <span class="stepname" id="pulse-step"></span>
+      <span class="lawnote" id="pulse-law"></span>
+    </div>
     <div class="cascade">
       <div class="cascade-head">
         <span class="eyebrow">Economic conversion</span>
@@ -215,6 +240,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Above the surface</b> = gross profit beyond the acquisition cost attributed to that cohort. Not profit, value or ROI.</li>
             <li><b>GP by vintage</b> shows which historical cohorts produce today's gross profit — the delayed return on capital deployed months or years ago.</li>
             <li><b>The dashed cool curve</b> is the same cohort under Base. When retention or margin changes, the two recovery curves separate even though the money spent was identical.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>The Pulse <span style="color:var(--ink-4);text-transform:none;letter-spacing:0">— Flow layer</span></h5>
+          <ul>
+            <li><b>Nine steps, in the engine's own order.</b> Opening → leakage → expansion → new cohort → closing → revenue → margin → operating → cash. The order is the interaction; the formula for each step is on the transport bar.</li>
+            <li><b>Two columns, three bands.</b> The bands between them are the sums of the movements marked inside the strata — and the bridge residual is shown, so the identity proves itself.</li>
+            <li><b>Expansion applies to RETAINED ARR</b>, not opening. <b>Revenue comes from the midpoint</b> of opening and closing, marked with a dashed line — not from closing alone.</li>
+            <li><b>Three declared scales</b>, printed on screen: stock, ARR movement, and € per month. One month of flow is about 1% of the stock, so they cannot share a scale honestly.</li>
+            <li><b>Controls sit on the laws</b> they govern — persistence under the leakage band, gross margin at the revenue split.</li>
+            <li><b>Delta Pulse</b> renders Experiment − Base only. Base becomes zero, the delta becomes the whole canvas, and nothing is exaggerated to make it visible.</li>
           </ul>
         </div>
         <div>
@@ -1308,10 +1344,157 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   };
 });
 </script>
+<script>/*
+ * SaaS Physics — PULSE derivations (Flow concept study).
+ *
+ * No physics. Every value is read out of the frozen engine's own month record
+ * and cohort rows. The ORDER below was read off engine.js, not invented:
+ * see intraMonthLaw() for the declared sequence and its conventions.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsPulse = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ *
+   * §3 — the intra-month law, as the frozen engine actually applies it.
+   * ------------------------------------------------------------------ */
+  var LAW = [
+    { n:1, key:'opening',   title:'Opening cohort state',
+      formula:'openingARR = Σ cohort.live', note:'Every cohort alive at the start of the month.' },
+    { n:2, key:'leakage',   title:'Retention, then leakage',
+      formula:'retained = opening × g   ·   leakage = opening − retained',
+      note:'Applied per cohort, to that cohort’s OPENING balance, using the age band it occupies at the START of the month.' },
+    { n:3, key:'expansion', title:'Expansion',
+      formula:'expansion = retained × e',
+      note:'Applied to RETAINED ARR — the post-leakage balance — not to opening ARR. This is a real convention, not a rounding detail.' },
+    { n:4, key:'new',       title:'New cohort creation',
+      formula:'newARR = S&M ÷ cacPerARR',
+      note:'Created AFTER every existing cohort has aged. It neither leaks nor expands in its birth month.' },
+    { n:5, key:'closing',   title:'Closing ARR',
+      formula:'closing = Σ retained + Σ expansion + newARR',
+      note:'Identical to opening + new + expansion − leakage. The bridge is an identity, not a check.' },
+    { n:6, key:'revenue',   title:'Revenue',
+      formula:'revenue = ((openingARR + closingARR) ÷ 2) ÷ 12',
+      note:'A MIDPOINT convention. Revenue does not come from closing ARR alone. The new cohort contributes (0 + newARR)/2 — half a month — in its birth month.' },
+    { n:7, key:'margin',    title:'Gross-margin split',
+      formula:'COGS = revenue × (1 − GM)   ·   GP = revenue × GM', note:'One uniform margin across every cohort.' },
+    { n:8, key:'opex',      title:'Operating absorption',
+      formula:'EBITA = GP − S&M − R&D − G&A', note:'S&M is a current-period expense AND the thing that created this month’s new cohort.' },
+    { n:9, key:'cash',      title:'FCF and cash',
+      formula:'FCF = EBITA   ·   closing cash = opening cash + FCF',
+      note:'Frozen simplification: no working capital, deferred revenue, tax or capex.' }
+  ];
+
+  function rowAt(c, t) {
+    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * One month, absolute. Cohort-anchored first, aggregates second — the
+   * aggregates are literally the sums of the cohort movements above them.
+   * ------------------------------------------------------------------ */
+  function pulseAt(res, t) {
+    var m = res.months[t - 1];
+    var cohorts = [], sumLeak = 0, sumExp = 0, sumOpen = 0, sumClose = 0;
+    for (var k = 0; k < res.cohorts.length; k++) {
+      var c = res.cohorts[k], r = rowAt(c, t);
+      if (!r) continue;
+      var isNew = c.acquisitionMonth === t;
+      cohorts.push({ index:k, id:c.id, acquisitionMonth:c.acquisitionMonth, isNew:isNew,
+                     opening:r.openingARR, retained:r.retainedARR, leakage:r.leakage,
+                     expansion:r.expansion, closing:r.closingARR,
+                     revenue:r.revenue, grossProfit:r.grossProfit });
+      sumLeak += r.leakage; sumExp += r.expansion;
+      sumOpen += r.openingARR; sumClose += r.closingARR;
+    }
+    var newC = cohorts.filter(function(x){ return x.isNew; })[0] || null;
+    var otherOpex = m.rd + m.ga;
+    return {
+      t:t, year:m.year, cohorts:cohorts,
+      openingARR:m.openingARR, leakage:m.leakage, expansion:m.expansion,
+      newARR:m.newARR, closingARR:m.closingARR,
+      /* the ARR bridge, as an identity */
+      arrResidual: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      cohortSumResidual: { opening: sumOpen - m.openingARR, closing: sumClose - m.closingARR,
+                           leakage: sumLeak - m.leakage, expansion: sumExp - m.expansion },
+      midpointARR:(m.openingARR + m.closingARR) / 2,
+      revenue:m.revenue, cogs:m.cogs, grossProfit:m.grossProfit,
+      sm:m.sm, rd:m.rd, ga:m.ga, otherOpex:otherOpex,
+      ebita:m.ebita, fcf:m.fcf, cashOpening:m.cashOpening, cashClosing:m.cashClosing,
+      gpResidual: m.revenue - m.cogs - m.grossProfit,
+      fcfResidual: m.grossProfit - m.sm - otherOpex - m.fcf,
+      cashResidual: m.cashOpening + m.fcf - m.cashClosing,
+      /* §6 honesty: how much of this month's GP the new cohort actually produced */
+      newCohortRevenueThisMonth: newC ? newC.revenue : 0,
+      newCohortGPThisMonth: newC ? newC.grossProfit : 0,
+      sameMonthReturnOnSM: (newC && m.sm > 0) ? newC.grossProfit / m.sm : 0
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * §9 — the same month, rendered as Experiment − Base. Base becomes zero.
+   * ------------------------------------------------------------------ */
+  function deltaPulseAt(baseRes, expRes, t) {
+    var b = pulseAt(baseRes, t), x = pulseAt(expRes, t);
+    var keys = ['openingARR','leakage','expansion','newARR','closingARR','midpointARR',
+                'revenue','cogs','grossProfit','sm','rd','ga','otherOpex','ebita','fcf',
+                'cashOpening','cashClosing'];
+    var d = { t:t, base:b, experiment:x };
+    keys.forEach(function(kk){ d[kk] = x[kk] - b[kk]; });
+    d.arrResidual = d.openingARR + d.newARR + d.expansion - d.leakage - d.closingARR;
+    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.fcf;
+    d.cashResidual = d.cashOpening + d.fcf - d.cashClosing;
+    /* per-cohort deltas, so the delta stays cohort-anchored too */
+    d.cohorts = x.cohorts.map(function(xc){
+      var bc = b.cohorts.filter(function(y){ return y.index===xc.index; })[0];
+      return { index:xc.index, acquisitionMonth:xc.acquisitionMonth, isNew:xc.isNew,
+               opening:xc.opening-(bc?bc.opening:0), leakage:xc.leakage-(bc?bc.leakage:0),
+               expansion:xc.expansion-(bc?bc.expansion:0), closing:xc.closing-(bc?bc.closing:0) };
+    });
+    return d;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * §11 — ΔARR today IS the running sum of every monthly Δflow.
+   *   ΔClosing(T) = Σ_{t=1..T} (ΔNew + ΔExpansion − ΔLeakage)
+   * because ΔOpening(t) = ΔClosing(t−1) and ΔClosing(0) = 0.
+   * ------------------------------------------------------------------ */
+  function deltaAccumulator(baseRes, expRes) {
+    var rows = [], acc = 0, worst = 0;
+    for (var t = 1; t <= expRes.horizon; t++) {
+      var bm = baseRes.months[t-1], xm = expRes.months[t-1];
+      var dNew = xm.newARR - bm.newARR, dExp = xm.expansion - bm.expansion, dLeak = xm.leakage - bm.leakage;
+      var step = dNew + dExp - dLeak;
+      acc += step;
+      var dClose = xm.closingARR - bm.closingARR;
+      worst = Math.max(worst, Math.abs(acc - dClose));
+      rows.push({ t:t, dNew:dNew, dExpansion:dExp, dLeakage:dLeak, monthlyStep:step,
+                  cumulative:acc, dClosingARR:dClose, residual:acc - dClose,
+                  dRevenue:xm.revenue-bm.revenue, dGrossProfit:xm.grossProfit-bm.grossProfit,
+                  dFCF:xm.fcf-bm.fcf, dCash:xm.cashClosing-bm.cashClosing });
+    }
+    return { rows:rows, maxResidual:worst };
+  }
+
+  /* §12 — an illustrative intuition calibration, deliberately separate from
+     the engine scenario: repeated survival is exponential. */
+  function retentionExponent(a, b, n) {
+    a = a===undefined?0.98:a; b = b===undefined?0.99:b; n = n||60;
+    return { a:a, b:b, n:n, survA:Math.pow(a,n), survB:Math.pow(b,n),
+             ratio: Math.pow(b,n)/Math.pow(a,n), illustrative:true };
+  }
+
+  return { LAW:LAW, pulseAt:pulseAt, deltaPulseAt:deltaPulseAt,
+           deltaAccumulator:deltaAccumulator, retentionExponent:retentionExponent };
+});
+</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, PU = window.SaaSPhysicsPulse;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -1322,6 +1505,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var baseRes, expRes, baseS, expS;
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
   var capitalMode = false, capAgg = null;
+  /* §14 — two layers, two lenses, one comparator. Inspect subsumes the old
+     Anatomy and Capital-loop toggles; nothing new is navigable. */
+  var layer = 'stock', compare = 'absolute';
+  var pulseStep = 0, pulsePlaying = false, pulseTimer = 0, PULSE_STEPS = 9;
   var lastMsg = null;
 
   /* ---------- formatting ---------- */
@@ -1502,6 +1689,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   function render(){
     if(!geo) resize();
+    if(layer==='flow'){ drawFlow(); return; }
     var S = scales(), t = tau, mi = Math.floor(t);
     ctx.clearRect(0,0,W,HH);
 
@@ -1646,6 +1834,166 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.cashBot+13);
   }
 
+  /* ==================================================================== *
+   * FLOW LAYER — the Pulse. One month of the frozen engine, proved.
+   * Cohort transformations happen first; the aggregate bands beside them are
+   * literally the sums of those movements. Three declared scales, never mixed.
+   * ==================================================================== */
+  var lawAnchors = {};
+  function pulseData(){
+    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    return compare==='delta' ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
+  }
+  function drawFlow(){
+    var d = pulseData(), isD = compare==='delta';
+    var st = pulseStep;
+    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    var L=76, R=26, T=58, B=86;
+    var colTop=T, colBot=HH-B, colH=colBot-colTop;
+    var xOpen=L+26, colW=76, xClose=L+392, xPnl=xClose+colW+118;
+
+    /* --- three declared scales --- */
+    var stockMax = Math.max(Math.abs(d.openingARR), Math.abs(d.closingARR)) || 1;
+    var sStock = (colH*0.86)/stockMax;                                    // px per € of ARR
+    var flowMax = Math.max(Math.abs(d.newARR), Math.abs(d.expansion), Math.abs(d.leakage)) || 1;
+    var sFlow = (colH*0.24)/flowMax;                                      // px per € of ARR movement
+    var pnlMax = Math.max(Math.abs(d.revenue), Math.abs(d.grossProfit)+Math.abs(d.cogs)) || 1;
+    var sPnl = (colH*0.60)/pnlMax;                                        // px per € per month
+
+    function num(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
+
+    /* --- opening column, cohort-anchored --- */
+    function drawColumn(x, which){
+      var acc=0, base=colBot;
+      d.cohorts.forEach(function(c){
+        var v = which==='open' ? c.opening : c.closing;
+        if(which==='open' && c.isNew) return;
+        var h = v*sStock, y = base-acc-h;
+        var col = rampAt(c.acquisitionMonth/H);
+        ctx.fillStyle = rgba(col, isD ? (v>=0?0.9:0.45) : 0.92);
+        ctx.fillRect(x, Math.min(y,base-acc), colW, Math.abs(h));
+        ctx.strokeStyle='rgba(11,16,19,.6)'; ctx.lineWidth=0.8; ctx.strokeRect(x, Math.min(y,base-acc), colW, Math.abs(h));
+        /* the cohort's own movement, marked in place before any aggregate exists */
+        if(which==='open' && st>=1 && c.leakage>0){
+          ctx.fillStyle='rgba(59,74,85,.95)';
+          ctx.fillRect(x, base-acc-h, colW, Math.max(0.7, c.leakage*sStock));
+        }
+        if(which==='close' && st>=2 && c.expansion>0 && !c.isNew){
+          ctx.fillStyle='rgba(247,221,196,.65)';
+          ctx.fillRect(x, base-acc-h, colW, Math.max(0.7, c.expansion*sStock));
+        }
+        acc += h;
+      });
+      return acc;
+    }
+    var hOpen = drawColumn(xOpen,'open');
+    ctx.fillStyle='#8fa0aa'; ctx.font='10px "Archivo",sans-serif'; ctx.textAlign='center';
+    ctx.fillText('OPENING', xOpen+colW/2, colBot+16);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(num(d.openingARR), xOpen+colW/2, colBot+31);
+    if(st>=1){ ctx.fillStyle='#5d6c75'; ctx.font='9px "Archivo",sans-serif';
+      ctx.fillText(d.cohorts.filter(function(c){return !c.isNew;}).length+' cohorts', xOpen+colW/2, colBot+44); }
+
+    /* --- aggregate ARR movement bands: the sums of what just happened --- */
+    var bandX = xOpen+colW+34, bandW = xClose-bandX-34;
+    var BANDS = [
+      { s:1, key:'persistenceAnnual', label:'− Leakage',   v:-d.leakage,   col:'rgba(59,74,85,.95)',  note:'each cohort × (1 − g), on its OPENING balance' },
+      { s:2, key:'expansionCoefficientAnnual', label:'+ Expansion', v:d.expansion,  col:'rgba(247,221,196,.7)', note:'each retained cohort × e — on RETAINED, not opening' },
+      { s:3, key:'sm', label:'+ New ARR',   v:d.newARR,     col:'rgba(201,114,47,.9)',  note:'S&M ÷ CAC per New ARR — created after the others age' }
+    ];
+    var by = colTop + colH*0.14;
+    BANDS.forEach(function(b){
+      var h = Math.max(3, Math.abs(b.v)*sFlow);
+      lawAnchors[b.key] = { x:bandX, y:by+h+22 };   /* the control sits under the law it governs */
+      if(st >= b.s){
+        ctx.fillStyle=b.col; ctx.fillRect(bandX, by, bandW, h);
+        ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+        ctx.fillText(b.label, bandX, by-8);
+        ctx.textAlign='right'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+        ctx.fillText(num(b.v), bandX+bandW, by-8);
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+        ctx.fillText(b.note, bandX, by+h+12);
+      }
+      by += h + 84;
+    });
+
+    /* --- closing column --- */
+    if(st>=4){
+      drawColumn(xClose,'close');
+      ctx.fillStyle='#8fa0aa'; ctx.font='10px "Archivo",sans-serif'; ctx.textAlign='center';
+      ctx.fillText('CLOSING', xClose+colW/2, colBot+16);
+      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+      ctx.fillText(num(d.closingARR), xClose+colW/2, colBot+31);
+      ctx.fillStyle='#4f9e77'; ctx.font='9px "JetBrains Mono",monospace';
+      ctx.fillText('bridge residual '+d.arrResidual.toExponential(1), xClose+colW/2, colBot+44);
+      /* the midpoint the revenue convention actually uses */
+      if(st>=5){
+        var ym = colBot - d.midpointARR*sStock;
+        ctx.save(); ctx.setLineDash([4,3]); ctx.beginPath();
+        ctx.moveTo(xOpen-14, ym); ctx.lineTo(xClose+colW+14, ym);
+        ctx.strokeStyle='rgba(226,233,236,.5)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+        ctx.fillText('midpoint '+num(d.midpointARR)+' — revenue comes from HERE, not from closing', xOpen-14, ym-6);
+      }
+    }
+
+    /* --- P&L cascade: € per month, its own scale --- */
+    if(st>=5){
+      var revH = Math.abs(d.revenue)*sPnl, yRev = colTop+colH*0.13;
+      function bar(x,y,w,h,fill,label,val,sub){
+        ctx.fillStyle=fill; ctx.fillRect(x,y,w,Math.max(2,h));
+        ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+        ctx.fillText(label, x, y-5);
+        ctx.textAlign='right'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+        ctx.fillText(val, x+w, y-5);
+        if(sub){ ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+                 ctx.fillText(sub, x, y+Math.max(2,h)+11); }
+      }
+      bar(xPnl, yRev, 142, revH, 'rgba(201,114,47,.55)', 'Revenue', num(d.revenue), '(opening + closing) ÷ 2 ÷ 12');
+      var xg=xPnl+174, cogsH=Math.abs(d.cogs)*sPnl, gpH=Math.abs(d.grossProfit)*sPnl;
+      lawAnchors.grossMargin = { x:xg-6, y:yRev-56 };
+      if(st>=6){
+        bar(xg, yRev, 146, cogsH, 'rgba(59,74,85,.9)', 'COGS', num(d.cogs));
+        bar(xg, yRev+cogsH+10, 146, gpH, 'rgba(201,114,47,.85)', 'Gross profit', num(d.grossProfit));
+        var xo=xg+182, yo=yRev+cogsH+10;
+        lawAnchors.cacPerARR = { x:xo-4, y:yo-56 };
+        if(st>=7){
+          var smH=Math.abs(d.sm)*sPnl, otH=Math.abs(d.otherOpex)*sPnl, fcfH=Math.abs(d.fcf)*sPnl;
+          bar(xo, yo, 158, smH, 'rgba(90,143,214,.75)', 'S&M', num(d.sm), smH>26 ? 'creates this month’s new cohort' : '');
+          bar(xo, yo+smH+34, 158, otH, 'rgba(59,74,85,.85)', 'Other operating', num(d.otherOpex));
+          bar(xo, yo+smH+otH+52, 158, fcfH, d.fcf>=0?'rgba(79,158,119,.85)':'rgba(201,151,63,.85)', 'FCF', num(d.fcf));
+          /* §6 — S&M bends back to the deposition head. The return is delayed.
+             Suppressed when ΔS&M is zero: there would be no capital movement to draw. */
+          if(Math.abs(d.sm) > 1){
+          ctx.save(); ctx.beginPath();
+          ctx.moveTo(xo, yo+smH/2);
+          ctx.bezierCurveTo(xo-150, yo+smH/2, xClose+colW+70, colTop+18, xClose+colW+4, colTop+26);
+          ctx.strokeStyle='rgba(90,143,214,.6)'; ctx.lineWidth=1.6; ctx.setLineDash([5,4]); ctx.stroke(); ctx.restore();
+          ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+          ctx.fillText('S&M creates the new cohort — only '+eur(d.experiment?d.experiment.newCohortGPThisMonth:d.newCohortGPThisMonth)+
+                       ' of GP returns this month', xClose+colW-4, colTop+14);
+          }
+          if(st>=8){
+            ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+            ctx.fillText('Cash', xo, yo+smH+otH+fcfH+84);
+            ctx.font='12px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+            ctx.fillText(num(d.cashOpening)+'  +  '+num(d.fcf)+'  =  '+num(d.cashClosing), xo, yo+smH+otH+fcfH+102);
+          }
+        }
+      }
+    }
+
+    /* --- declared scales, so nothing is silently exaggerated --- */
+    ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.fillText('SCALES  stock '+(sStock*1e6).toFixed(2)+' px/€m ARR   ·   ARR movement '+(sFlow*1e6).toFixed(2)+
+                 ' px/€m   ·   P&L '+(sPnl*1e6).toFixed(2)+' px/€m per month', L, HH-16);
+    ctx.fillText((isD?'DELTA PULSE · Experiment − Base':'ABSOLUTE PULSE')+'  ·  month '+d.t, L, 22);
+    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('ARR movement is drawn at a finer scale than the stock: one month of flow against a stock measured in years.', L, 38);
+    positionLawChips();
+  }
+
   /* ------------------------------------------------------------------ *
    * CAPITAL RECOVERY TRACK
    * Below the surface line: capital still out. Above it: gross profit beyond
@@ -1769,6 +2117,66 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
   }
 
+  /* ------------------------------------------------------------------ *
+   * §7 — the controls live on the laws, positioned at the transformation
+   * they govern. Same values as the Stock-layer rail; one source of truth.
+   * ------------------------------------------------------------------ */
+  var LAWCHIPS = [
+    {k:'persistenceAnnual', label:'persistence', f:'pct', min:0.6, max:0.99, step:0.005},
+    {k:'expansionCoefficientAnnual', label:'expansion', f:'pct', min:0, max:0.4, step:0.005},
+    {k:'sm', label:'S&M', f:'eur', min:0, max:2500000, step:25000},
+    {k:'cacPerARR', label:'CAC / New ARR', f:'x', min:0.3, max:3, step:0.05},
+    {k:'grossMargin', label:'gross margin', f:'pct', min:0.4, max:0.95, step:0.005}
+  ];
+  var openChip = null;
+  function buildLawChips(){
+    var host=document.getElementById('lawhost'); host.innerHTML='';
+    LAWCHIPS.forEach(function(Lc){
+      var el=document.createElement('div'); el.className='lawchip'; el.id='chip-'+Lc.k;
+      el.style.pointerEvents='auto'; el.style.display='none';
+      el.innerHTML='<span>'+esc(Lc.label)+' <b id="cv-'+Lc.k+'"></b></span>'+
+        '<input type="range" id="cr-'+Lc.k+'" min="'+Lc.min+'" max="'+Lc.max+'" step="'+Lc.step+'" hidden>';
+      host.appendChild(el);
+      el.addEventListener('click', function(ev){
+        if(ev.target.tagName==='INPUT') return;
+        var open = el.classList.toggle('open');
+        el.querySelector('input').hidden = !open;
+        openChip = open ? Lc.k : null;
+      });
+      el.querySelector('input').addEventListener('input', function(e){
+        expA = Object.assign({}, expA); expA[Lc.k] = parseFloat(e.target.value); recompute();
+      });
+    });
+  }
+  function positionLawChips(){
+    LAWCHIPS.forEach(function(Lc){
+      var el=document.getElementById('chip-'+Lc.k); if(!el) return;
+      var a=lawAnchors[Lc.k];
+      if(layer!=='flow' || !a){ el.style.display='none'; return; }
+      el.style.display='block'; el.style.left=Math.round(a.x)+'px'; el.style.top=Math.round(a.y)+'px';
+      document.getElementById('cv-'+Lc.k).textContent = fmtF(Lc.f, expA[Lc.k]);
+      var inp=document.getElementById('cr-'+Lc.k); inp.value=expA[Lc.k];
+    });
+  }
+
+  /* ---------- pulse transport ---------- */
+  var STEPNAMES = ['A · Opening state','B · Leakage','C · Expansion','D · New ARR','E · Closing state',
+                   'F · Revenue','G · Margin split','H · Operating allocation','I · Cash'];
+  function syncPulse(){
+    document.getElementById('pulse-step').textContent = STEPNAMES[pulseStep];
+    var law = PU.LAW[pulseStep];
+    document.getElementById('pulse-law').innerHTML =
+      '<b style="color:var(--ink-2);font-family:var(--mono)">'+esc(law.formula)+'</b> &nbsp; '+esc(law.note);
+    render(); renderSide();
+  }
+  function stepTo(n){ pulseStep=Math.max(0,Math.min(PULSE_STEPS-1,n)); syncPulse(); }
+  function pulseTick(){
+    if(!pulsePlaying) return;
+    if(pulseStep>=PULSE_STEPS-1){ pulsePlaying=false; document.getElementById('pulse-play').classList.remove('play'); return; }
+    stepTo(pulseStep+1);
+    pulseTimer=setTimeout(pulseTick, 950);
+  }
+
   /* ---------- hit testing: every euro of ARR has a history ---------- */
   cv.addEventListener('mousemove', function(ev){
     var r=cv.getBoundingClientRect(), mx=ev.clientX-r.left, my=ev.clientY-r.top;
@@ -1838,6 +2246,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * Side column — pause and inspect
    * ------------------------------------------------------------------ */
   function renderSide(){
+    if(layer==='flow'){ return renderFlowSide(); }
     var t=tau, m=Math.max(1, Math.min(H, Math.round(t)));
     var em=expRes.months[m-1], bm=baseRes.months[m-1];
     var mix=E.arrMix(expRes, m);
@@ -1921,6 +2330,69 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
   }
 
+  /* ---------- §17 reconciliation + §11 Δ-stock accumulator ---------- */
+  function renderFlowSide(){
+    var d = pulseData(), isD = compare==='delta';
+    var m = d.t;
+    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
+    var h='<div class="sgrp"><div class="eyebrow">'+(isD?'Delta pulse · Experiment − Base':'Absolute pulse')+' · month '+m+'</div>'+
+      '<div class="hint" style="margin-top:5px">'+(isD
+        ? 'Base is zero. The canvas contains only differences, in euros, at their own honest scale.'
+        : 'Every band is engine output for this month. Nothing is illustrative.')+'</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">ARR bridge</div><div class="recon">'+
+      r('Opening ARR', n(d.openingARR)) + r('+ New', n(d.newARR)) + r('+ Expansion', n(d.expansion)) +
+      r('− Leakage', n(-d.leakage)) + r('= Closing ARR', n(d.closingARR), 'tot') +
+      r('residual', '<span style="color:var(--good)">'+d.arrResidual.toExponential(1)+'</span>') +
+      '</div>'+(isD && Math.abs(d.leakage)>1
+        ? '<div class="hint" style="margin-top:7px">Leakage itself is '+eur(Math.abs(d.leakage))+
+          (d.leakage<0?' <b style="color:var(--ink)">lower</b>':' <b style="color:var(--ink)">higher</b>')+
+          ' than Base, so its −term contributes '+n(-d.leakage)+' to closing ARR.</div>' : '')+'</div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Financial bridge</div><div class="recon">'+
+      r('Revenue', n(d.revenue)) + r('− COGS', n(-d.cogs)) + r('= Gross profit', n(d.grossProfit), 'tot') +
+      r('− S&M', n(-d.sm)) + r('− Other operating', n(-d.otherOpex)) + r('= FCF', n(d.fcf), 'tot') +
+      r('residual', '<span style="color:var(--good)">'+d.fcfResidual.toExponential(1)+'</span>') +
+      '</div><div class="recon" style="margin-top:8px">'+
+      r('Opening cash', n(d.cashOpening)) + r('+ FCF', n(d.fcf)) + r('= Closing cash', n(d.cashClosing), 'tot') +
+      r('residual', '<span style="color:var(--good)">'+d.cashResidual.toExponential(1)+'</span>') +
+      '</div></div>';
+
+    /* §6 — the delayed loop, stated in euros */
+    var abs = isD ? d.experiment : d;
+    h+='<div class="sgrp"><div class="eyebrow">The delayed loop</div><div class="hint" style="line-height:1.65;margin-top:5px">'+
+      'S&M of <b style="color:var(--ink)">'+eur(abs.sm)+'</b> created this month\'s cohort of <b style="color:var(--ink)">'+eur(abs.newARR)+
+      '</b> of ARR. That cohort produced <b style="color:var(--ink)">'+eur(abs.newCohortGPThisMonth)+'</b> of gross profit this month — '+
+      pct(abs.sameMonthReturnOnSM,1)+' of the spend, because the engine gives a birth-month cohort half a month of revenue. '+
+      'The rest arrives over the following '+expRes.derived.cacPaybackMonths.toFixed(0)+' months.</div></div>';
+
+    /* §11 — ΔARR today IS the running sum of the monthly Δflows */
+    if(isD){
+      var acc = PU.deltaAccumulator(baseRes, expRes), row = acc.rows[m-1];
+      h+='<div class="sgrp"><div class="eyebrow">Δ stock accumulator</div><div class="recon" style="margin-top:5px">'+
+        r('This month’s Δflow', n(row.monthlyStep)) +
+        r('Σ Δflows to date', n(row.cumulative)) +
+        r('Δ Closing ARR now', n(row.dClosingARR), 'tot') +
+        r('identity residual', '<span style="color:var(--good)">'+row.residual.toExponential(1)+'</span>') +
+        '</div><div class="hint" style="margin-top:8px;line-height:1.65">Δ ARR today <b style="color:var(--ink)">is</b> the sum of every monthly Δflow, because Δopening(t) = Δclosing(t−1). '+
+        'Flow creates stock; the stock then produces its own flows. Max identity residual over 60 months: €'+acc.maxResidual.toExponential(1)+'.</div>'+
+        '<div class="recon" style="margin-top:9px">'+
+        r('Δ Revenue this month', n(row.dRevenue)) + r('Δ Gross profit', n(row.dGrossProfit)) +
+        r('Δ FCF', n(row.dFCF)) + r('Δ Cash', n(row.dCash), 'tot') + '</div></div>';
+    }
+
+    /* §12 — illustrative exponent calibration, clearly separated */
+    var re = PU.retentionExponent();
+    h+='<div class="sgrp"><div class="eyebrow">Why small and repeated is large</div><div class="recon" style="margin-top:5px">'+
+      r('0.98 survival, 60 months', pct(re.survA,1)) + r('0.99 survival, 60 months', pct(re.survB,1)) +
+      r('ratio', re.ratio.toFixed(2)+'×', 'tot') +
+      '</div><div class="hint" style="margin-top:7px">One point of monthly survival nearly doubles what is left after five years. '+
+      '<b style="color:var(--warn)">Illustrative</b> — not the engine scenario\'s configuration.</div></div>';
+
+    document.getElementById('side').innerHTML=h;
+  }
+
   /* ---------- causal feedback, from real simulation outputs ---------- */
   function renderCausal(prevExp, reuse){
     var slot=document.getElementById('causal-slot'); if(!slot) return;
@@ -1995,12 +2467,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     renderSide(); renderCascade();
   }
 
-  document.getElementById('capital').addEventListener('click', function(){
-    capitalMode=!capitalMode; this.classList.toggle('on',capitalMode);
-    resize(); renderCascade(); renderSide();
+  function setLayer(l){
+    layer=l;
+    document.getElementById('layer-stock').classList.toggle('on', l==='stock');
+    document.getElementById('layer-flow').classList.toggle('on', l==='flow');
+    document.querySelector('.app').classList.toggle('flow', l==='flow');
+    document.getElementById('pulsebar').hidden = l!=='flow';
+    document.querySelector('.cascade').hidden = l==='flow';
+    if(l==='flow'){ playing=false; document.getElementById('play').classList.remove('play'); playIcon(); }
+    setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
+    syncPulse(); renderSide();
+  }
+  document.getElementById('layer-stock').addEventListener('click', function(){ setLayer('stock'); });
+  document.getElementById('layer-flow').addEventListener('click', function(){ setLayer('flow'); });
+  ['abs','delta'].forEach(function(c){
+    document.getElementById('cmp-'+c).addEventListener('click', function(){
+      compare = c==='abs'?'absolute':'delta';
+      document.getElementById('cmp-abs').classList.toggle('on', compare==='absolute');
+      document.getElementById('cmp-delta').classList.toggle('on', compare==='delta');
+      render(); renderSide();
+    });
   });
+  /* Inspect subsumes the old Anatomy and Capital-loop toggles (§14) */
   document.getElementById('anatomy').addEventListener('click', function(){
-    anatomy=!anatomy; this.classList.toggle('on',anatomy); renderSide();
+    anatomy=!anatomy; capitalMode=anatomy; this.classList.toggle('on',anatomy);
+    resize(); renderCascade(); renderSide(); render();
+  });
+  document.getElementById('pulse-prev').addEventListener('click', function(){ pulsePlaying=false; clearTimeout(pulseTimer); this.parentNode.querySelector('#pulse-play').classList.remove('play'); stepTo(pulseStep-1); });
+  document.getElementById('pulse-next').addEventListener('click', function(){ pulsePlaying=false; clearTimeout(pulseTimer); document.getElementById('pulse-play').classList.remove('play'); stepTo(pulseStep+1); });
+  document.getElementById('pulse-play').addEventListener('click', function(){
+    clearTimeout(pulseTimer);
+    pulsePlaying=!pulsePlaying; this.classList.toggle('play',pulsePlaying);
+    if(pulsePlaying){ if(pulseStep>=PULSE_STEPS-1) pulseStep=0; syncPulse(); pulseTimer=setTimeout(pulseTick,950); }
   });
   document.getElementById('keybtn').addEventListener('click', function(){ document.getElementById('key').classList.add('on'); });
   document.getElementById('keyclose').addEventListener('click', function(){ document.getElementById('key').classList.remove('on'); });
@@ -2014,7 +2512,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var last=performance.now(), acc=0;
   function frame(now){
     var dt=Math.min(100, now-last); last=now;
-    if(playing){
+    if(playing && layer==='stock'){
       tau += dt/1000 * 2.2 * speed;                 // ~2.2 simulated months per second at 1×
       if(tau>=H){ tau=H; playing=false; playBtn.classList.remove('play'); playIcon(); }
       scrub.value=tau;
@@ -2024,7 +2522,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     requestAnimationFrame(frame);
   }
 
-  buildForces(); playIcon(); resize(); recompute(); syncTime();
+  buildForces(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
   requestAnimationFrame(frame);
 })();
 </script>
