@@ -4,8 +4,8 @@ Conceptual weaknesses exposed by running the prototype. Nothing here was silentl
 where an equation looked weak it was implemented as specified, and it stays that way until an
 iteration is explicitly chartered to change it.
 
-Updated for **model v0.2**. Ordered by how badly each distorts a CFO's intuition, not by how hard
-it is to fix.
+Updated for **model v0.2.1**. Ordered by how badly each distorts a CFO's intuition, not by how
+hard it is to fix.
 
 ---
 
@@ -47,9 +47,46 @@ ARR generator's source.
 
 ---
 
-## New in v0.2
+## New in v0.2.1
 
-### 1. Matched NRR hides two different businesses — and the reason is precise
+### 1. The parameters were never the KPIs — and my first explanation of the gap was wrong
+
+Prototype 0.2 reported a 90% persistence input measuring as 89.56% GRR. The first decomposition
+attributed this to three effects — compounding convention, moving base, and expansion charged on
+retained ARR. **Two of those cancel exactly.** Setting the expansion coefficient to zero makes
+measured GRR equal the persistence coefficient to 16 decimal places; setting persistence to 100%
+makes measured expansion equal its coefficient exactly. The entire residual is the within-period
+*interaction* of the two processes, and nothing else. Corrected in `kpi.js` and
+[`MEASUREMENT.md`](MEASUREMENT.md).
+
+The structural consequence is larger than the arithmetic: **a transition coefficient and a KPI of
+the same name are different objects**, and the model now says so in code — the economic engine
+(`engine.js`) holds coefficients, the measurement engine (`kpi.js`) holds definitions, and events
+flow one way between them.
+
+### 2. Any two systems reporting the same R12M NRR are identical in this model — by construction
+
+v0.2 found that a retention-heavy and an expansion-heavy business at matched NRR were
+indistinguishable, and attributed it to the two coefficient sets happening to share a product.
+Re-running the experiment through the measurement layer gives a stronger statement: measured R12M
+NRR is a ratio of two *stocks*, so pinning it pins the monthly multiplier `m = NRR^(1/12)`
+uniquely — 1.004551007 in both scenarios, to nine decimals. The ARR recursion consumes nothing
+but `m`. So this is not a coincidence about two parameter choices; it is a theorem about the
+model.
+
+### 3. Cohort acquisition cost is one change away from being unrecoverable
+
+Not currently stored, but exactly reconstructible today as `initialARR × cacPerARR`. That
+reconstruction breaks permanently the first time `cacPerARR` varies with time, S&M is split
+between acquisition and expansion motions, or an acquisition lag is added — and the recommended
+next experiment does the second of those. One field, to be added before that change, not after.
+See [`MEASUREMENT.md`](MEASUREMENT.md) §G.
+
+---
+
+## From v0.2
+
+### 4. Matched NRR hides two different businesses — and the reason is precise
 
 Retention-heavy (GRR 96% × expansion 110%) and expansion-heavy (GRR 90% × expansion 117.33%) both
 give NRR 105.6%. The engine produces **identical** Year-1, Year-3 and Year-5 ARR, gross profit,
@@ -73,27 +110,27 @@ lifecycle assessment, is in [`MATCHED-NRR.md`](MATCHED-NRR.md).
 This is a boundary of the model, not a bug. No quality score, risk coefficient or weighting factor
 has been added to conceal it.
 
-### 2. The rate decomposition does not survive monthly conversion
+### 5. Reported KPIs and transition coefficients differ measurably
 
 Twelve compounded monthly steps reproduce the intended annual NRR exactly. The decomposition does
 not. At the defaults, measured from the opening cohort's first twelve months of flows:
 
-| | Input | Realised | Gap |
+| | Coefficient | Measured KPI | Gap |
 |---|---|---|---|
-| Gross retention | 90.00% | 89.56% | −0.44pp |
+| Persistence / GRR | 90.00% | 89.56% | −0.44pp |
 | Expansion | 10.00% | 9.44% | −0.56pp |
 | NRR | 99.00% | 99.00% | exact |
 
-Both flows accrue on a base that moves during the year, and expansion accrues on the post-churn
-base; the two errors offset exactly. So the aggregate is right while each component a finance team
-would report back is slightly understated. Small, but it matters the moment anyone compares a
-modelled GRR against a reported GRR. Surfaced in the interface rather than assumed away.
+The gap widens with the size of the other process — at a 35% expansion coefficient, measured GRR
+falls to 88.51%. It matters the moment anyone compares a modelled figure against a reported one,
+or calibrates a model to a board pack. Surfaced in the interface rather than assumed away, and
+invertible in closed form (see §D of `MEASUREMENT.md`).
 
 ---
 
 ## Still broken
 
-### 3. Acquisition is linear and unbounded in S&M — the model can always buy growth
+### 6. Acquisition is linear and unbounded in S&M — the model can always buy growth
 
 `New ARR = S&M ÷ cacPerARR` has no saturation term at any spend level. v0.2 fixed *which* variables
 drive acquisition; it did not touch the *shape*. Doubling S&M still doubles New ARR, at month 1 and
@@ -106,7 +143,7 @@ slider has no wrong setting.
 rises with spend (marginal worse than average). The single change that would give the model the
 ability to say *stop*.
 
-### 4. Efficiency and spend are indistinguishable in ARR
+### 7. Efficiency and spend are indistinguishable in ARR
 
 Improving `cacPerARR` 1.20× → 0.80× and raising S&M 50% both produce New ARR of €1.125m/month, and
 their ARR paths agree to **€0.00** across 60 months.
@@ -125,7 +162,7 @@ because ARR is prominent and efficiency is not. v0.2 improves this — CAC payba
 efficiency case and stays put in the spend case, which is a visible tell — but burn multiple and
 S&M as a share of net new ARR still are not on screen.
 
-### 5. Retention has no age structure
+### 8. Retention has no age structure
 
 Constant monthly GRR gives every cohort the same hazard forever: a one-month-old and a five-year-old
 cohort decay identically. Real survival curves have steeply *decreasing* hazard. The model therefore
@@ -134,25 +171,25 @@ first two years. At the defaults the opening base is still €19.02m of €62.93
 under a flattening hazard it would be materially higher. See `MATCHED-NRR.md` for why fixing this
 is both the most powerful and the most assumption-laden option.
 
-### 6. Expansion is unbounded and age-blind
+### 9. Expansion is unbounded and age-blind
 
 Cohorts expand at a constant rate indefinitely — no seat ceiling, no penetration curve, no product
 limit. Nothing can exhaust an account. Combined with §5 the cohort model is entirely scale-free.
 
-### 7. Expansion is free
+### 10. Expansion is free
 
 There is no cost attached to generating expansion ARR — no CSM capacity, account management,
 implementation or upsell effort. This is now the most consequential single omission, because it is
 the cheapest defensible way to break the matched-NRR tie: one coefficient, no ARR effect, and the
 separation is exactly linear in it (`Δending cash = c × €15.12m`).
 
-### 8. `FCF = EBITA` inverts the cash reality of subscription businesses
+### 11. `FCF = EBITA` inverts the cash reality of subscription businesses
 
 No deferred revenue, billings, working capital, tax, capex or interest. Real SaaS collects ahead of
 recognition, so growth is *cash-generative* at the working-capital line — the opposite sign to what
 this model shows. Every growth scenario looks more cash-expensive than it is.
 
-### 9. R&D is a cost with no modelled benefit — deliberately
+### 12. R&D is a cost with no modelled benefit — deliberately
 
 The future economic benefit of R&D is **outside the current simulation boundary**. v0.2 continues to
 encode no `R&D → GRR` or `R&D → expansion` law, because there is no defensible universal
@@ -163,29 +200,31 @@ The eventual fix is not a law but an **intervention**: let the user state a hypo
 additional R&D over 12 months → expansion +3pp after a 9-month delay" — and simulate that. A
 management thesis, explicitly owned by the user, not a property of SaaS. Not implemented.
 
-### 10. No acquisition lag
+### 13. No acquisition lag
 
 S&M spent in month *t* produces ARR in month *t*. Real sales cycles run 3–9 months, and that lag is
 exactly where the cash pain of a growth push lives.
 
-### 11. Leakage is a single number
+### 14. Leakage is a single number, and there are no customers
 
 Churn and contraction are combined, so the model cannot distinguish losing customers from customers
-shrinking. Reactivation is zero. There is also no customer count, so identical ARR paths can conceal
-very different logo survival — see `MATCHED-NRR.md`.
+shrinking — which is why the measurement layer cannot report them separately either, however
+correct its definitions are. Reactivation is zero. There is no customer count at all, so identical
+ARR paths and identical reported KPIs can conceal completely different logo survival and expansion
+concentration — see §F of `MEASUREMENT.md` for a worked pair.
 
-### 12. The opening base is one cohort running new-cohort physics
+### 15. The opening base is one cohort running new-cohort physics
 
 A real €20m installed base is a mixture of vintages retaining far better than a cohort acquired last
 month. One blended cohort systematically overstates decay of the existing book — which is 30% of
 Year-5 ARR.
 
-### 13. Midpoint revenue is an approximation
+### 16. Midpoint revenue is an approximation
 
 `((opening + closing) / 2) / 12` is a trapezoid rule on a geometrically moving stock. Small, and kept
 because it is legible.
 
-### 14. There is no price
+### 17. There is no price
 
 Expansion and leakage are pure quantity effects. Pricing is the highest-leverage control a CFO
 actually holds and it does not exist.
@@ -196,9 +235,15 @@ actually holds and it does not exist.
 
 - **The cohort spine.** Company ARR and revenue are only ever sums of cohorts, reconciling to ~10⁻⁸
   euros on €63m over all 60 months. Nothing is faked at the aggregate level.
-- **Emergence.** NRR lands exactly on `GRR × (1 + expansion)`; the 10× S&M probe leaves the NRR
-  series bit-identical. CAC payback now reconciles exactly to `cacPerARR × 12 ÷ GM` across a
-  five-point probe.
+- **Emergence.** Measured R12M NRR lands exactly on `P × (1 + X)`; the 10× S&M probe leaves every
+  R12M measure bit-identical at every measurement date. CAC payback reconciles exactly to
+  `cacPerARR × 12 ÷ GM` across a five-point probe.
+- **Layer separation.** The KPI bridge reconciles to €1.5×10⁻⁸ and the identity
+  `GRR + expansion = NRR` to 3.3×10⁻¹⁶ at all 49 measurement dates. Expansion is provably unable
+  to improve GRR — it monotonically worsens it, which is the interaction effect showing up as a
+  testable prediction rather than an assertion.
+- **Invertibility.** Target measured KPIs can be reproduced by calibrated coefficients in closed
+  form, to nine decimals, without touching acquisition physics.
 - **Lever separation, now complete.** Retention changes leakage and nothing else. S&M and
   acquisition productivity change acquisition and nothing else. Gross margin changes economics and
   nothing else — the last cross-contamination is gone.
@@ -209,6 +254,8 @@ actually holds and it does not exist.
 
 ## Suggested order from here
 
+0. **Stamp `acquisitionCost` on each cohort at creation** — one line, and it must land *before*
+   step 1, which is what makes it unrecoverable.
 1. **Expansion cost** (`expansionCacPerARR`) — one coefficient, breaks the matched-NRR tie without
    touching ARR, structurally symmetric with `cacPerARR`. Recommended next.
 2. **Customer count and logo retention** — makes R and X observably different with no judgment

@@ -4,9 +4,9 @@
  * SAME engine. Targeted economic-integrity checks, not a general test suite.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
-  else root.SaaSPhysicsIntegrity = factory(root.SaaSPhysics);
-})(typeof self !== 'undefined' ? self : globalThis, function (E) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./kpi.js'));
+  else root.SaaSPhysicsIntegrity = factory(root.SaaSPhysics, root.SaaSPhysicsKPI);
+})(typeof self !== 'undefined' ? self : globalThis, function (E, K) {
   'use strict';
 
   var EPS = 1e-6; // euros
@@ -60,7 +60,7 @@
        w4 < 1e-12, 'NRR delta ' + w4.toExponential(3) + ' while New ARR scaled ' + scale.toFixed(4) + '×');
 
     /* 4b. NRR emerges rather than being assumed */
-    var implied = A.grrAnnual * (1 + A.expansionAnnual);
+    var implied = A.persistenceAnnual * (1 + A.expansionCoefficientAnnual);
     var simNRR = BASE.months[BASE.horizon - 1].nrrAnnualised;
     ok('NRR emerges from GRR × (1 + expansion) — never an input',
        Math.abs(simNRR - implied) < 1e-9,
@@ -77,14 +77,14 @@
        w5 < EPS && endRes < EPS, 'max step residual €' + w5.toExponential(3) + ', ending residual €' + endRes.toExponential(3));
 
     /* 6. One engine for both scenarios */
-    var b = E.run(A), x = E.run(Object.assign({}, A, { grrAnnual: Math.min(0.999, A.grrAnnual + 0.06) }));
+    var b = E.run(A), x = E.run(Object.assign({}, A, { persistenceAnnual: Math.min(0.999, A.persistenceAnnual + 0.06) }));
     var sameSchema = b.modelVersion === x.modelVersion && b.months.length === x.months.length &&
                      Object.keys(b.months[0]).join() === Object.keys(x.months[0]).join();
     ok('Base and Experiment run through one engine entry point and one output schema',
        sameSchema, 'E.run is the single entry point; identical output schema: ' + sameSchema);
 
     /* 7. GRR alone creates no New ARR */
-    var hi = E.run(Object.assign({}, A, { grrAnnual: Math.min(0.999, A.grrAnnual + 0.06) }));
+    var hi = E.run(Object.assign({}, A, { persistenceAnnual: Math.min(0.999, A.persistenceAnnual + 0.06) }));
     var w7 = 0;
     for (i = 0; i < BASE.months.length; i++) w7 = Math.max(w7, Math.abs(BASE.months[i].newARR - hi.months[i].newARR));
     ok('Raising GRR alone creates no New ARR (it only reduces leakage)',
@@ -172,13 +172,110 @@
 
     /* A7. Matched-NRR scenarios reproduce the intended annual NRR */
     var TARGET = 0.96 * 1.10;                       // 105.6%
-    var R = E.run(Object.assign({}, A, { grrAnnual: 0.96, expansionAnnual: 0.10 }));
-    var X = E.run(Object.assign({}, A, { grrAnnual: 0.90, expansionAnnual: TARGET / 0.90 - 1 }));
+    var R = E.run(Object.assign({}, A, { persistenceAnnual: 0.96, expansionCoefficientAnnual: 0.10 }));
+    var X = E.run(Object.assign({}, A, { persistenceAnnual: 0.90, expansionCoefficientAnnual: TARGET / 0.90 - 1 }));
     var nR = R.months[R.horizon - 1].nrrAnnualised, nX = X.months[X.horizon - 1].nrrAnnualised;
     ok('ACQ · Matched-NRR scenarios R (96%×110%) and X (90%×117.33%) both reproduce NRR ' + (TARGET * 100).toFixed(1) + '%',
        Math.abs(nR - TARGET) < 1e-12 && Math.abs(nX - TARGET) < 1e-12,
        'R ' + (nR * 100).toFixed(10) + '%, X ' + (nX * 100).toFixed(10) + '%, max deviation ' +
        Math.max(Math.abs(nR - TARGET), Math.abs(nX - TARGET)).toExponential(2));
+
+    /* ================================================================ *
+     * v0.2.1 — the economic engine and the measurement engine are two layers
+     * ================================================================ */
+    var TGT_GRR = 0.90, TGT_EXP = 0.10;
+    var mBase = K.measureR12M(BASE, 12);
+
+    /* K1. Transition coefficients and reported KPIs are distinct objects */
+    var dec = K.decompose(A.persistenceAnnual, A.expansionCoefficientAnnual);
+    var predicted = Math.abs(dec.measuredGRR - mBase.grr) < 1e-9 &&
+                    Math.abs(dec.measuredExpansion - mBase.expansionRate) < 1e-9;
+    var distinct = Math.abs(mBase.grr - A.persistenceAnnual) > 1e-6 ||
+                   Math.abs(mBase.expansionRate - A.expansionCoefficientAnnual) > 1e-6;
+    ok('KPI · Transition coefficients ≠ reported KPIs, and the gap matches the closed-form decomposition',
+       predicted && distinct,
+       'persistence ' + (A.persistenceAnnual * 100).toFixed(2) + '% → measured GRR ' + (mBase.grr * 100).toFixed(4) +
+       '%; expansion coefficient ' + (A.expansionCoefficientAnnual * 100).toFixed(2) + '% → measured expansion ' +
+       (mBase.expansionRate * 100).toFixed(4) + '%; prediction matches simulation: ' + predicted);
+
+    /* K2. The R12M measurement cohort excludes New ARR */
+    var big = E.run(Object.assign({}, A, { sm: A.sm * 10 })), wK = 0, wN = 0;
+    for (i = 12; i <= BASE.horizon; i++) {
+      var a1 = K.measureR12M(BASE, i), b1 = K.measureR12M(big, i);
+      wK = Math.max(wK, Math.abs(a1.grr - b1.grr), Math.abs(a1.expansionRate - b1.expansionRate), Math.abs(a1.nrr - b1.nrr));
+      wN = Math.max(wN, b1.newARRExcluded - a1.newARRExcluded);
+    }
+    ok('KPI · R12M cohort excludes New ARR (10× S&M leaves GRR, expansion and NRR unchanged at every T)',
+       wK < 1e-12,
+       'max KPI delta ' + wK.toExponential(3) + ' while New ARR inside the window rose by up to €' +
+       (wN / 1e6).toFixed(2) + 'm');
+
+    /* K3. Expansion must not improve GRR */
+    var xs = [0, 0.05, 0.10, 0.20, 0.35], grrs = xs.map(function (x) {
+      return K.measureR12M(E.run(Object.assign({}, A, { expansionCoefficientAnnual: x })), 12).grr;
+    });
+    var monotone = true;
+    for (i = 1; i < grrs.length; i++) if (grrs[i] > grrs[i - 1] + 1e-12) monotone = false;
+    ok('KPI · Expansion never improves measured GRR (it slightly worsens it: more base survives to leak)',
+       monotone,
+       'expansion 0%→35% moves GRR ' + (grrs[0] * 100).toFixed(4) + '% → ' + (grrs[grrs.length - 1] * 100).toFixed(4) +
+       '%, monotonically non-increasing');
+
+    /* K4/K5. Bridge and identity reconcile at every measurement date */
+    var wB = 0, wI = 0, wR = 0;
+    for (i = 12; i <= BASE.horizon; i++) {
+      var k = K.measureR12M(BASE, i);
+      wB = Math.max(wB, Math.abs(k.bridgeResidual));
+      wI = Math.max(wI, Math.abs(k.identityResidual));
+      wR = Math.max(wR, Math.abs(k.nrr - k.closingEligibleARR / k.openingARR));
+    }
+    ok('KPI · Bridge reconciles (Opening + Expansion − Leakage = Closing eligible) and NRR = GRR + Expansion',
+       wB < EPS && wI < 1e-12 && wR < 1e-12,
+       'max bridge residual €' + wB.toExponential(3) + '; max GRR+Exp−NRR identity residual ' + wI.toExponential(3));
+
+    /* K6/K7. Inverse calibration reproduces the target measured KPIs */
+    var cal = K.calibrate(TGT_GRR, TGT_EXP);
+    var calRun = E.run(Object.assign({}, A, {
+      persistenceAnnual: cal.persistenceAnnual,
+      expansionCoefficientAnnual: cal.expansionCoefficientAnnual
+    }));
+    var mc = K.measureR12M(calRun, 12);
+    ok('KPI · Calibrated transition parameters reproduce target measured GRR 90.0% and expansion 10.0%',
+       Math.abs(mc.grr - TGT_GRR) < 1e-9 && Math.abs(mc.expansionRate - TGT_EXP) < 1e-9,
+       'persistence ' + (cal.persistenceAnnual * 100).toFixed(6) + '% + expansion coefficient ' +
+       (cal.expansionCoefficientAnnual * 100).toFixed(6) + '% → measured GRR ' + (mc.grr * 100).toFixed(6) +
+       '%, expansion ' + (mc.expansionRate * 100).toFixed(6) + '%, NRR ' + (mc.nrr * 100).toFixed(6) + '%');
+
+    /* K8. Matched MEASURED-NRR scenarios report the intended KPI values */
+    var TN = 0.96 * 1.10;
+    var calR = K.calibrate(0.96, TN - 0.96), calX = K.calibrate(0.90, TN - 0.90);
+    var runR = E.run(Object.assign({}, A, { persistenceAnnual: calR.persistenceAnnual, expansionCoefficientAnnual: calR.expansionCoefficientAnnual }));
+    var runX = E.run(Object.assign({}, A, { persistenceAnnual: calX.persistenceAnnual, expansionCoefficientAnnual: calX.expansionCoefficientAnnual }));
+    var mR = K.measureR12M(runR, 12), mX = K.measureR12M(runX, 12);
+    ok('KPI · Matched measured-NRR scenarios truly report GRR 96.0%/90.0% and NRR ' + (TN * 100).toFixed(1) + '%',
+       Math.abs(mR.grr - 0.96) < 1e-9 && Math.abs(mX.grr - 0.90) < 1e-9 &&
+       Math.abs(mR.nrr - TN) < 1e-9 && Math.abs(mX.nrr - TN) < 1e-9,
+       'R measures GRR ' + (mR.grr * 100).toFixed(4) + '% / NRR ' + (mR.nrr * 100).toFixed(4) +
+       '%; X measures GRR ' + (mX.grr * 100).toFixed(4) + '% / NRR ' + (mX.nrr * 100).toFixed(4) + '%');
+
+    /* K9. Calibrating retention KPIs never touches acquisition */
+    var wAcq = 0;
+    [calRun, runR, runX].forEach(function (r) {
+      wAcq = Math.max(wAcq, Math.abs(r.derived.newARRPerMonth - BASE.derived.newARRPerMonth),
+                            Math.abs(r.derived.cacPaybackMonths - BASE.derived.cacPaybackMonths));
+    });
+    ok('KPI · Calibrating retention KPIs leaves v0.2 acquisition physics untouched (New ARR and payback unmoved)',
+       wAcq < EPS,
+       'max deviation across all three calibrated runs ' + wAcq.toExponential(3) +
+       '; New ARR still €' + (BASE.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo, payback still ' +
+       BASE.derived.cacPaybackMonths.toFixed(2) + ' months');
+
+    /* K10. One economic engine AND one measurement engine for both scenarios */
+    var eOne = typeof E.run === 'function', kOne = typeof K.measureR12M === 'function';
+    var sameK = JSON.stringify(K.measureR12M(E.run(A), 36)) === JSON.stringify(K.measureR12M(E.run(JSON.parse(JSON.stringify(A))), 36));
+    ok('KPI · Base and Experiment share one economic engine and one measurement engine',
+       eOne && kOne && sameK,
+       'E.run and K.measureR12M are the single entry points; identical assumptions give identical measurements: ' + sameK);
 
     return out;
   }

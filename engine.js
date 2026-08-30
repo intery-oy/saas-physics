@@ -6,7 +6,14 @@
  * inlined verbatim into the inspection UI by build.js. Base and Experiment
  * scenarios call the same run() with different assumption objects.
  *
- * MODEL VERSION: v0.2
+ * LAYER A — ECONOMIC / STATE-TRANSITION ENGINE.
+ * This file is the world, not the report on it. Its parameters are TRANSITION
+ * COEFFICIENTS that govern how cohort ARR state evolves month to month. They are
+ * deliberately NOT the CFO-reported KPIs of the same-sounding names: the reported
+ * KPIs are computed by Layer B (kpi.js) by measuring this world's output. See
+ * docs/MEASUREMENT.md.
+ *
+ * MODEL VERSION: v0.2.1
  *   v0.1 → v0.2: the acquisition primitive is inverted. CAC per €1 of New ARR is
  *   now the input and CAC payback is an emergent output. Everything else about the
  *   engine is unchanged. Weaknesses are flagged in docs/FINDINGS.md, never silently
@@ -40,21 +47,25 @@
       ebita:       'Gross profit less S&M, R&D, G&A',
       fcf:         'Free cash flow (= EBITA in v0.1)'
     },
-    RATE: {
-      grrAnnual:       'Annual gross revenue retention (coefficient)',
-      expansionAnnual: 'Annual expansion rate on retained ARR (coefficient)',
-      grossMargin:     'Gross margin (coefficient)',
-      cacPerARR:       'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity (coefficient)'
+    /* TRANSITION COEFFICIENTS — they govern the world. They are not measurements,
+       and they do not equal the KPIs of similar name. */
+    TRANSITION: {
+      persistenceAnnual:          'Annual persistence coefficient — 12-month multiplicative survival of installed ARR, applied BEFORE expansion. NOT reported GRR.',
+      expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
+      grossMargin:                'Gross margin coefficient',
+      cacPerARR:                  'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control)',
       rd: 'Monthly R&D investment (management control)',
       ga: 'Monthly G&A investment (management control)'
     },
-    /* v0.2: metrics that used to be inputs, or never were. Never settable. */
-    EMERGENT: {
+    /* MEASURED — produced by Layer B (kpi.js) by observing the world. Never settable. */
+    MEASURED: {
+      r12mGRR:          'R12M gross revenue retention over a frozen eligible cohort — see kpi.js',
+      r12mExpansion:    'R12M expansion rate over the same frozen cohort',
+      r12mNRR:          'R12M net revenue retention = closing eligible ARR / opening ARR',
       cacPaybackMonths: 'Months of gross profit to repay acquisition cost — OUTPUT of cacPerARR and gross margin',
-      nrrAnnualised:    'Net revenue retention — OUTPUT of GRR and expansion',
       arrGrowthYoY:     'ARR growth',
       ebitaMargin:      'EBITA margin',
       burn:             'Cash burn when FCF < 0'
@@ -63,14 +74,17 @@
 
   /* Illustrative defaults. Not real company data. */
   var DEFAULT_ASSUMPTIONS = {
-    sm:              900000,   // CONTROL  €/month
-    cacPerARR:       1.20,     // RATE     € of S&M per €1 of New ARR (dimensionless)
-    grrAnnual:       0.90,     // RATE
-    expansionAnnual: 0.10,     // RATE
-    grossMargin:     0.80,     // RATE
-    rd:              700000,   // CONTROL  €/month
-    ga:              350000    // CONTROL  €/month
+    sm:                         900000,  // CONTROL   €/month
+    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR
+    persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
+    expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
+    grossMargin:                0.80,    // TRANSITION
+    rd:                         700000,  // CONTROL   €/month
+    ga:                         350000   // CONTROL   €/month
   };
+  /* NOTE ON NAMES. persistenceAnnual is NOT reported GRR and expansionCoefficientAnnual
+     is NOT reported expansion. At these defaults the measurement layer reports GRR
+     89.56% and expansion 9.44% — see rateDiagnostics() and docs/MEASUREMENT.md. */
   /* cacPerARR 1.20 with GM 80% reproduces the v0.1 baseline exactly:
      v0.1 CAC payback 18 months  ⇔  cacPerARR = payback × GM / 12 = 18 × 0.80 / 12 = 1.20 */
 
@@ -82,7 +96,7 @@
   /* ------------------------------------------------------------------ *
    * Rate conversions (spec §5)
    * ------------------------------------------------------------------ */
-  function toMonthlyGRR(grrAnnual) { return Math.pow(grrAnnual, 1 / 12); }
+  function toMonthlyPersistence(persistenceAnnual) { return Math.pow(persistenceAnnual, 1 / 12); }
 
   /* Geometric conversion so that 12 compounded monthly steps reproduce the
    * stated annual expansion exactly: (1+e_m)^12 = 1+e_a */
@@ -137,8 +151,8 @@
     var s = Object.assign({}, DEFAULT_START, start || {});
     var H = horizon || HORIZON;
 
-    var gM = toMonthlyGRR(a.grrAnnual);
-    var eM = toMonthlyExpansion(a.expansionAnnual);
+    var gM = toMonthlyPersistence(a.persistenceAnnual);
+    var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
     var newARR = newARRPerMonth(a);
 
     /* 4. The company IS a set of cohorts. Aggregates are only ever sums. */
@@ -254,8 +268,8 @@
         burn: fcf < 0 ? -fcf : 0,
         cashOpening: cashOpening,
         cashClosing: cashClosing,
-        nrrMonthly: nrrMonthly,
-        nrrAnnualised: nrrAnnualised,
+        nrrMonthly: nrrMonthly,               /* chained transition NRR, not the R12M KPI */
+        nrrAnnualised: nrrAnnualised,         /* chained monthly NRR annualised — see kpi.js for the KPI */
         arrGrowthMoM: openingARR > 0 ? closingARR / openingARR - 1 : 0,
         arrGrowthYoY: t >= 12 ? closingARR / closingAt(t - 12) - 1 : null,
         cohortCount: cohorts.length,
@@ -284,13 +298,13 @@
       start: s,
       horizon: H,
       derived: {
-        monthlyGRR: gM,
+        monthlyPersistence: gM,
         monthlyExpansion: eM,
         newARRPerMonth: newARR,                       // € of ARR added per month
         newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
         annualAcquisitionSpend: a.sm * 12,
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT
-        impliedAnnualNRR: a.grrAnnual * (1 + a.expansionAnnual),
+        impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
         impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
       },
       months: months,
@@ -371,23 +385,23 @@
    * This function reports both so the gap is visible rather than assumed away.
    * ------------------------------------------------------------------ */
   function rateDiagnostics(res) {
-    var a = res.assumptions, gM = res.derived.monthlyGRR, eM = res.derived.monthlyExpansion;
+    var a = res.assumptions, gM = res.derived.monthlyPersistence, eM = res.derived.monthlyExpansion;
     var base = res.cohorts[0], rows = base.rows.slice(0, 12);
     var opening = base.initialARR;
     var leak = 0, exp = 0;
     rows.forEach(function (r) { leak += r.leakage; exp += r.expansion; });
     var closing = rows.length ? rows[rows.length - 1].closingARR : opening;
     return {
-      inputGRRAnnual: a.grrAnnual,
-      inputExpansionAnnual: a.expansionAnnual,
-      monthlyGRR: gM,
+      inputPersistenceAnnual: a.persistenceAnnual,
+      inputExpansionCoefficient: a.expansionCoefficientAnnual,
+      monthlyPersistence: gM,
       monthlyExpansion: eM,
       monthlyNRR: gM * (1 + eM),
-      twelveMonthGRRCompounded: Math.pow(gM, 12),                 // = input GRR
-      twelveMonthExpansionCompounded: Math.pow(1 + eM, 12) - 1,   // = input expansion
+      twelveMonthPersistence: Math.pow(gM, 12),                 // = input GRR
+      twelveMonthExpansionCoefficient: Math.pow(1 + eM, 12) - 1,   // = input expansion
       twelveMonthNRRCompounded: Math.pow(gM * (1 + eM), 12),      // = GRR x (1 + expansion)
       /* measured the way a finance team would, from the first 12 months of the
-         opening cohort's actual flows */
+         opening cohort's actual flows. See kpi.js for the general R12M measurement. */
       realisedGrossRetention: opening > 0 ? 1 - leak / opening : 1,
       realisedExpansionRate: opening > 0 ? exp / opening : 0,
       realisedNRR: opening > 0 ? closing / opening : 1,
@@ -489,7 +503,7 @@
     TAXONOMY: TAXONOMY,
     DEFAULT_ASSUMPTIONS: DEFAULT_ASSUMPTIONS,
     DEFAULT_START: DEFAULT_START,
-    toMonthlyGRR: toMonthlyGRR,
+    toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
     run: run,

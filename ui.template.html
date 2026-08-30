@@ -208,12 +208,13 @@ tr.hl td{color:var(--ink)}
     </div>
 
     <div class="grp">
-      <div class="grp-head"><span class="tx tx-rate">RATE</span><span class="eyebrow">Coefficients</span></div>
+      <div class="grp-head"><span class="tx tx-rate">TRANSITION</span><span class="eyebrow">Coefficients that govern the world</span></div>
       <div id="ctl-rate"></div>
     </div>
 
     <div class="grp">
-      <div class="grp-head"><span class="tx tx-emergent">OUTPUT</span><span class="eyebrow">Emergent, never set</span></div>
+      <div class="grp-head"><span class="tx tx-emergent">MEASURED</span><span class="eyebrow">Reported by the KPI layer</span></div>
+      <div class="emergent" id="measured"></div>
       <div class="emergent" id="emergent"></div>
       <div class="derived" id="derived"></div>
       <div class="note" style="margin-top:10px">
@@ -237,7 +238,7 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
       <h1>SaaS&nbsp;Physics</h1>
       <span class="sub">Prototype&nbsp;0 — deterministic economic engine</span>
       <span class="spacer"></span>
-      <span class="pill">model v0.2</span>
+      <span class="pill">model v0.2.1</span>
       <span class="pill">60 monthly periods</span>
       <span class="pill" id="cohort-pill">61 cohorts</span>
     </header>
@@ -271,7 +272,7 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
       </div>
       <div class="bridge" id="bridge"></div>
       <div class="subpanel">
-        <h3>Rate conversion — how the annual coefficients become monthly ones</h3>
+        <h3>Layer B — R12M measurement over a frozen cohort</h3>
         <div class="kv" id="rates"></div>
         <div class="note" id="rate-note" style="margin-top:12px"></div>
       </div>
@@ -290,7 +291,7 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
     <section class="sec">
       <div class="sec-head">
         <h2>Matched-NRR experiment</h2>
-        <span class="hint">two installed bases with identical NRR and different mechanics — everything else held constant</span>
+        <span class="hint">scenarios defined by target <em>measured</em> R12M KPIs, then calibrated back to transition coefficients</span>
       </div>
       <div class="tw"><table id="matched"></table></div>
       <div class="subpanel" id="matched-verdict"></div>
@@ -324,7 +325,7 @@ FCF     = EBITA</div>
           <h3>Explicit simplifications</h3>
           <ul>
             <li><code>FCF = EBITA</code>. No working capital, deferred revenue, tax, capex or debt. Real SaaS bills ahead of revenue, so cash here is <em>pessimistic</em> for fast growers.</li>
-            <li>Leakage combines churn and contraction. Reactivation = 0.</li>
+            <li>Leakage combines churn and contraction, so the KPI layer cannot report them separately however correct its definitions are. Reactivation = 0. There are no customers, so logo retention and concentration do not exist.</li>
             <li>Retention and expansion rates do not vary with cohort age, segment or product.</li>
             <li>The future economic benefit of R&amp;D is <strong>outside the simulation boundary</strong>. v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law; there is no defensible universal coefficient. A later version may let you state a hypothesised delayed effect as an explicit management thesis.</li>
             <li>Acquisition is linear and instantaneous in S&amp;M — no saturation, no lag.</li>
@@ -337,7 +338,9 @@ FCF     = EBITA</div>
             <li><strong>Fixed.</strong> Gross margin no longer generates ARR. In v0.1, cutting GM 80%→65% wrongly raised New ARR €0.75m→€0.92m/month; now it leaves New ARR untouched and moves CAC payback 18.0→22.2 months instead.</li>
             <li><strong>Still true.</strong> Improving acquisition efficiency and raising S&amp;M by the same factor produce an identical ARR path — only cash separates them (€27m over 60 months at the calibrated settings).</li>
             <li><strong>Still true.</strong> Acquisition remains linear, instantaneous and unbounded in S&amp;M. There is no spend level at which the next euro buys less.</li>
-            <li><strong>Discovered.</strong> Retention-heavy and expansion-heavy businesses at matched NRR are economically indistinguishable to this model. That is a boundary, not a bug — see <code>docs/MATCHED-NRR.md</code>.</li>
+            <li><strong>Discovered (v0.2).</strong> Retention-heavy and expansion-heavy businesses at matched NRR are economically indistinguishable to this model. A boundary, not a bug — see <code>docs/MATCHED-NRR.md</code>.</li>
+            <li><strong>v0.2.1 — two layers.</strong> The economic engine holds <em>transition coefficients</em>; the KPI engine holds <em>measurement definitions</em>, and events flow one way between them. A 90% persistence coefficient measures as 89.56% R12M GRR: the whole gap is the within-period interaction of decay and expansion, and it vanishes if either is switched off. See <code>docs/MEASUREMENT.md</code>.</li>
+            <li><strong>v0.2.1 — sharper boundary.</strong> Measured R12M NRR is a stock ratio, so pinning it pins the monthly multiplier uniquely. Any two systems reporting the same NRR are identical in this model <em>by construction</em>, not by coincidence.</li>
           </ul>
         </div>
       </div>
@@ -346,15 +349,21 @@ FCF     = EBITA</div>
 </div>
 
 <script>/*__ENGINE__*/</script>
+<script>/*__KPI__*/</script>
 <script>/*__INTEGRITY__*/</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, I = window.SaaSPhysicsIntegrity;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, I = window.SaaSPhysicsIntegrity;
 
   /* Base is frozen: the Experiment can never write through to it. */
   var BASE_A = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS));
-  var MATCHED_NRR = 0.96 * 1.10;   /* 105.6% — the matched-NRR target */
+  var MATCHED_NRR = 0.96 * 1.10;   /* 105.6% — the matched measured-NRR target */
+  /* Turn TARGET MEASURED KPIs into the transition coefficients that produce them. */
+  function calTo(grr, exp){
+    var c = K.calibrate(grr, exp);
+    return { persistenceAnnual: c.persistenceAnnual, expansionCoefficientAnnual: c.expansionCoefficientAnnual };
+  }
   var expA   = Object.assign({}, E.DEFAULT_ASSUMPTIONS);
   var baseRes = E.run(BASE_A);
   var expRes  = E.run(expA);
@@ -380,8 +389,8 @@ FCF     = EBITA</div>
     {k:'rd', g:'control', label:'R&D investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'ga', g:'control', label:'G&A investment', unit:'€ thousand / month', min:0, max:2000000, step:25000, f:'eur'},
     {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR', min:0.30, max:4.00, step:0.05, f:'x'},
-    {k:'grrAnnual', g:'rate', label:'Gross revenue retention', unit:'annual', min:0.60, max:0.995, step:0.005, f:'pct'},
-    {k:'expansionAnnual', g:'rate', label:'Expansion', unit:'annual, on retained ARR', min:0, max:0.50, step:0.005, f:'pct'},
+    {k:'persistenceAnnual', g:'rate', label:'Persistence coefficient', unit:'annual — NOT reported GRR', min:0.60, max:0.995, step:0.005, f:'pct'},
+    {k:'expansionCoefficientAnnual', g:'rate', label:'Expansion coefficient', unit:'annual, on retained ARR', min:0, max:0.50, step:0.005, f:'pct'},
     {k:'grossMargin', g:'rate', label:'Gross margin', unit:'of revenue', min:0.30, max:0.95, step:0.005, f:'pct'}
   ];
   function fmtCtl(c,v){ return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1); }
@@ -390,13 +399,14 @@ FCF     = EBITA</div>
   function fromInput(c,v){ return c.f==='pct'?v/100:c.f==='eur'?v*1000:v; }
 
   var PRESETS = [
-    {id:'A', name:'A · Retention', ch:{grrAnnual:0.96}},
-    {id:'B', name:'B · Expansion', ch:{expansionAnnual:0.20}},
+    {id:'A', name:'A · Retention', ch:{persistenceAnnual:0.96}},
+    {id:'B', name:'B · Expansion', ch:{expansionCoefficientAnnual:0.20}},
     {id:'C', name:'C · Efficiency', ch:{cacPerARR:0.80}},
     {id:'D', name:'D · +50% S&M', ch:{sm:BASE_A.sm*1.5}},
     {id:'E', name:'E · Margin', ch:{grossMargin:0.65}},
-    {id:'R', name:'R · Retention-heavy', ch:{grrAnnual:0.96, expansionAnnual:0.10}},
-    {id:'X', name:'X · Expansion-heavy', ch:{grrAnnual:0.90, expansionAnnual:MATCHED_NRR/0.90-1}}
+    {id:'A2', name:'Target GRR 90 / exp 10', ch:calTo(0.90, 0.10)},
+    {id:'R', name:'R · measured GRR 96', ch:calTo(0.96, MATCHED_NRR-0.96)},
+    {id:'X', name:'X · measured GRR 90', ch:calTo(0.90, MATCHED_NRR-0.90)}
   ];
 
   /* ---------------- rail ---------------- */
@@ -445,6 +455,14 @@ FCF     = EBITA</div>
       num.style.color = expA[c.k]===BASE_A[c.k] ? 'var(--ink)' : 'var(--exp)';
     });
     var d=expRes.derived;
+    var mNow = K.measureR12M(expRes, Math.max(K.WINDOW, month));
+    document.getElementById('measured').innerHTML =
+      '<div class="erow"><span class="tx tx-rate">TRANSITION</span><span>Persistence coefficient</span><b>'+pct(expA.persistenceAnnual,2)+'</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">KPI</span><span>R12M GRR</span><b>'+pct(mNow.grr,2)+'</b></div>'+
+      '<div class="erow"><span class="tx tx-rate">TRANSITION</span><span>Expansion coefficient</span><b>'+pct(expA.expansionCoefficientAnnual,2)+'</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">KPI</span><span>R12M expansion</span><b>'+pct(mNow.expansionRate,2)+'</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">KPI</span><span>R12M NRR</span><b>'+pct(mNow.nrr,2)+'</b></div>'+
+      '<div class="ehint">measured at M'+mNow.T+' over a frozen cohort · New ARR excluded</div>';
     document.getElementById('emergent').innerHTML =
       '<div class="erow"><span class="tx tx-rate">RATE</span><span>CAC / New ARR</span><b>'+expA.cacPerARR.toFixed(2)+'×</b></div>'+
       '<div class="erow out"><span class="tx tx-emergent">OUTPUT</span><span>CAC payback</span><b>'+d.cacPaybackMonths.toFixed(1)+' mo</b></div>'+
@@ -452,16 +470,16 @@ FCF     = EBITA</div>
     document.getElementById('derived').innerHTML =
       row('New ARR / month', eur(d.newARRPerMonth)) +
       row('New ARR per year of spend', eur(d.newARRAnnualised)) +
-      row('Monthly GRR', pct(d.monthlyGRR,3)) +
-      row('Monthly expansion', pct(d.monthlyExpansion,3)) +
-      row('NRR (emergent)', pct(expRes.months[59].nrrAnnualised,1));
+      row('Monthly persistence g', pct(d.monthlyPersistence,3)) +
+      row('Monthly expansion e', pct(d.monthlyExpansion,3)) +
+      row('Monthly multiplier g(1+e)', d.monthlyPersistence*(1+d.monthlyExpansion) .toFixed(7));
     function row(a,b){ return '<div class="drow"><span>'+a+'</span><b>'+b+'</b></div>'; }
     document.getElementById('cohort-pill').textContent = expRes.cohorts.length+' cohorts';
   }
 
   /* ---------------- explainability (§14) ---------------- */
   var LABELS = {sm:'S&M investment', rd:'R&D investment', ga:'G&A investment',
-    cacPaybackMonths:'CAC payback', grrAnnual:'Annual GRR', expansionAnnual:'Annual expansion', grossMargin:'Gross margin'};
+    cacPaybackMonths:'CAC payback', persistenceAnnual:'Annual GRR', expansionCoefficientAnnual:'Annual expansion', grossMargin:'Gross margin'};
   function fmtBy(k,v){ var c=CONTROLS.filter(function(x){return x.k===k;})[0]; return fmtCtl(c,v); }
 
   function renderExplain(){
@@ -691,38 +709,52 @@ FCF     = EBITA</div>
     document.getElementById('cohorts').innerHTML=h+'</tbody>';
   }
 
-  /* ---------------- rate conversion (brief §8) ---------------- */
+  /* ---------------- Layer B: R12M measurement (brief §4, §5) ---------------- */
   function renderRates(){
     var d=E.rateDiagnostics(expRes);
-    function r(k,v,klass){ return '<div class="kvr '+(klass||'')+'"><span>'+k+'</span><b>'+v+'</b></div>'; }
+    var T=Math.max(K.WINDOW, month), k=K.measureR12M(expRes,T);
+    var dec=K.decompose(expA.persistenceAnnual, expA.expansionCoefficientAnnual);
+    function r(a,b,klass){ return '<div class="kvr '+(klass||'')+'"><span>'+a+'</span><b>'+b+'</b></div>'; }
     document.getElementById('rates').innerHTML =
-      r('Monthly GRR', pct(d.monthlyGRR,6)) +
-      r('Monthly expansion', pct(d.monthlyExpansion,6)) +
-      r('Monthly NRR', pct(d.monthlyNRR,6)) +
-      r('12-month compounded GRR', pct(d.twelveMonthGRRCompounded,4)+' vs input '+pct(d.inputGRRAnnual,4),'exact') +
-      r('12-month compounded expansion', pct(d.twelveMonthExpansionCompounded,4)+' vs input '+pct(d.inputExpansionAnnual,4),'exact') +
-      r('12-month compounded NRR', pct(d.twelveMonthNRRCompounded,4),'exact') +
-      r('Realised gross retention', pct(d.realisedGrossRetention,4)+' vs input '+pct(d.inputGRRAnnual,4),'gap') +
-      r('Realised expansion', pct(d.realisedExpansionRate,4)+' vs input '+pct(d.inputExpansionAnnual,4),'gap') +
-      r('Realised NRR', pct(d.realisedNRR,4),'exact');
+      r('Eligible cohorts frozen at M'+k.asOf, k.eligibleCohortCount) +
+      r('Opening ARR (frozen cohort)', eur(k.openingARR)) +
+      r('+ Expansion', eurPos(k.expansion)) +
+      r('− Leakage', eurNeg(k.leakage)) +
+      r('= Closing eligible ARR', eur(k.closingEligibleARR)) +
+      r('Bridge residual', '€'+k.bridgeResidual.toExponential(2),'exact') +
+      r('New ARR in window (EXCLUDED)', eur(k.newARRExcluded),'gap') +
+      r('R12M GRR', pct(k.grr,4)+' vs coefficient '+pct(expA.persistenceAnnual,2),'gap') +
+      r('R12M expansion', pct(k.expansionRate,4)+' vs coefficient '+pct(expA.expansionCoefficientAnnual,2),'gap') +
+      r('R12M NRR', pct(k.nrr,4),'exact') +
+      r('GRR + expansion − NRR', k.identityResidual.toExponential(2),'exact') +
+      r('Monthly g / e / m', pct(d.monthlyPersistence,4)+' · '+pct(d.monthlyExpansion,4)+' · '+d.monthlyNRR.toFixed(7));
     document.getElementById('rate-note').innerHTML =
-      '<b style="color:var(--warn)">The decomposition does not survive the conversion, but the net effect does.</b> '+
-      'Twelve compounded monthly steps reproduce the intended annual NRR exactly. Measured the way a finance team would — '+
-      'flows over the first twelve months of the opening cohort divided by its opening ARR — gross retention reads '+
-      pct(d.realisedGrossRetention,2)+' against an input of '+pct(d.inputGRRAnnual,1)+' ('+pp(d.realisedGrossRetention-d.inputGRRAnnual)+
-      ') and expansion reads '+pct(d.realisedExpansionRate,2)+' against '+pct(d.inputExpansionAnnual,1)+' ('+pp(d.realisedExpansionRate-d.inputExpansionAnnual)+
-      '). Both flows accrue on a base that moves during the year, and expansion accrues on the post-churn base. The two errors offset exactly, '+
-      'so NRR is right while each reported component is slightly understated.';
+      '<b style="color:var(--warn)">The coefficients that govern the world are not the KPIs that report on it.</b> '+
+      'Persistence '+pct(expA.persistenceAnnual,2)+' measures as GRR '+pct(k.grr,2)+' ('+pp(k.grr-expA.persistenceAnnual)+'), and expansion coefficient '+
+      pct(expA.expansionCoefficientAnnual,2)+' measures as '+pct(k.expansionRate,2)+' ('+pp(k.expansionRate-expA.expansionCoefficientAnnual)+'), while NRR is exact.'+
+      '<br><br>It is <b>one</b> effect, not several. Set the expansion coefficient to 0 and measured GRR equals persistence <em>exactly</em>; set persistence to 100% and measured expansion equals its coefficient <em>exactly</em>. '+
+      'The compounding and moving-base terms cancel. What remains is the within-period interaction: expansion enlarges the balance later exposed to decay (churn '+
+      (dec.churn.isolated*100).toFixed(3)+'% → '+(dec.churn.measured*100).toFixed(3)+'%), and decay shrinks the balance expansion later accrues on (expansion '+
+      (dec.expansion.isolated*100).toFixed(3)+'% → '+(dec.expansion.measured*100).toFixed(3)+'%). '+
+      'NRR escapes because it is a ratio of two <em>stocks</em>; GRR and expansion are ratios of <em>flows</em> to a stock, and only flow ratios pick up the interaction.';
   }
 
   /* ---------------- matched-NRR experiment (brief §7–§11) ---------------- */
   function renderMatched(){
-    var R=E.run(Object.assign({},BASE_A,{grrAnnual:0.96, expansionAnnual:0.10}));
-    var X=E.run(Object.assign({},BASE_A,{grrAnnual:0.90, expansionAnnual:MATCHED_NRR/0.90-1}));
+    var cR=K.calibrate(0.96, MATCHED_NRR-0.96), cX=K.calibrate(0.90, MATCHED_NRR-0.90);
+    var R=E.run(Object.assign({},BASE_A,calTo(0.96, MATCHED_NRR-0.96)));
+    var X=E.run(Object.assign({},BASE_A,calTo(0.90, MATCHED_NRR-0.90)));
     var rs=E.summarise(R), xs=E.summarise(X);
+    var kR=K.measureR12M(R,12), kX=K.measureR12M(X,12);
     var rows=[
-      ['Annual GRR', pct(0.96,4), pct(0.90,4)],
-      ['Annual expansion', pct(0.10,4), pct(MATCHED_NRR/0.90-1,4)],
+      ['TARGET measured R12M GRR', pct(0.96,4), pct(0.90,4)],
+      ['TARGET measured R12M expansion', pct(MATCHED_NRR-0.96,4), pct(MATCHED_NRR-0.90,4)],
+      ['→ persistence coefficient', pct(cR.persistenceAnnual,4), pct(cX.persistenceAnnual,4)],
+      ['→ expansion coefficient', pct(cR.expansionCoefficientAnnual,4), pct(cX.expansionCoefficientAnnual,4)],
+      ['→ monthly multiplier m', cR.monthlyMultiplier.toFixed(9), cX.monthlyMultiplier.toFixed(9)],
+      ['ACTUAL measured R12M GRR', pct(kR.grr,4), pct(kX.grr,4)],
+      ['ACTUAL measured R12M expansion', pct(kR.expansionRate,4), pct(kX.expansionRate,4)],
+      ['ACTUAL measured R12M NRR', pct(kR.nrr,4), pct(kX.nrr,4)],
       ['Year 1 ARR', eur(rs.y1ARR), eur(xs.y1ARR)],
       ['Year 3 ARR', eur(rs.y3ARR), eur(xs.y3ARR)],
       ['Year 5 ARR', eur(rs.finalARR), eur(xs.finalARR)],
@@ -732,8 +764,7 @@ FCF     = EBITA</div>
       ['Year 5 EBITA / FCF', eur(rs.finalYearFCF), eur(xs.finalYearFCF)],
       ['Ending cash (M60)', eur(rs.endingCash), eur(xs.endingCash)],
       ['M60 ARR from opening cohort', eur(rs.openingCohortARR), eur(xs.openingCohortARR)],
-      ['M60 ARR from acquired cohorts', eur(rs.acquiredCohortARR), eur(xs.acquiredCohortARR)],
-      ['NRR (calculated)', pct(rs.finalNRR,4), pct(xs.finalNRR,4)]
+      ['M60 ARR from acquired cohorts', eur(rs.acquiredCohortARR), eur(xs.acquiredCohortARR)]
     ];
     var h='<thead><tr><th>Metric</th><th>R · retention-heavy</th><th>X · expansion-heavy</th><th>Verdict</th></tr></thead><tbody>';
     rows.forEach(function(r){
@@ -754,8 +785,9 @@ FCF     = EBITA</div>
       '<div class="note" style="line-height:1.75">'+
       '<b style="color:var(--ink)">Yes — completely.</b> Across all 60 months, closing ARR differs by at most €'+wARR.toExponential(2)+
       ' and cash by €'+wCash.toExponential(2)+' — floating-point noise on a €78m company. Every cohort balance, every P&amp;L line and the entire cash path coincide.'+
-      '<br><br>The reason is structural. A cohort\'s month is <span style="font-family:var(--mono);color:var(--ink-2)">closing = opening × mGRR × (1 + mExpansion)</span>, '+
-      'so only the <em>product</em> mGRR × (1 + mExpansion) reaches the ARR stock. R and X are constructed to have the same product. '+
+      '<br><br>The measurement layer sharpens the reason. Measured R12M NRR is a ratio of two <em>stocks</em>, so pinning it pins the monthly multiplier uniquely at m = NRR<sup>1/12</sup> = '+
+      cR.monthlyMultiplier.toFixed(9)+' — identical in both scenarios. A cohort\'s month is <span style="font-family:var(--mono);color:var(--ink-2)">closing = opening × m</span>, '+
+      'and the ARR recursion consumes nothing but m, so equal measured NRR forces equal everything downstream regardless of how GRR and expansion split it. '+
       'The engine assigns no cost to expansion, no saturation limit, no cohort-age effect, no customer count, no concentration and no risk premium — '+
       'so the two decompositions are, to this universe, the same number written twice. '+
       'The only trace of the difference is gross flow: X churns '+eur(xs.cumLeakage-rs.cumLeakage)+' more and expands '+eur(xs.cumExpansion-rs.cumExpansion)+

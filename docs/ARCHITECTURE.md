@@ -1,4 +1,9 @@
-# Economic architecture — Prototype 0.2 (model v0.2)
+# Economic architecture — Prototype 0.2.1 (model v0.2.1)
+
+> **v0.2.1.** The simulator is now explicitly two layers: this document describes **Layer A, the
+> economic / state-transition engine**. The KPI measurement layer is documented separately in
+> [`MEASUREMENT.md`](MEASUREMENT.md). The parameters below are TRANSITION COEFFICIENTS, not the
+> CFO-reported KPIs of similar name.
 
 > **v0.1 → v0.2.** The acquisition primitive is inverted: CAC per €1 of New ARR is now the
 > input and CAC payback is an output. Nothing else about the engine changed. `cacPerARR = 1.20`
@@ -168,16 +173,17 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 |---|---|
 | **STATE** | ARR (opening/closing), cash, cohort balances |
 | **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, EBITA, FCF |
-| **RATE** | GRR, expansion rate, gross margin, **CAC / New ARR** |
+| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** |
 | **CONTROL** | S&M, R&D, G&A investment |
-| **EMERGENT** | **CAC payback**, NRR, ARR growth, EBITA margin, burn — computed, never settable |
+| **MEASURED** | **R12M GRR / expansion / NRR**, **CAC payback**, ARR growth, EBITA margin, burn — produced by Layer B, never settable |
 
 ## Files
 
 | File | Role |
 |---|---|
-| `engine.js` | The engine. Pure, deterministic, no DOM, no I/O. UMD. |
-| `integrity.js` | The 12 economic-integrity assertions. UMD. |
+| `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. |
+| `kpi.js` | **Layer B** — the KPI measurement engine. Contains no economics. UMD. |
+| `integrity.js` | The 26 economic- and measurement-integrity assertions. UMD. |
 | `checks.js` | Node CLI for the assertions. |
 | `scenarios.js` | Node CLI for Scenarios A–E. |
 | `ui.template.html` | Inspection interface. |

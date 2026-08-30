@@ -1,6 +1,6 @@
 # Reconciliation, integrity and scenario results
 
-Generated output from `node checks.js` and `node scenarios.js` (model v0.2). Regenerate with `npm run report`.
+Generated output from `node checks.js` and `node scenarios.js` (model v0.2.1). Regenerate with `npm run report`.
 
 ## Integrity checks
 
@@ -44,49 +44,107 @@ SaaS Physics — Prototype 0 integrity checks
         max deviation over 5 probes 0.000e+0 months; e.g. 1.00× at GM 80% → 15.0 months
   PASS  18. ACQ · Matched-NRR scenarios R (96%×110%) and X (90%×117.33%) both reproduce NRR 105.6%
         R 105.6000000000%, X 105.6000000000%, max deviation 5.55e-15
+  PASS  19. KPI · Transition coefficients ≠ reported KPIs, and the gap matches the closed-form decomposition
+        persistence 90.00% → measured GRR 89.5582%; expansion coefficient 10.00% → measured expansion 9.4418%; prediction matches simulation: true
+  PASS  20. KPI · R12M cohort excludes New ARR (10× S&M leaves GRR, expansion and NRR unchanged at every T)
+        max KPI delta 4.441e-16 while New ARR inside the window rose by up to €81.00m
+  PASS  21. KPI · Expansion never improves measured GRR (it slightly worsens it: more base survives to leak)
+        expansion 0%→35% moves GRR 90.0000% → 88.5127%, monotonically non-increasing
+  PASS  22. KPI · Bridge reconciles (Opening + Expansion − Leakage = Closing eligible) and NRR = GRR + Expansion
+        max bridge residual €1.490e-8; max GRR+Exp−NRR identity residual 3.331e-16
+  PASS  23. KPI · Calibrated transition parameters reproduce target measured GRR 90.0% and expansion 10.0%
+        persistence 90.445837% + expansion coefficient 10.563408% → measured GRR 90.000000%, expansion 10.000000%, NRR 100.000000%
+  PASS  24. KPI · Matched measured-NRR scenarios truly report GRR 96.0%/90.0% and NRR 105.6%
+        R measures GRR 96.0000% / NRR 105.6000%; X measures GRR 90.0000% / NRR 105.6000%
+  PASS  25. KPI · Calibrating retention KPIs leaves v0.2 acquisition physics untouched (New ARR and payback unmoved)
+        max deviation across all three calibrated runs 0.000e+0; New ARR still €0.750m/mo, payback still 18.00 months
+  PASS  26. KPI · Base and Experiment share one economic engine and one measurement engine
+        E.run and K.measureR12M are the single entry points; identical assumptions give identical measurements: true
 ================================================================================
-18 / 18 checks passed
+26 / 26 checks passed
 
 ```
 
-## Rate conversion, Scenarios A–E, matched-NRR and efficiency-vs-spend
+## Layers, calibration, scenarios and experiments
 
 ```
 
-SaaS Physics — Prototype 0.2   (model v0.2)
+SaaS Physics — Prototype 0.2.1   (model v0.2)
 ────────────────────────────────────────────────────────────────────────────────
-BASE  S&M €0.90m/mo · CAC/New ARR 1.20× · GRR 90.0% · expansion 10.0% · GM 80.0% · R&D €0.70m/mo · G&A €0.35m/mo
+BASE  S&M €0.90m/mo · CAC/New ARR 1.20× · persistence 90.0% · expansion coefficient 10.0% · GM 80.0% · R&D €0.70m/mo · G&A €0.35m/mo
       Opening ARR €20.00m, opening cash €10.00m
 DERIVED  New ARR €0.75m/mo (€9.00m per year of spend) · CAC payback 18.00 mo (EMERGENT)
 OUTCOME  M60 ARR €62.93m · NRR 99.0% · Y5 FCF €23.58m · ending cash €59.57m · trough €6.10m (M13)
 
 ────────────────────────────────────────────────────────────────────────────────
-RATE CONVERSION — how annual GRR and expansion become monthly rates
+TWO LAYERS — the world, and the report on the world
 ────────────────────────────────────────────────────────────────────────────────
-  monthly GRR                       99.125839%   = GRR^(1/12)
-  monthly expansion                 0.797414%   = (1+expansion)^(1/12) − 1
-  monthly NRR                       99.916282%   = mGRR × (1 + mExpansion)
-  12-month compounded GRR           90.000000%   (input 90.0000%)
-  12-month compounded expansion     10.000000%   (input 10.0000%)
-  12-month compounded NRR           99.000000%   = GRR × (1 + expansion). EXACT.
+  LAYER A — economic transition coefficients (they govern the world)
+    annual persistence coefficient   90.0000%     monthly g = P^(1/12) = 99.125839%
+    annual expansion coefficient     10.0000%     monthly e = (1+X)^(1/12)−1 = 0.797414%
+    monthly multiplier m = g(1+e)    0.999162823
 
-  Measured from the opening cohort's first 12 months of actual flows:
-  realised gross retention          89.5582%   (1 − Σleakage/opening ARR)
-  realised expansion                9.4418%   (Σexpansion/opening ARR)
-  realised NRR                      99.000000%   closing/opening. EXACT.
+  LAYER B — measured R12M KPIs (they observe the world), frozen cohort at T=12
+    R12M GRR         89.5582%   vs persistence coefficient 90.00%   (−0.4pp)
+    R12M expansion   9.4418%   vs expansion coefficient  10.00%   (−0.6pp)
+    R12M NRR         99.000000%   = P × (1+X) EXACTLY
+    bridge residual  €-3.73e-9   ·  GRR + expansion − NRR = -2.22e-16
+    New ARR inside the window, excluded from the cohort: €9.00m
 
-  ⚠ SUBTLETY. Annual NRR is reproduced exactly, but the DECOMPOSITION is not:
-    gross retention reads −0.4pp vs input, expansion −0.6pp vs input.
-    Both flows accrue on a base that moves during the year, and expansion accrues on
-    the POST-churn base. The two errors offset exactly, so NRR is right and the two
-    components a finance team would report are each slightly understated.
+  WHY THE GAP EXISTS — it is one effect, not several
+  ────────────────────────────────────────────────────────────────────────────
+    Switch either process off and the other measures its coefficient EXACTLY:
+      expansion coefficient 0%  ->  measured GRR       90.000000%  (= persistence exactly)
+      persistence 100%          ->  measured expansion 10.000000%  (= coefficient exactly)
+    The compounding-convention and moving-base terms are real but CANCEL exactly,
+    which is what makes those two cases exact. The entire residual is the
+    WITHIN-PERIOD INTERACTION of the two processes:
+      churn:      1 − P = 0.100000   + expansion exposure +0.004418  =  measured 0.104418
+      expansion:  X     = 0.100000   + retention exposure -0.005582  =  measured 0.094418
+    Expansion enlarges the balance later exposed to decay, so measured GRR < P.
+    Decay shrinks the balance expansion later accrues on, so measured expansion < X.
+    NRR is unaffected because it is a ratio of two STOCKS; GRR and expansion are
+    ratios of FLOWS to a stock, and only flow ratios pick up the interaction.
+
+  €100 WORKED EXAMPLE — persistence 90%, expansion coefficient 10%
+  ────────────────────────────────────────────────────────────────────────────
+    month       opening   − leakage  + expansion    closing
+    M1         100.0000      0.8742       0.7904    99.9163
+    M2          99.9163      0.8734       0.7898    99.8326
+    M3          99.8326      0.8727       0.7891    99.7491   ...
+    M11         99.1660      0.8669       0.7839    99.0830
+    M12         99.0830      0.8661       0.7832    99.0000
+    TOTAL      100.0000     10.4418       9.4418    99.0000
+
+    R12M GRR       = (100 − 10.4418) / 100 = 89.5582%   NOT 90.00%
+    R12M expansion = 9.4418 / 100          = 9.4418%    NOT 10.00%
+    R12M NRR       = 99.0000 / 100          = 99.0000%   exactly P(1+X)
 
 ────────────────────────────────────────────────────────────────────────────────
-SCENARIO A — Retention:  Annual GRR 90% → 96%
+INVERSE CALIBRATION — Target A: measured R12M GRR 90.0%, measured expansion 10.0%
+────────────────────────────────────────────────────────────────────────────────
+  Closed form:  NRR* = GRR* + Exp* = 100.0000%   →   m = NRR*^(1/12) = 1.000000000
+                S = Σ m^t (t=0..11) = 12.000000   →   g = 1 − (1−GRR*)/S = 0.991666667
+                e = m/g − 1 = 0.008403361
+
+  REQUIRED TRANSITION COEFFICIENTS
+    annual persistence coefficient   90.445837%   (not 90% — the world must persist BETTER than the KPI reads)
+    annual expansion coefficient     10.563408%   (not 10% — the world must expand HARDER than the KPI reads)
+
+  SIMULATED VERIFICATION (measurement engine, frozen cohort, T=12)
+    R12M GRR        90.000000%   target 90.000000%   PASS
+    R12M expansion  10.000000%   target 10.000000%   PASS
+    R12M NRR        100.000000%   ← the resulting NRR, not an input
+    Acquisition untouched: New ARR €0.75m/mo, payback 18.00 mo
+
+────────────────────────────────────────────────────────────────────────────────
+SCENARIO A — Retention:  Persistence coefficient 90% → 96% (a TRANSITION change, not a KPI target)
 ────────────────────────────────────────────────────────────────────────────────
   New ARR / month        €0.75m → €0.75m   (+€0.00m)
   CAC payback (EMERGENT) 18.00 mo → 18.00 mo
-  NRR (EMERGENT)         99.0% → 105.6%   (+6.6pp)
+  R12M GRR (MEASURED)    89.56% → 95.82%   (+6.3pp)
+  R12M expansion (MEAS.) 9.44% → 9.78%   (+0.3pp)
+  R12M NRR (MEASURED)    99.00% → 105.60%   (+6.6pp)
   Y5 closing ARR         €62.93m → €77.87m   (+€14.95m, +23.8%)
   Cumulative leakage     €21.65m → €9.61m   (−€12.05m)
   Cumulative expansion   €19.58m → €22.48m   (+€2.90m)
@@ -98,11 +156,13 @@ SCENARIO A — Retention:  Annual GRR 90% → 96%
   M60 ARR mix            opening base 30.2% → 33.7%
 
 ────────────────────────────────────────────────────────────────────────────────
-SCENARIO B — Expansion:  Annual expansion 10% → 20%
+SCENARIO B — Expansion:  Expansion coefficient 10% → 20% (a TRANSITION change, not a KPI target)
 ────────────────────────────────────────────────────────────────────────────────
   New ARR / month        €0.75m → €0.75m   (+€0.00m)
   CAC payback (EMERGENT) 18.00 mo → 18.00 mo
-  NRR (EMERGENT)         99.0% → 108.0%   (+9.0pp)
+  R12M GRR (MEASURED)    89.56% → 89.13%   (−0.4pp)
+  R12M expansion (MEAS.) 9.44% → 18.87%   (+9.4pp)
+  R12M NRR (MEASURED)    99.00% → 108.00%   (+9.0pp)
   Y5 closing ARR         €62.93m → €84.10m   (+€21.17m, +33.6%)
   Cumulative leakage     €21.65m → €25.94m   (+€4.29m)
   Cumulative expansion   €19.58m → €45.04m   (+€25.46m)
@@ -118,7 +178,9 @@ SCENARIO C — Acquisition efficiency:  CAC/New ARR 1.20× → 0.80×, S&M uncha
 ────────────────────────────────────────────────────────────────────────────────
   New ARR / month        €0.75m → €1.13m   (+€0.38m)
   CAC payback (EMERGENT) 18.00 mo → 12.00 mo
-  NRR (EMERGENT)         99.0% → 99.0%   (+0.0pp)
+  R12M GRR (MEASURED)    89.56% → 89.56%   (+0.0pp)
+  R12M expansion (MEAS.) 9.44% → 9.44%   (+0.0pp)
+  R12M NRR (MEASURED)    99.00% → 99.00%   (+0.0pp)
   Y5 closing ARR         €62.93m → €84.88m   (+€21.95m, +34.9%)
   Cumulative leakage     €21.65m → €27.36m   (+€5.71m)
   Cumulative expansion   €19.58m → €24.74m   (+€5.16m)
@@ -134,7 +196,9 @@ SCENARIO D — Growth investment:  S&M +50% (€0.90m → €1.35m/mo), CAC/New 
 ────────────────────────────────────────────────────────────────────────────────
   New ARR / month        €0.75m → €1.13m   (+€0.38m)
   CAC payback (EMERGENT) 18.00 mo → 18.00 mo
-  NRR (EMERGENT)         99.0% → 99.0%   (+0.0pp)
+  R12M GRR (MEASURED)    89.56% → 89.56%   (+0.0pp)
+  R12M expansion (MEAS.) 9.44% → 9.44%   (+0.0pp)
+  R12M NRR (MEASURED)    99.00% → 99.00%   (+0.0pp)
   Y5 closing ARR         €62.93m → €84.88m   (+€21.95m, +34.9%)
   Cumulative leakage     €21.65m → €27.36m   (+€5.71m)
   Cumulative expansion   €19.58m → €24.74m   (+€5.16m)
@@ -150,7 +214,9 @@ SCENARIO E — Margin deterioration:  Gross margin 80% → 65%
 ────────────────────────────────────────────────────────────────────────────────
   New ARR / month        €0.75m → €0.75m   (+€0.00m)
   CAC payback (EMERGENT) 18.00 mo → 22.15 mo
-  NRR (EMERGENT)         99.0% → 99.0%   (+0.0pp)
+  R12M GRR (MEASURED)    89.56% → 89.56%   (+0.0pp)
+  R12M expansion (MEAS.) 9.44% → 9.44%   (+0.0pp)
+  R12M NRR (MEASURED)    99.00% → 99.00%   (+0.0pp)
   Y5 closing ARR         €62.93m → €62.93m   (+€0.00m, +0.0%)
   Cumulative leakage     €21.65m → €21.65m   (+€0.00m)
   Cumulative expansion   €19.58m → €19.58m   (+€0.00m)
@@ -168,36 +234,65 @@ SCENARIO E — Margin deterioration:  Gross margin 80% → 65%
      Ending cash falls .......... PASS
 
 ────────────────────────────────────────────────────────────────────────────────
-MATCHED-NRR EXPERIMENT — retention-heavy (R) vs expansion-heavy (X)
+MATCHED MEASURED-NRR — scenarios defined by reported KPIs, not by coefficients
 ────────────────────────────────────────────────────────────────────────────────
-  R  GRR 96.000000%  ×  expansion 110.000000%   → NRR 105.600000%
-  X  GRR 90.000000%  ×  expansion 117.333333%   → NRR 105.600000%
-  X expansion solved as 0.173333333333333 (full double precision, not rounded)
-  Everything else identical: opening ARR, cash, S&M, CAC/New ARR, GM, R&D, G&A, horizon.
+                                       R · retention-heavy   X · expansion-heavy
+  ──────────────────────────────────────────────────────────────────────────────
+  TARGET measured R12M GRR                        96.0000%              90.0000%
+  TARGET measured R12M expansion                   9.6000%              15.6000%
+  TARGET measured R12M NRR                       105.6000%             105.6000%
+  ──────────────────────────────────────────────────────────────────────────────
+  → persistence coefficient                     96.168130%            90.672144%
+  → expansion coefficient                        9.807687%            16.463553%
+  → monthly multiplier m                       1.004551007           1.004551007
+  ──────────────────────────────────────────────────────────────────────────────
+  ACTUAL measured R12M GRR                        96.0000%              90.0000%
+  ACTUAL measured R12M expansion                   9.6000%              15.6000%
+  ACTUAL measured R12M NRR                       105.6000%             105.6000%
 
-                                   R · retention-heavy   X · expansion-heavy      difference
+                                       R · retention-heavy   X · expansion-heavy            
   ────────────────────────────────────────────────────────────────────────────────────────
-  Year 1 ARR                                   €30.35m               €30.35m               —
-  Year 3 ARR                                   €52.82m               €52.82m               —
-  Year 5 ARR                                   €77.87m               €77.87m               —
-  Cumulative expansion                         €22.48m               €37.60m         differs
-  Cumulative leakage                            €9.61m               €24.73m         differs
-  Cumulative gross profit                     €190.50m              €190.50m               —
-  Year 5 EBITA / FCF                           €33.70m               €33.70m               —
-  Ending cash (M60)                            €83.50m               €83.50m               —
-  M60 ARR from opening cohort                  €26.26m               €26.26m               —
-  M60 ARR from acquired cohorts                €51.61m               €51.61m               —
-  NRR (calculated)                           105.6000%             105.6000%               —
+  Year 1 ARR                                       €30.35m               €30.35m   identical
+  Year 3 ARR                                       €52.82m               €52.82m   identical
+  Year 5 ARR                                       €77.87m               €77.87m   identical
+  Cumulative expansion                             €22.07m               €35.86m     differs
+  Cumulative leakage                                €9.19m               €22.99m     differs
+  Cumulative gross profit                         €190.50m              €190.50m   identical
+  Year 5 EBITA / FCF                               €33.70m               €33.70m   identical
+  Ending cash (M60)                                €83.50m               €83.50m   identical
+  M60 opening-cohort survival                      €26.26m               €26.26m   identical
+  M60 ARR from acquired cohorts                    €51.61m               €51.61m   identical
 
-  Month-by-month divergence over all 60 months:
-    closing ARR   max |R − X| = €8.941e-8
-    gross profit  max |R − X| = €5.588e-9
-    cash          max |R − X| = €8.941e-8
-    cumulative leakage differs by +€15.12m, cumulative expansion by +€15.12m
+  Max |R − X| over 60 months:  closing ARR €4.768e-7  ·  cash €6.109e-7
 
-  → Every aggregate the engine computes is identical to floating-point noise.
-    The ONLY difference is the gross decomposition of the flows: X churns
-    €15.12m more and expands €15.12m more, netting to zero.
+  → STILL ECONOMICALLY IDENTICAL, and the measurement layer sharpens the reason.
+    Measured R12M NRR is a STOCK RATIO, so pinning it pins m = NRR^(1/12) uniquely:
+    both scenarios run at m = 1.004551007. The ARR recursion consumes
+    nothing but m, so identical measured NRR forces identical everything downstream —
+    regardless of how GRR and expansion split it. The only trace is gross flow:
+    X leaks +€13.79m more and expands +€13.79m more, netting to zero.
+
+────────────────────────────────────────────────────────────────────────────────
+INFORMATION LOSS — two customer systems, one pair of reported KPIs
+────────────────────────────────────────────────────────────────────────────────
+  Arithmetic illustration, NOT simulator output (the model has no customers).
+  Both systems open with €20.0m of ARR across 100 customers at €200k each,
+  and both report R12M GRR 90.0% and R12M NRR 100.0%.
+
+                                     System A — logo churn  System B — contraction
+  ────────────────────────────────────────────────────────────────────────────────
+  Opening customers                                    100                     100
+  Opening ARR                                       €20.0m                  €20.0m
+  How the €2.0m is lost            10 logos churn entirely      all 100 shrink 10%
+  Closing customers                                     90                     100
+  Logo retention                                       90%                    100%
+  Expansion €2.0m from            5 survivors (+€400k each)    all 100 (+€20k each)
+  Top-5 share of expansion                            100%                      5%
+  Reported R12M GRR                                  90.0%                   90.0%
+  Reported R12M NRR                                 100.0%                  100.0%
+
+  Same two numbers. 90 customers vs 100. Expansion from 5 accounts vs 100.
+  Nothing in GRR or NRR distinguishes them, and their forward economics differ.
 
 ────────────────────────────────────────────────────────────────────────────────
 EFFICIENCY vs SPEND — calibrated to identical New ARR
