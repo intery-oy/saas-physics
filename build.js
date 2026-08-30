@@ -10,3 +10,10 @@ var out = tpl.replace('/*__ENGINE__*/', function () { return engine; })
              .replace('/*__INTEGRITY__*/', function () { return integrity; });
 fs.writeFileSync('saas-physics-prototype-0.html', out);
 console.log('built saas-physics-prototype-0.html — ' + (out.length / 1024).toFixed(1) + ' KB');
+
+/* Visual Prototype 1 — the SAME frozen engine and KPI layer, inlined verbatim. */
+var vis = fs.readFileSync('visual.template.html', 'utf8')
+  .replace('/*__ENGINE__*/', function () { return engine; })
+  .replace('/*__KPI__*/', function () { return kpi; });
+fs.writeFileSync('saas-physics-visual-1.html', vis);
+console.log('built saas-physics-visual-1.html — ' + (vis.length / 1024).toFixed(1) + ' KB');

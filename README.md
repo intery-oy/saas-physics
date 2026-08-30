@@ -13,14 +13,23 @@ Not built yet, by design: enterprise value, multiples, 3D, real company data, cu
 modelling, churn/contraction split, pricing, usage, working capital, debt, tax, capex,
 pipeline, headcount, probabilistic simulation, AI commentary. **We are proving the physics first.**
 
+## Two surfaces
+
+**[Visual Prototype 1](saas-physics-visual-1.html)** — the living system. Watch a SaaS company
+evolve over 60 months as a mass of cohort strata, change a force and see the future bend away from
+its own ghost. Built on the frozen engine; adds no economics.
+
+**[Prototype 0.3 inspection interface](saas-physics-prototype-0.html)** — the instrument. Every
+identity, bridge, measurement and integrity check, in numbers.
+
 ## Run it
 
 ```bash
 node checks.js            # 35 economic, measurement and state integrity checks
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
-node build.js        # build the single-file inspection interface
-open saas-physics-prototype-0.html
+node build.js             # build both single-file surfaces
+open saas-physics-visual-1.html
 ```
 
 No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` the CLI uses.
@@ -56,6 +65,8 @@ creates; gross margin decides how fast that investment is recovered.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
+- [`docs/VISUAL-1.md`](docs/VISUAL-1.md) — the visual model, interaction guide, design rationale,
+  and what became clearer (and what is still unresolved) by seeing the engine behave spatially
 - [`docs/STATE-SUFFICIENCY.md`](docs/STATE-SUFFICIENCY.md) — **the state sufficiency experiment**:
   two portfolios with the same ARR and the same trailing KPIs whose existing ARR carries 26.5%
   different forward economic content, the mechanism, and the flat-law control that proves maturity
