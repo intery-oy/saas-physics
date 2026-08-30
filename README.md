@@ -1,4 +1,4 @@
-# SaaS Physics — Prototype 0.2.1
+# SaaS Physics — Prototype 0.3
 
 A deterministic monthly economic engine for a SaaS business, plus a deliberately simple
 inspection interface. It answers one question:
@@ -16,8 +16,9 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 ## Run it
 
 ```bash
-node checks.js       # 26 economic- and measurement-integrity checks
-node scenarios.js    # Scenarios A–E
+node checks.js            # 35 economic, measurement and state integrity checks
+node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
+node state-sufficiency.js # the v0.3 State Sufficiency Experiment
 node build.js        # build the single-file inspection interface
 open saas-physics-prototype-0.html
 ```
@@ -32,8 +33,8 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | CONTROL | Monthly R&D investment | €700k |
 | CONTROL | Monthly G&A investment | €350k |
 | TRANSITION | CAC / New ARR | 1.20× |
-| TRANSITION | Annual persistence coefficient | 90% |
-| TRANSITION | Annual expansion coefficient | 10% |
+| TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
+| TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
 | TRANSITION | Gross margin | 80% |
 | STATE | Opening ARR | €20.0m |
 | STATE | Opening cash | €10.0m |
@@ -55,6 +56,10 @@ creates; gross margin decides how fast that investment is recovered.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
+- [`docs/STATE-SUFFICIENCY.md`](docs/STATE-SUFFICIENCY.md) — **the state sufficiency experiment**:
+  two portfolios with the same ARR and the same trailing KPIs whose existing ARR carries 26.5%
+  different forward economic content, the mechanism, and the flat-law control that proves maturity
+  itself creates nothing
 - [`docs/MEASUREMENT.md`](docs/MEASUREMENT.md) — **reality vs measurement**: the two-layer
   architecture, why 90% reads as 89.56%, canonical KPI definitions, inverse calibration, what GRR
   and NRR cannot tell you, and the provenance audit
@@ -65,10 +70,14 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Model version
 
-v0.2.1. The one v0.1 equation that was conceptually wrong — gross margin generating ARR — has been
+v0.3. The one v0.1 equation that was conceptually wrong — gross margin generating ARR — has been
 corrected by inverting the acquisition primitive. Everything else that looked weak is still built
 as specified and flagged in `FINDINGS.md` rather than quietly patched. The point of the prototype
 is to surface weaknesses, not bury them.
+
+Each iteration's default reproduces the previous one exactly — v0.3's flat bands give v0.2.1,
+v0.2.1's rename gives v0.2, and v0.2's inverted primitive reproduces v0.1's baseline — so results
+stay comparable across all four versions.
 
 The built file keeps the name `saas-physics-prototype-0.html` across iterations so the published
 link stays stable; the page header carries the model version.

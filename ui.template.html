@@ -213,6 +213,13 @@ tr.hl td{color:var(--ink)}
     </div>
 
     <div class="grp">
+      <div class="grp-head"><span class="tx tx-rate">TRANSITION</span><span class="eyebrow">Age bands (v0.3)</span></div>
+      <div class="note" style="margin-bottom:11px">One new state dimension: cohort maturity. Each band has its own coefficients. The default is <b style="color:var(--ink-2)">flat</b> — age carries no economic meaning until you give it some, and the model takes no position on which direction that should be.</div>
+      <div class="btn-row" style="margin-bottom:11px" id="band-presets"></div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse" id="bandtable"></table>
+    </div>
+
+    <div class="grp">
       <div class="grp-head"><span class="tx tx-emergent">MEASURED</span><span class="eyebrow">Reported by the KPI layer</span></div>
       <div class="emergent" id="measured"></div>
       <div class="emergent" id="emergent"></div>
@@ -238,7 +245,7 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
       <h1>SaaS&nbsp;Physics</h1>
       <span class="sub">Prototype&nbsp;0 — deterministic economic engine</span>
       <span class="spacer"></span>
-      <span class="pill">model v0.2.1</span>
+      <span class="pill">model v0.3</span>
       <span class="pill">60 monthly periods</span>
       <span class="pill" id="cohort-pill">61 cohorts</span>
     </header>
@@ -286,6 +293,15 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
         <div class="legend" id="mix-legend" style="flex-wrap:wrap;gap:12px;padding:4px 0 8px;font-size:10.5px"></div>
       </div>
       <div class="tw tall"><table id="cohorts"></table></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>State sufficiency experiment</h2>
+        <span class="hint">two portfolios, same ARR and same trailing KPIs, different cohort maturity</span>
+      </div>
+      <div class="tw"><table id="statesuff"></table></div>
+      <div class="subpanel" id="statesuff-verdict"></div>
     </section>
 
     <section class="sec">
@@ -695,11 +711,13 @@ FCF     = EBITA</div>
 
   function renderCohorts(){
     var snap=E.cohortSnapshot(expRes,month);
-    var h='<thead><tr><th>Cohort</th><th>Acq. month</th><th>Age (mo)</th><th>Original ARR</th><th>Current ARR</th><th>% of original</th>'+
+    var h='<thead><tr><th>Cohort</th><th>Acq. month</th><th>Age (mo)</th><th>Band</th><th>Acq. cost</th><th>Original ARR</th><th>Current ARR</th><th>% of original</th>'+
       '<th>Cum. leakage</th><th>Cum. expansion</th><th>Cum. gross profit</th></tr></thead><tbody>';
     snap.forEach(function(c){
       h+='<tr><td class="k">'+(c.acquisitionMonth===0?'Opening base':'M'+c.acquisitionMonth)+'</td>'+
         '<td>'+(c.acquisitionMonth===0?'—':'M'+c.acquisitionMonth)+'</td><td>'+c.age+'</td>'+
+        '<td>'+esc(c.bandName||'—')+'</td>'+
+        '<td'+(c.acquisitionCost===null?' style="color:var(--ink-3)"':'')+'>'+(c.acquisitionCost===null?'unknown':eur(c.acquisitionCost))+'</td>'+
         '<td>'+eur(c.initialARR)+'</td><td style="color:var(--ink)">'+eur(c.currentARR)+'</td>'+
         '<td style="color:'+(c.retainedShare>=1?'var(--good)':'var(--ink-2)')+'">'+pct(c.retainedShare)+'</td>'+
         '<td style="color:var(--bad)">'+eurNeg(c.cumLeakage)+'</td>'+
@@ -707,6 +725,114 @@ FCF     = EBITA</div>
         '<td>'+eur(c.cumGrossProfit)+'</td></tr>';
     });
     document.getElementById('cohorts').innerHTML=h+'</tbody>';
+  }
+
+  /* ---------------- v0.3: age bands ---------------- */
+  var STABLE={p:0.94,x:0.14}, RISKY={p:0.78,x:0.06};
+  function mkBands(rows){ var edges=[12,24,Infinity], names=E.BAND_NAMES;
+    return rows.map(function(r,i){ return {name:names[i], maxAgeExclusive:edges[i],
+      persistenceAnnual:r[0], expansionCoefficientAnnual:r[1]}; }); }
+  var BAND_PRESETS=[
+    {id:'flat', name:'Flat (default)', rows:[[BASE_A.persistenceAnnual,BASE_A.expansionCoefficientAnnual],
+                                             [BASE_A.persistenceAnnual,BASE_A.expansionCoefficientAnnual],
+                                             [BASE_A.persistenceAnnual,BASE_A.expansionCoefficientAnnual]]},
+    {id:'renewal', name:'Renewal-risk mid-life', rows:[[STABLE.p,STABLE.x],[RISKY.p,RISKY.x],[STABLE.p,STABLE.x]]},
+    {id:'inverted', name:'Inverted', rows:[[RISKY.p,RISKY.x],[STABLE.p,STABLE.x],[RISKY.p,RISKY.x]]}
+  ];
+  function currentBandRows(){
+    var b = expA.bands || E.resolveBands(expA);
+    return b.map(function(x){ return [x.persistenceAnnual, x.expansionCoefficientAnnual]; });
+  }
+  function buildBandUI(){
+    var host=document.getElementById('band-presets'); host.innerHTML='';
+    BAND_PRESETS.forEach(function(pr){
+      var b=document.createElement('button'); b.className='btn'; b.textContent=pr.name;
+      b.addEventListener('click',function(){ expA=Object.assign({},expA,{bands:mkBands(pr.rows)}); recompute(); });
+      host.appendChild(b);
+    });
+  }
+  function renderBandTable(){
+    var rows=currentBandRows(), edges=['0–11','12–23','24+'];
+    var h='<thead><tr><th style="padding:5px 6px">Band</th><th style="padding:5px 6px">Ages</th>'+
+          '<th style="padding:5px 6px">Persist.</th><th style="padding:5px 6px">Expans.</th><th style="padding:5px 6px">Mult</th></tr></thead><tbody>';
+    rows.forEach(function(r,i){
+      h+='<tr><td class="k" style="padding:5px 6px">'+esc(E.BAND_NAMES[i])+'</td><td style="padding:5px 6px">'+edges[i]+'</td>'+
+        '<td style="padding:3px 4px"><input type="number" step="0.5" data-b="'+i+'" data-f="0" value="'+(r[0]*100).toFixed(1)+
+        '" style="width:56px;background:var(--sunk);border:1px solid var(--line);border-radius:2px;padding:3px 4px;font-family:var(--mono);font-size:11px;color:var(--exp);text-align:right"></td>'+
+        '<td style="padding:3px 4px"><input type="number" step="0.5" data-b="'+i+'" data-f="1" value="'+(r[1]*100).toFixed(1)+
+        '" style="width:56px;background:var(--sunk);border:1px solid var(--line);border-radius:2px;padding:3px 4px;font-family:var(--mono);font-size:11px;color:var(--exp);text-align:right"></td>'+
+        '<td style="padding:5px 6px">'+(r[0]*(1+r[1])).toFixed(4)+'</td></tr>';
+    });
+    var el=document.getElementById('bandtable'); el.innerHTML=h+'</tbody>';
+    [].forEach.call(el.querySelectorAll('input'),function(inp){
+      inp.addEventListener('change',function(){
+        var v=parseFloat(inp.value); if(isNaN(v)) return;
+        var rs=currentBandRows(); rs[+inp.dataset.b][+inp.dataset.f]=v/100;
+        expA=Object.assign({},expA,{bands:mkBands(rs)}); recompute();
+      });
+    });
+  }
+
+  /* ---------------- v0.3: state sufficiency experiment ---------------- */
+  var SS_T0=12, SS_FWD=60, SS_HZ=72, SS_ARR=20000000;
+  function ssPort(bands, age){
+    return E.run(Object.assign({},BASE_A,{bands:bands, sm:0}),
+      {openingARR:SS_ARR, openingCash:BASE_A.openingCash||10000000,
+       openingCohorts:[{arr:SS_ARR, age:age}]}, SS_HZ);
+  }
+  function renderStateSufficiency(){
+    var bands = expA.bands || E.resolveBands(expA);
+    var flat  = mkBands([[bands[0].persistenceAnnual,bands[0].expansionCoefficientAnnual],
+                         [bands[0].persistenceAnnual,bands[0].expansionCoefficientAnnual],
+                         [bands[0].persistenceAnnual,bands[0].expansionCoefficientAnnual]]);
+    var Y=ssPort(bands,0), M=ssPort(bands,24);
+    var kY=K.measureR12M(Y,SS_T0), kM=K.measureR12M(M,SS_T0);
+    var fY=K.forwardEconomics(Y,SS_T0,SS_FWD), fM=K.forwardEconomics(M,SS_T0,SS_FWD);
+    var Yf=ssPort(flat,0), Mf=ssPort(flat,24);
+    var fYf=K.forwardEconomics(Yf,SS_T0,SS_FWD), fMf=K.forwardEconomics(Mf,SS_T0,SS_FWD);
+
+    function same(a,b,tol){ return Math.abs(a-b) < (tol||1e-9); }
+    var rows=[
+      ['Age at T0 (month 12)','12 months','36 months',false],
+      ['ARR at T0', eur(fY.arrAtT0), eur(fM.arrAtT0), same(fY.arrAtT0,fM.arrAtT0,1e-6)],
+      ['R12M GRR', pct(kY.grr,6), pct(kM.grr,6), same(kY.grr,kM.grr,1e-12)],
+      ['R12M expansion', pct(kY.expansionRate,6), pct(kM.expansionRate,6), same(kY.expansionRate,kM.expansionRate,1e-12)],
+      ['R12M NRR', pct(kY.nrr,6), pct(kM.nrr,6), same(kY.nrr,kM.nrr,1e-12)],
+      ['Gross margin', pct(BASE_A.grossMargin), pct(BASE_A.grossMargin), true],
+      ['New ARR per month (acquisition off)', eur(0), eur(0), true],
+      ['ARR at M72', eur(Y.months[SS_HZ-1].closingARR), eur(M.months[SS_HZ-1].closingARR), same(Y.months[SS_HZ-1].closingARR,M.months[SS_HZ-1].closingARR,1)],
+      ['Remaining gross profit, 60 months', eur(fY.remainingGP), eur(fM.remainingGP), same(fY.remainingGP,fM.remainingGP,1)],
+      ['Remaining FCF, 60 months', eur(fY.remainingFCF), eur(fM.remainingFCF), same(fY.remainingFCF,fM.remainingFCF,1)],
+      ['Forward GP density (experimental)', fY.gpDensity.toFixed(4)+'×', fM.gpDensity.toFixed(4)+'×', same(fY.gpDensity,fM.gpDensity,1e-9)],
+      ['— same, with FLAT bands', fYf.gpDensity.toFixed(4)+'×', fMf.gpDensity.toFixed(4)+'×', same(fYf.gpDensity,fMf.gpDensity,1e-12)]
+    ];
+    var h='<thead><tr><th>Time-0 state and forward outcome</th><th>Y · young base</th><th>M · mature base</th><th>Verdict</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var matched=r[3];
+      h+='<tr><td class="k">'+esc(r[0])+'</td><td'+(matched?'':' style="color:var(--exp)"')+'>'+r[1]+'</td>'+
+         '<td'+(matched?'':' style="color:var(--exp)"')+'>'+r[2]+'</td>'+
+         '<td style="color:'+(matched?'var(--good)':'var(--warn)')+'">'+(matched?'identical':'differs')+'</td></tr>';
+    });
+    document.getElementById('statesuff').innerHTML=h+'</tbody>';
+
+    var diverges = Math.abs(fY.gpDensity-fM.gpDensity) > 1e-9;
+    document.getElementById('statesuff-verdict').innerHTML =
+      '<h3>Can identical ARR with identical trailing KPIs carry different future economics?</h3><div class="note" style="line-height:1.75">'+
+      (diverges
+        ? '<b style="color:var(--ink)">Yes — and here is the computation.</b> Both portfolios hold '+eur(fY.arrAtT0)+
+          ' of ARR at T0 and report the same R12M GRR, expansion and NRR to twelve decimal places. Over the next 60 months '+
+          'Y produces <b>'+eur(fY.remainingGP)+'</b> of gross profit and M produces <b>'+eur(fM.remainingGP)+'</b> — '+
+          '<b>'+eur(Math.abs(fM.remainingGP-fY.remainingGP))+'</b> apart, '+pct(Math.abs(fM.gpDensity/fY.gpDensity-1))+' of forward economic content, '+
+          'from the same euro of current ARR.<br><br>The mechanism is not "quality". '+
+          'Y sits at age 12 and has <em>not yet passed through</em> the '+esc(E.BAND_NAMES[1])+' band; M passed through it a year ago. '+
+          'For twelve months Y runs at an annual multiplier of '+(bands[1].persistenceAnnual*(1+bands[1].expansionCoefficientAnnual)).toFixed(4)+
+          ' while M runs at '+(bands[2].persistenceAnnual*(1+bands[2].expansionCoefficientAnnual)).toFixed(4)+
+          '. After that both grow at the same rate, so the gap is a level difference created once and then carried forever.'
+        : '<b style="color:var(--ink)">Not with these bands.</b> The bands are currently flat, so cohort age carries no economic meaning and the two portfolios are bit-identical. Load the renewal-risk profile above to make maturity matter.')+
+      '<br><br><b style="color:var(--warn)">Control.</b> With the same two portfolios and FLAT bands, forward GP density is '+
+      fYf.gpDensity.toFixed(6)+'× versus '+fMf.gpDensity.toFixed(6)+'× — identical. '+
+      '<b>Maturity itself creates nothing.</b> Only economically different future transition behaviour associated with maturity does. '+
+      'Forward GP density is an experimental 60-month forward economic measure, not a KPI, not a quality score and not enterprise value.</div>';
   }
 
   /* ---------------- Layer B: R12M measurement (brief §4, §5) ---------------- */
@@ -811,7 +937,8 @@ FCF     = EBITA</div>
   function recompute(){
     expRes=E.run(expA);                    // same engine as Base, different assumptions
     syncControls(); renderExplain(); renderCharts(); renderMonthly();
-    renderBridge(); renderRates(); renderMix(); renderCohorts(); renderMatched(); renderChecks();
+    renderBridge(); renderRates(); renderMix(); renderCohorts(); renderBandTable();
+    renderStateSufficiency(); renderMatched(); renderChecks();
   }
 
   document.getElementById('month').addEventListener('input',function(e){
@@ -820,6 +947,7 @@ FCF     = EBITA</div>
   var rt; window.addEventListener('resize',function(){ clearTimeout(rt); rt=setTimeout(function(){ renderCharts(); renderMix(); },120); });
 
   buildControls();
+  buildBandUI();
   recompute();
 })();
 </script>

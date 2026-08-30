@@ -1,6 +1,6 @@
-# Reconciliation, integrity and scenario results
+# Reconciliation, integrity and experiment results
 
-Generated output from `node checks.js` and `node scenarios.js` (model v0.2.1). Regenerate with `npm run report`.
+Generated output (model v0.3). Regenerate with `npm run report`.
 
 ## Integrity checks
 
@@ -60,16 +60,193 @@ SaaS Physics — Prototype 0 integrity checks
         max deviation across all three calibrated runs 0.000e+0; New ARR still €0.750m/mo, payback still 18.00 months
   PASS  26. KPI · Base and Experiment share one economic engine and one measurement engine
         E.run and K.measureR12M are the single entry points; identical assumptions give identical measurements: true
+  PASS  27. STATE · At T0 the two portfolios match on ARR, R12M GRR, R12M expansion, R12M NRR and gross margin
+        ARR €21.4320m both (Δ €0.0e+0); GRR 93.628381% both; NRR 107.160000% both; GM 80% both
+  PASS  28. STATE · Acquisition is zero throughout the core experiment, in both portfolios
+        New ARR €0/month and S&M €0/month across all 72 months
+  PASS  29. STATE · Divergence requires BOTH a different cohort state AND age-dependent laws (2×2 factorial)
+        same state + age-dependent: €0.0e+0 · different state + flat: €0.0e+0 · different state + age-dependent: €6.92m
+  PASS  30. STATE · With flat age-independent laws the matched portfolios do not diverge at all
+        monthly series byte-identical: true; forward GP density 4.778639× vs 4.778639× — maturity itself creates nothing
+  PASS  31. STATE · Acquisition cost is stamped at cohort creation, reconciles to cacPerARR, and is immutable
+        60 acquisition cohorts stamped at €0.90m each (= initialARR × 1.2×); opening vintages null (genuinely unknown); unchanged after measurement: true
+  PASS  32. STATE · Sunk acquisition cost never reduces forward ARR, gross profit or retention
+        doubling cost per cohort (2.00×) at identical New ARR leaves ARR, GP and leakage unchanged to €0.0e+0; only the current-period S&M expense moves
+  PASS  33. STATE · KPI bridge and the GRR + expansion = NRR identity still hold under age-dependent laws
+        max bridge residual €7.45e-9, max identity residual 4.44e-16 across 61 measurement dates
+  PASS  34. STATE · The flat-law closed forms (NRR = P×(1+X), the calibration inverse) hold only under flat bands
+        bands are flat: measured NRR 99.000000% = P×(1+X) 99.000000%
+  PASS  35. STATE · v0.2 acquisition physics remain intact when acquisition is re-enabled under age bands
+        New ARR €0.750m/mo = S&M ÷ cacPerARR; payback 18.00 months = cacPerARR × 12 ÷ GM
 ================================================================================
-26 / 26 checks passed
+35 / 35 checks passed
 
 ```
 
-## Layers, calibration, scenarios and experiments
+## State Sufficiency Experiment (v0.3)
 
 ```
 
-SaaS Physics — Prototype 0.2.1   (model v0.2)
+SaaS Physics — Prototype 0.3   State Sufficiency Experiment   (model v0.3)
+────────────────────────────────────────────────────────────────────────────────────
+A. NEW STATE DIMENSION — cohort maturity
+────────────────────────────────────────────────────────────────────────────────────
+  Three age bands by cohort age at the START of each month.
+  Six transition parameters; no other new behavioural coefficient.
+
+  band          ages           persistence   expansion   annual mult
+  ──────────────────────────────────────────────────────────────────
+  Early         0–11                94.00%      14.00%        1.0716
+  Developing    12–23               78.00%       6.00%        0.8268
+  Mature        24–+                94.00%      14.00%        1.0716
+
+  This profile is a USER ASSUMPTION, not a law. Band 2 is read as a mid-life
+  renewal / re-contracting window. Bands 1 and 3 are deliberately identical:
+  the simulator takes no position on whether older cohorts are better.
+  The shipped DEFAULT is flat — age carries no meaning until someone gives it some.
+
+────────────────────────────────────────────────────────────────────────────────────
+B. MATCHED CURRENT STATE AT T0 (month 12)
+────────────────────────────────────────────────────────────────────────────────────
+  CALIBRATION NOTE. A first attempt used a monotone band profile and solved for
+  two age mixes hitting the same (GRR, expansion). It was INFEASIBLE: with monotone
+  bands the (GRR, expansion) signature is very nearly one-dimensional in age, so
+  matching two KPIs pins the age distribution and no non-negative second solution
+  exists. Rather than fudge the reported metrics, the construction was changed:
+  bands 1 and 3 share coefficients, so a cohort that spent the measurement window
+  in band 1 and one that spent it in band 3 report IDENTICAL KPIs exactly, while
+  facing completely different futures. No solver, no residual.
+
+                                               Y · young          M · mature    difference
+  ────────────────────────────────────────────────────────────────────────────────────────
+  Age at T0                                    12 months           36 months       differs
+  Band occupied during window               Early (0–11)      Mature (24–35)       differs
+  Band occupied AT T0                         Developing              Mature       differs
+  ARR at T0                                    €21.4320m           €21.4320m       €0.0e+0
+  R12M GRR                                    93.628381%          93.628381%        0.0e+0
+  R12M expansion                              13.531619%          13.531619%        0.0e+0
+  R12M NRR                                   107.160000%         107.160000%        0.0e+0
+  Gross margin                                    80.00%              80.00%             0
+  R&D + G&A per month                             €1.05m              €1.05m             0
+  S&M per month (acquisition off)                 €0.00m              €0.00m             0
+  New ARR per month                               €0.00m              €0.00m             0
+  CAC / New ARR                                    1.20×               1.20×             0
+
+  → To any conventional KPI dashboard these are the same company.
+
+────────────────────────────────────────────────────────────────────────────────────
+C. FORWARD 60 MONTHS (months 13–72), acquisition off in both
+────────────────────────────────────────────────────────────────────────────────────
+                                               Y · young          M · mature         M − Y
+  ────────────────────────────────────────────────────────────────────────────────────────
+  ARR at M72                                     €23.37m             €30.28m       +€6.92m
+  Remaining revenue (60m)                       €101.17m            €128.02m      +€26.85m
+  Remaining gross profit (60m)                   €80.94m            €102.42m      +€21.48m
+  Remaining EBITA (60m)                          €17.94m             €39.42m      +€21.48m
+  Remaining FCF (60m)                            €17.94m             €39.42m      +€21.48m
+  Cash at M72                                    €31.90m             €53.38m      +€21.48m
+  Expansion from T0 base                         €11.80m             €16.73m       +€4.93m
+  Leakage from T0 base                            €9.86m              €7.88m       −€1.98m
+
+  ARR trajectory of the T0 base, by year:
+                         Y1           Y2           Y3           Y4           Y5
+  Y · young         €17.72m      €18.99m      €20.35m      €21.81m      €23.37m
+  M · mature        €22.97m      €24.61m      €26.37m      €28.26m      €30.28m
+  Y's band       Developing       Mature       Mature       Mature       Mature   (mid-year)
+
+────────────────────────────────────────────────────────────────────────────────────
+D. THE MECHANISM, AND F. FORWARD ECONOMIC CONTENT
+────────────────────────────────────────────────────────────────────────────────────
+  Y still has to pass through the Developing band. M passed through it 12 months
+  before T0. In months 13–24 Y runs at an annual multiplier of 0.8268 while M runs at 1.0716.
+  After month 24 both grow at the SAME rate — the gap never closes, because it is a
+  level difference created in one year and then compounded by an identical rate.
+
+  ARR at M24 (end of Y's risk window):  Y €17.72m   M €22.97m   ratio 1.2961
+  ARR at M72:                          Y €23.37m   M €30.28m   ratio 1.2961
+
+  EXPERIMENTAL 60-MONTH FORWARD ECONOMIC MEASURE — not a KPI, not enterprise value
+    Remaining GP60             Y €80.94m        M €102.42m
+    Current ARR at T0          Y €21.43m         M €21.43m
+    Forward GP density (GP60 / current ARR)
+                               Y 3.7764×          M 4.7786×
+    → €1 of Y's ARR carries 3.78 of forward gross profit;
+      €1 of M's ARR carries 4.78. Same euro, 26.54% more economic content.
+
+  Density across the mix (share of ARR that is young at T0):
+  young share          ARR at T0          GP60    GP density
+  0%                     €21.43m      €102.42m       4.7786×
+  25%                    €21.43m       €97.05m       4.5281×
+  50%                    €21.43m       €91.68m       4.2775×
+  75%                    €21.43m       €86.31m       4.0270×
+  100%                   €21.43m       €80.94m       3.7764×
+
+────────────────────────────────────────────────────────────────────────────────────
+E. FLAT-LAW COUNTERFACTUAL — identical coefficients in every band
+────────────────────────────────────────────────────────────────────────────────────
+  Same two portfolios, same age composition, only the age-dependence removed.
+                                               Y · young          M · mature    difference
+  ────────────────────────────────────────────────────────────────────────────────────────
+  ARR at T0                                    €21.4320m           €21.4320m       €0.0e+0
+  R12M NRR                                   107.160000%         107.160000%        0.0e+0
+  Remaining GP60                              €102.4158m          €102.4158m       €0.0e+0
+  Forward GP density                           4.778639×           4.778639×        0.0e+0
+  max |Y − M| ARR over 72 months               €0.000e+0
+  max |Y − M| gross profit                     €0.000e+0
+
+  → Age composition alone creates NOTHING. With flat laws the two portfolios are
+    bit-identical. Maturity has no value; only economically different future
+    transition behaviour associated with maturity has value.
+
+  Direction agnosticism. Invert the profile (bands 1 and 3 risky, band 2 stable):
+    Forward GP density   Y 3.2294×   M 2.5811×   → YOUNG is now worth more.
+    The model privileges no direction. The ranking is a property of the assumed
+    transition laws, never of age itself.
+
+────────────────────────────────────────────────────────────────────────────────────
+OBSERVABILITY — when does the reported KPI series reveal the difference?
+────────────────────────────────────────────────────────────────────────────────────
+  measurement date         Y · young    M · mature   distinguishable?
+  ────────────────────────────────────────────────────────────────────────────
+  M12  (T0)                  107.16%       107.16%   NO — identical
+  M15                        100.43%       107.16%   yes, 6.73pp apart
+  M18                         94.13%       107.16%   yes, 13.03pp apart
+  M21                         88.22%       107.16%   yes, 18.94pp apart
+  M24                         82.68%       107.16%   yes, 24.48pp apart
+  M30                         94.13%       107.16%   yes, 13.03pp apart
+  M36                        107.16%       107.16%   NO — identical
+  M48                        107.16%       107.16%   NO — identical
+  M72                        107.16%       107.16%   NO — identical
+
+  The trailing KPI series is blind BEFORE the event, sees it for exactly 24 months as
+  the risk window passes through the measurement window, and is blind again AFTER.
+  A CFO deciding at T0 gets the blind reading. By the time the KPIs show it, the
+  economics have already happened — and by M36 the report looks pristine again.
+
+  The information is not unknowable. It is simply not in GRR and NRR: cohort vintage
+  disclosure identifies it instantly, and every company already has that data.
+
+────────────────────────────────────────────────────────────────────────────────────
+SECONDARY RUN — identical acquisition re-enabled (S&M €0.90m/mo in both)
+────────────────────────────────────────────────────────────────────────────────────
+                                               Y · young          M · mature         M − Y
+  ────────────────────────────────────────────────────────────────────────────────────────
+  ARR at M72                                     €78.15m             €85.07m       +€6.92m
+  Remaining GP60                                €206.01m            €227.49m      +€21.48m
+  Cash at M72                                    €95.85m            €117.33m      +€21.48m
+  Forward GP density                             6.7052×             7.4043×
+
+  The gap survives but is diluted: new cohorts are identical in both companies and
+  arrive at the same rate, so they add the same economics to each. Acquisition
+  does not remove the difference in the installed base — it hides it.
+
+```
+
+## Layers, calibration, scenarios (v0.2 / v0.2.1)
+
+```
+
+SaaS Physics — Prototype 0.2.1   (model v0.3)
 ────────────────────────────────────────────────────────────────────────────────
 BASE  S&M €0.90m/mo · CAC/New ARR 1.20× · persistence 90.0% · expansion coefficient 10.0% · GM 80.0% · R&D €0.70m/mo · G&A €0.35m/mo
       Opening ARR €20.00m, opening cash €10.00m

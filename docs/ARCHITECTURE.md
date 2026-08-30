@@ -1,4 +1,10 @@
-# Economic architecture — Prototype 0.2.1 (model v0.2.1)
+# Economic architecture — Prototype 0.3 (model v0.3)
+
+> **v0.3.** One new state dimension: **cohort maturity**. Transition coefficients may vary by the
+> age band a cohort occupies (0–11, 12–23, 24+ months), giving six transition parameters. The
+> shipped default is **flat** — every band inherits the scalar coefficients — so the default world
+> is exactly v0.2.1 and age carries no economic meaning until a user gives it some. Cohorts also
+> carry acquisition-cost provenance, stamped at creation and never read by any forward transition.
 
 > **v0.2.1.** The simulator is now explicitly two layers: this document describes **Layer A, the
 > economic / state-transition engine**. The KPI measurement layer is documented separately in
@@ -171,9 +177,9 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 
 | Class | Members |
 |---|---|
-| **STATE** | ARR (opening/closing), cash, cohort balances |
+| **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band** |
 | **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, EBITA, FCF |
-| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** |
+| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band |
 | **CONTROL** | S&M, R&D, G&A investment |
 | **MEASURED** | **R12M GRR / expansion / NRR**, **CAC payback**, ARR growth, EBITA margin, burn — produced by Layer B, never settable |
 
@@ -182,10 +188,11 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 | File | Role |
 |---|---|
 | `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. |
-| `kpi.js` | **Layer B** — the KPI measurement engine. Contains no economics. UMD. |
-| `integrity.js` | The 26 economic- and measurement-integrity assertions. UMD. |
+| `kpi.js` | **Layer B** — the KPI measurement engine, plus forward economic content. Contains no economics of its own. UMD. |
+| `integrity.js` | The 35 economic, measurement and state assertions. UMD. |
 | `checks.js` | Node CLI for the assertions. |
-| `scenarios.js` | Node CLI for Scenarios A–E. |
+| `scenarios.js` | Node CLI for Scenarios A–E and the 0.2/0.2.1 experiments. |
+| `state-sufficiency.js` | Node CLI for the v0.3 State Sufficiency Experiment. |
 | `ui.template.html` | Inspection interface. |
 | `build.js` | Inlines `engine.js` + `integrity.js` into the single-file UI. |
 | `saas-physics-prototype-0.html` | Built artifact. |

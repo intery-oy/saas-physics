@@ -12,7 +12,13 @@
   var EPS = 1e-6; // euros
 
   function runAll(assumptions) {
-    var A = Object.assign({}, E.DEFAULT_ASSUMPTIONS, assumptions || {});
+    var Aband = Object.assign({}, E.DEFAULT_ASSUMPTIONS, assumptions || {});
+    /* Checks 1–26 assert identities of the HOMOGENEOUS engine (NRR = P(1+X), the
+       measured-vs-coefficient decomposition, closed-form calibration). Those are
+       properties of age-independent laws and are deliberately band-conditional —
+       see the final check — so they are evaluated against the flat projection of
+       whatever is configured. The v0.3 checks build their own banded worlds. */
+    var A = Object.assign({}, Aband); delete A.bands;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -276,6 +282,129 @@
     ok('KPI · Base and Experiment share one economic engine and one measurement engine',
        eOne && kOne && sameK,
        'E.run and K.measureR12M are the single entry points; identical assumptions give identical measurements: ' + sameK);
+
+    /* ================================================================ *
+     * v0.3 — state sufficiency: cohort maturity and acquisition provenance
+     * ================================================================ */
+    var STABLE = { p: 0.94, x: 0.14 }, RISKY = { p: 0.78, x: 0.06 };
+    function band(n, maxAge, r) {
+      return { name: n, maxAgeExclusive: maxAge, persistenceAnnual: r.p, expansionCoefficientAnnual: r.x };
+    }
+    var PROFILE = [band('Early', 12, STABLE), band('Developing', 24, RISKY), band('Mature', Infinity, STABLE)];
+    var FLAT3   = [band('Early', 12, STABLE), band('Developing', 24, STABLE), band('Mature', Infinity, STABLE)];
+    var T0 = 12, FWD = 60, HZ = T0 + FWD, OARR = 20000000;
+    function port(bands, age, sm) {
+      return E.run(Object.assign({}, A, { bands: bands, sm: sm === undefined ? 0 : sm }),
+                   { openingARR: OARR, openingCash: 10000000, openingCohorts: [{ arr: OARR, age: age }] }, HZ);
+    }
+    var pY = port(PROFILE, 0), pM = port(PROFILE, 24);
+    var mY = K.measureR12M(pY, T0), mM = K.measureR12M(pM, T0);
+    var eY = K.forwardEconomics(pY, T0, FWD), eM = K.forwardEconomics(pM, T0, FWD);
+
+    /* S1–S5. The two portfolios are indistinguishable at T0 */
+    ok('STATE · At T0 the two portfolios match on ARR, R12M GRR, R12M expansion, R12M NRR and gross margin',
+       Math.abs(eY.arrAtT0 - eM.arrAtT0) < EPS && Math.abs(mY.grr - mM.grr) < 1e-12 &&
+       Math.abs(mY.expansionRate - mM.expansionRate) < 1e-12 && Math.abs(mY.nrr - mM.nrr) < 1e-12 &&
+       pY.assumptions.grossMargin === pM.assumptions.grossMargin,
+       'ARR €' + (eY.arrAtT0 / 1e6).toFixed(4) + 'm both (Δ €' + Math.abs(eY.arrAtT0 - eM.arrAtT0).toExponential(1) +
+       '); GRR ' + (mY.grr * 100).toFixed(6) + '% both; NRR ' + (mY.nrr * 100).toFixed(6) + '% both; GM ' +
+       (pY.assumptions.grossMargin * 100).toFixed(0) + '% both');
+
+    /* S6. Acquisition is off in the core experiment */
+    var noAcq = pY.derived.newARRPerMonth === 0 && pM.derived.newARRPerMonth === 0 &&
+                pY.months.every(function (mm) { return mm.newARR === 0 && mm.sm === 0; });
+    ok('STATE · Acquisition is zero throughout the core experiment, in both portfolios',
+       noAcq, 'New ARR €0/month and S&M €0/month across all ' + HZ + ' months');
+
+    /* S7. 2×2 factorial: divergence needs BOTH different composition AND age-dependent laws */
+    function maxARRGap(r1, r2) {
+      var w = 0; for (i = 0; i < HZ; i++) w = Math.max(w, Math.abs(r1.months[i].closingARR - r2.months[i].closingARR));
+      return w;
+    }
+    var sameCompAgeDep = maxARRGap(port(PROFILE, 0), port(PROFILE, 0));   // same state, age-dependent
+    var diffCompFlat   = maxARRGap(port(FLAT3, 0), port(FLAT3, 24));      // different state, flat
+    var diffCompAgeDep = maxARRGap(pY, pM);                               // different state, age-dependent
+    ok('STATE · Divergence requires BOTH a different cohort state AND age-dependent laws (2×2 factorial)',
+       sameCompAgeDep < EPS && diffCompFlat < EPS && diffCompAgeDep > 1e6,
+       'same state + age-dependent: €' + sameCompAgeDep.toExponential(1) +
+       ' · different state + flat: €' + diffCompFlat.toExponential(1) +
+       ' · different state + age-dependent: €' + (diffCompAgeDep / 1e6).toFixed(2) + 'm');
+
+    /* S8. Flat laws: the matched portfolios stay bit-identical */
+    var fY = port(FLAT3, 0), fM = port(FLAT3, 24);
+    var flatSame = JSON.stringify(fY.months) === JSON.stringify(fM.months);
+    var gY = K.forwardEconomics(fY, T0, FWD), gM = K.forwardEconomics(fM, T0, FWD);
+    ok('STATE · With flat age-independent laws the matched portfolios do not diverge at all',
+       flatSame && Math.abs(gY.gpDensity - gM.gpDensity) < 1e-12,
+       'monthly series byte-identical: ' + flatSame + '; forward GP density ' + gY.gpDensity.toFixed(6) +
+       '× vs ' + gM.gpDensity.toFixed(6) + '× — maturity itself creates nothing');
+
+    /* S9. Acquisition cost is stamped at creation and never mutates */
+    var acqRun = E.run(A), stamped = 0, bad = 0;
+    acqRun.cohorts.forEach(function (c) {
+      if (c.acquisitionMonth === 0) { if (c.acquisitionCost !== null) bad++; return; }
+      stamped++;
+      if (Math.abs(c.acquisitionCost - A.sm) > EPS) bad++;
+      if (Math.abs(c.acquisitionCost - c.initialARR * c.cacPerARRAtCreation) > EPS) bad++;
+    });
+    var before = acqRun.cohorts.map(function (c) { return c.acquisitionCost; }).join(',');
+    E.summarise(acqRun); K.measureR12M(acqRun, 24); K.forwardEconomics(acqRun, 12, 48);
+    var after = acqRun.cohorts.map(function (c) { return c.acquisitionCost; }).join(',');
+    ok('STATE · Acquisition cost is stamped at cohort creation, reconciles to cacPerARR, and is immutable',
+       bad === 0 && before === after,
+       stamped + ' acquisition cohorts stamped at €' + (A.sm / 1e6).toFixed(2) +
+       'm each (= initialARR × ' + A.cacPerARR + '×); opening vintages null (genuinely unknown); ' +
+       'unchanged after measurement: ' + (before === after));
+
+    /* S10. Historical acquisition cost never feeds forward economics.
+       Double both S&M and cacPerARR: identical New ARR, double the sunk cost. */
+    var cheap = E.run(Object.assign({}, A, { sm: A.sm, cacPerARR: A.cacPerARR }));
+    var dear  = E.run(Object.assign({}, A, { sm: A.sm * 2, cacPerARR: A.cacPerARR * 2 }));
+    var wA2 = 0, wG2 = 0, wL2 = 0;
+    for (i = 0; i < cheap.horizon; i++) {
+      wA2 = Math.max(wA2, Math.abs(cheap.months[i].closingARR - dear.months[i].closingARR));
+      wG2 = Math.max(wG2, Math.abs(cheap.months[i].grossProfit - dear.months[i].grossProfit));
+      wL2 = Math.max(wL2, Math.abs(cheap.months[i].leakage - dear.months[i].leakage));
+    }
+    var costRatio = dear.cohorts[5].acquisitionCost / cheap.cohorts[5].acquisitionCost;
+    ok('STATE · Sunk acquisition cost never reduces forward ARR, gross profit or retention',
+       wA2 < EPS && wG2 < EPS && wL2 < EPS && Math.abs(costRatio - 2) < 1e-9,
+       'doubling cost per cohort (' + costRatio.toFixed(2) + '×) at identical New ARR leaves ARR, GP and ' +
+       'leakage unchanged to €' + Math.max(wA2, wG2, wL2).toExponential(1) + '; only the current-period S&M expense moves');
+
+    /* S11. The measurement layer stays intact under age-dependent laws */
+    var wB2 = 0, wI2 = 0;
+    for (i = T0; i <= HZ; i++) {
+      var kk = K.measureR12M(pY, i);
+      wB2 = Math.max(wB2, Math.abs(kk.bridgeResidual)); wI2 = Math.max(wI2, Math.abs(kk.identityResidual));
+    }
+    ok('STATE · KPI bridge and the GRR + expansion = NRR identity still hold under age-dependent laws',
+       wB2 < EPS && wI2 < 1e-12,
+       'max bridge residual €' + wB2.toExponential(2) + ', max identity residual ' + wI2.toExponential(2) +
+       ' across ' + (HZ - T0 + 1) + ' measurement dates');
+
+    /* S13. The flat-law closed forms are band-conditional — stated, not hidden */
+    var bandedRun = E.run(Aband), flatRun = E.run(A);
+    var isFlat = bandedRun.bandsAreFlat;
+    var kBand = K.measureR12M(bandedRun, 12), kFlat = K.measureR12M(flatRun, 12);
+    var closedForm = Aband.persistenceAnnual * (1 + Aband.expansionCoefficientAnnual);
+    var conditional = isFlat
+      ? Math.abs(kFlat.nrr - closedForm) < 1e-9
+      : Math.abs(kBand.nrr - closedForm) > 1e-9;
+    ok('STATE · The flat-law closed forms (NRR = P×(1+X), the calibration inverse) hold only under flat bands',
+       conditional,
+       isFlat
+         ? 'bands are flat: measured NRR ' + (kFlat.nrr * 100).toFixed(6) + '% = P×(1+X) ' + (closedForm * 100).toFixed(6) + '%'
+         : 'bands are NOT flat: measured NRR ' + (kBand.nrr * 100).toFixed(4) + '% ≠ P×(1+X) ' +
+           (closedForm * 100).toFixed(4) + '% — as it must be, since a banded world has no single (P, X)');
+
+    /* S12. v0.2 acquisition physics survive outside the zero-acquisition experiment */
+    var withAcq = port(PROFILE, 0, A.sm);
+    ok('STATE · v0.2 acquisition physics remain intact when acquisition is re-enabled under age bands',
+       Math.abs(withAcq.derived.newARRPerMonth - A.sm / A.cacPerARR) < EPS &&
+       Math.abs(withAcq.derived.cacPaybackMonths - (A.cacPerARR * 12) / A.grossMargin) < 1e-9,
+       'New ARR €' + (withAcq.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo = S&M ÷ cacPerARR; payback ' +
+       withAcq.derived.cacPaybackMonths.toFixed(2) + ' months = cacPerARR × 12 ÷ GM');
 
     return out;
   }

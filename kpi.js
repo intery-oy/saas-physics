@@ -131,6 +131,68 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * FORWARD ECONOMIC CONTENT (v0.3)
+   *
+   * Not valuation. No discounting, no multiple, no score. Simply: how much gross
+   * profit does the ARR that exists at T0 go on to produce over the next N months?
+   *
+   * `gpDensity` is that quantity per euro of current ARR — an EXPERIMENTAL
+   * 60-month forward economic measure, deliberately not a canonical SaaS KPI and
+   * deliberately not enterprise value.
+   * ------------------------------------------------------------------ */
+  function forwardEconomics(res, T0, horizon) {
+    var end = Math.min(res.horizon, T0 + horizon);
+    var win = res.months.slice(T0, end);
+    var sum = function (k) { return win.reduce(function (s, m) { return s + m[k]; }, 0); };
+    var arrT0 = res.months[T0 - 1].closingARR;
+
+    /* flows attributable to the cohorts that already existed at T0 */
+    var existing = res.cohorts.filter(function (c) { return c.acquisitionMonth <= T0; });
+    var exLeak = 0, exExp = 0, exGP = 0, exARREnd = 0;
+    existing.forEach(function (c) {
+      var last = null;
+      for (var t = T0 + 1; t <= end; t++) {
+        var r = rowAt(c, t);
+        if (!r) continue;
+        exLeak += r.leakage; exExp += r.expansion; exGP += r.grossProfit; last = r;
+      }
+      if (last) exARREnd += last.closingARR;
+    });
+
+    return {
+      T0: T0, months: end - T0,
+      arrAtT0: arrT0,
+      arrAtEnd: res.months[end - 1].closingARR,
+      remainingRevenue: sum('revenue'),
+      remainingGP: sum('grossProfit'),
+      remainingEbita: sum('ebita'),
+      remainingFCF: sum('fcf'),
+      cashAtEnd: res.months[end - 1].cashClosing,
+      existingBaseARREnd: exARREnd,
+      existingBaseGP: exGP,
+      existingBaseExpansion: exExp,
+      existingBaseLeakage: exLeak,
+      /* EXPERIMENTAL forward economic measure — not a KPI, not a valuation */
+      gpDensity: arrT0 > 0 ? sum('grossProfit') / arrT0 : 0,
+      existingBaseGPDensity: arrT0 > 0 ? exGP / arrT0 : 0
+    };
+  }
+
+  /* ARR split by age band at month t — the state the KPIs cannot see. */
+  function ageComposition(res, t) {
+    var bands = res.bands, out = bands.map(function (b) { return { name: b.name, arr: 0 }; }), total = 0;
+    res.cohorts.forEach(function (c) {
+      var r = rowAt(c, t);
+      if (!r) return;
+      var age = r.age, bi = 0;
+      for (var i = 0; i < bands.length; i++) { if (age < bands[i].maxAgeExclusive) { bi = i; break; } bi = bands.length - 1; }
+      out[bi].arr += r.closingARR; total += r.closingARR;
+    });
+    out.forEach(function (o) { o.share = total > 0 ? o.arr / total : 0; });
+    return { total: total, bands: out };
+  }
+
+  /* ------------------------------------------------------------------ *
    * WHY MEASURED KPIs ≠ TRANSITION COEFFICIENTS
    *
    * With monthly persistence g and monthly expansion e, a cohort's balance follows
@@ -244,6 +306,8 @@
     measureR12M: measureR12M,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
+    forwardEconomics: forwardEconomics,
+    ageComposition: ageComposition,
     seriesSum: seriesSum,
     decompose: decompose,
     workedExample: workedExample,

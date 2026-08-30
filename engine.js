@@ -13,7 +13,11 @@
  * KPIs are computed by Layer B (kpi.js) by measuring this world's output. See
  * docs/MEASUREMENT.md.
  *
- * MODEL VERSION: v0.2.1
+ * MODEL VERSION: v0.3
+ *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
+ *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
+ *   identical), so the shipped default reproduces v0.2.1 exactly and the model
+ *   privileges no direction. Cohorts also carry acquisition-cost provenance.
  *   v0.1 → v0.2: the acquisition primitive is inverted. CAC per €1 of New ARR is
  *   now the input and CAC payback is an emergent output. Everything else about the
  *   engine is unchanged. Weaknesses are flagged in docs/FINDINGS.md, never silently
@@ -82,6 +86,31 @@
     rd:                         700000,  // CONTROL   €/month
     ga:                         350000   // CONTROL   €/month
   };
+  /* AGE BANDS (v0.3). Three bands by cohort age in months at the START of a month:
+     band 1 covers ages 0..11, band 2 covers 12..23, band 3 covers 24 and above.
+     Each band carries its OWN persistence and expansion coefficient — six
+     transition parameters in total, and no other new behavioural coefficient.
+
+     The DEFAULT is flat: every band inherits the scalar coefficients, so the
+     default world is exactly v0.2.1 and age carries no economic meaning until a
+     user makes it carry some. The simulator takes no position on whether older
+     cohorts are better, worse, or the same. */
+  var BAND_EDGES = [12, 24, Infinity];
+  var BAND_NAMES = ['Early', 'Developing', 'Mature'];
+
+  function resolveBands(a) {
+    if (a.bands && a.bands.length === 3) return a.bands;
+    return BAND_NAMES.map(function (n, i) {
+      return { name: n, maxAgeExclusive: BAND_EDGES[i],
+               persistenceAnnual: a.persistenceAnnual,
+               expansionCoefficientAnnual: a.expansionCoefficientAnnual };
+    });
+  }
+  function bandFor(bands, ageAtStart) {
+    for (var i = 0; i < bands.length; i++) if (ageAtStart < bands[i].maxAgeExclusive) return i;
+    return bands.length - 1;
+  }
+
   /* NOTE ON NAMES. persistenceAnnual is NOT reported GRR and expansionCoefficientAnnual
      is NOT reported expansion. At these defaults the measurement layer reports GRR
      89.56% and expansion 9.44% — see rateDiagnostics() and docs/MEASUREMENT.md. */
@@ -90,7 +119,11 @@
 
   var DEFAULT_START = {
     openingARR:  20000000,      // STATE €20.0m
-    openingCash: 10000000       // STATE €10.0m
+    openingCash: 10000000,      // STATE €10.0m
+    /* v0.3: the opening base may be a portfolio of vintages. Each entry is
+       { arr, age } where age is the cohort's age in months at t=0. Omit for the
+       v0.2.1 behaviour of one opening cohort at age 0. */
+    openingCohorts: null
   };
 
   /* ------------------------------------------------------------------ *
@@ -155,15 +188,35 @@
     var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
     var newARR = newARRPerMonth(a);
 
-    /* 4. The company IS a set of cohorts. Aggregates are only ever sums. */
-    var cohorts = [{
-      id: 'base',
-      label: 'Opening base',
-      acquisitionMonth: 0,
-      initialARR: s.openingARR,
-      live: s.openingARR,
-      rows: []
-    }];
+    var bands = resolveBands(a);
+    var bandRates = bands.map(function (b) {
+      return { name: b.name, maxAgeExclusive: b.maxAgeExclusive,
+               persistenceAnnual: b.persistenceAnnual,
+               expansionCoefficientAnnual: b.expansionCoefficientAnnual,
+               g: toMonthlyPersistence(b.persistenceAnnual),
+               e: toMonthlyExpansion(b.expansionCoefficientAnnual) };
+    });
+
+    /* 4. The company IS a set of cohorts. Aggregates are only ever sums.
+       v0.3: the opening base may be several vintages of different ages. */
+    var seed = (s.openingCohorts && s.openingCohorts.length)
+      ? s.openingCohorts
+      : [{ arr: s.openingARR, age: 0 }];
+    var cohorts = seed.map(function (c, i) {
+      return {
+        id: seed.length === 1 ? 'base' : 'base' + (i + 1),
+        label: c.label || (seed.length === 1 ? 'Opening base' : 'Opening vintage, age ' + c.age),
+        acquisitionMonth: 0,
+        initialAge: c.age || 0,
+        initialARR: c.arr,
+        live: c.arr,
+        /* PROVENANCE. The cost of creating the opening base happened before the
+           simulation and is genuinely unknown — recorded as null, never as zero. */
+        acquisitionCost: null,
+        cacPerARRAtCreation: null,
+        rows: []
+      };
+    });
 
     var months = [];
     var cash = s.openingCash;
@@ -179,20 +232,26 @@
 
       var totRetained = 0, totLeakage = 0, totExpansion = 0, totRevenue = 0;
 
-      /* --- 5. ARR physics, applied cohort by cohort --- */
+      /* --- 5. ARR physics, applied cohort by cohort ---
+         v0.3: the coefficients used are those of the band the cohort occupies at
+         the START of the month. Nothing else about the transition changed. */
       for (i = 0; i < cohorts.length; i++) {
         c = cohorts[i];
+        var ageEnd     = c.initialAge + (t - c.acquisitionMonth);
+        var ageAtStart = ageEnd - 1;
+        var bi = bandFor(bandRates, ageAtStart);
+        var br = bandRates[bi];
         var opening  = c.live;
-        var retained = opening * gM;              // GRR can only shrink or hold
-        var leakage  = opening - retained;        // churn + contraction combined (v0.1)
-        var expansion= retained * eM;             // expansion applies to RETAINED ARR
+        var retained = opening * br.g;            // persistence can only shrink or hold
+        var leakage  = opening - retained;        // churn + contraction combined
+        var expansion= retained * br.e;           // expansion applies to RETAINED ARR
         var closing  = retained + expansion;
         var avgARR   = (opening + closing) / 2;   // 7. stock -> flow
         var revenue  = avgARR / 12;
         var gp       = revenue * a.grossMargin;
 
         c.rows.push({
-          t: t, age: t - c.acquisitionMonth,
+          t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
           openingARR: opening, retainedARR: retained, leakage: leakage,
           expansion: expansion, closingARR: closing,
           revenue: revenue, grossProfit: gp
@@ -205,12 +264,17 @@
 
       /* --- New acquisition cohort is created AFTER the base has aged --- */
       var nc = {
-        id: 'M' + t, label: 'M' + t, acquisitionMonth: t,
-        initialARR: newARR, live: newARR, rows: []
+        id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
+        initialARR: newARR, live: newARR, rows: [],
+        /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
+           economics in force in that month. Immutable thereafter, and never read
+           by any forward transition — it is a sunk cost, not a forward penalty. */
+        acquisitionCost: a.sm,
+        cacPerARRAtCreation: a.cacPerARR
       };
       var ncRevenue = ((0 + newARR) / 2) / 12;    // half a month of ARR, same midpoint rule
       nc.rows.push({
-        t: t, age: 0,
+        t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
         openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newARR,
         revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin
       });
@@ -293,10 +357,15 @@
     }
 
     return {
-      modelVersion: '0.2',
+      modelVersion: '0.3',
       assumptions: a,
       start: s,
       horizon: H,
+      bands: bandRates,
+      bandsAreFlat: bandRates.every(function (b) {
+        return b.persistenceAnnual === bandRates[0].persistenceAnnual &&
+               b.expansionCoefficientAnnual === bandRates[0].expansionCoefficientAnnual;
+      }),
       derived: {
         monthlyPersistence: gM,
         monthlyExpansion: eM,
@@ -340,6 +409,9 @@
       out.push({
         id: c.id,
         acquisitionMonth: c.acquisitionMonth,
+        bandName: row.bandName,
+        acquisitionCost: c.acquisitionCost,
+        cacPerARRAtCreation: c.cacPerARRAtCreation,
         age: row.age,
         initialARR: c.initialARR,
         openingARR: row.openingARR,
@@ -463,11 +535,16 @@
     });
     var changed = [];
     Object.keys(expRes.assumptions).forEach(function (k) {
+      if (k === 'bands') return;                       // structural, compared separately
       if (expRes.assumptions[k] !== baseRes.assumptions[k]) {
         changed.push({ key: k, from: baseRes.assumptions[k], to: expRes.assumptions[k] });
       }
     });
-    return { base: b, experiment: x, delta: delta, changed: changed };
+    var bandsChanged = JSON.stringify(baseRes.bands.map(function (bb) {
+      return [bb.persistenceAnnual, bb.expansionCoefficientAnnual]; })) !==
+      JSON.stringify(expRes.bands.map(function (bb) {
+        return [bb.persistenceAnnual, bb.expansionCoefficientAnnual]; }));
+    return { base: b, experiment: x, delta: delta, changed: changed, bandsChanged: bandsChanged };
   }
 
   function yearSlice(res, year) {
@@ -503,6 +580,10 @@
     TAXONOMY: TAXONOMY,
     DEFAULT_ASSUMPTIONS: DEFAULT_ASSUMPTIONS,
     DEFAULT_START: DEFAULT_START,
+    BAND_EDGES: BAND_EDGES,
+    BAND_NAMES: BAND_NAMES,
+    resolveBands: resolveBands,
+    bandFor: bandFor,
     toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
