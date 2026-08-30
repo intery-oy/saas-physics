@@ -36,6 +36,22 @@ button,input,select{font:inherit;color:inherit}
 .tx-flow{border-style:dashed}
 .tx-rate{border-style:dotted}
 .tx-control{border-style:solid;border-width:1px 1px 2px 1px;color:var(--ink-2)}
+.tx-emergent{border-color:var(--exp);color:var(--exp)}
+.emergent{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.erow{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:11.5px}
+.erow+.erow{border-top:1px solid var(--line-soft)}
+.erow.out{background:rgba(201,114,47,.07)}
+.erow b{margin-left:auto;font-family:var(--mono);font-weight:500;font-size:13px;color:var(--ink)}
+.erow.out b{color:var(--exp)}
+.ehint{padding:8px 12px;border-top:1px solid var(--line-soft);font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.subpanel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-top:16px}
+.subpanel h3{font-size:11.5px;margin-bottom:10px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 22px}
+.kvr{display:flex;align-items:baseline;gap:8px;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--line-soft)}
+.kvr span{color:var(--ink-3)}
+.kvr b{margin-left:auto;font-family:var(--mono);font-weight:500;color:var(--ink)}
+.kvr.exact b{color:var(--good)}
+.kvr.gap b{color:var(--warn)}
 
 /* ---------- shell ---------- */
 .shell{display:grid;grid-template-columns:352px minmax(0,1fr);min-height:100vh}
@@ -197,12 +213,14 @@ tr.hl td{color:var(--ink)}
     </div>
 
     <div class="grp">
-      <div class="grp-head"><span class="tx tx-flow">FLOW</span><span class="eyebrow">Derived, not assumed</span></div>
+      <div class="grp-head"><span class="tx tx-emergent">OUTPUT</span><span class="eyebrow">Emergent, never set</span></div>
+      <div class="emergent" id="emergent"></div>
       <div class="derived" id="derived"></div>
       <div class="note" style="margin-top:10px">
-        New ARR is generated, not input:
-        <div class="formula" style="margin:7px 0">New ARR = S&amp;M × 12 ÷ (CAC payback × GM)</div>
-        Deliberately simplified — no sales capacity, rep ramp, pipeline, conversion, diminishing returns or acquisition delay. NRR is not an input either: it falls out of GRR and expansion.
+        <b style="color:var(--ink-2)">v0.2 acquisition physics.</b> New ARR is generated from spend and acquisition productivity — gross margin does not appear:
+        <div class="formula" style="margin:7px 0">New ARR<sub>month</sub> = S&amp;M ÷ (CAC / New ARR)
+New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
+        Acquisition productivity decides how much ARR the spend creates; gross margin decides how fast that investment comes back, which is why payback is an output. Still no sales capacity, rep ramp, pipeline, conversion, diminishing returns or acquisition delay. NRR is not an input either — it falls out of GRR and expansion.
       </div>
     </div>
 
@@ -219,7 +237,7 @@ tr.hl td{color:var(--ink)}
       <h1>SaaS&nbsp;Physics</h1>
       <span class="sub">Prototype&nbsp;0 — deterministic economic engine</span>
       <span class="spacer"></span>
-      <span class="pill">model v0.1</span>
+      <span class="pill">model v0.2</span>
       <span class="pill">60 monthly periods</span>
       <span class="pill" id="cohort-pill">61 cohorts</span>
     </header>
@@ -252,6 +270,11 @@ tr.hl td{color:var(--ink)}
         <span class="mlabel num" id="month-label">M60 · Y5</span>
       </div>
       <div class="bridge" id="bridge"></div>
+      <div class="subpanel">
+        <h3>Rate conversion — how the annual coefficients become monthly ones</h3>
+        <div class="kv" id="rates"></div>
+        <div class="note" id="rate-note" style="margin-top:12px"></div>
+      </div>
     </section>
 
     <section class="sec">
@@ -262,6 +285,15 @@ tr.hl td{color:var(--ink)}
         <div class="legend" id="mix-legend" style="flex-wrap:wrap;gap:12px;padding:4px 0 8px;font-size:10.5px"></div>
       </div>
       <div class="tw tall"><table id="cohorts"></table></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>Matched-NRR experiment</h2>
+        <span class="hint">two installed bases with identical NRR and different mechanics — everything else held constant</span>
+      </div>
+      <div class="tw"><table id="matched"></table></div>
+      <div class="subpanel" id="matched-verdict"></div>
     </section>
 
     <section class="sec">
@@ -276,14 +308,17 @@ tr.hl td{color:var(--ink)}
           <h3>Stated v0.1 equations</h3>
           <div class="formula">monthly GRR = annual GRR ^ (1/12)
 monthly expansion = (1 + annual) ^ (1/12) − 1
-retained = opening × monthly GRR
-leakage = opening − retained
+retained  = opening × monthly GRR
+leakage   = opening − retained
 expansion = retained × monthly expansion
-closing = retained + expansion (+ new cohort)
-New ARR = S&amp;M × 12 ÷ (payback × GM)
+closing   = retained + expansion (+ new cohort)
+
+New ARR   = S&amp;M ÷ (CAC / New ARR)          ← v0.2
+payback   = (CAC / New ARR) × 12 ÷ GM       ← OUTPUT
+
 revenue = ((opening + closing) / 2) / 12
-EBITA = GP − S&amp;M − R&amp;D − G&amp;A
-FCF = EBITA</div>
+EBITA   = GP − S&amp;M − R&amp;D − G&amp;A
+FCF     = EBITA</div>
         </div>
         <div class="b">
           <h3>Explicit simplifications</h3>
@@ -291,17 +326,18 @@ FCF = EBITA</div>
             <li><code>FCF = EBITA</code>. No working capital, deferred revenue, tax, capex or debt. Real SaaS bills ahead of revenue, so cash here is <em>pessimistic</em> for fast growers.</li>
             <li>Leakage combines churn and contraction. Reactivation = 0.</li>
             <li>Retention and expansion rates do not vary with cohort age, segment or product.</li>
-            <li>R&amp;D has no modelled benefit, so the model can only ever conclude "spend less on R&amp;D". Do not take that conclusion.</li>
+            <li>The future economic benefit of R&amp;D is <strong>outside the simulation boundary</strong>. v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law; there is no defensible universal coefficient. A later version may let you state a hypothesised delayed effect as an explicit management thesis.</li>
             <li>Acquisition is linear and instantaneous in S&amp;M — no saturation, no lag.</li>
             <li>Revenue uses a midpoint approximation of a stock that actually moves continuously.</li>
           </ul>
         </div>
         <div class="b">
-          <h3>Known coupling to watch</h3>
+          <h3>What v0.2 changed, and what it did not</h3>
           <ul>
-            <li>Gross margin sits in the <em>denominator</em> of the acquisition formula, because CAC payback is defined on gross profit. Cutting GM while holding payback fixed therefore <strong>raises</strong> New ARR — the model quietly assumes acquisition got cheaper.</li>
-            <li>Improving CAC payback and increasing S&amp;M by the same factor produce an identical ARR path; only the cash path separates them.</li>
-            <li>Both are v0.1 artefacts, implemented faithfully rather than patched. See <code>docs/FINDINGS.md</code>.</li>
+            <li><strong>Fixed.</strong> Gross margin no longer generates ARR. In v0.1, cutting GM 80%→65% wrongly raised New ARR €0.75m→€0.92m/month; now it leaves New ARR untouched and moves CAC payback 18.0→22.2 months instead.</li>
+            <li><strong>Still true.</strong> Improving acquisition efficiency and raising S&amp;M by the same factor produce an identical ARR path — only cash separates them (€27m over 60 months at the calibrated settings).</li>
+            <li><strong>Still true.</strong> Acquisition remains linear, instantaneous and unbounded in S&amp;M. There is no spend level at which the next euro buys less.</li>
+            <li><strong>Discovered.</strong> Retention-heavy and expansion-heavy businesses at matched NRR are economically indistinguishable to this model. That is a boundary, not a bug — see <code>docs/MATCHED-NRR.md</code>.</li>
           </ul>
         </div>
       </div>
@@ -318,6 +354,7 @@ FCF = EBITA</div>
 
   /* Base is frozen: the Experiment can never write through to it. */
   var BASE_A = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS));
+  var MATCHED_NRR = 0.96 * 1.10;   /* 105.6% — the matched-NRR target */
   var expA   = Object.assign({}, E.DEFAULT_ASSUMPTIONS);
   var baseRes = E.run(BASE_A);
   var expRes  = E.run(expA);
@@ -342,22 +379,24 @@ FCF = EBITA</div>
     {k:'sm', g:'control', label:'S&M investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'rd', g:'control', label:'R&D investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'ga', g:'control', label:'G&A investment', unit:'€ thousand / month', min:0, max:2000000, step:25000, f:'eur'},
-    {k:'cacPaybackMonths', g:'rate', label:'CAC payback', unit:'months of gross profit', min:3, max:48, step:0.5, f:'mo'},
+    {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR', min:0.30, max:4.00, step:0.05, f:'x'},
     {k:'grrAnnual', g:'rate', label:'Gross revenue retention', unit:'annual', min:0.60, max:0.995, step:0.005, f:'pct'},
     {k:'expansionAnnual', g:'rate', label:'Expansion', unit:'annual, on retained ARR', min:0, max:0.50, step:0.005, f:'pct'},
     {k:'grossMargin', g:'rate', label:'Gross margin', unit:'of revenue', min:0.30, max:0.95, step:0.005, f:'pct'}
   ];
-  function fmtCtl(c,v){ return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):v.toFixed(1); }
-  function inputStep(c){ return c.f==='pct'?0.1:c.f==='eur'?25:0.5; }
-  function inputVal(c,v){ return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):v; }
+  function fmtCtl(c,v){ return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1); }
+  function inputStep(c){ return c.f==='pct'?0.1:c.f==='eur'?25:c.f==='x'?0.05:0.5; }
+  function inputVal(c,v){ return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):c.f==='x'?v.toFixed(2):v; }
   function fromInput(c,v){ return c.f==='pct'?v/100:c.f==='eur'?v*1000:v; }
 
   var PRESETS = [
     {id:'A', name:'A · Retention', ch:{grrAnnual:0.96}},
     {id:'B', name:'B · Expansion', ch:{expansionAnnual:0.20}},
-    {id:'C', name:'C · CAC payback', ch:{cacPaybackMonths:12}},
+    {id:'C', name:'C · Efficiency', ch:{cacPerARR:0.80}},
     {id:'D', name:'D · +50% S&M', ch:{sm:BASE_A.sm*1.5}},
-    {id:'E', name:'E · Margin', ch:{grossMargin:0.65}}
+    {id:'E', name:'E · Margin', ch:{grossMargin:0.65}},
+    {id:'R', name:'R · Retention-heavy', ch:{grrAnnual:0.96, expansionAnnual:0.10}},
+    {id:'X', name:'X · Expansion-heavy', ch:{grrAnnual:0.90, expansionAnnual:MATCHED_NRR/0.90-1}}
   ];
 
   /* ---------------- rail ---------------- */
@@ -406,9 +445,13 @@ FCF = EBITA</div>
       num.style.color = expA[c.k]===BASE_A[c.k] ? 'var(--ink)' : 'var(--exp)';
     });
     var d=expRes.derived;
+    document.getElementById('emergent').innerHTML =
+      '<div class="erow"><span class="tx tx-rate">RATE</span><span>CAC / New ARR</span><b>'+expA.cacPerARR.toFixed(2)+'×</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">OUTPUT</span><span>CAC payback</span><b>'+d.cacPaybackMonths.toFixed(1)+' mo</b></div>'+
+      '<div class="ehint">payback = (CAC / New ARR) × 12 ÷ gross margin</div>';
     document.getElementById('derived').innerHTML =
       row('New ARR / month', eur(d.newARRPerMonth)) +
-      row('CAC per €1 of new ARR', '€'+d.impliedCACPerNewARR.toFixed(2)) +
+      row('New ARR per year of spend', eur(d.newARRAnnualised)) +
       row('Monthly GRR', pct(d.monthlyGRR,3)) +
       row('Monthly expansion', pct(d.monthlyExpansion,3)) +
       row('NRR (emergent)', pct(expRes.months[59].nrrAnnualised,1));
@@ -435,16 +478,18 @@ FCF = EBITA</div>
     }).join(' &nbsp;·&nbsp; ');
 
     function li(k,v){ return '<li><span class="k">'+k+'</span><span class="v">'+v+'</span></li>'; }
-    function dv(v,f){ return '<b class="'+cls(v)+'">'+(f||eurS)(v)+'</b>'; }
+    function dv(v,f){ return Math.abs(v)<1 ? '<b class="flat">no change</b>' : '<b class="'+cls(v)+'">'+(f||eurS)(v)+'</b>'; }
 
     var mixBase=b.mix.shares, mixExp=x.mix.shares;
     var newY=(mixBase.y4+mixBase.y5), newYx=(mixExp.y4+mixExp.y5);
 
     var items =
-      li('Year-5 ARR', '<b>'+eur(b.finalARR)+'</b> → <b>'+eur(x.finalARR)+'</b> &nbsp;'+dv(d.finalARR)+' <span class="'+cls(d.finalARR)+'">('+relp(x.finalARR/b.finalARR-1)+')</span>') +
+      li('Year-5 ARR', '<b>'+eur(b.finalARR)+'</b> → <b>'+eur(x.finalARR)+'</b> &nbsp;'+dv(d.finalARR)+(Math.abs(d.finalARR)<1?'':' <span class="'+cls(d.finalARR)+'">('+relp(x.finalARR/b.finalARR-1)+')</span>')) +
       li('New ARR per month', Math.abs(expRes.derived.newARRPerMonth-baseRes.derived.newARRPerMonth)<1 ?
-          '<b>'+eur(baseRes.derived.newARRPerMonth)+'</b> — unchanged. This lever creates no acquisition.' :
+          '<b>'+eur(baseRes.derived.newARRPerMonth)+'</b> — unchanged. Nothing in this change touches acquisition.' :
           '<b>'+eur(baseRes.derived.newARRPerMonth)+'</b> → <b>'+eur(expRes.derived.newARRPerMonth)+'</b> &nbsp;'+dv(expRes.derived.newARRPerMonth-baseRes.derived.newARRPerMonth)) +
+      li('CAC payback (emergent)', '<b>'+baseRes.derived.cacPaybackMonths.toFixed(1)+' mo</b> → <b>'+expRes.derived.cacPaybackMonths.toFixed(1)+' mo</b>'+
+         (Math.abs(d.cacPaybackMonths)<1e-9 ? ' — unchanged' : ' &nbsp;<b class="'+cls(-d.cacPaybackMonths)+'">'+(d.cacPaybackMonths>0?'+':'−')+Math.abs(d.cacPaybackMonths).toFixed(1)+' months</b>')) +
       li('NRR (emergent)', '<b>'+pct(b.finalNRR)+'</b> → <b>'+pct(x.finalNRR)+'</b> &nbsp;<b class="'+cls(d.finalNRR)+'">'+pp(d.finalNRR)+'</b>') +
       li('Cumulative leakage', '<b>'+eur(b.cumLeakage)+'</b> → <b>'+eur(x.cumLeakage)+'</b> &nbsp;<b class="'+cls(-d.cumLeakage)+'">'+eurS(d.cumLeakage)+'</b> over 60 months') +
       li('Cumulative expansion', '<b>'+eur(b.cumExpansion)+'</b> → <b>'+eur(x.cumExpansion)+'</b> &nbsp;'+dv(d.cumExpansion)) +
@@ -458,15 +503,16 @@ FCF = EBITA</div>
 
     var flags='';
     if(c.changed.some(function(u){return u.key==='grossMargin';})){
-      var cb=baseRes.derived.impliedCACPerNewARR, cx=expRes.derived.impliedCACPerNewARR;
-      flags += '<div class="flag"><b>Coupling flag.</b> Gross margin is in the denominator of the acquisition formula, so moving it also moved New ARR: €'+
-        (baseRes.derived.newARRPerMonth/1e6).toFixed(2)+'m → €'+(expRes.derived.newARRPerMonth/1e6).toFixed(2)+
-        'm per month. Holding CAC payback fixed while changing GM implies CAC per €1 of new ARR moved €'+cb.toFixed(2)+' → €'+cx.toFixed(2)+
-        ' — the model has silently assumed the company got '+(cx<cb?'better':'worse')+' at acquiring. Treat the ARR line in this scenario as an artefact of the v0.1 formula, not a result.</div>';
+      var unchanged=Math.abs(expRes.derived.newARRPerMonth-baseRes.derived.newARRPerMonth)<1e-9;
+      flags += '<div class="flag" style="border-color:var(--good)"><b style="color:var(--good)">v0.2 causal fix.</b> Margin moved and New ARR did '+
+        (unchanged?'not':'')+' change ('+eur(baseRes.derived.newARRPerMonth)+' → '+eur(expRes.derived.newARRPerMonth)+' / month). '+
+        'Gross margin no longer appears in the acquisition formula, so it acts where it should: CAC payback deteriorates '+
+        baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+
+        ' months and the company gets poorer without any change to acquisition productivity. In v0.1 this same change wrongly RAISED New ARR to €0.92m/month.</div>';
     }
     if(c.changed.some(function(u){return u.key==='rd';})){
-      flags += '<div class="flag"><b>Model limit.</b> R&amp;D carries no modelled benefit in v0.1, so any increase can only ever reduce EBITA and cash. The €'+
-        Math.abs(d.endingCash/1e6).toFixed(2)+'m cash difference is the full extent of what this model knows about R&amp;D.</div>';
+      flags += '<div class="flag"><b>Outside the model boundary.</b> The future economic benefit of R&amp;D is outside the current simulation boundary — v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law, because there is no defensible universal coefficient. The '+
+        eur(Math.abs(d.endingCash))+' cash difference is the full extent of what this model knows about R&amp;D.</div>';
     }
     if(x.firstNegativeCashMonth){
       flags += '<div class="flag"><b>Cash runs out.</b> Closing cash first goes negative in month '+x.firstNegativeCashMonth+
@@ -645,6 +691,79 @@ FCF = EBITA</div>
     document.getElementById('cohorts').innerHTML=h+'</tbody>';
   }
 
+  /* ---------------- rate conversion (brief §8) ---------------- */
+  function renderRates(){
+    var d=E.rateDiagnostics(expRes);
+    function r(k,v,klass){ return '<div class="kvr '+(klass||'')+'"><span>'+k+'</span><b>'+v+'</b></div>'; }
+    document.getElementById('rates').innerHTML =
+      r('Monthly GRR', pct(d.monthlyGRR,6)) +
+      r('Monthly expansion', pct(d.monthlyExpansion,6)) +
+      r('Monthly NRR', pct(d.monthlyNRR,6)) +
+      r('12-month compounded GRR', pct(d.twelveMonthGRRCompounded,4)+' vs input '+pct(d.inputGRRAnnual,4),'exact') +
+      r('12-month compounded expansion', pct(d.twelveMonthExpansionCompounded,4)+' vs input '+pct(d.inputExpansionAnnual,4),'exact') +
+      r('12-month compounded NRR', pct(d.twelveMonthNRRCompounded,4),'exact') +
+      r('Realised gross retention', pct(d.realisedGrossRetention,4)+' vs input '+pct(d.inputGRRAnnual,4),'gap') +
+      r('Realised expansion', pct(d.realisedExpansionRate,4)+' vs input '+pct(d.inputExpansionAnnual,4),'gap') +
+      r('Realised NRR', pct(d.realisedNRR,4),'exact');
+    document.getElementById('rate-note').innerHTML =
+      '<b style="color:var(--warn)">The decomposition does not survive the conversion, but the net effect does.</b> '+
+      'Twelve compounded monthly steps reproduce the intended annual NRR exactly. Measured the way a finance team would — '+
+      'flows over the first twelve months of the opening cohort divided by its opening ARR — gross retention reads '+
+      pct(d.realisedGrossRetention,2)+' against an input of '+pct(d.inputGRRAnnual,1)+' ('+pp(d.realisedGrossRetention-d.inputGRRAnnual)+
+      ') and expansion reads '+pct(d.realisedExpansionRate,2)+' against '+pct(d.inputExpansionAnnual,1)+' ('+pp(d.realisedExpansionRate-d.inputExpansionAnnual)+
+      '). Both flows accrue on a base that moves during the year, and expansion accrues on the post-churn base. The two errors offset exactly, '+
+      'so NRR is right while each reported component is slightly understated.';
+  }
+
+  /* ---------------- matched-NRR experiment (brief §7–§11) ---------------- */
+  function renderMatched(){
+    var R=E.run(Object.assign({},BASE_A,{grrAnnual:0.96, expansionAnnual:0.10}));
+    var X=E.run(Object.assign({},BASE_A,{grrAnnual:0.90, expansionAnnual:MATCHED_NRR/0.90-1}));
+    var rs=E.summarise(R), xs=E.summarise(X);
+    var rows=[
+      ['Annual GRR', pct(0.96,4), pct(0.90,4)],
+      ['Annual expansion', pct(0.10,4), pct(MATCHED_NRR/0.90-1,4)],
+      ['Year 1 ARR', eur(rs.y1ARR), eur(xs.y1ARR)],
+      ['Year 3 ARR', eur(rs.y3ARR), eur(xs.y3ARR)],
+      ['Year 5 ARR', eur(rs.finalARR), eur(xs.finalARR)],
+      ['Cumulative expansion', eur(rs.cumExpansion), eur(xs.cumExpansion)],
+      ['Cumulative leakage', eur(rs.cumLeakage), eur(xs.cumLeakage)],
+      ['Cumulative gross profit', eur(rs.cumGrossProfit), eur(xs.cumGrossProfit)],
+      ['Year 5 EBITA / FCF', eur(rs.finalYearFCF), eur(xs.finalYearFCF)],
+      ['Ending cash (M60)', eur(rs.endingCash), eur(xs.endingCash)],
+      ['M60 ARR from opening cohort', eur(rs.openingCohortARR), eur(xs.openingCohortARR)],
+      ['M60 ARR from acquired cohorts', eur(rs.acquiredCohortARR), eur(xs.acquiredCohortARR)],
+      ['NRR (calculated)', pct(rs.finalNRR,4), pct(xs.finalNRR,4)]
+    ];
+    var h='<thead><tr><th>Metric</th><th>R · retention-heavy</th><th>X · expansion-heavy</th><th>Verdict</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var same=r[1]===r[2];
+      h+='<tr><td class="k">'+esc(r[0])+'</td><td'+(same?'':' style="color:var(--exp)"')+'>'+r[1]+'</td>'+
+         '<td'+(same?'':' style="color:var(--exp)"')+'>'+r[2]+'</td>'+
+         '<td style="color:'+(same?'var(--good)':'var(--warn)')+'">'+(same?'identical':'differs')+'</td></tr>';
+    });
+    document.getElementById('matched').innerHTML=h+'</tbody>';
+
+    var wARR=0,wCash=0;
+    for(var i=0;i<R.months.length;i++){
+      wARR=Math.max(wARR,Math.abs(R.months[i].closingARR-X.months[i].closingARR));
+      wCash=Math.max(wCash,Math.abs(R.months[i].cashClosing-X.months[i].cashClosing));
+    }
+    document.getElementById('matched-verdict').innerHTML =
+      '<h3>Does this simulation consider the two businesses economically identical?</h3>'+
+      '<div class="note" style="line-height:1.75">'+
+      '<b style="color:var(--ink)">Yes — completely.</b> Across all 60 months, closing ARR differs by at most €'+wARR.toExponential(2)+
+      ' and cash by €'+wCash.toExponential(2)+' — floating-point noise on a €78m company. Every cohort balance, every P&amp;L line and the entire cash path coincide.'+
+      '<br><br>The reason is structural. A cohort\'s month is <span style="font-family:var(--mono);color:var(--ink-2)">closing = opening × mGRR × (1 + mExpansion)</span>, '+
+      'so only the <em>product</em> mGRR × (1 + mExpansion) reaches the ARR stock. R and X are constructed to have the same product. '+
+      'The engine assigns no cost to expansion, no saturation limit, no cohort-age effect, no customer count, no concentration and no risk premium — '+
+      'so the two decompositions are, to this universe, the same number written twice. '+
+      'The only trace of the difference is gross flow: X churns '+eur(xs.cumLeakage-rs.cumLeakage)+' more and expands '+eur(xs.cumExpansion-rs.cumExpansion)+
+      ' more, netting exactly to zero.'+
+      '<br><br><b style="color:var(--warn)">This is a boundary of the model, not a bug.</b> No quality score, risk coefficient or weighting factor has been added to paper over it. '+
+      'What would have to exist for these two businesses to diverge is set out in <span style="font-family:var(--mono);color:var(--ink-2)">docs/MATCHED-NRR.md</span>.</div>';
+  }
+
   /* ---------------- integrity ---------------- */
   function renderChecks(){
     var rs=I.runAll(expA), pass=rs.filter(function(r){return r.pass;}).length;
@@ -660,7 +779,7 @@ FCF = EBITA</div>
   function recompute(){
     expRes=E.run(expA);                    // same engine as Base, different assumptions
     syncControls(); renderExplain(); renderCharts(); renderMonthly();
-    renderBridge(); renderMix(); renderCohorts(); renderChecks();
+    renderBridge(); renderRates(); renderMix(); renderCohorts(); renderMatched(); renderChecks();
   }
 
   document.getElementById('month').addEventListener('input',function(e){

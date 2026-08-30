@@ -1,4 +1,9 @@
-# Economic architecture — Prototype 0 (model v0.1)
+# Economic architecture — Prototype 0.2 (model v0.2)
+
+> **v0.1 → v0.2.** The acquisition primitive is inverted: CAC per €1 of New ARR is now the
+> input and CAC payback is an output. Nothing else about the engine changed. `cacPerARR = 1.20`
+> with GM 80% reproduces the v0.1 baseline exactly (`payback × GM / 12 = 18 × 0.80 / 12 = 1.20`),
+> so every Prototype 0 number is preserved.
 
 ## Shape of the system
 
@@ -63,18 +68,44 @@ Company identity, asserted every month:
 Closing ARR = Opening ARR + New ARR + Expansion − Leakage
 ```
 
-## Acquisition (the deliberately simple part)
+## Acquisition (v0.2)
 
-New ARR is generated, never assumed:
+The primitive is **acquisition productivity** — a dimensionless ratio:
 
 ```
-New ARR = Monthly S&M × 12 ÷ (CAC payback months × Gross margin)
+cacPerARR = acquisition spend ÷ New ARR generated
 ```
 
-This inverts the definition of CAC payback on gross profit
-(`CAC = payback × (New ARR / 12) × GM`). It is linear, instantaneous and unbounded in S&M.
-No sales capacity, rep ramp, pipeline, conversion, diminishing returns or acquisition delay.
-The interface states the formula on screen next to the controls that drive it.
+New ARR is generated from spend and productivity alone:
+
+```
+New ARR per year of spend = Monthly S&M × 12 ÷ cacPerARR
+New ARR added per month   = Monthly S&M ÷ cacPerARR
+```
+
+**Units.** `sm` is €/month, `cacPerARR` is dimensionless, so `newARRPerMonth` is € of ARR (an
+annualised run-rate quantity) added to the ARR stock each month — the same interpretation the v0.1
+engine used, which is why every downstream identity, cohort rule and reconciliation is untouched.
+Worked example from the brief: €500k/month at 1.5× → €500k × 12 ÷ 1.5 = **€4.0m of New ARR per
+year of spend**, i.e. €333k added to the stock each month.
+
+**Gross margin does not appear.** That is the point of v0.2. CAC payback becomes an output:
+
+```
+CAC payback = cacPerARR × 12 ÷ Gross margin
+```
+
+Derivation: the cost of €1 of New ARR is `cacPerARR`; the monthly gross profit that €1 of ARR
+throws off is `GM / 12`; so recovery takes `cacPerARR ÷ (GM / 12)` months. At 1.00× and GM 80%
+that is 15.0 months; at the 1.20× default and GM 80%, 18.0 months.
+
+So: **acquisition productivity determines how much ARR the spend creates; gross margin determines
+how fast that investment is economically recovered.** Integrity check A1 asserts structurally that
+neither `cacPayback` nor `grossMargin` appears anywhere in the New ARR generator.
+
+Still linear, instantaneous and unbounded in S&M — no sales capacity, rep ramp, pipeline,
+conversion, diminishing returns or acquisition delay. The interface states the formula on screen
+next to the controls that drive it.
 
 ## Stock to flow
 
@@ -104,6 +135,24 @@ At constant rates this resolves to `GRR × (1 + expansion)` — 99.0% at the def
 asserted as check 6 rather than assumed. Check 5 proves the exclusion empirically: multiplying
 S&M by 10 leaves the NRR series bit-identical.
 
+### Rate conversion — a documented subtlety
+
+Twelve compounded monthly steps reproduce the intended annual NRR **exactly**
+(`mGRR¹² × (1+mExp)¹² = GRR × (1+expansion)`). The **decomposition** does not survive the
+conversion. Measured the way a finance team would — flows over the first twelve months of the
+opening cohort ÷ its opening ARR — the defaults produce:
+
+| | Input | Realised | Gap |
+|---|---|---|---|
+| Gross retention | 90.00% | 89.56% | −0.44pp |
+| Expansion | 10.00% | 9.44% | −0.56pp |
+| **NRR** | **99.00%** | **99.00%** | **exact** |
+
+Both flows accrue on a base that moves during the year, and expansion accrues on the *post-churn*
+base. The two errors offset exactly, so NRR is right while each reported component is slightly
+understated. `E.rateDiagnostics()` computes all of this and the interface displays it under the
+ARR anatomy, rather than leaving it as an unstated assumption.
+
 ## Scenario architecture
 
 `BASE_A` is a frozen assumption object; the Experiment is a separate object that is copied,
@@ -119,8 +168,9 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 |---|---|
 | **STATE** | ARR (opening/closing), cash, cohort balances |
 | **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, EBITA, FCF |
-| **RATE** | GRR, expansion rate, gross margin, CAC payback |
+| **RATE** | GRR, expansion rate, gross margin, **CAC / New ARR** |
 | **CONTROL** | S&M, R&D, G&A investment |
+| **EMERGENT** | **CAC payback**, NRR, ARR growth, EBITA margin, burn — computed, never settable |
 
 ## Files
 

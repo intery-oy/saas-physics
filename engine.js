@@ -6,8 +6,11 @@
  * inlined verbatim into the inspection UI by build.js. Base and Experiment
  * scenarios call the same run() with different assumption objects.
  *
- * MODEL VERSION: v0.1 — implemented faithfully to spec, weaknesses flagged in
- * docs/FINDINGS.md rather than silently "improved".
+ * MODEL VERSION: v0.2
+ *   v0.1 → v0.2: the acquisition primitive is inverted. CAC per €1 of New ARR is
+ *   now the input and CAC payback is an emergent output. Everything else about the
+ *   engine is unchanged. Weaknesses are flagged in docs/FINDINGS.md, never silently
+ *   "improved".
  */
 ;(function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -38,28 +41,38 @@
       fcf:         'Free cash flow (= EBITA in v0.1)'
     },
     RATE: {
-      grrAnnual:        'Annual gross revenue retention (coefficient)',
-      expansionAnnual:  'Annual expansion rate on retained ARR (coefficient)',
-      grossMargin:      'Gross margin (coefficient)',
-      cacPaybackMonths: 'Months of gross profit to repay acquisition cost (coefficient)'
+      grrAnnual:       'Annual gross revenue retention (coefficient)',
+      expansionAnnual: 'Annual expansion rate on retained ARR (coefficient)',
+      grossMargin:     'Gross margin (coefficient)',
+      cacPerARR:       'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity (coefficient)'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control)',
       rd: 'Monthly R&D investment (management control)',
       ga: 'Monthly G&A investment (management control)'
+    },
+    /* v0.2: metrics that used to be inputs, or never were. Never settable. */
+    EMERGENT: {
+      cacPaybackMonths: 'Months of gross profit to repay acquisition cost — OUTPUT of cacPerARR and gross margin',
+      nrrAnnualised:    'Net revenue retention — OUTPUT of GRR and expansion',
+      arrGrowthYoY:     'ARR growth',
+      ebitaMargin:      'EBITA margin',
+      burn:             'Cash burn when FCF < 0'
     }
   };
 
   /* Illustrative defaults. Not real company data. */
   var DEFAULT_ASSUMPTIONS = {
-    sm:               900000,   // CONTROL  €/month
-    cacPaybackMonths: 18,       // RATE
-    grrAnnual:        0.90,     // RATE
-    expansionAnnual:  0.10,     // RATE
-    grossMargin:      0.80,     // RATE
-    rd:               700000,   // CONTROL  €/month
-    ga:               350000    // CONTROL  €/month
+    sm:              900000,   // CONTROL  €/month
+    cacPerARR:       1.20,     // RATE     € of S&M per €1 of New ARR (dimensionless)
+    grrAnnual:       0.90,     // RATE
+    expansionAnnual: 0.10,     // RATE
+    grossMargin:     0.80,     // RATE
+    rd:              700000,   // CONTROL  €/month
+    ga:              350000    // CONTROL  €/month
   };
+  /* cacPerARR 1.20 with GM 80% reproduces the v0.1 baseline exactly:
+     v0.1 CAC payback 18 months  ⇔  cacPerARR = payback × GM / 12 = 18 × 0.80 / 12 = 1.20 */
 
   var DEFAULT_START = {
     openingARR:  20000000,      // STATE €20.0m
@@ -76,19 +89,40 @@
   function toMonthlyExpansion(expAnnual) { return Math.pow(1 + expAnnual, 1 / 12) - 1; }
 
   /* ------------------------------------------------------------------ *
-   * 6. New ARR generation — v0.1 acquisition formula
+   * v0.2 acquisition physics
    *
-   *   New ARR = (Monthly S&M x 12) / (CAC payback months x Gross margin)
+   * PRIMITIVE — acquisition productivity, a dimensionless ratio:
+   *   cacPerARR = acquisition spend / New ARR generated
    *
-   * Derivation: CAC payback is defined on GROSS PROFIT, so
-   *   CAC = payback x (New ARR / 12) x GM  =>  New ARR = S&M x 12 / (payback x GM)
-   * Linear, instantaneous, unbounded. No capacity, ramp, pipeline, conversion,
-   * diminishing returns or acquisition lag. See FINDINGS.md.
+   * New ARR generated per year of spend:
+   *   annual New ARR = (Monthly S&M x 12) / cacPerARR
+   * so the ARR added to the stock in one month is:
+   *   monthly New ARR = Monthly S&M / cacPerARR
+   *
+   * UNITS. sm is €/month. cacPerARR is dimensionless. newARRPerMonth is therefore
+   * € of ARR (an annualised-run-rate quantity) added to the ARR stock each month —
+   * the same interpretation the v0.1 engine used, so every downstream identity,
+   * cohort rule and reconciliation is untouched.
+   *
+   * Gross margin does NOT appear here. That is the whole point of v0.2: acquisition
+   * productivity determines how much ARR the spend creates; gross margin determines
+   * how fast that investment is recovered, and shows up in cacPaybackMonths below.
+   *
+   * Still linear, instantaneous and unbounded in S&M — no capacity, ramp, pipeline,
+   * conversion, diminishing returns or acquisition lag. See FINDINGS.md.
    * ------------------------------------------------------------------ */
   function newARRPerMonth(a) {
-    var denom = a.cacPaybackMonths * a.grossMargin;
-    if (!(denom > 0)) return 0;
-    return (a.sm * 12) / denom;
+    if (!(a.cacPerARR > 0)) return 0;
+    return a.sm / a.cacPerARR;
+  }
+
+  /* EMERGENT. Months of gross profit needed to repay the acquisition cost of €1 of
+   * New ARR:  CAC = cacPerARR;  monthly gross profit on €1 of ARR = GM / 12.
+   *   payback = cacPerARR / (GM / 12) = cacPerARR x 12 / GM
+   * Never an input, and never used to generate New ARR. */
+  function cacPaybackMonths(a) {
+    if (!(a.grossMargin > 0)) return Infinity;
+    return (a.cacPerARR * 12) / a.grossMargin;
   }
 
   function normaliseAssumptions(a) {
@@ -245,16 +279,19 @@
     }
 
     return {
-      modelVersion: '0.1',
+      modelVersion: '0.2',
       assumptions: a,
       start: s,
       horizon: H,
       derived: {
         monthlyGRR: gM,
         monthlyExpansion: eM,
-        newARRPerMonth: newARR,
+        newARRPerMonth: newARR,                       // € of ARR added per month
+        newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
+        annualAcquisitionSpend: a.sm * 12,
+        cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT
         impliedAnnualNRR: a.grrAnnual * (1 + a.expansionAnnual),
-        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0
+        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
       },
       months: months,
       cohorts: cohorts
@@ -320,6 +357,46 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Rate-conversion diagnostics (brief §8).
+   *
+   * The engine converts both annual rates geometrically and applies expansion to
+   * RETAINED ARR, so monthly NRR = mGRR x (1 + mExp) and twelve of those compound
+   * to exactly GRR x (1 + expansion). The intended annual NRR is reproduced exactly.
+   *
+   * What is NOT reproduced exactly is the DECOMPOSITION. A CFO measures annual gross
+   * retention as (leakage over the year / opening ARR) and annual expansion as
+   * (expansion over the year / opening ARR). Both of those flows accrue on a base
+   * that moves during the year, and expansion accrues on the post-churn base, so the
+   * measured rates differ from the input rates even though their net effect does not.
+   * This function reports both so the gap is visible rather than assumed away.
+   * ------------------------------------------------------------------ */
+  function rateDiagnostics(res) {
+    var a = res.assumptions, gM = res.derived.monthlyGRR, eM = res.derived.monthlyExpansion;
+    var base = res.cohorts[0], rows = base.rows.slice(0, 12);
+    var opening = base.initialARR;
+    var leak = 0, exp = 0;
+    rows.forEach(function (r) { leak += r.leakage; exp += r.expansion; });
+    var closing = rows.length ? rows[rows.length - 1].closingARR : opening;
+    return {
+      inputGRRAnnual: a.grrAnnual,
+      inputExpansionAnnual: a.expansionAnnual,
+      monthlyGRR: gM,
+      monthlyExpansion: eM,
+      monthlyNRR: gM * (1 + eM),
+      twelveMonthGRRCompounded: Math.pow(gM, 12),                 // = input GRR
+      twelveMonthExpansionCompounded: Math.pow(1 + eM, 12) - 1,   // = input expansion
+      twelveMonthNRRCompounded: Math.pow(gM * (1 + eM), 12),      // = GRR x (1 + expansion)
+      /* measured the way a finance team would, from the first 12 months of the
+         opening cohort's actual flows */
+      realisedGrossRetention: opening > 0 ? 1 - leak / opening : 1,
+      realisedExpansionRate: opening > 0 ? exp / opening : 0,
+      realisedNRR: opening > 0 ? closing / opening : 1,
+      realisedLeakage: leak,
+      realisedExpansion: exp
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
    * 14. Explainability — every number below comes out of the simulation,
    * none of it is asserted prose. Shared by the report and the UI.
    * ------------------------------------------------------------------ */
@@ -334,7 +411,13 @@
       if (firstOutOfCash === null && res.months[i].cashClosing < 0) firstOutOfCash = res.months[i].t;
     }
     var mix = arrMix(res, res.horizon);
+    function arrAtYear(y) { var i = y * 12 - 1; return i < res.months.length ? res.months[i].closingARR : null; }
     return {
+      newARRPerMonth: res.derived.newARRPerMonth,
+      cacPaybackMonths: res.derived.cacPaybackMonths,
+      y1ARR: arrAtYear(1), y3ARR: arrAtYear(3),
+      openingCohortARR: mix.amounts.base,
+      acquiredCohortARR: mix.total - mix.amounts.base,
       finalARR: last.closingARR,
       finalNRR: last.nrrAnnualised,
       finalGrowthYoY: last.arrGrowthYoY,
@@ -414,6 +497,8 @@
     cohortSnapshot: cohortSnapshot,
     arrMix: arrMix,
     yearSlice: yearSlice,
+    rateDiagnostics: rateDiagnostics,
+    cacPaybackMonths: cacPaybackMonths,
     summarise: summarise,
     compare: compare,
     annualSummary: annualSummary
