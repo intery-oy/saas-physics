@@ -136,6 +136,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <span class="sub">an economic system, observed</span>
     <span class="spacer"></span>
     <span class="chip" id="mode-chip">base vs experiment</span>
+    <button class="btn" id="capital">Capital loop</button>
     <button class="btn" id="anatomy">Anatomy</button>
     <button class="btn" id="keybtn">Visual key</button>
   </header>
@@ -203,6 +204,27 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Solid, warm</b> = Experiment, the scenario you steer.</li>
             <li><b>Dashed, cool</b> = Base, the frozen reference. It never changes.</li>
             <li>When the assumptions match, the dashed line lies exactly on the mass. Move a force and the mass pulls away from its own ghost — the future itself has changed.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>The capital loop <span style="color:var(--ink-4);text-transform:none;letter-spacing:0">— concept study</span></h5>
+          <ul>
+            <li><b>The drop</b> at a cohort's acquisition month = the acquisition cost stamped on it when it was created. Capital leaving.</li>
+            <li><b>Below the surface</b> = capital still out: acquisition cost minus that cohort's cumulative gross profit.</li>
+            <li><b>The crossing</b> = payback — the first month cumulative gross profit reaches the acquisition cost. <b>The horizontal distance from the drop to the crossing is the payback time.</b></li>
+            <li><b>Above the surface</b> = gross profit beyond the acquisition cost attributed to that cohort. Not profit, value or ROI.</li>
+            <li><b>GP by vintage</b> shows which historical cohorts produce today's gross profit — the delayed return on capital deployed months or years ago.</li>
+            <li><b>The dashed cool curve</b> is the same cohort under Base. When retention or margin changes, the two recovery curves separate even though the money spent was identical.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Disclosed boundaries</h5>
+          <ul>
+            <li>This is an <b>economic attribution</b>. Gross profit does not literally flow back to the euro of S&amp;M that was spent.</li>
+            <li><b>FCF = EBITA.</b> No working capital, deferred revenue, tax or capex — so cash timing is pessimistic for a fast grower.</li>
+            <li><b>Expansion carries no modelled acquisition cost.</b> An explicit current physics assumption, not a claim about SaaS.</li>
+            <li><b>One uniform gross margin applies to every cohort</b>, so GP-by-vintage is the ARR mix scaled by a constant. It carries no information the strata do not already carry.</li>
+            <li>Nothing here is discounted, and no valuation or embedded value is computed.</li>
           </ul>
         </div>
       </div>
@@ -1143,10 +1165,153 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   };
 });
 </script>
+<script>/*
+ * SaaS Physics — CAPITAL LOOP derivations (concept study).
+ *
+ * This file adds NO physics. Every quantity below is derived from values the
+ * frozen engine already stores:
+ *   cohort.acquisitionCost      stamped at creation (v0.3 provenance)
+ *   cohort.rows[].cumGrossProfit  cumulative gross profit of that cohort
+ *
+ * It is an ECONOMIC ATTRIBUTION model. It does not claim that gross profit
+ * literally flows back to the euro of S&M that was spent; it measures how long
+ * a cohort takes to produce cumulative gross profit equal to the acquisition
+ * cost attributed to it.
+ *
+ * DISCLOSED BOUNDARY: the engine applies one uniform gross margin to every
+ * cohort, and models no marginal acquisition cost for expansion. So a cohort's
+ * gross profit is exactly its ARR × GM / 12, and "gross profit by vintage" is
+ * the ARR mix scaled by a constant. That is a property of the current physics,
+ * not of SaaS, and it is surfaced rather than hidden.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsCapital = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  function rowAt(c, t) {
+    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * One cohort, from capital deployment through recovery.
+   *
+   *   unrecovered(t) = max(acquisitionCost − cumulativeGP(t), 0)
+   *   net(t)         = cumulativeGP(t) − acquisitionCost      (signed)
+   *   payback        = first t where cumulativeGP(t) ≥ acquisitionCost
+   * ------------------------------------------------------------------ */
+  function cohortCapital(res, k) {
+    var c = res.cohorts[k];
+    if (!c) return null;
+    var cost = c.acquisitionCost;                    // null for the opening base
+    var series = [], payback = null, paybackAge = null;
+    for (var t = Math.max(1, c.acquisitionMonth); t <= res.horizon; t++) {
+      var r = rowAt(c, t);
+      if (!r) continue;
+      var cum = r.cumGrossProfit;
+      var unrec = cost === null ? null : Math.max(cost - cum, 0);
+      var net = cost === null ? null : cum - cost;
+      if (cost !== null && payback === null && cum >= cost) {
+        payback = t; paybackAge = t - c.acquisitionMonth;
+      }
+      series.push({ t: t, age: r.age, cumGP: cum, gp: r.grossProfit,
+                    arr: r.closingARR, unrecovered: unrec, net: net });
+    }
+    var last = series.length ? series[series.length - 1] : null;
+    return {
+      index: k, id: c.id, acquisitionMonth: c.acquisitionMonth,
+      acquisitionCost: cost, cacPerARRAtCreation: c.cacPerARRAtCreation,
+      initialARR: c.initialARR, series: series,
+      paybackMonth: payback, paybackAge: paybackAge,
+      finalCumGP: last ? last.cumGP : 0,
+      surplusAtHorizon: (cost !== null && last) ? Math.max(last.cumGP - cost, 0) : null,
+      /* the engine's closed form, for cross-checking the observed crossing */
+      formulaPaybackMonths: res.derived.cacPaybackMonths
+    };
+  }
+
+  function cohortCapitalAt(res, k, t) {
+    var cap = cohortCapital(res, k);
+    if (!cap) return null;
+    var row = null;
+    for (var i = 0; i < cap.series.length; i++) if (cap.series[i].t <= t) row = cap.series[i];
+    return { cap: cap, now: row,
+             paidBack: cap.paybackMonth !== null && cap.paybackMonth <= t };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Portfolio view at month t: how much capital is out, how much has come
+   * back, and how the deployed capital is distributed across payback states.
+   * ------------------------------------------------------------------ */
+  function portfolioCapital(res, t) {
+    var deployed = 0, recovered = 0, outstanding = 0;
+    var states = { prePayback: 0, paidBack: 0 }, counts = { prePayback: 0, paidBack: 0 };
+    for (var k = 0; k < res.cohorts.length; k++) {
+      var c = res.cohorts[k];
+      if (c.acquisitionCost === null || c.acquisitionMonth > t) continue;
+      var r = rowAt(c, t);
+      var cum = r ? r.cumGrossProfit : 0;
+      deployed += c.acquisitionCost;
+      recovered += Math.min(cum, c.acquisitionCost);
+      var unrec = Math.max(c.acquisitionCost - cum, 0);
+      outstanding += unrec;
+      if (unrec > 0) { states.prePayback += c.acquisitionCost; counts.prePayback++; }
+      else { states.paidBack += c.acquisitionCost; counts.paidBack++; }
+    }
+    return { t: t, deployed: deployed, recovered: recovered, outstanding: outstanding,
+             states: states, counts: counts,
+             recoveredShare: deployed > 0 ? recovered / deployed : 0 };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Which vintages produce THIS month's gross profit.
+   * Under the current physics this is the ARR mix scaled by GM/12 — stated
+   * plainly wherever it is displayed.
+   * ------------------------------------------------------------------ */
+  function gpByVintage(res, t) {
+    var out = [], total = 0;
+    for (var k = 0; k < res.cohorts.length; k++) {
+      var c = res.cohorts[k], r = rowAt(c, t);
+      if (!r || r.grossProfit <= 0) continue;
+      out.push({ index: k, acquisitionMonth: c.acquisitionMonth, gp: r.grossProfit, age: r.age });
+      total += r.grossProfit;
+    }
+    out.forEach(function (o) { o.share = total > 0 ? o.gp / total : 0; });
+    var fromBase = out.filter(function (o) { return o.acquisitionMonth === 0; })
+                      .reduce(function (s, o) { return s + o.gp; }, 0);
+    var fromThisMonth = out.filter(function (o) { return o.acquisitionMonth === t; })
+                           .reduce(function (s, o) { return s + o.gp; }, 0);
+    return { t: t, total: total, rows: out,
+             fromOpeningBase: fromBase,
+             fromCohortAcquiredThisMonth: fromThisMonth,
+             fromEarlierAcquisitions: total - fromBase - fromThisMonth };
+  }
+
+  /* Cumulative acquisition capital deployed up to month t. */
+  function deployedSeries(res) {
+    var out = [], acc = 0;
+    for (var t = 0; t <= res.horizon; t++) {
+      if (t > 0) acc += res.months[t - 1].sm;
+      out.push(acc);
+    }
+    return out;
+  }
+
+  return {
+    cohortCapital: cohortCapital,
+    cohortCapitalAt: cohortCapitalAt,
+    portfolioCapital: portfolioCapital,
+    gpByVintage: gpByVintage,
+    deployedSeries: deployedSeries
+  };
+});
+</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -1156,6 +1321,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var pairMode = false;
   var baseRes, expRes, baseS, expS;
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
+  var capitalMode = false, capAgg = null;
   var lastMsg = null;
 
   /* ---------- formatting ---------- */
@@ -1211,9 +1377,28 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     return S.stack[i][k] + (S.stack[j][k] - S.stack[i][k]) * f;
   }
 
+  /* Aggregate capital still out, and gross profit beyond attributed cost.
+     Derived only from stamped acquisitionCost and cumGrossProfit; cached per scenario. */
+  function aggCapital(res){
+    var out=[];
+    for(var t=0;t<=H;t++){
+      if(t===0){ out.push({out:0, surplus:0, dep:0, rec:0}); continue; }
+      var p=CAP.portfolioCapital(res,t), s=0;
+      for(var k2=0;k2<res.cohorts.length;k2++){
+        var c=res.cohorts[k2];
+        if(c.acquisitionCost===null || c.acquisitionMonth>t) continue;
+        var idx=c.acquisitionMonth===0 ? t-1 : t-c.acquisitionMonth;
+        var r=c.rows[idx]; if(r) s+=Math.max(0, r.cumGrossProfit-c.acquisitionCost);
+      }
+      out.push({ out:p.outstanding, surplus:s, dep:p.deployed, rec:p.recovered });
+    }
+    return out;
+  }
+
   function recompute(prevExp){
     baseRes = E.run(baseA); expRes = E.run(expA);
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
+    capAgg = aggCapital(expRes);
     syncForces(); renderCausal(prevExp); renderSide(); renderCascade();
   }
 
@@ -1289,9 +1474,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     W = Math.max(320, r.width); HH = Math.max(240, r.height);
     cv.width = W*dpr; cv.height = HH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
     var L=64, R=20, T=18, B=16;
-    var inner = HH - T - B, massH = inner*0.55, leakH = inner*0.19, cashH = inner*0.26;
-    geo = { L:L, R:R, T:T, massTop:T, massBot:T+massH, leakTop:T+massH+1, leakBot:T+massH+leakH,
-            cashTop:T+massH+leakH+12, cashBot:T+massH+leakH+12+cashH-12, w:W-L-R };
+    var inner = HH - T - B;
+    var massH = capitalMode ? inner*0.46 : inner*0.55;
+    var midH  = capitalMode ? inner*0.30 : inner*0.19;      /* capital track, or leakage */
+    var cashH = capitalMode ? inner*0.24 : inner*0.26;
+    geo = { L:L, R:R, T:T, massTop:T, massBot:T+massH,
+            leakTop:T+massH+1, leakBot:T+massH+midH,
+            capTop:T+massH+8, capBot:T+massH+midH,
+            cashTop:T+massH+midH+12, cashBot:T+massH+midH+12+cashH-12, w:W-L-R };
   }
   function X(m){ return geo.L + (m/H)*geo.w; }
   function invX(px){ return Math.max(0, Math.min(H, ((px-geo.L)/geo.w)*H)); }
@@ -1404,7 +1594,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.strokeStyle='rgba(90,143,214,.78)'; ctx.lineWidth=1.8; ctx.stroke();
     ctx.restore();
 
-    /* --- BELOW THE LINE: cumulative leakage, calm and only ever deepening --- */
+    /* --- MIDDLE REGISTER: leakage, or in Capital mode the recovery track --- */
+    if(capitalMode){ drawCapital(S, t, mi); } else {
     ctx.beginPath(); ctx.moveTo(geo.L, geo.leakTop);
     for(var lm=0; lm<=mi; lm++) ctx.lineTo(X(lm), S.yL(expS.leak[lm]));
     ctx.lineTo(X(t), S.yL(lerpAt(expS.leak,t)));
@@ -1419,6 +1610,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.strokeStyle='rgba(90,143,214,.42)'; ctx.lineWidth=1.4; ctx.stroke(); ctx.restore();
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
     ctx.fillText('LEAKED  '+eur(lerpAt(expS.leak,t)), geo.L+8, geo.leakTop+12);
+    }
 
     /* --- THE KEEL: cash --- */
     var y0 = S.yC(0);
@@ -1452,6 +1644,129 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* --- year labels --- */
     ctx.fillStyle='#3d4952'; ctx.textAlign='center'; ctx.font='9.5px "JetBrains Mono",monospace';
     for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.cashBot+13);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * CAPITAL RECOVERY TRACK
+   * Below the surface line: capital still out. Above it: gross profit beyond
+   * the acquisition cost attributed to that cohort. The horizontal distance
+   * from the drop to the crossing IS the payback time.
+   * An economic attribution, not a claim that euros literally flow back.
+   * ------------------------------------------------------------------ */
+  function capSubject(){
+    var k = (pinned!==null ? pinned : (hover!==null ? hover : null));
+    if(k===null || !expRes.cohorts[k] || expRes.cohorts[k].acquisitionCost===null) return null;
+    return CAP.cohortCapital(expRes, k);
+  }
+  function drawCapital(S, t, mi){
+    var subj = capSubject(), lo, hi, label, col;
+    if(subj){
+      lo = -subj.acquisitionCost;
+      hi = Math.max(subj.acquisitionCost*0.55, subj.series.length ? subj.series[subj.series.length-1].net : 0);
+      col = rampAt(subj.acquisitionMonth / H);
+      label = 'CAPITAL · cohort M'+subj.acquisitionMonth;
+    } else {
+      /* symmetric so capital still out and gross profit beyond cost each get real room */
+      var sym = Math.max(1, Math.max.apply(null, capAgg.map(function(a){return a.out;})),
+                            Math.max.apply(null, capAgg.map(function(a){return a.surplus;})));
+      lo = -sym; hi = sym;
+      col = [201,150,110];
+      label = 'CAPITAL · whole portfolio';
+    }
+    var span = (hi-lo)||1;
+    function yC2(v){ return geo.capBot - ((v-lo)/span)*(geo.capBot-geo.capTop); }
+    var y0 = yC2(0), dark=[col[0]*0.36, col[1]*0.36, col[2]*0.42];
+
+    ctx.strokeStyle='#22303a'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
+
+    if(subj){
+      var j=subj.acquisitionMonth;
+      var pts=[[X(j), -subj.acquisitionCost]];
+      subj.series.forEach(function(s){ if(s.t<=t) pts.push([X(s.t), s.net]); });
+      if(j<=t && pts.length>1){
+        ['below','above'].forEach(function(side){
+          ctx.beginPath(); ctx.moveTo(pts[0][0], y0);
+          pts.forEach(function(pp){ var v = side==='below' ? Math.min(0,pp[1]) : Math.max(0,pp[1]); ctx.lineTo(pp[0], yC2(v)); });
+          ctx.lineTo(pts[pts.length-1][0], y0); ctx.closePath();
+          ctx.fillStyle = side==='below' ? rgba(dark,.9) : rgba(col,.5); ctx.fill();
+        });
+        ctx.beginPath(); pts.forEach(function(pp,i){ i?ctx.lineTo(pp[0],yC2(pp[1])):ctx.moveTo(pp[0],yC2(pp[1])); });
+        ctx.strokeStyle=rgba(col,.95); ctx.lineWidth=1.8; ctx.stroke();
+        /* the instant capital leaves */
+        ctx.beginPath(); ctx.moveTo(X(j), y0); ctx.lineTo(X(j), yC2(-subj.acquisitionCost));
+        ctx.strokeStyle=rgba(col,.95); ctx.lineWidth=2.4; ctx.stroke();
+        ctx.beginPath(); ctx.arc(X(j), yC2(-subj.acquisitionCost), 3.2, 0, Math.PI*2);
+        ctx.fillStyle=rgba(col,1); ctx.fill();
+      }
+      var fut=subj.series.filter(function(s){ return s.t>t; });
+      if(fut.length){
+        ctx.save(); ctx.setLineDash([4,3]); ctx.beginPath();
+        var startY = (j<=t && pts.length>1) ? pts[pts.length-1][1] : -subj.acquisitionCost;
+        ctx.moveTo(X(Math.max(j,t)), yC2(startY));
+        fut.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
+        ctx.strokeStyle=rgba(col,.5); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+      }
+      if(subj.paybackMonth!==null){
+        var pxp=X(subj.paybackMonth), reached=subj.paybackMonth<=t;
+        ctx.save(); if(!reached) ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(pxp, geo.capTop+2); ctx.lineTo(pxp, geo.capBot);
+        ctx.strokeStyle= reached ? 'rgba(247,221,196,.8)' : 'rgba(247,221,196,.28)';
+        ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
+        ctx.fillStyle= reached ? '#f7ddc4' : '#5d6c75';
+        ctx.fillText('PAYBACK · age '+subj.paybackAge, pxp+6, geo.capTop+24);
+        if(j<=t){   /* the span that IS the payback time */
+          var yb=geo.capBot-5;
+          ctx.beginPath(); ctx.moveTo(X(j), yb); ctx.lineTo(pxp, yb);
+          ctx.strokeStyle=rgba(col,.55); ctx.lineWidth=1; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(X(j),yb-3); ctx.lineTo(X(j),yb+3);
+          ctx.moveTo(pxp,yb-3); ctx.lineTo(pxp,yb+3); ctx.stroke();
+        }
+      }
+      /* Base runs as a ghost here too: same cohort, frozen reference scenario */
+      var bcap = CAP.cohortCapital(baseRes, subj.index);
+      if(bcap && bcap.acquisitionCost!==null){
+        ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+        ctx.moveTo(X(bcap.acquisitionMonth), yC2(-bcap.acquisitionCost));
+        bcap.series.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
+        ctx.strokeStyle='rgba(90,143,214,.8)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+        if(bcap.paybackMonth!==null && bcap.paybackMonth!==subj.paybackMonth){
+          var bx=X(bcap.paybackMonth);
+          ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
+          ctx.moveTo(bx, geo.capTop+2); ctx.lineTo(bx, geo.capBot);
+          ctx.strokeStyle='rgba(90,143,214,.55)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+          ctx.textAlign='right'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(90,143,214,.9)';
+          ctx.fillText('base · age '+bcap.paybackAge, bx-6, geo.capTop+24);
+        }
+      }
+      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.fillText(label+'   deployed '+eur(subj.acquisitionCost)+
+        (bcap && bcap.acquisitionCost!==null && bcap.acquisitionCost!==subj.acquisitionCost ? '   (base '+eur(bcap.acquisitionCost)+')' : ''),
+        geo.L+8, geo.capTop+11);
+    } else {
+      ctx.beginPath(); ctx.moveTo(geo.L, y0);
+      for(var m2=0;m2<=mi;m2++) ctx.lineTo(X(m2), yC2(-capAgg[m2].out));
+      ctx.lineTo(X(t), yC2(-capAgg[mi].out)); ctx.lineTo(X(t), y0); ctx.closePath();
+      ctx.fillStyle=rgba(dark,.92); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(geo.L, y0);
+      for(var m3=0;m3<=mi;m3++) ctx.lineTo(X(m3), yC2(capAgg[m3].surplus));
+      ctx.lineTo(X(t), yC2(capAgg[mi].surplus)); ctx.lineTo(X(t), y0); ctx.closePath();
+      ctx.fillStyle=rgba(col,.42); ctx.fill();
+      ctx.save(); ctx.setLineDash([4,3]);
+      ctx.beginPath(); for(var m4=mi;m4<=H;m4++){ var fx=X(m4); m4===mi?ctx.moveTo(fx,yC2(-capAgg[m4].out)):ctx.lineTo(fx,yC2(-capAgg[m4].out)); }
+      ctx.strokeStyle=rgba(dark,1); ctx.lineWidth=1.5; ctx.stroke();
+      ctx.beginPath(); for(var m5=mi;m5<=H;m5++){ var gx=X(m5); m5===mi?ctx.moveTo(gx,yC2(capAgg[m5].surplus)):ctx.lineTo(gx,yC2(capAgg[m5].surplus)); }
+      ctx.strokeStyle=rgba(col,.75); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.fillText(label, geo.L+8, geo.capTop+11);
+      ctx.fillStyle=rgba(col,.85);
+      ctx.fillText('beyond cost  '+eur(capAgg[mi].surplus), geo.L+8, y0-7);
+      ctx.fillStyle=rgba([col[0]*0.72,col[1]*0.72,col[2]*0.78],1);
+      ctx.fillText('still out  '+eur(capAgg[mi].out), geo.L+8, y0+15);
+      ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+      ctx.fillText('click a stratum to follow one cohort from deployment to payback', W-geo.R-6, geo.capTop+11);
+    }
   }
 
   /* ---------- hit testing: every euro of ARR has a history ---------- */
@@ -1491,7 +1806,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ['= EBITA, and FCF', em.ebita, bm.ebita, em.ebita>=0?'var(--good)':'var(--warn)']
     ];
     document.getElementById('cascade-when').textContent = 'month '+m+' · year '+Math.ceil(m/12);
-    document.getElementById('cascade').innerHTML = rows.map(function(r){
+    var attrib='';
+    if(capitalMode){
+      var g=CAP.gpByVintage(expRes,m), p=CAP.portfolioCapital(expRes,m);
+      var seg=[['this month\u2019s cohort', g.fromCohortAcquiredThisMonth],
+               ['earlier acquisitions', g.fromEarlierAcquisitions],
+               ['opening base', g.fromOpeningBase]];
+      attrib='<div class="crow" style="margin-bottom:9px"><span class="cl">GP by vintage</span>'+
+        '<span class="cbar" style="height:13px">'+ (function(){ var off=0; return g.rows.map(function(o){
+            var w=o.share*100, c=rampAt(o.acquisitionMonth/60), s='<i style="left:'+off.toFixed(3)+'%;width:'+w.toFixed(3)+'%;background:'+rgba(c,.95)+'"></i>'; off+=w; return s;
+          }).join(''); })() +'</span>'+
+        '<span class="cv">'+eur(g.total)+'</span></div>'+
+        '<div class="crow" style="margin-bottom:9px"><span class="cl" style="color:var(--ink-3)">produced by</span>'+
+        '<span class="cl" style="color:var(--ink-2)">'+seg.map(function(s2){ return esc(s2[0])+' '+pct(s2[1]/g.total,1); }).join(' &middot; ')+
+        '</span><span class="cv" style="color:var(--ink-3)">capital out '+eur(p.outstanding)+'</span></div>';
+    }
+    document.getElementById('cascade').innerHTML = attrib + rows.map(function(r){
       var w = Math.max(0, Math.min(100, Math.abs(r[1])/scale*100));
       var bw = Math.max(0, Math.min(100, Math.abs(r[2])/scale*100));
       return '<div class="crow"><span class="cl">'+esc(r[0])+'</span>'+
@@ -1559,7 +1889,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           row('Cumulative expansion', eur(snap.cumExpansion)) +
           row('Cumulative leakage', eur(snap.cumLeakage)) +
           row('Cumulative gross profit', eur(snap.cumGrossProfit)) +
-          row('Acquisition cost', c.acquisitionCost===null?'unknown — predates the simulation':eur(c.acquisitionCost))
+          row('Acquisition cost', c.acquisitionCost===null?'unknown — predates the simulation':eur(c.acquisitionCost)) +
+          capitalRows(c, m)
           : '<div class="hint">Not yet born at this moment.</div>')+
         '<div class="hint" style="margin-top:8px">This euro of ARR has a history. Click again to release.</div></div></div>';
     } else if(anatomy){
@@ -1569,6 +1900,25 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('side').innerHTML=h;
     renderCausal(null, true);
     function row(a,b){ return '<div class="srow"><span>'+esc(a)+'</span><b>'+b+'</b></div>'; }
+    function capitalRows(c, mm){
+      if(c.acquisitionCost===null)
+        return '<div class="hint" style="margin-top:8px">The opening base has no stamped acquisition cost — it was created before the simulation, so its capital recovery cannot be attributed.</div>';
+      var cc=CAP.cohortCapital(expRes, expRes.cohorts.indexOf(c));
+      var now=null; cc.series.forEach(function(s){ if(s.t<=mm) now=s; });
+      if(!now) return '';
+      var out='<div style="height:1px;background:var(--line);margin:8px 0"></div>'+
+        '<div class="eyebrow" style="margin-bottom:5px">Capital recovery</div>'+
+        row('Cumulative gross profit', eur(now.cumGP)) +
+        row('Remaining unrecovered', now.unrecovered>0 ? eur(now.unrecovered) : '€0 — fully recovered');
+      if(cc.paybackMonth!==null && cc.paybackMonth<=mm)
+        out += row('Payback', 'reached in month '+cc.paybackMonth+' · age '+cc.paybackAge) +
+               row('GP beyond acquisition cost', eur(now.cumGP - cc.acquisitionCost));
+      else if(cc.paybackMonth!==null)
+        out += row('Payback', 'not yet — '+eur(now.unrecovered)+' remaining, expected month '+cc.paybackMonth);
+      else
+        out += row('Payback', 'not reached within the 60-month horizon');
+      return out + '<div class="hint" style="margin-top:7px">Cumulative cohort gross profit measured against the acquisition cost attributed to it. Not profit, value or ROI: the engine models no cost to serve, no expansion CAC and no discounting.</div>';
+    }
   }
 
   /* ---------- causal feedback, from real simulation outputs ---------- */
@@ -1590,7 +1940,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       cz('Cumulative leakage', eur(b.cumLeakage)+' → '+eur(x.cumLeakage), -d.cumLeakage) +
       cz('Cumulative gross profit', eur(b.cumGrossProfit)+' → '+eur(x.cumGrossProfit), d.cumGrossProfit) +
       cz('Year-5 FCF', eur(b.finalYearFCF)+' → '+eur(x.finalYearFCF), d.finalYearFCF) +
-      cz('Cumulative S&M', eur(b.cumSM)+' → '+eur(x.cumSM), -d.cumSM) +
+      cz('CAC payback', baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',
+         -(expRes.derived.cacPaybackMonths-baseRes.derived.cacPaybackMonths)) +
+      cz('Acquisition capital deployed', eur(b.cumSM)+' → '+eur(x.cumSM), -d.cumSM) +
       cz('Ending cash', eur(b.endingCash)+' → '+eur(x.endingCash), d.endingCash) +
       '</div></div>';
     function cz(k,v,sign){ return '<span>'+esc(k)+'</span><b class="'+cls(sign)+'">'+v+'</b>'; }
@@ -1643,6 +1995,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     renderSide(); renderCascade();
   }
 
+  document.getElementById('capital').addEventListener('click', function(){
+    capitalMode=!capitalMode; this.classList.toggle('on',capitalMode);
+    resize(); renderCascade(); renderSide();
+  });
   document.getElementById('anatomy').addEventListener('click', function(){
     anatomy=!anatomy; this.classList.toggle('on',anatomy); renderSide();
   });

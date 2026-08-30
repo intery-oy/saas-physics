@@ -28,6 +28,7 @@ identity, bridge, measurement and integrity check, in numbers.
 node checks.js            # 35 economic, measurement and state integrity checks
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
+node capital-study.js     # Capital Loop concept study: payback calibration and experiments
 node build.js             # build both single-file surfaces
 open saas-physics-visual-1.html
 ```
@@ -65,6 +66,9 @@ creates; gross margin decides how fast that investment is recovered.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
+- [`docs/CAPITAL-LOOP.md`](docs/CAPITAL-LOOP.md) — **the capital loop concept study**: capital
+  leaves today and returns gradually as a cohort's gross profit, which turns CAC payback from a
+  ratio into a measured distance
 - [`docs/VISUAL-1.md`](docs/VISUAL-1.md) — the visual model, interaction guide, design rationale,
   and what became clearer (and what is still unresolved) by seeing the engine behave spatially
 - [`docs/STATE-SUFFICIENCY.md`](docs/STATE-SUFFICIENCY.md) — **the state sufficiency experiment**:
