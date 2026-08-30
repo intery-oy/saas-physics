@@ -1,0 +1,12 @@
+{
+  "name": "saas-physics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototype 0 — deterministic SaaS economic engine and inspection interface",
+  "scripts": {
+    "check": "node checks.js",
+    "scenarios": "node scenarios.js",
+    "build": "node build.js",
+    "report": "node checks.js && node scenarios.js"
+  }
+}
