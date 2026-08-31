@@ -26,6 +26,8 @@ identity, bridge, measurement and integrity check, in numbers.
 
 ```bash
 node checks.js            # 35 economic, measurement and state integrity checks
+node research-checks.js   # 17 Phase 0/1 research checks
+node research-study.js    # state sufficiency, observability, conditioning, decision gate
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
 node capital-study.js     # Capital Loop concept study: payback calibration and experiments
@@ -51,6 +53,11 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | STATE | Opening cash | €10.0m |
 
 Illustrative defaults. No real company data is connected.
+
+The flat-law default is the **Homogeneous Control World**, not a "neutral" setting: in it the
+cohort strata carry provenance but not differential forward ARR dynamics, and the whole engine
+reduces exactly to `ARR(t+1) = g·ARR(t) + N`. Age carries economic meaning only when someone
+gives it some.
 
 The simulator is two layers. **Layer A** is the economic engine: its parameters are *transition
 coefficients* that govern how cohort ARR evolves. **Layer B** is the KPI measurement engine: it
@@ -84,6 +91,10 @@ creates; gross margin decides how fast that investment is recovered.
   and NRR cannot tell you, and the provenance audit
 - [`docs/MATCHED-NRR.md`](docs/MATCHED-NRR.md) — the matched-NRR experiment: two businesses this
   model cannot tell apart, why, and what physics would have to exist for them to diverge
+- [`docs/KPI-SUFFICIENCY.md`](docs/KPI-SUFFICIENCY.md) — **When are SaaS KPIs sufficient
+  statistics?** The Phase 0/1 research memo: the same-world gate, FIBC-60, the SKSG metric, and
+  the finding that the retention ratios carry *no* identifying power while the ARR path carries
+  all of it
 - [`docs/FINDINGS.md`](docs/FINDINGS.md) — **Where the physics break**: conceptual weaknesses
   this prototype exposed, and what to change next
 

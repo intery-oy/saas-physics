@@ -200,3 +200,52 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 The browser runs the same `engine.js` and the same `integrity.js` as the Node CLI — the build
 step inlines them rather than reimplementing them, which is what makes integrity check 8
 ("one engine") a structural fact rather than a claim.
+
+---
+
+# Development constitution
+
+Adopted after the Phase 0/1 research iteration. Every future physics extension
+must begin with a **blocked CFO question** — *what can the current engine not
+answer?* — and then add ONE minimum mechanism.
+
+## Admission criteria
+
+A proposed mechanism is admissible only if all seven hold:
+
+1. It is a real economic **state, flow, constraint, transition or policy**.
+2. It enables a **qualitatively new** CFO question or behaviour.
+3. It has a clear **economic interpretation**.
+4. It has a **null/default setting that reproduces the previous version exactly**.
+5. It gets at least one **new named integrity check**.
+6. Its causal link is added to the **System Map**.
+7. The **KPI sufficiency / observability gate is rerun** if the mechanism
+   introduces or changes hidden state.
+
+## Governing principle: bounds before benefits
+
+> Under uncertainty, adding a conservative **constraint** to an existing
+> optimistic mechanism requires less evidence than adding a new positive
+> economic **benefit**.
+
+A constraint makes an over-permissive model less wrong in a direction that is
+already known to be wrong. A benefit asserts a causal channel the model would
+then rely on, and a wrong benefit is not conservative in any direction.
+
+Worked examples:
+
+| Proposal | Class | Evidence bar |
+|---|---|---|
+| Diminishing acquisition productivity in S&M | **bound** on an existing optimistic mechanism (Finding 10: the model can always buy growth) | lower |
+| Cash constraining S&M | **bound** — the capital loop is currently drawn open because it *is* open | lower |
+| R&D → improved retention | **claimed benefit** (Finding 16) | materially higher |
+| Expansion carrying a cost | **bound** on a currently free mechanism (Finding 14) | lower |
+
+This principle does **not** license arbitrary functional forms. A bound still
+needs a null setting that reproduces the previous version exactly, an economic
+interpretation, and a named check.
+
+## Current state of the gate
+
+The Phase 0/1 gate ran on v0.3 and returned **PROCEED TO ACQUISITION-NONLINEARITY
+DESIGN** — a bound, not a benefit. See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).

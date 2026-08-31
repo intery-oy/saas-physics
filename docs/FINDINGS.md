@@ -170,6 +170,10 @@ invertible in closed form (see §D of `MEASUREMENT.md`).
 
 ### 10. Acquisition is linear and unbounded in S&M — the model can always buy growth
 
+> **Blocked CFO question:** *when should we stop increasing S&M because marginal
+> acquisition productivity deteriorates?*
+
+
 `New ARR = S&M ÷ cacPerARR` has no saturation term at any spend level. v0.2 fixed *which* variables
 drive acquisition; it did not touch the *shape*. Doubling S&M still doubles New ARR, at month 1 and
 at month 60, forever.
@@ -181,24 +185,26 @@ slider has no wrong setting.
 rises with spend (marginal worse than average). The single change that would give the model the
 ability to say *stop*.
 
-### 11. Efficiency and spend are indistinguishable in ARR
+### 11. ✅ RECLASSIFIED — ARR trajectory alone does not reveal the capital required to produce it
 
-Improving `cacPerARR` 1.20× → 0.80× and raising S&M 50% both produce New ARR of €1.125m/month, and
-their ARR paths agree to **€0.00** across 60 months.
+**This is not a model break. It is a validated result, and it was mis-filed.**
 
-| | Efficiency | Spend |
-|---|---|---|
-| Year-5 ARR | €84.88m | €84.88m |
-| CAC payback (emergent) | 12.00 mo | 18.00 mo |
-| Cumulative S&M | €54.00m | **€81.00m** |
-| Cash trough | €7.43m (M8) | **€2.28m (M15)** |
-| Ending cash | €103.85m | **€76.85m** |
-| First profitable month | M9 | M16 |
+Two businesses that reach the same ARR by different routes — one efficient, one
+outspending — produce the same ARR path. The engine reproduces this exactly, and
+that is correct behaviour, not a defect: ARR is a stock of recurring revenue, and
+a stock does not record what was paid to build it. The capital difference is
+real, visible, and lives where it belongs — in cash, cumulative S&M and CAC
+payback.
 
-€27m of capital separates two identical ARR curves. The engine is right; the *headline* misleads,
-because ARR is prominent and efficiency is not. v0.2 improves this — CAC payback now moves in the
-efficiency case and stays put in the spend case, which is a visible tell — but burn multiple and
-S&M as a share of net new ARR still are not on screen.
+Stated properly:
+
+> **ARR trajectory alone does not reveal the capital required to produce it.**
+
+Filed under "still broken" it read as a deficiency. It is the opposite: it is the
+engine correctly refusing to leak cost information into a revenue stock. The
+Phase 0/1 research sharpened it further — see finding 22.
+
+Original ID and history preserved.
 
 ### 12. Retention age structure exists now, but is coarse
 
@@ -216,6 +222,10 @@ expansion headroom stays invisible.
 
 ### 14. Expansion is free
 
+> **Blocked CFO question:** *what incremental economic resources are required to
+> generate Expansion?*
+
+
 There is no cost attached to generating expansion ARR — no CSM capacity, account management,
 implementation or upsell effort. This is now the most consequential single omission, because it is
 the cheapest defensible way to break the matched-NRR tie: one coefficient, no ARR effect, and the
@@ -223,11 +233,18 @@ separation is exactly linear in it (`Δending cash = c × €15.12m`).
 
 ### 15. `FCF = EBITA` inverts the cash reality of subscription businesses
 
+> **Blocked CFO question:** *how do billing timing and working-capital mechanics
+> alter liquidity relative to EBITA?*
+
+
 No deferred revenue, billings, working capital, tax, capex or interest. Real SaaS collects ahead of
 recognition, so growth is *cash-generative* at the working-capital line — the opposite sign to what
 this model shows. Every growth scenario looks more cash-expensive than it is.
 
 ### 16. R&D is a cost with no modelled benefit — deliberately
+
+> **Blocked CFO question:** *what is the causal return on product investment?*
+
 
 The future economic benefit of R&D is **outside the current simulation boundary**. v0.2 continues to
 encode no `R&D → GRR` or `R&D → expansion` law, because there is no defensible universal
@@ -244,6 +261,10 @@ S&M spent in month *t* produces ARR in month *t*. Real sales cycles run 3–9 mo
 exactly where the cash pain of a growth push lives.
 
 ### 18. Leakage is a single number, and there are no customers
+
+> **Blocked CFO question:** *how much of the loss is logo churn and how much is
+> contraction within retained customers?*
+
 
 Churn and contraction are combined, so the model cannot distinguish losing customers from customers
 shrinking — which is why the measurement layer cannot report them separately either, however
@@ -264,10 +285,66 @@ because it is legible.
 
 ### 21. There is no price
 
+> **Blocked CFO question:** *how much of a revenue change came from price versus
+> other drivers?*
+
+
 Expansion and leakage are pure quantity effects. Pricing is the highest-leverage control a CFO
 actually holds and it does not exist.
 
 ---
+
+## New in Phase 0/1 research
+
+### 22. The insufficiency is localised in the retention ratios, not spread across the KPI set
+
+The observability experiment attributed the identifying power observable by
+observable. Given only R12M GRR and expansion, **thirty-six months of history
+leaves exactly the same ambiguity as one snapshot** — SKSG 4.51% at every window
+tested. The ARR path alone collapses it to 0.00% in twelve months.
+
+So "KPIs are insufficient" was too coarse. On this domain the retention metrics
+are not merely incomplete about the hidden state — they are *uninformative* about
+it, at any window length, because two bands sharing coefficients make their
+cohorts observationally identical by construction. Finding 11's proper statement
+has a partner here: ARR does not reveal the capital that produced it, but the ARR
+*path* does reveal the composition that retention ratios cannot.
+
+### 23. Hidden state in v0.3 has a finite lifetime
+
+Because band 3 is unbounded and terminal, once every euro reaches it composition
+is inert: seeded ages 50, 80 and 120 give FIBC-60 per euro identical to nine
+decimals (4.778638602). Combined with the fact that a cohort seeded at month 0
+has age `a + T0` at T0, this means a directly-seeded base cannot hold a band-1
+cohort for any T0 ≥ 12. **The only economically distinguishing hidden state is
+recent acquisition.** This is a property of the three-band structure and would
+change under finer or age-continuous laws.
+
+### 24. The 26.5% headline was an artefact of an asymmetric denominator
+
+The same two flagship states give 26.54%, 23.43% or 20.97% depending on which
+state is the denominator. The old headline picked the largest. SKSG now uses the
+order-invariant midpoint form (23.43%); the historical figure is preserved for
+traceability but is no longer quoted as the result.
+
+### 25. Observational ambiguity and economic ambiguity are different quantities
+
+At 24 and 36 months the state is still **not identifiable** — 78 and 80 ambiguous
+classes remain — and yet SKSG is 0.00%. Under homogeneous laws the snapshot lens
+collapses all 256 states into a single class with SKSG 0.00%. Had the experiment
+reported identifiability alone, it would have concluded that KPI history fails at
+every window. The economically relevant question is the second one.
+
+### 26. ✅ The same-world gate passed, exactly
+
+The flagship portfolios receive the *same band array object*, so per-portfolio
+calibration is structurally impossible, and their observations agree to
+`0.00e+0` rather than to a tolerance. The result stands — but it is conditional
+on a **non-monotone** retention profile, and the earlier finding that a monotone
+construction is infeasible is the other half of that statement: under monotone
+tenure laws the KPI set may be very nearly sufficient.
+
+See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 ## What held up
 

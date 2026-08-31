@@ -1,7 +1,7 @@
 # SaaS Physics — Builder's Brief
 
-*Prepared for advisory review. Model v0.3 · 13 commits · ~2.4k lines of source JS ·
-2,779 lines of documentation · 35/35 integrity checks passing · no dependencies.*
+*Prepared for advisory review. Model v0.3 + Phase 0/1 research · ~3.1k lines of source JS ·
+35/35 integrity checks and 17/17 research checks passing · no dependencies.*
 
 A deterministic 60-month cohort engine for a SaaS business, built to answer one question:
 **what kind of company does a given set of operating assumptions create?** Everything a CFO
@@ -76,13 +76,20 @@ Illustrative defaults. No real company data is connected.
 
 **What comes out, unentered** (baseline run, 60 months, 61 cohorts):
 
-| Emergent measure | Value | Why it is not an input |
-|---|---|---|
-| Year-5 ARR | €62.93m | Sum of 61 cohort balances |
-| R12M NRR | 99.00% | Lands exactly on `P × (1 + X)` |
-| R12M GRR | 89.56% | Measured, not the 90% coefficient |
-| CAC payback | 18.0 months | Output of `CAC/ARR × 12 ÷ GM` |
-| Ending cash / trough | €59.57m / €6.10m | Accumulated FCF |
+| Measure | Value | Class | Why it is not an input |
+|---|---|---|---|
+| Year-5 ARR | €62.93m | derived | Closed form: `ARR(t) = g^t·ARR(0) + N(g^t−1)/(g−1)` |
+| R12M NRR | 99.00% | derived | Lands exactly on `P × (1 + X)` |
+| R12M GRR | 89.56% | **emergent** | Depends on the within-period interaction of decay and expansion; no closed form in the coefficients alone |
+| CAC payback | 18.0 months | derived | Algebra: `CAC/ARR × 12 ÷ GM` |
+| Ending cash / trough | €59.57m / €6.10m | derived | Accumulated FCF |
+
+**Terminology.** In the Homogeneous Control World most of these are *derived* —
+closed-form algebra from homogeneous inputs, verified to 4.1×10⁻¹⁵ against the
+engine. "Emergent" is reserved for behaviour that genuinely depends on state
+evolution or composition and that the homogeneous reduction cannot describe:
+the GRR gap, and the state-sufficiency results. Calling the derived quantities
+emergent overstated the homogeneous case.
 
 Inverting the acquisition primitive so payback became an output rather than an input was the
 single most important correction in the project's history. In v0.1, gross margin generated ARR
@@ -122,8 +129,11 @@ comparable across the whole history.
   and nothing else.
 
 **The most valuable single result — the state sufficiency experiment:** two portfolios with
-identical ARR *and* identical trailing KPIs whose existing ARR carries **26.5% different
-forward economic content**, purely from age composition. A flat-law control proves maturity
+identical ARR *and* identical trailing KPIs whose existing ARR carries **23.4% different
+forward installed-base gross profit (FIBC-60)**, purely from age composition. (The previously
+quoted 26.5% used an asymmetric denominator; the same states give 26.54%, 23.43% or 20.97%
+depending on which is the baseline. The order-invariant figure is now used.) A flat-law
+control proves maturity
 itself creates nothing — the difference only exists when the laws actually vary by age. This is
 the project's strongest argument that reported KPIs are an incomplete description of a SaaS
 company's state.
@@ -135,13 +145,13 @@ rather than fixed opportunistically. The most consequential:
 
 | # | Finding | Status |
 |---|---|---|
-| 10 | **Acquisition is linear and unbounded in S&M.** The model can always buy growth. No capacity, ramp, pipeline, conversion or diminishing returns. It cannot say *stop*. | open |
-| 11 | **Efficiency and spend are indistinguishable in ARR.** Two very different businesses produce the same ARR path; only the capital consumed differs. | open |
-| 14 | **Expansion is free.** No modelled cost attaches to expansion ARR — structurally asymmetric with acquisition. | open |
-| 15 | **FCF = EBITA.** No working capital, deferred revenue, tax or capex. Inverts the cash reality of subscription businesses; pessimistic for a fast grower. | open |
-| 16 | **R&D is a cost with no modelled benefit.** Product investment cannot buy retention, so every NRR conclusion is about a company that does not build anything. | open |
-| 18 | **Leakage is one number, and there are no customers.** Churn and contraction combined; no logos, no ARPA, no concentration. | open |
-| 21 | **There is no price.** Nothing in the model represents what is charged. | open |
+| 10 | *Blocked CFO question:* **when should we stop increasing S&M because marginal acquisition productivity deteriorates?** Acquisition is linear and unbounded, so the model can always buy growth. | open |
+| 11 | **RECLASSIFIED — not a defect.** *ARR trajectory alone does not reveal the capital required to produce it.* The engine is correctly refusing to leak cost information into a revenue stock; the capital difference lives in cash, cumulative S&M and payback. | validated result |
+| 14 | *Blocked CFO question:* **what incremental economic resources are required to generate Expansion?** No modelled cost attaches to expansion ARR. | open |
+| 15 | *Blocked CFO question:* **how do billing timing and working-capital mechanics alter liquidity relative to EBITA?** FCF = EBITA exactly. | open |
+| 16 | *Blocked CFO question:* **what is the causal return on product investment?** R&D reaches no valve, so every NRR conclusion is about a company that does not build anything. | open |
+| 18 | *Blocked CFO question:* **how much of the loss is logo churn and how much is contraction?** Leakage is one number; there are no customers. | open |
+| 21 | *Blocked CFO question:* **how much of a revenue change came from price?** Nothing in the model represents what is charged. | open |
 | — | Gross margin no longer generates ARR — the one conceptually wrong v0.1 equation | fixed v0.2 |
 | 7 | Cohort acquisition cost stamped at creation and never read by a forward transition | fixed v0.3 |
 
@@ -149,6 +159,50 @@ rather than fixed opportunistically. The most consequential:
 two links to be drawn as *absent*: **cash never constrains S&M** (no financing constraint —
 cash can fall to €6.10m and nothing throttles spend), and **R&D reaches neither retention nor
 expansion**. Both are honest limitations of the frozen engine, and both are candidate physics.
+
+## 6b. Phase 0/1 research — KPI sufficiency, observability, conditioning
+
+A consolidation iteration on the frozen engine. No new physics. It asked one question:
+**when does KPI compression preserve enough information to reason about future SaaS
+economics, and when does it not?**
+
+**The same-world gate passed exactly.** The flagship portfolios receive the *same band array
+object*, so per-portfolio calibration is structurally impossible, and their observations agree
+to `0.00e+0` rather than to a tolerance.
+
+**Two measures were defined to replace vague language.** *FIBC-60* — forward installed-base
+gross profit over 60 months, undiscounted, no terminal value, no multiple, not called "value".
+*SKSG* — the maximum FIBC-60 spread among states that are observationally identical, normalised
+symmetrically, always disclosed with its KPI set, window, law set, state domain and horizon. It
+is a searched maximum over a declared finite domain, never claimed as a theorem.
+
+**The headline result inverted an assumption the project had been carrying.**
+
+| Lens | Snapshot | 12M | 24M | 36M |
+|---|---:|---:|---:|---:|
+| ARR path + GRR + expansion | 4.51% | 0.00% | 0.00% | 0.00% |
+| **GRR + expansion only** | **4.51%** | **4.51%** | **4.51%** | **4.51%** |
+| ARR path only | 4.51% | 0.00% | 0.00% | 0.00% |
+
+The retention metrics carry **no identifying power at all**; the ARR path does the entire
+collapse alone. So "KPIs are insufficient" was too coarse — on this domain GRR and NRR are
+*uninformative* about the hidden state at any window length, and the cheap fix is not cohort
+disclosure but twelve months of ARR history.
+
+**Conditioning improves with history.** The snapshot ambiguity is structural — 4.51% whether
+exact or perturbed, because better precision cannot help. At 12 months a simultaneous ±0.1pp
+and ±0.1% error reopens only 0.04%; at 24 and 36 months, nothing.
+
+**The control did its job.** Under homogeneous laws 256 states collapse to one observational
+class with SKSG 0.00% — maximum observational ambiguity, zero economic consequence. That
+distinction (observational ≠ economic ambiguity) would have produced the opposite conclusion at
+24 and 36 months, where the state is still *not identifiable* yet nothing relevant is hidden.
+
+**Scope condition, load-bearing:** the whole result depends on a **non-monotone** retention
+profile. Under monotone tenure laws an exact matched construction does not exist, and the KPI
+set may be very nearly sufficient. The model cannot say which regime real companies are in.
+
+Full memo: `docs/KPI-SUFFICIENCY.md`.
 
 ## 7. The visual track
 
@@ -187,9 +241,10 @@ are part of the record.
 
 ## 9. Where advice would change what happens next
 
-The builder's own ranked next step is an **observability experiment**: can a 24- or 36-month
-KPI *history* identify a company's Time-0 state, or is cohort vintage disclosure strictly
-necessary? It needs no new physics.
+*The observability experiment that previously headed this list has now been run — see §6b. Its
+answer: twelve months of ARR history suffices on the declared domain, and cohort vintage
+disclosure is not strictly necessary. The decision gate returned **proceed to
+acquisition-nonlinearity design**, a bound rather than a benefit.*
 
 **Q1 — Is the sequencing right?** Current order: observability → expansion cost → customer
 count and logo retention → diminishing returns on S&M → expansion saturation → deferred
@@ -205,10 +260,12 @@ into an opinion about SaaS.
 price, no working capital. At what point does adding realism stop sharpening intuition and
 start producing an unfalsifiable model that merely feels right?
 
-**Q4 — Is the state-sufficiency result being pushed hard enough?** Two portfolios, identical
-ARR and identical trailing KPIs, 26.5% different forward economic content. If that generalises,
-it is a substantive claim about SaaS diligence and reporting. Is it worth developing into a
-standalone argument rather than remaining one experiment inside a simulator?
+**Q4 — Is the state-sufficiency result being pushed hard enough?** *Partly answered by Phase
+0/1.* It survived the same-world gate exactly and now sits inside a metric (SKSG) rather than
+an anecdote, with a standalone memo. What remains open is empirical: the result is conditional
+on a non-monotone retention profile, which is directly measurable from any company's own cohort
+data and which this model cannot supply. Is that the question worth taking outside the
+simulator?
 
 **Q5 — Does the visual track earn its cost?** Roughly a third of the effort has gone into
 making the engine visible, including one study that failed outright. Is spatial representation

@@ -139,6 +139,35 @@ The Experiment-equals-Base test is a direct comparison of the assumption objects
 rather than `E.compare()`, which re-summarises 60 months; it runs every frame,
 and the view holds 61 fps.
 
+## System map — the clarified architecture (Phase 0/1)
+
+No visual redesign. The causal documentation is updated only to reflect the
+architecture the research clarified. Five kinds of object, kept distinct:
+
+| Kind | Members | Note |
+|---|---|---|
+| **Structural state** | ARR; the cohort composition that constitutes it | The only thing that accumulates on the revenue side. Under homogeneous laws its composition carries provenance but no differential forward dynamics. |
+| **Transition flows** | New ARR, Expansion, Leakage | Expansion and Leakage are functions of the stock they act on; New ARR is set from outside. |
+| **External decisions** | S&M, R&D, G&A | Exogenous. Nothing in the engine constrains them. |
+| **Conversion ratios / measurements** | CAC per New ARR, Gross Margin, Revenue, Gross Profit, FCF | Ratios and derived quantities, not stocks. |
+| **Passive accumulated output** | Cash | Under current physics cash accumulates and feeds nothing back. |
+
+That last row is the point. **Cash is a passive accumulator, not a constraint.**
+It has no outgoing causal link, which is why the diagram draws
+`⊘ cash never constrains S&M` rather than a feedback loop.
+
+The two absent links remain absent and must not be drawn:
+
+- `⊘ Cash → S&M` — S&M is exogenous; cash can fall to €6.10m and nothing
+  throttles spend.
+- `⊘ R&D → retention or expansion` — R&D reaches no valve.
+
+Both are now filed as *blocked CFO questions* rather than as defects, and both
+are candidates under the development constitution — the first as a **bound**
+(lower evidence bar), the second as a **claimed benefit** (materially higher).
+
+No new Pulse work. No new decorative Flow work.
+
 ## The redesign — systems notation, and why it earns its place
 
 | Element | Notation | Bound to |
