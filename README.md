@@ -13,6 +13,24 @@ Not built yet, by design: enterprise value, multiples, 3D, real company data, cu
 modelling, churn/contraction split, pricing, usage, working capital, debt, tax, capex,
 pipeline, headcount, probabilistic simulation, AI commentary. **We are proving the physics first.**
 
+## SaaS Physics v1 — FROZEN FOR USE
+
+| | |
+|---|---|
+| **Freeze date** | 2026-08-31 |
+| **Frozen engine version** | v0.3 (`engine.js` / `kpi.js` / `integrity.js` — 0 diff lines since the freeze) |
+| **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
+| **Planned usage period** | Six weeks, starting the freeze date |
+| **During the usage period** | Only genuine defects that block use may be fixed. Conceptual or model limitations discovered in use are **recorded in [`USAGE-LOG.md`](USAGE-LOG.md)**, not built — see that file for the rules, the outcome codes, and what happens after six weeks. |
+
+This was the final planned v1 product change: one consistent recurring-revenue
+reporting-basis switch (MRR ⇄ ARR) across Company, System, Scenarios and Inspect, matching
+the Revenue Portal waterfall. It is a pure presentation transformation — `MRR = ARR / 12`,
+computed and displayed, never rounded before the transform — over the same frozen,
+ARR-native engine. No new physics, no new scenarios, no engine changes. All 35 economic
+integrity checks, 18 research checks and the new MRR/ARR regression suite
+(`node basis-checks.js` — BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE) pass.
+
 ## The product
 
 **[SaaS Physics v1](saas-physics-v1.html)** — the consolidated CFO instrument.
@@ -24,6 +42,13 @@ Four actions: **Observe → Change → Compare → Inspect**.
 | **System** | A model audit: the causal topology the engine actually contains, with ⊘ marking the links it does not. |
 | **Scenarios** | Six canonical scenarios. Change one declared assumption against a frozen Base and read the consequence. |
 | **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
+
+A global **MRR ⇄ ARR** switch (default MRR) sets the reporting basis for every recurring-revenue
+stock and movement — the stock itself, New/Expansion/Leakage, cohort original/current values —
+consistently across all four surfaces, and persists as you move between them. It never touches
+Revenue, gross profit, FCF, cash, S&M, acquisition cost or any ratio (GRR, NRR, gross margin,
+CAC, CAC payback): those stay on their own basis, labelled as period flows where useful
+(`Revenue · this month`).
 
 Controls are grouped by *what kind of thing* they are — management input,
 installed-base laws, acquisition efficiency, economic conversion — because they
@@ -51,7 +76,8 @@ identity, bridge, measurement and integrity check, in numbers.
 
 ```bash
 node checks.js            # 35 economic, measurement and state integrity checks
-node research-checks.js   # 17 Phase 0/1 research checks
+node basis-checks.js      # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
+node research-checks.js   # 18 Phase 0/1 research checks
 node research-study.js    # state sufficiency, observability, conditioning, decision gate
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment

@@ -176,6 +176,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-scen">Scenarios</button></div>
     <span class="eyebrow">Compare</span>
     <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
+    <span class="eyebrow">Basis</span>
+    <div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div>
     <button class="btn" id="keybtn">Method</button>
   </header>
 
@@ -238,6 +240,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li>ARR and its cohort composition, revenue, gross profit, EBITA, FCF, cash.</li>
             <li>R12M GRR, expansion and NRR — <b>measured</b>, never entered.</li>
             <li><b>CAC payback</b>, an output of CAC/ARR × 12 ÷ GM. In the first version it was an input; inverting that was the most important correction this project has made.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Reporting basis — MRR ⇄ ARR</h5>
+          <ul>
+            <li>SaaS Physics stores recurring state internally in <b>ARR</b> in v1. <b>MRR is an exact presentation transformation</b> (<span style="font-family:var(--mono);font-size:11px">ARR / 12</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
+            <li><b>MRR/ARR are recurring run-rate state measures.</b> Revenue, gross profit and FCF are period financial flows and therefore do not toggle — they stay labelled <span style="font-family:var(--mono);font-size:11px">· this month</span> in both bases.</li>
+            <li>The default is <b>MRR</b>: the engine steps monthly, and New/Expansion/Leakage are monthly state movements, so a monthly basis matches the simulation's own resolution.</li>
           </ul>
         </div>
         <div>
@@ -308,10 +318,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 <script>/*__KPI__*/</script>
 <script>/*__CAPITAL__*/</script>
 <script>/*__SYSTEMSTATE__*/</script>
+<script>/*__BASIS__*/</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -341,6 +352,36 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function pct(v,d){ return (v*100).toFixed(d===undefined?1:d)+'%'; }
   function cls(v){ return v>1?'up':(v<-1?'down':'flat'); }
   function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+  /* ------------------------------------------------------------------ *
+   * §2 — the global MRR/ARR reporting-basis switch.
+   *
+   * A PRESENTATION preference, not an economic assumption. The engine stays
+   * ARR-native and frozen; every recurring-revenue STATE and MOVEMENT is run
+   * through BS.toBasis before it is formatted with eur/eurS. Financial flows
+   * (Revenue/GP/FCF/S&M/R&D/G&A), cash, ratios (GRR/NRR/Expansion %/gross
+   * margin/CAC) and capital-recovery figures (acquisition cost, cumulative
+   * GP) never pass through this — see basis.js and §4 of the brief.
+   * ------------------------------------------------------------------ */
+  var basis = BS.DEFAULT_BASIS;
+  try { var savedBasis = localStorage.getItem('saas-physics-basis');
+        if (savedBasis === 'MRR' || savedBasis === 'ARR') basis = savedBasis; } catch (e) {}
+  function rc(v){ return BS.toBasis(v, basis); }                  // raw ARR number -> chosen basis
+  function reur(v){ return eur(rc(v)); }                          // formatted, basis-aware
+  function reurS(v){ return eurS(rc(v)); }
+  function syncBasisButtons(){
+    document.getElementById('basis-mrr').classList.toggle('on', basis==='MRR');
+    document.getElementById('basis-arr').classList.toggle('on', basis==='ARR');
+  }
+  function setBasis(b){
+    if (b !== 'MRR' && b !== 'ARR' || b === basis) return;
+    basis = b; syncBasisButtons();
+    try { localStorage.setItem('saas-physics-basis', basis); } catch (e) {}
+    render(); renderSide();
+  }
+  document.getElementById('basis-mrr').addEventListener('click', function(){ setBasis('MRR'); });
+  document.getElementById('basis-arr').addEventListener('click', function(){ setBasis('ARR'); });
+  syncBasisButtons();
 
   /* ---------- validated vintage ramp: oldest darkest → newest lightest ---------- */
   var RAMP = [[149,86,42],[176,110,60],[203,138,85],[224,166,119],[238,196,158],[247,221,196]];
@@ -666,13 +707,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var x=X(y*12)+0.5; ctx.beginPath(); ctx.moveTo(x,geo.massTop); ctx.lineTo(x,geo.cashBot); ctx.stroke();
     }
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
-    ctx.fillText('ARR', geo.L+8, geo.massTop+11);
-    /* ARR gridlines */
+    ctx.fillText(basis, geo.L+8, geo.massTop+11);
+    /* gridlines, in the chosen basis — the axis geometry is always ARR-native,
+       only the printed number changes */
     ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#3d4952';
     for(var g=1;g<=3;g++){
       var v=S.arrMax*g/4, yy=Math.round(S.yA(v))+0.5;
       ctx.beginPath(); ctx.moveTo(geo.L,yy); ctx.lineTo(W-geo.R,yy); ctx.strokeStyle='#111a1f'; ctx.stroke();
-      ctx.fillText(eur(v), geo.L-8, yy+3);
+      ctx.fillText(reur(v), geo.L-8, yy+3);
     }
 
     /* --- THE MASS: one filled band per cohort, oldest at the bottom --- */
@@ -763,7 +805,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var lb=0; lb<=H; lb++){ var lx=X(lb), ly=S.yL(baseS.leak[lb]); lb?ctx.lineTo(lx,ly):ctx.moveTo(lx,ly); }
     ctx.strokeStyle='rgba(90,143,214,.42)'; ctx.lineWidth=1.4; ctx.stroke(); ctx.restore();
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
-    ctx.fillText('LEAKED  '+eur(lerpAt(expS.leak,t)), geo.L+8, geo.leakTop+12);
+    ctx.fillText('LEAKED  '+reur(lerpAt(expS.leak,t)), geo.L+8, geo.leakTop+12);
     }
 
     /* --- THE KEEL: cash --- */
@@ -876,6 +918,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.fillText(Math.abs(v)<ZERO ? 'no change vs Base' : (v>0?'more than Base':'less than Base'), x, y);
     }
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    /* recurring-revenue variant: everything n() does, but through the basis
+       switch first. Only for ARR stock and its New/Expansion/Leakage
+       movements — never for Revenue/GP/otherOpex/FCF/Cash, which stay n(). */
+    function rn(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(rc(v))); }
 
     /* ---------- primitives ---------- */
     function pipeH(x1,x2,y,w,fill){ ctx.fillStyle=fill; ctx.fillRect(Math.min(x1,x2), y-w/2, Math.abs(x2-x1), w); }
@@ -998,9 +1044,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
       ctx.fillText('Base = 0', ax+aw+8, aZero+3); }
     ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('STOCK · ARR', ax+aw/2, aTop-24);
+    ctx.fillText('STOCK · '+basis, ax+aw/2, aTop-24);
     ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
-    ctx.fillText(n(d.closingARR), ax+aw/2, aTop-6);
+    ctx.fillText(rn(d.closingARR), ax+aw/2, aTop-6);
     if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
       ctx.fillText(d.cohorts.length+' cohort vintages', ax-12, aBot+4); }
 
@@ -1043,9 +1089,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     valve(215, yNew, 'S&M per month', fmtF('eur', expA.sm), 'sm', -72, 44);
     valve(350, yNew, 'CAC per New ARR', fmtF('x', expA.cacPerARR), 'cacPerARR', -72, 44);
     ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('FLOW · New ARR', 408, yNew-34);
+    ctx.fillText('FLOW · New '+basis, 408, yNew-34);
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
-    ctx.fillText(n(d.newARR), 408, yNew-18);
+    ctx.fillText(rn(d.newARR), 408, yNew-18);
     dCaption(408, yNew-46, d.newARR);
 
     cloud(80, yExp, 'outside the boundary');
@@ -1054,9 +1100,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(247,221,196,.85)','rgba(93,108,117,.85)'));
     valve(350, yExp, 'expansion coefficient', fmtF('pct', expA.expansionCoefficientAnnual), 'expansionCoefficientAnnual', -72, 44);
     ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('FLOW · Expansion', 408, yExp-34);
+    ctx.fillText('FLOW · Expansion '+basis, 408, yExp-34);
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
-    ctx.fillText(n(d.expansion), 408, yExp-18);
+    ctx.fillText(rn(d.expansion), 408, yExp-18);
     dCaption(408, yExp-46, d.expansion);
 
     /* ---------- OUTFLOW ---------- */
@@ -1067,9 +1113,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     valve(xLeak, 580, 'persistence coefficient', fmtF('pct', expA.persistenceAnnual), 'persistenceAnnual', -216, -10);
     cloud(xLeak, 690, 'leaves the system');
     ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('FLOW · Leakage', xLeak+62, 548);
+    ctx.fillText('FLOW · Leakage '+basis, xLeak+62, 548);
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
-    ctx.fillText(n(d.leakage), xLeak+62, 564);
+    ctx.fillText(rn(d.leakage), xLeak+62, 564);
     if(isD){ ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif';
       ctx.fillStyle = Math.abs(d.leakage)<ZERO ? '#3d4952' : (d.leakage>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
       ctx.fillText(Math.abs(d.leakage)<ZERO ? 'no change vs Base' : (d.leakage>0?'more leaks than Base':'less leaks than Base'), xLeak+62, 578); }
@@ -1135,7 +1181,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.fillText('Rectangles accumulate. Pipes fill and drain them. Bowties are the valves you set. Clouds are the model boundary. '+
                  'Dashed blue arrows are information: the stock setting the rate of its own future flows.', 30, 42);
     ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
-    ctx.fillText('SCALES  stock level ∝ € of ARR and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
+    ctx.fillText('SCALES  stock level ∝ € of '+basis+' and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
     ctx.fillStyle='rgba(201,151,63,.95)';
     ctx.fillText('⊘ marks a link the engine does not model. An absent feedback is a finding, not an omission in the drawing.', 30, SYS.H-30);
     endFit(); positionLawChips();
@@ -1446,29 +1492,29 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     var d=em.closingARR-bm.closingARR;
 
-    var h='<div class="sgrp"><div class="eyebrow">Where the company is</div>'+
-      '<div class="big"><span class="v">'+eur(em.closingARR)+'</span>'+
-      '<span class="d '+cls(d)+'">'+(Math.abs(d)<1?'on Base':eurS(d)+' vs Base')+'</span></div>'+
+    var h='<div class="sgrp"><div class="eyebrow">Where the company is &middot; '+basis+'</div>'+
+      '<div class="big"><span class="v">'+reur(em.closingARR)+'</span>'+
+      '<span class="d '+cls(d)+'">'+(Math.abs(d)<1?'on Base':reurS(d)+' vs Base')+'</span></div>'+
       row('Revenue run rate', eur(em.revenue*12)) +
       row('Gross margin', pct(expRes.assumptions.grossMargin)) +
-      row('Gross profit, this month', eur(em.grossProfit)) +
-      row('EBITA / FCF, this month', eur(em.ebita)) +
+      row('Gross profit · this month', eur(em.grossProfit)) +
+      row('EBITA / FCF · this month', eur(em.ebita)) +
       row('Cash', eur(em.cashClosing)) + '</div>';
 
     var mx=Math.max(em.openingARR, em.closingARR);
     function bar(v,color,from){ var w=Math.abs(v)/mx*100, l=(from||0)/mx*100;
       return '<span class="bb"><i style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+color+'"></i></span>'; }
-    h+='<div class="sgrp"><div class="eyebrow">How it is moving</div><div class="bridge">'+
-      '<div class="brow"><span style="color:var(--ink-3)">Opening</span>'+bar(em.openingARR,'var(--ink-4)')+'<span class="bv">'+eur(em.openingARR)+'</span></div>'+
-      '<div class="brow"><span style="color:var(--ink-3)">+ New</span>'+bar(em.newARR,'var(--good)',em.openingARR)+'<span class="bv" style="color:var(--good)">'+eur(em.newARR)+'</span></div>'+
-      '<div class="brow"><span style="color:var(--ink-3)">+ Expansion</span>'+bar(em.expansion,'var(--good)',em.openingARR)+'<span class="bv" style="color:var(--good)">'+eur(em.expansion)+'</span></div>'+
-      '<div class="brow"><span style="color:var(--ink-3)">− Leakage</span>'+bar(em.leakage,'var(--leak)',em.openingARR-em.leakage)+'<span class="bv" style="color:var(--ink-2)">'+eur(em.leakage)+'</span></div>'+
-      '<div class="brow" style="margin-top:2px"><span style="color:var(--ink)">Closing</span>'+bar(em.closingARR,'var(--exp)')+'<span class="bv" style="color:var(--exp)">'+eur(em.closingARR)+'</span></div>'+
+    h+='<div class="sgrp"><div class="eyebrow">How it is moving &middot; '+basis+'</div><div class="bridge">'+
+      '<div class="brow"><span style="color:var(--ink-3)">Opening</span>'+bar(em.openingARR,'var(--ink-4)')+'<span class="bv">'+reur(em.openingARR)+'</span></div>'+
+      '<div class="brow"><span style="color:var(--ink-3)">+ New</span>'+bar(em.newARR,'var(--good)',em.openingARR)+'<span class="bv" style="color:var(--good)">'+reur(em.newARR)+'</span></div>'+
+      '<div class="brow"><span style="color:var(--ink-3)">+ Expansion</span>'+bar(em.expansion,'var(--good)',em.openingARR)+'<span class="bv" style="color:var(--good)">'+reur(em.expansion)+'</span></div>'+
+      '<div class="brow"><span style="color:var(--ink-3)">− Leakage</span>'+bar(em.leakage,'var(--leak)',em.openingARR-em.leakage)+'<span class="bv" style="color:var(--ink-2)">'+reur(em.leakage)+'</span></div>'+
+      '<div class="brow" style="margin-top:2px"><span style="color:var(--ink)">Closing</span>'+bar(em.closingARR,'var(--exp)')+'<span class="bv" style="color:var(--exp)">'+reur(em.closingARR)+'</span></div>'+
       '</div></div>';
 
-    h+='<div class="sgrp"><div class="eyebrow">What it is made of</div>'+
-      row('Opening base still here', eur(mix.amounts.base)+' · '+pct(mix.shares.base)) +
-      row('From cohorts acquired since', eur(mix.total-mix.amounts.base)+' · '+pct(1-mix.shares.base)) +
+    h+='<div class="sgrp"><div class="eyebrow">What it is made of &middot; '+basis+'</div>'+
+      row('Opening base still here', reur(mix.amounts.base)+' · '+pct(mix.shares.base)) +
+      row('From cohorts acquired since', reur(mix.total-mix.amounts.base)+' · '+pct(1-mix.shares.base)) +
       row('Cohorts alive', String(E.cohortSnapshot(expRes,m).length)) + '</div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Emergent KPIs</div>'+
@@ -1486,10 +1532,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       h+='<div class="sgrp"><div class="dossier"><h4><span class="sw" style="background:'+rgba(col,1)+'"></span>'+
         (c.acquisitionMonth===0?'Opening base cohort':'Cohort acquired in month '+c.acquisitionMonth)+'</h4>'+
         (snap ? row('Age', snap.age+' months') +
-          row('Original ARR', eur(c.initialARR)) +
-          row('ARR now', eur(snap.currentARR)+' · '+pct(snap.retainedShare)+' of original') +
-          row('Cumulative expansion', eur(snap.cumExpansion)) +
-          row('Cumulative leakage', eur(snap.cumLeakage)) +
+          row('Original '+basis, reur(c.initialARR)) +
+          row(basis+' now', reur(snap.currentARR)+' · '+pct(snap.retainedShare)+' of original') +
+          row('Cumulative Expansion '+basis, reur(snap.cumExpansion)) +
+          row('Cumulative Leakage '+basis, reur(snap.cumLeakage)) +
           row('Cumulative gross profit', eur(snap.cumGrossProfit)) +
           row('Acquisition cost', c.acquisitionCost===null?'unknown — predates the simulation':eur(c.acquisitionCost)) +
           capitalRows(c, m)
@@ -1533,6 +1579,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var m = d.t, abs = isD ? d.experiment : d;
     var noExp = isD && sameAsBase();
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    function rn(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(rc(v))); }
     function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
     var net = d.newARR + d.expansion - d.leakage;
     if(noExp){
@@ -1551,20 +1598,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         'so a delta of exactly zero everywhere is the correct answer, and the strongest evidence the two scenarios really do share one engine.</div></div>';
       return;
     }
-    var h='<div class="sgrp"><div class="eyebrow">Stocks · month '+m+'</div><div class="recon" style="margin-top:5px">'+
-      r('ARR', n(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
+    var h='<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
+      r(basis, rn(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
       '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
 
-    h+='<div class="sgrp"><div class="eyebrow">Flows into and out of ARR</div><div class="recon" style="margin-top:5px">'+
-      r('+ New ARR', n(d.newARR)) + r('+ Expansion', n(d.expansion)) + r('− Leakage', n(-d.leakage)) +
-      r('= net change in the stock', n(net), 'tot') + '</div>'+
-      '<div class="hint" style="margin-top:8px">Net '+n(net)+' this month against a stock of '+eur(abs.closingARR)+
+    h+='<div class="sgrp"><div class="eyebrow">Flows into and out of '+basis+'</div><div class="recon" style="margin-top:5px">'+
+      r('+ New '+basis, rn(d.newARR)) + r('+ Expansion '+basis, rn(d.expansion)) + r('− Leakage '+basis, rn(-d.leakage)) +
+      r('= net change in the stock', rn(net), 'tot') + '</div>'+
+      '<div class="hint" style="margin-top:8px">Net '+rn(net)+' this month against a stock of '+reur(abs.closingARR)+
       ' — <b style="color:var(--ink)">'+(abs.closingARR ? pct(Math.abs(net)/abs.closingARR,1) : '—')+'</b>. '+
       'That ratio is why a stock this large is slow to turn, and why one month of flow could never be drawn at the stock\'s own scale.</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">The stock sets its own rates</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
-      'Leakage is <b style="color:var(--ink)">'+eur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
+      'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
       '</b>. Expansion is the retained balance × '+pct(Math.pow(1+expA.expansionCoefficientAnnual,1/12)-1,3)+
       '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
       'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
@@ -1606,15 +1653,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var last = H - 1;
     var bm2 = baseRes.months[last], xm2 = expRes.months[last];
     function d(v){ return (v>=0?'+':'−') + eur(Math.abs(v)); }
+    function rd(v){ return (v>=0?'+':'−') + eur(Math.abs(rc(v))); }
     function cls2(v){ return v>1?'up':(v<-1?'down':'flat'); }
-    function row(k, v, sign){ return '<span>'+esc(k)+'</span><b class="'+cls2(sign===undefined?v:sign)+'">'+
-      (typeof v==='string'?v:d(v))+'</b>'; }
+    /* recurring=true routes the value through the MRR/ARR basis switch first —
+       only for recurring-revenue rows (M60 ARR, New ARR, cumulative Expansion/
+       Leakage). Financial-flow and capital rows below never set it. */
+    function row(k, v, sign, recurring){ return '<span>'+esc(k)+'</span><b class="'+cls2(sign===undefined?v:sign)+'">'+
+      (typeof v==='string'?v:(recurring?rd(v):d(v)))+'</b>'; }
 
     var rows = [], has = function(t){ return sc.shows.indexOf(t)>=0; };
-    if(has('arr'))     rows.push(row('M60 ARR', x.finalARR - b.finalARR));
-    if(has('new'))     rows.push(row('New ARR per month', expRes.derived.newARRPerMonth - baseRes.derived.newARRPerMonth));
-    if(has('exp'))     rows.push(row('Cumulative expansion', x.cumExpansion - b.cumExpansion));
-    if(has('leak'))    rows.push(row('Cumulative leakage', x.cumLeakage - b.cumLeakage, -(x.cumLeakage - b.cumLeakage)));
+    if(has('arr'))     rows.push(row('M60 '+basis, x.finalARR - b.finalARR, undefined, true));
+    if(has('new'))     rows.push(row('New '+basis+' per month', expRes.derived.newARRPerMonth - baseRes.derived.newARRPerMonth, undefined, true));
+    if(has('exp'))     rows.push(row('Cumulative Expansion '+basis, x.cumExpansion - b.cumExpansion, undefined, true));
+    if(has('leak'))    rows.push(row('Cumulative Leakage '+basis, x.cumLeakage - b.cumLeakage, -(x.cumLeakage - b.cumLeakage), true));
     if(has('sm'))      rows.push(row('Acquisition capital deployed', x.cumSM - b.cumSM, -(x.cumSM - b.cumSM)));
     if(has('gp'))      rows.push(row('Cumulative gross profit', x.cumGrossProfit - b.cumGrossProfit));
     if(has('fcf'))     rows.push(row('Cumulative FCF', x.cumEbita - b.cumEbita));
@@ -1643,7 +1694,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       for(var t2=T0+1; t2<=H; t2++){ fb += baseRes.months[t2-1].grossProfit; fx += expRes.months[t2-1].grossProfit; }
       var arrB = baseRes.months[T0-1].closingARR, arrX = expRes.months[T0-1].closingARR;
       h += '<div class="sgrp"><div class="eyebrow">At month 12 — the two companies agree</div><div class="recon" style="margin-top:5px">'+
-        '<span>ARR</span><b>'+eur(arrB)+' · '+eur(arrX)+'</b>'+
+        '<span>'+basis+'</span><b>'+reur(arrB)+' · '+reur(arrX)+'</b>'+
         '<span>R12M GRR</span><b>'+pct(kb2.grr,4)+' · '+pct(kx2.grr,4)+'</b>'+
         '<span>R12M expansion</span><b>'+pct(kb2.expansionRate,4)+' · '+pct(kx2.expansionRate,4)+'</b>'+
         '<span>R12M NRR</span><b>'+pct(kb2.nrr,4)+' · '+pct(kx2.nrr,4)+'</b>'+
@@ -1654,7 +1705,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span>Gross profit, M13–M60</span><b>'+eur(fb)+' · '+eur(fx)+'</b>'+
         '<span>difference</span><b class="'+(fx>=fb?'up':'down')+'">'+
         ((Math.abs(fx-fb)/((fx+fb)/2))*100).toFixed(1)+'%</b></div>'+
-        '<div class="hint" style="margin-top:8px">Undiscounted gross profit of the base that existed at month 12. '+
+        '<div class="hint" style="margin-top:8px">Undiscounted gross profit of the base that existed at month 12, summed over '+
+        'the 48 months this product’s fixed 60-month horizon still has left (M13–M60). This is a different figure from the '+
+        '23.43% SKSG reported for the same flagship pair in <code>docs/KPI-SUFFICIENCY.md</code> — that research result sums a full, '+
+        'separately-run 60-month forward window (M13–M72), not the 48 months left inside this product’s own horizon. Same order-invariant '+
+        '|Δ|÷midpoint formula, same pair, different window length — not a discrepancy to resolve, a different denominator to name. '+
         'Not a valuation: no discounting, no terminal value, no multiple.</div></div>';
     }
 
@@ -1705,8 +1760,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       : (lastMsg ? lastMsg.teach : 'The whole future recalculated.');
     slot.innerHTML='<div class="causal"><h4>'+esc(title)+'</h4><div class="msg">'+esc(msg)+'</div>'+
       '<div class="cz">'+
-      cz('Year-5 ARR', eur(b.finalARR)+' → '+eur(x.finalARR), d.finalARR) +
-      cz('Cumulative leakage', eur(b.cumLeakage)+' → '+eur(x.cumLeakage), -d.cumLeakage) +
+      cz('Year-5 '+basis, reur(b.finalARR)+' → '+reur(x.finalARR), d.finalARR) +
+      cz('Cumulative Leakage '+basis, reur(b.cumLeakage)+' → '+reur(x.cumLeakage), -d.cumLeakage) +
       cz('Cumulative gross profit', eur(b.cumGrossProfit)+' → '+eur(x.cumGrossProfit), d.cumGrossProfit) +
       cz('Year-5 FCF', eur(b.finalYearFCF)+' → '+eur(x.finalYearFCF), d.finalYearFCF) +
       cz('CAC payback', baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',

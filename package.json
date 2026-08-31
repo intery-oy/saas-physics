@@ -5,9 +5,10 @@
   "description": "Prototype 0 — deterministic SaaS economic engine and inspection interface",
   "scripts": {
     "check": "node checks.js",
+    "basis": "node basis-checks.js",
     "scenarios": "node scenarios.js",
     "build": "node build.js",
     "state": "node state-sufficiency.js",
-    "report": "node checks.js && node state-sufficiency.js && node scenarios.js"
+    "report": "node checks.js && node basis-checks.js && node state-sufficiency.js && node scenarios.js"
   }
 }
