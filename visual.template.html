@@ -177,10 +177,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <canvas id="scene"></canvas>
     <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
     <div class="pulsebar" id="pulsebar" hidden>
+      <span class="eyebrow">View</span>
+      <div class="btn-row"><button class="btn on" id="fm-system">System</button><button class="btn" id="fm-bridge">Bridge · failed prototype</button></div>
+      <span id="pulse-controls" style="display:flex;align-items:center;gap:10px">
       <button class="tbtn" id="pulse-prev" aria-label="Previous step">◀</button>
       <button class="tbtn play" id="pulse-play" aria-label="Run the pulse">▶</button>
       <button class="tbtn" id="pulse-next" aria-label="Next step">▶|</button>
       <span class="stepname" id="pulse-step"></span>
+      </span>
       <span class="lawnote" id="pulse-law"></span>
     </div>
     <div class="cascade">
@@ -303,6 +307,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* §14 — two layers, two lenses, one comparator. Inspect subsumes the old
      Anatomy and Capital-loop toggles; nothing new is navigable. */
   var layer = 'stock', compare = 'absolute';
+  var flowMode = 'system';                 /* 'system' = stock-and-flow · 'bridge' = superseded pulse */
+  var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
   var pulseStep = 0, pulsePlaying = false, pulseTimer = 0, PULSE_STEPS = 9;
   var lastMsg = null;
 
@@ -484,7 +490,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   function render(){
     if(!geo) resize();
-    if(layer==='flow'){ drawFlow(); return; }
+    if(layer==='flow'){ flowMode==='system' ? drawSystem() : drawFlow(); return; }
     var S = scales(), t = tau, mi = Math.floor(t);
     ctx.clearRect(0,0,W,HH);
 
@@ -630,11 +636,250 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ==================================================================== *
+   * FLOW LAYER · SYSTEM VIEW — stock and flow, in the classic notation.
+   *
+   *   STOCKS  accumulate            ARR (the cohort strata) · Cash
+   *   FLOWS   fill and drain them   New · Expansion · Leakage · FCF
+   *   VALVES  set the rates         the management assumptions
+   *   CLOUDS  the model boundary    where flows come from and go to
+   *   INFORMATION LINKS             stock → valve. This is the feedback,
+   *                                 and it is the reason for the notation:
+   *                                 flow fills the stock, and the stock then
+   *                                 sets the rate of its own future flows.
+   *
+   * Nothing here is new physics. Where the engine has no link, none is drawn —
+   * and the two absences are marked, because an absent feedback is a finding.
+   * ==================================================================== */
+  var SYS = { W:1260, H:770 };
+  var valveHits = [];
+  function drawSystem(){
+    valveHits = [];
+    var isD = compare==='delta';
+    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    var d = isD ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
+    var bm = baseRes.months[m-1];
+    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    beginFit(SYS.W, SYS.H);
+
+    /* ---------- scales, declared ---------- */
+    var arrMax = 1, cashHi = 1, cashLo = 0, rateMax = 1;
+    for(var i=0;i<H;i++){
+      arrMax = Math.max(arrMax, expRes.months[i].closingARR, baseRes.months[i].closingARR);
+      cashHi = Math.max(cashHi, expRes.months[i].cashClosing, baseRes.months[i].cashClosing);
+      cashLo = Math.min(cashLo, expRes.months[i].cashClosing, baseRes.months[i].cashClosing);
+      rateMax = Math.max(rateMax, expRes.months[i].newARR, expRes.months[i].expansion, expRes.months[i].leakage);
+    }
+    if(isD){
+      arrMax = 1; rateMax = 1;
+      for(i=0;i<H;i++){
+        arrMax = Math.max(arrMax, Math.abs(expRes.months[i].closingARR-baseRes.months[i].closingARR));
+        rateMax = Math.max(rateMax, Math.abs(expRes.months[i].leakage-baseRes.months[i].leakage),
+                                    Math.abs(expRes.months[i].expansion-baseRes.months[i].expansion),
+                                    Math.abs(expRes.months[i].newARR-baseRes.months[i].newARR));
+      }
+    }
+    var pipeW = function(v){ return Math.max(3, Math.min(30, Math.abs(v)/rateMax*30)); };
+    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+
+    /* ---------- primitives ---------- */
+    function pipeH(x1,x2,y,w,fill){ ctx.fillStyle=fill; ctx.fillRect(Math.min(x1,x2), y-w/2, Math.abs(x2-x1), w); }
+    function pipeV(x,y1,y2,w,fill){ ctx.fillStyle=fill; ctx.fillRect(x-w/2, Math.min(y1,y2), w, Math.abs(y2-y1)); }
+    function arrow(x,y,dir,col){
+      ctx.fillStyle=col; ctx.beginPath();
+      if(dir==='r'){ ctx.moveTo(x,y-7); ctx.lineTo(x+11,y); ctx.lineTo(x,y+7); }
+      else { ctx.moveTo(x-7,y); ctx.lineTo(x,y+11); ctx.lineTo(x+7,y); }
+      ctx.closePath(); ctx.fill();
+    }
+    function cloud(x,y,label){
+      ctx.strokeStyle='#3d4952'; ctx.lineWidth=1.4; ctx.beginPath();
+      [[-20,0,13],[-2,-7,15],[16,0,13],[0,7,12]].forEach(function(c){ ctx.moveTo(x+c[0]+c[2],y+c[1]); ctx.arc(x+c[0],y+c[1],c[2],0,Math.PI*2); });
+      ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+      ctx.fillText(label, x, y+34);
+    }
+    /* the SD valve: a bowtie astride the pipe. It is also the control. */
+    function valve(x,y,label,value,key,chipDx,chipDy){
+      ctx.fillStyle='#131b20'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.moveTo(x-13,y-11); ctx.lineTo(x+13,y+11); ctx.lineTo(x+13,y-11); ctx.lineTo(x-13,y+11);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText(label, x, y-20);
+      ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+      ctx.fillText(value, x, y+31);
+      if(key){
+        var sp=toScreen(x+(chipDx===undefined?-72:chipDx), y+(chipDy===undefined?44:chipDy));
+        lawAnchors[key]={x:sp.x, y:sp.y};
+        valveHits.push({key:key, x:x, y:y});
+        if(openChip===key){ ctx.strokeStyle='rgba(247,221,196,.9)'; ctx.lineWidth=1.4;
+          ctx.beginPath(); ctx.arc(x,y,19,0,Math.PI*2); ctx.stroke(); }
+      }
+    }
+    function aux(x,y,w,label,value,tone){
+      var h=38;
+      ctx.fillStyle='#0e1418'; ctx.strokeStyle=tone||'#22303a'; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText(label, x, y-3);
+      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+      ctx.fillText(value, x, y+12);
+    }
+    function link(pts, label, absent){
+      ctx.save(); ctx.setLineDash(absent?[3,4]:[4,4]); ctx.lineWidth=1.2;
+      ctx.strokeStyle = absent ? 'rgba(93,108,117,.7)' : 'rgba(90,143,214,.85)';
+      ctx.beginPath(); pts.forEach(function(pt,i){ i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); });
+      ctx.stroke(); ctx.restore();
+      var e=pts[pts.length-1], q=pts[pts.length-2];
+      if(absent){
+        ctx.strokeStyle='rgba(201,151,63,.95)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(e[0],e[1],7,0,Math.PI*2); ctx.moveTo(e[0]-5,e[1]-5); ctx.lineTo(e[0]+5,e[1]+5); ctx.stroke();
+      } else {
+        var a=Math.atan2(e[1]-q[1], e[0]-q[0]);
+        ctx.fillStyle='rgba(90,143,214,.9)'; ctx.beginPath();
+        ctx.moveTo(e[0],e[1]); ctx.lineTo(e[0]-8*Math.cos(a-0.4), e[1]-8*Math.sin(a-0.4));
+        ctx.lineTo(e[0]-8*Math.cos(a+0.4), e[1]-8*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
+      }
+      if(label){
+        var at = absent ? [e[0], e[1]] : pts[Math.floor(pts.length/2)];
+        ctx.textAlign = absent ? 'left' : 'center';
+        ctx.font='8.5px "Archivo",sans-serif';
+        ctx.fillStyle = absent ? 'rgba(201,151,63,.95)' : 'rgba(90,143,214,.8)';
+        ctx.fillText(label, absent ? at[0]+13 : at[0], absent ? at[1]+3 : at[1]-7);
+      }
+    }
+
+    /* ---------- ARR STOCK: the cohort strata ARE the stock ---------- */
+    var ax=470, aw=180, aTop=96, aH=430, aBot=aTop+aH;
+    var lvl = Math.max(0, Math.min(1, (isD ? d.closingARR : d.closingARR)/arrMax));
+    var lvlY = aBot - lvl*aH;
+    if(!isD){
+      var acc=0;
+      d.cohorts.forEach(function(c){
+        var hgt=(c.closing/arrMax)*aH; if(hgt<=0) return;
+        ctx.fillStyle=rgba(rampAt(c.acquisitionMonth/H), .92);
+        ctx.fillRect(ax+2, aBot-acc-hgt, aw-4, hgt);
+        ctx.strokeStyle='rgba(11,16,19,.5)'; ctx.lineWidth=0.7;
+        ctx.strokeRect(ax+2, aBot-acc-hgt, aw-4, hgt);
+        acc+=hgt;
+      });
+    } else {
+      ctx.fillStyle='rgba(201,114,47,.55)'; ctx.fillRect(ax+2, lvlY, aw-4, aBot-lvlY);
+    }
+    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
+    if(!isD){ var bLvl = aBot - Math.min(1, bm.closingARR/arrMax)*aH;
+      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+      ctx.moveTo(ax-10,bLvl); ctx.lineTo(ax+aw+10,bLvl);
+      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('STOCK · ARR', ax+aw/2, aTop-24);
+    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.fillText(n(d.closingARR), ax+aw/2, aTop-6);
+    if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+      ctx.fillText(d.cohorts.length+' cohort vintages', ax-12, aBot+4); }
+
+    /* ---------- CASH STOCK ---------- */
+    var cx=1020, cw=160, cTop=200, cH=326, cBot=cTop+cH;
+    var cRange=(cashHi-Math.min(0,cashLo))||1;
+    var cZero=cBot - (0-Math.min(0,cashLo))/cRange*cH;
+    var cLvlY = isD ? cBot - Math.min(1,Math.abs(d.cashClosing)/(arrMax))*cH*0.5
+                    : cBot - (d.cashClosing-Math.min(0,cashLo))/cRange*cH;
+    ctx.fillStyle = (isD? (d.cashClosing>=0):(d.cashClosing>=0)) ? 'rgba(201,114,47,.5)' : 'rgba(59,74,85,.75)';
+    ctx.fillRect(cx+2, Math.min(cLvlY,cZero), cw-4, Math.abs(cZero-cLvlY));
+    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
+    ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(cx,cZero); ctx.lineTo(cx+cw,cZero);
+    ctx.strokeStyle='rgba(93,108,117,.7)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    if(!isD){ var bc=cBot-(bm.cashClosing-Math.min(0,cashLo))/cRange*cH;
+      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+      ctx.moveTo(cx-10,bc); ctx.lineTo(cx+cw+10,bc);
+      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('STOCK · CASH', cx+cw/2, cTop-24);
+    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.fillText(n(d.cashClosing), cx+cw/2, cTop-6);
+
+    /* ---------- INFLOWS ---------- */
+    var yNew=150, yExp=360;
+    cloud(80, yNew, 'outside the boundary');
+    pipeH(112, ax, yNew, pipeW(d.newARR), 'rgba(201,114,47,.55)');
+    arrow(ax-13, yNew, 'r', 'rgba(201,114,47,.9)');
+    valve(215, yNew, 'S&M per month', fmtF('eur', expA.sm), 'sm', -72, 44);
+    valve(350, yNew, 'CAC per New ARR', fmtF('x', expA.cacPerARR), 'cacPerARR', -72, 44);
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · New ARR', 430, yNew-34);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(n(d.newARR), 430, yNew-18);
+
+    cloud(80, yExp, 'outside the boundary');
+    pipeH(112, ax, yExp, pipeW(d.expansion), 'rgba(247,221,196,.5)');
+    arrow(ax-13, yExp, 'r', 'rgba(247,221,196,.85)');
+    valve(350, yExp, 'expansion coefficient', fmtF('pct', expA.expansionCoefficientAnnual), 'expansionCoefficientAnnual', -72, 44);
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · Expansion', 430, yExp-34);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(n(d.expansion), 430, yExp-18);
+
+    /* ---------- OUTFLOW ---------- */
+    var xLeak=ax+aw/2;
+    pipeV(xLeak, aBot, 648, pipeW(d.leakage), 'rgba(59,74,85,.9)');
+    arrow(xLeak, 636, 'd', 'rgba(59,74,85,1)');
+    valve(xLeak, 580, 'persistence coefficient', fmtF('pct', expA.persistenceAnnual), 'persistenceAnnual', -216, -10);
+    cloud(xLeak, 690, 'leaves the system');
+    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · Leakage', xLeak+62, 548);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(n(d.leakage), xLeak+62, 564);
+
+    /* ---------- ARR → economics → cash ---------- */
+    aux(760, 140, 150, 'Revenue', n(d.revenue));
+    valve(760, 218, 'gross margin', fmtF('pct', expA.grossMargin), 'grossMargin', -238, -10);
+    aux(760, 292, 150, 'Gross profit', n(d.grossProfit));
+    aux(760, 408, 150, 'Other operating', n(d.otherOpex));
+    aux(905, 330, 120, 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
+    pipeH(965, cx, 330, Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26)), d.fcf>=0?'rgba(79,158,119,.6)':'rgba(201,151,63,.6)');
+    arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,158,119,1)':'rgba(201,151,63,1)');
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · FCF', 993, 306);
+
+    /* ---------- INFORMATION LINKS: the stock sets its own future rates ---------- */
+    link([[ax+aw,190],[700,190],[700,158]], 'midpoint ARR ÷ 12');
+    link([[ax,462],[412,462],[382,392]], 'the stock sets this rate');
+    link([[ax+22,aBot],[ax+22,604],[xLeak-22,590]], 'the stock sets this rate');
+    link([[760,238],[760,270]], null);
+    link([[818,300],[880,318]], null);
+    link([[818,400],[880,346]], null);
+    link([[215,178],[215,726],[905,726],[905,352]], 'S&M is also an operating cost');
+
+    /* ---------- ABSENT LINKS: the model boundary, drawn ---------- */
+    link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'cash never constrains S&M', true);
+    link([[700,428],[700,616],[652,616]], 'R&D → retention or expansion', true);
+
+    /* ---------- header and scales ---------- */
+    ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.fillText((isD?'SYSTEM · DELTA — Experiment − Base':'SYSTEM · stock and flow')+'   ·   month '+m, 30, 26);
+    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('Rectangles accumulate. Pipes fill and drain them. Bowties are the valves you set. Clouds are the model boundary. '+
+                 'Dashed blue arrows are information: the stock setting the rate of its own future flows.', 30, 42);
+    ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.fillText('SCALES  stock level ∝ € of ARR and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
+    ctx.fillStyle='rgba(201,151,63,.95)';
+    ctx.fillText('⊘ marks a link the engine does not model. An absent feedback is a finding, not an omission in the drawing.', 30, SYS.H-30);
+    endFit(); positionLawChips();
+  }
+
+  /* ==================================================================== *
    * FLOW LAYER — the Pulse. One month of the frozen engine, proved.
    * Cohort transformations happen first; the aggregate bands beside them are
    * literally the sums of those movements. Three declared scales, never mixed.
    * ==================================================================== */
   var lawAnchors = {};
+  /* Draw in a fixed design space and scale it uniformly into whatever canvas we
+     have. This is what makes the whole diagram visible at every viewport. */
+  function beginFit(dw, dh){
+    var s = Math.min(W/dw, HH/dh);
+    fitT = { s:s, ox:(W-dw*s)/2, oy:(HH-dh*s)/2 };
+    ctx.save(); ctx.translate(fitT.ox, fitT.oy); ctx.scale(s,s);
+  }
+  function endFit(){ ctx.restore(); }
+  function toScreen(x,y){ return { x:x*fitT.s+fitT.ox, y:y*fitT.s+fitT.oy }; }
   function pulseData(){
     var m = Math.max(1, Math.min(H, Math.round(tau)));
     return compare==='delta' ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
@@ -643,8 +888,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var d = pulseData(), isD = compare==='delta';
     var st = pulseStep;
     ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    var DW=1260, DHt=770; beginFit(DW, DHt);
     var L=76, R=26, T=58, B=86;
-    var colTop=T, colBot=HH-B, colH=colBot-colTop;
+    var colTop=T, colBot=DHt-B, colH=colBot-colTop;
     var xOpen=L+26, colW=76, xClose=L+392, xPnl=xClose+colW+118;
 
     /* --- three declared scales --- */
@@ -782,11 +1028,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* --- declared scales, so nothing is silently exaggerated --- */
     ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
     ctx.fillText('SCALES  stock '+(sStock*1e6).toFixed(2)+' px/€m ARR   ·   ARR movement '+(sFlow*1e6).toFixed(2)+
-                 ' px/€m   ·   P&L '+(sPnl*1e6).toFixed(2)+' px/€m per month', L, HH-16);
+                 ' px/€m   ·   P&L '+(sPnl*1e6).toFixed(2)+' px/€m per month', L, DHt-16);
     ctx.fillText((isD?'DELTA PULSE · Experiment − Base':'ABSOLUTE PULSE')+'  ·  month '+d.t, L, 22);
     ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
     ctx.fillText('ARR movement is drawn at a finer scale than the stock: one month of flow against a stock measured in years.', L, 38);
-    positionLawChips();
+    ctx.fillStyle='#c9973f'; ctx.font='10px "Archivo",sans-serif';
+    ctx.fillText('SUPERSEDED PROTOTYPE — kept for reference. It redraws an identity the bridge panel already states.', L, DHt-34);
+    endFit(); positionLawChips();
   }
 
   /* ------------------------------------------------------------------ *
@@ -948,6 +1196,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var el=document.getElementById('chip-'+Lc.k); if(!el) return;
       var a=lawAnchors[Lc.k];
       if(layer!=='flow' || !a){ el.style.display='none'; return; }
+      if(flowMode==='system' && openChip!==Lc.k){ el.style.display='none'; return; }
       el.style.display='block'; el.style.left=Math.round(a.x)+'px'; el.style.top=Math.round(a.y)+'px';
       document.getElementById('cv-'+Lc.k).textContent = fmtF(Lc.f, expA[Lc.k]);
       var inp=document.getElementById('cr-'+Lc.k); inp.value=expA[Lc.k];
@@ -958,10 +1207,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var STEPNAMES = ['A · Opening state','B · Leakage','C · Expansion','D · New ARR','E · Closing state',
                    'F · Revenue','G · Margin split','H · Operating allocation','I · Cash'];
   function syncPulse(){
-    document.getElementById('pulse-step').textContent = STEPNAMES[pulseStep];
-    var law = PU.LAW[pulseStep];
-    document.getElementById('pulse-law').innerHTML =
-      '<b style="color:var(--ink-2);font-family:var(--mono)">'+esc(law.formula)+'</b> &nbsp; '+esc(law.note);
+    if(flowMode==='system'){
+      document.getElementById('pulse-law').innerHTML =
+        '<b style="color:var(--ink-2)">Flow creates stock. Stock determines future flow.</b> &nbsp; '+
+        'Click any bowtie valve to set the assumption where it acts. Scrub time to watch the stocks fill and the rates change.';
+    } else {
+      document.getElementById('pulse-step').textContent = STEPNAMES[pulseStep];
+      var law = PU.LAW[pulseStep];
+      document.getElementById('pulse-law').innerHTML =
+        '<b style="color:var(--warn)">Failed prototype.</b> <b style="color:var(--ink-2);font-family:var(--mono)">'+esc(law.formula)+'</b> &nbsp; '+esc(law.note);
+    }
     render(); renderSide();
   }
   function stepTo(n){ pulseStep=Math.max(0,Math.min(PULSE_STEPS-1,n)); syncPulse(); }
@@ -987,7 +1242,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     cv.style.cursor = hover!==null ? 'pointer' : 'default';
   });
   cv.addEventListener('mouseleave', function(){ hover=null; });
-  cv.addEventListener('click', function(){
+  cv.addEventListener('click', function(ev){
+    if(layer==='flow' && flowMode==='system'){
+      var rect=cv.getBoundingClientRect();
+      var dx=((ev.clientX-rect.left)-fitT.ox)/fitT.s, dy=((ev.clientY-rect.top)-fitT.oy)/fitT.s;
+      var hit=null;
+      valveHits.forEach(function(v){ if(Math.abs(v.x-dx)<24 && Math.abs(v.y-dy)<24) hit=v.key; });
+      openChip = (hit && openChip!==hit) ? hit : null;
+      LAWCHIPS.forEach(function(Lc){
+        var el=document.getElementById('chip-'+Lc.k); if(!el) return;
+        el.classList.toggle('open', openChip===Lc.k);
+        el.querySelector('input').hidden = openChip!==Lc.k;
+      });
+      render(); return;
+    }
     if(hover===null) return;
     pinned = (pinned===hover ? null : hover); renderSide();
     var d=document.querySelector('.dossier');
@@ -1128,6 +1396,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* ---------- §17 reconciliation + §11 Δ-stock accumulator ---------- */
   function renderFlowSide(){
     var d = pulseData(), isD = compare==='delta';
+    if(flowMode==='system') return renderSystemSide(d, isD);
     var m = d.t;
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
     function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
@@ -1185,6 +1454,43 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '</div><div class="hint" style="margin-top:7px">One point of monthly survival nearly doubles what is left after five years. '+
       '<b style="color:var(--warn)">Illustrative</b> — not the engine scenario\'s configuration.</div></div>';
 
+    document.getElementById('side').innerHTML=h;
+  }
+
+  function renderSystemSide(d, isD){
+    var m = d.t, abs = isD ? d.experiment : d;
+    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
+    var net = d.newARR + d.expansion - d.leakage;
+    var h='<div class="sgrp"><div class="eyebrow">Stocks · month '+m+'</div><div class="recon" style="margin-top:5px">'+
+      r('ARR', n(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
+      '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Flows into and out of ARR</div><div class="recon" style="margin-top:5px">'+
+      r('+ New ARR', n(d.newARR)) + r('+ Expansion', n(d.expansion)) + r('− Leakage', n(-d.leakage)) +
+      r('= net change in the stock', n(net), 'tot') + '</div>'+
+      '<div class="hint" style="margin-top:8px">Net '+n(net)+' this month against a stock of '+eur(abs.closingARR)+
+      ' — <b style="color:var(--ink)">'+pct(Math.abs(net)/abs.closingARR,1)+'</b>. '+
+      'That ratio is why a stock this large is slow to turn, and why one month of flow could never be drawn at the stock\'s own scale.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">The stock sets its own rates</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">'+
+      'Leakage is <b style="color:var(--ink)">'+eur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
+      '</b>. Expansion is the retained balance × '+pct(Math.pow(1+expA.expansionCoefficientAnnual,1/12)-1,3)+
+      '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
+      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">'+
+      '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> S&amp;M is exogenous. Cash can fall to '+
+      eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend. The capital loop is drawn open because it <em>is</em> open.'+
+      '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit, so it '+
+      'reaches no valve. The absence is the honest drawing of the model boundary.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Why this replaced the bridge</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">The bridge view redrew an identity you can already read as numbers. '+
+      'This view shows something numbers cannot: <b style="color:var(--ink)">which rates are functions of which stocks</b>, and which links do not exist. '+
+      'The failed prototype is kept under <em>Bridge</em> for reference.</div></div>';
     document.getElementById('side').innerHTML=h;
   }
 
@@ -1288,6 +1594,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     anatomy=!anatomy; capitalMode=anatomy; this.classList.toggle('on',anatomy);
     resize(); renderCascade(); renderSide(); render();
   });
+  function setFlowMode(fm){
+    flowMode=fm;
+    document.getElementById('fm-system').classList.toggle('on', fm==='system');
+    document.getElementById('fm-bridge').classList.toggle('on', fm==='bridge');
+    document.getElementById('pulse-controls').style.display = fm==='bridge' ? 'flex' : 'none';
+    pulsePlaying=false; clearTimeout(pulseTimer);
+    document.getElementById('pulse-play').classList.remove('play');
+    if(fm==='bridge') pulseStep=PULSE_STEPS-1;
+    syncPulse(); renderSide();
+  }
+  document.getElementById('fm-system').addEventListener('click', function(){ setFlowMode('system'); });
+  document.getElementById('fm-bridge').addEventListener('click', function(){ setFlowMode('bridge'); });
   document.getElementById('pulse-prev').addEventListener('click', function(){ pulsePlaying=false; clearTimeout(pulseTimer); this.parentNode.querySelector('#pulse-play').classList.remove('play'); stepTo(pulseStep-1); });
   document.getElementById('pulse-next').addEventListener('click', function(){ pulsePlaying=false; clearTimeout(pulseTimer); document.getElementById('pulse-play').classList.remove('play'); stepTo(pulseStep+1); });
   document.getElementById('pulse-play').addEventListener('click', function(){
@@ -1318,6 +1636,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   buildForces(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  document.getElementById('pulse-controls').style.display='none';
   requestAnimationFrame(frame);
 })();
 </script>

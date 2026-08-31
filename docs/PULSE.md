@@ -1,6 +1,73 @@
-# Flow / Pulse — concept study
+# Flow — stock and flow
 
 > **Flow creates stock. Stock determines future flow.**
+
+**Status.** The Pulse (monthly bridge choreography) is a **failed prototype**, kept in the product
+under *Flow → Bridge* and unchanged. Flow's primary view is now a **stock-and-flow diagram**. This
+document records both: the redesign first, then the original study and why it failed.
+
+---
+
+## The visibility bug, fixed first
+
+The Flow stage was drawn at hard-coded pixel offsets needing **1202px** of width. Measured:
+
+| Viewport | Canvas | Result |
+|---|---|---|
+| 1280 × 800 | 960 × 618 | **clipped by 242px** |
+| 1440 × 900 | 1120 × 750 | **clipped by 82px** |
+| 1600 × 960 | 1280 × 810 | fits |
+
+Everything now draws into a fixed design space scaled uniformly into whatever canvas exists, so the
+whole diagram is visible at every viewport. Verified at 1280, 1440 and 1600 with all controls
+on-canvas.
+
+---
+
+## The redesign — systems notation, and why it earns its place
+
+| Element | Notation | Bound to |
+|---|---|---|
+| **ARR** | stock — a rectangle that accumulates, filled with the **cohort strata**, which *are* the stock | closing ARR at month *t*, level against its own 60-month range |
+| **Cash** | stock | closing cash, with a zero line it can fall below |
+| **New ARR · Expansion · Leakage · FCF** | flows — pipes with width ∝ € per month | engine month record |
+| **S&M · CAC/New ARR · expansion · persistence · gross margin** | **valves** — the bowtie astride the pipe, which is also the control | the assumptions, set where they act |
+| **Clouds** | the model boundary — where flows come from and go to | — |
+| **Dashed blue arrows** | **information links: stock → valve** | the feedback |
+
+The information links are the whole reason for the notation, and the thing the bridge could not
+show. Three of the four flows are functions of the stock they act on:
+
+```
+leakage    = ARR × (1 − g)              ← the stock sets this rate
+expansion  = retained ARR × e           ← the stock sets this rate
+revenue    = midpoint(ARR) ÷ 12         ← the stock sets this rate
+new ARR    = S&M ÷ cacPerARR            ← the only rate set from outside
+```
+
+That is `flow creates stock, stock determines future flow` as a **structure** rather than an
+arithmetic claim.
+
+### The two absences — the finding
+
+Drawing the system honestly makes the model's boundary visible as a *shape*. Two links a real
+business has, and this engine does not:
+
+- **⊘ Cash → S&M.** S&M is exogenous. Cash can fall to €6.10m and nothing throttles spend. **The
+  capital loop is drawn open because it *is* open.**
+- **⊘ R&D → retention or expansion.** R&D is a pure cost that reaches no valve.
+
+Both are marked with ⊘ on the canvas. An absent feedback is a finding, not an omission in the
+drawing — and no chart or bridge can express an absence, because a chart only plots what exists.
+
+### Scale honesty, restated
+
+Net change in the ARR stock at month 30 is **€716k against €41.73m — 1.7%**. That ratio is why one
+month of flow could never be drawn at the stock's own scale, and it is the same fact that killed the
+bridge view. In this notation it stops being a problem: pipes and stocks are different *kinds* of
+object, so they are allowed different scales, both declared on the canvas.
+
+---
 
 The engine is frozen: `engine.js`, `kpi.js` and `integrity.js` are byte-identical to v0.3 and
 `node checks.js` returns 35 / 35. Every value the Pulse draws is read out of the engine's own month
@@ -166,7 +233,42 @@ one: at month 24 the month's largest ARR movement is €750k against a €36.7m 
 
 ---
 
-## J. Recommendation
+## J. Recommendation — revised
+
+# REJECT PULSE · KEEP FLOW
+
+The Pulse is a **failed prototype**, kept for reference and labelled as such in the product.
+
+**Why it failed.** §4 required leakage to appear first as thinning in the cohorts that lost it, and
+only then collect into aggregate bands. At an honest scale those per-cohort movements are ~0.9% of
+a stratum — hairlines. What shipped was the generic box-and-band diagram §4 forbade. Underneath
+that: it **redrew an accounting identity**, and a bridge is already the optimal expression of a
+bridge. The step counter added nothing the numbers did not carry.
+
+**What survived, and where it went.** The intra-month law (expansion on *retained*, revenue at the
+*midpoint*, half-month birth cohort, 2.8% same-period return on S&M) and the Δ-accumulator identity
+were the study's real output. Both are text, both still verified by `pulse-study.js`, and both
+remain in the product's panels.
+
+**What replaced it.** The stock-and-flow view, which shows the one thing the numbers cannot: which
+rates are functions of which stocks, and which links do not exist.
+
+### The generalisable rule
+
+Across this whole project, visualisation earned its place exactly three times — the **cohort
+strata** (composition and provenance over time), the **capital recovery track** (a ratio turned into
+a perceptible distance), and now the **stock-and-flow structure** (feedback topology, including its
+absences). Each converts a quantity into a percept the number does not carry. The Pulse did not: it
+re-drew arithmetic that was already readable.
+
+---
+
+## Original study — the failed prototype
+
+Everything below documents the Pulse as built. It is retained because the intra-month law and the
+reconciliation evidence remain correct and useful.
+
+## Superseded recommendation
 
 # KEEP PULSE
 

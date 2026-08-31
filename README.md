@@ -67,9 +67,9 @@ creates; gross margin decides how fast that investment is recovered.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
-- [`docs/PULSE.md`](docs/PULSE.md) — **the flow / pulse concept study**: the engine's exact
-  intra-month order, one month proved step by step, and the Δ-stock accumulator showing that
-  Δ ARR today is the sum of every monthly Δflow
+- [`docs/PULSE.md`](docs/PULSE.md) — **Flow as stock and flow**: ARR and Cash as stocks, the
+  assumptions as valves, and the two feedbacks the engine does not have drawn as absences — plus
+  the record of the Pulse prototype that failed and why
 - [`docs/CAPITAL-LOOP.md`](docs/CAPITAL-LOOP.md) — **the capital loop concept study**: capital
   leaves today and returns gradually as a cohort's gross profit, which turns CAC payback from a
   ratio into a measured distance
