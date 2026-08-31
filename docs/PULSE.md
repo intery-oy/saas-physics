@@ -68,6 +68,46 @@ The expansion and leakage pipes widen without either valve being touched. That
 is the point of the information links: the stock is setting the rate of its own
 future flows, and it is only legible when the clock runs.
 
+## Third defect: Flow DELTA was static, and sometimes lying
+
+Reported: *"Flow delta is still static."* The transport was advancing -- the month
+counter and the side panel both moved -- but the drawing barely did, and in one
+case did not move at all for the whole 60 months. Five separate faults, all in
+the delta branch of `drawSystem()`:
+
+| # | Fault | Effect |
+|---|---|---|
+| 1 | ARR tank clamped to `max(0, delta/arrMax)` | a NEGATIVE delta drew an empty tank -- a worse experiment was indistinguishable from no change |
+| 2 | `if(!isD)` drew the cohort strata | delta lost the strata entirely and became one flat block: the most alive element, switched off in the mode being complained about |
+| 3 | cash scaled by `arrMax`, then halved, over a zero line taken from the ABSOLUTE cash range | a EUR 22m cash difference rendered as a sliver |
+| 4 | `pipeW` floored at 3px | a delta of exactly zero looked identical to a small flow |
+| 5 | no sign encoding on flows | LESS leakage than Base (good) drew the same as MORE leakage (bad) |
+
+Fixed at each source. Delta is a signed world, so every scale is now symmetric
+about zero: the ARR and cash tanks each carry a `Base = 0` line, fill upward for
+positive and downward for negative, and cash has its own range because cash is
+not measured in ARR. The strata stay in delta, where each stratum is that
+vintage's own contribution to the difference -- so you see WHICH cohorts the
+change acts on. A flow whose delta is zero draws as a dotted "no change vs Base"
+trace, never as a thin pipe. Sign shows as tone plus a caption; the arrow never
+reverses, because less leakage is still ARR leaving, and reversing it would
+assert a flow the engine does not have.
+
+Valves now name what actually moved: the one you changed shows `base 80.0%` in
+the Base colour, every other valve is dimmed `unchanged`.
+
+And when every ARR flow is identical to Base at every month, the view says so
+instead of showing an empty diagram:
+
+> Every ARR flow is identical to Base at every month -- this change does not
+> touch ARR physics. The whole effect is downstream, in cash.
+
+That is the margin-deterioration case, and it is a real reading of the frozen
+engine: gross margin touches no ARR transition, so the ARR side is genuinely
+unchanged and the entire consequence is the cash tank draining EUR 22.42m below
+the Base line. The old rendering showed the same thing as a blank diagram and
+said nothing.
+
 ## The redesign — systems notation, and why it earns its place
 
 | Element | Notation | Bound to |
