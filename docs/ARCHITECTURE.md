@@ -249,3 +249,56 @@ interpretation, and a named check.
 
 The Phase 0/1 gate ran on v0.3 and returned **PROCEED TO ACQUISITION-NONLINEARITY
 DESIGN** — a bound, not a benefit. See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
+
+---
+
+# Engine portability and the opening-state boundary
+
+**Documented now, while no real data has entered.** That timing is deliberate:
+a portability boundary drawn after the first real company has been wired in is
+not a boundary, it is a description of whatever happened.
+
+## The two layers
+
+### ENGINE — pure, synthetic-capable economic methodology
+
+`engine.js` and `kpi.js`. Takes an opening state and a set of assumptions;
+produces a deterministic trajectory. It knows nothing about where its opening
+state came from, and it must stay that way.
+
+Everything the engine accepts today is already generic: an opening ARR, an
+opening cash balance, and optionally a list of `{ arr, age }` cohorts. There is
+no company identifier, no product, no currency assumption beyond a symbol, no
+fiscal calendar, no chart of accounts.
+
+### OPENING-STATE ADAPTER — not implemented, and out of scope
+
+A future layer whose only job is to translate a real company's records into
+that opening state: subscription or invoice data in, `{ openingARR, openingCash,
+openingCohorts[] }` out, plus an estimate of the transition coefficients.
+
+## The rule
+
+> No company-specific field, source-system concept, or data-quality workaround
+> may enter `engine.js` or `kpi.js`. If real data does not fit the engine's
+> opening state, the adapter converts it — or the engine's limitation is
+> recorded as a finding. The engine is never bent to fit a source system.
+
+## Why this matters more than it looks
+
+The pressure will not arrive as a request to change the engine. It arrives as a
+small convenience: a nullable field for customers who lack a start date, a flag
+for a migrated contract, a special case for one billing system. Each is
+reasonable alone, and together they turn a portable methodology into one
+company's model — at which point the 35 integrity checks are testing that
+company's data pipeline rather than the economics.
+
+The adapter is also where the honest failures belong. A real base will not have
+clean cohort vintages; the adapter must state what it assumed, and that
+assumption becomes an input to the state-sufficiency question rather than a
+hidden one.
+
+## Status
+
+**Not implemented. Do not implement in v1.** The boundary is documented so that
+future integration cannot contaminate the portable engine by accident.

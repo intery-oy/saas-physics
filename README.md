@@ -13,7 +13,32 @@ Not built yet, by design: enterprise value, multiples, 3D, real company data, cu
 modelling, churn/contraction split, pricing, usage, working capital, debt, tax, capex,
 pipeline, headcount, probabilistic simulation, AI commentary. **We are proving the physics first.**
 
-## Two surfaces
+## The product
+
+**[SaaS Physics v1](saas-physics-v1.html)** — the consolidated CFO instrument.
+Four actions: **Observe → Change → Compare → Inspect**.
+
+| Surface | Purpose |
+|---|---|
+| **Company** | Observe the accumulated recurring economic state and where it came from. |
+| **System** | A model audit: the causal topology the engine actually contains, with ⊘ marking the links it does not. |
+| **Scenarios** | Six canonical scenarios. Change one declared assumption against a frozen Base and read the consequence. |
+| **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
+
+Controls are grouped by *what kind of thing* they are — management input,
+installed-base laws, acquisition efficiency, economic conversion — because they
+are not equivalent. R&D and G&A are shown as fixed operating costs, not levers,
+because under this engine they are inert.
+
+There is deliberately no "buy more growth" scenario: acquisition is linear and
+unbounded here, and canonising "increase S&M" would teach a known model
+limitation as though it were economic truth.
+
+## Research archive
+
+The two earlier surfaces are kept inspectable, out of the product's navigation.
+
+
 
 **[Visual Prototype 1](saas-physics-visual-1.html)** — the living system. Watch a SaaS company
 evolve over 60 months as a mass of cohort strata, change a force and see the future bend away from
@@ -32,8 +57,8 @@ node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
 node capital-study.js     # Capital Loop concept study: payback calibration and experiments
 node pulse-study.js       # Flow / Pulse concept study: intra-month law and reconciliation
-node build.js             # build both single-file surfaces
-open saas-physics-visual-1.html
+node build.js             # build all three single-file surfaces
+open saas-physics-v1.html
 ```
 
 No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` the CLI uses.

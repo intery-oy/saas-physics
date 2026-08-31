@@ -20,3 +20,17 @@ var vis = fs.readFileSync('visual.template.html', 'utf8')
   .replace('/*__PULSE__*/', function () { return fs.readFileSync('pulse.js', 'utf8'); });
 fs.writeFileSync('saas-physics-visual-1.html', vis);
 console.log('built saas-physics-visual-1.html — ' + (vis.length / 1024).toFixed(1) + ' KB');
+
+/* ------------------------------------------------------------------ *
+ * SaaS Physics v1 — the consolidated product surface.
+ * Same frozen engine and KPI layer, inlined verbatim. The Pulse module is NOT
+ * inlined: the failed prototype stays in the research archive
+ * (visual.template.html / docs/PULSE.md), not in the product.
+ * ------------------------------------------------------------------ */
+var v1 = fs.readFileSync('v1.template.html', 'utf8')
+  .replace('/*__ENGINE__*/', function () { return engine; })
+  .replace('/*__KPI__*/', function () { return kpi; })
+  .replace('/*__CAPITAL__*/', function () { return capital; })
+  .replace('/*__PULSE__*/', function () { return '/* Pulse is archived, not shipped. */'; });
+fs.writeFileSync('saas-physics-v1.html', v1);
+console.log('built saas-physics-v1.html — ' + (v1.length / 1024).toFixed(1) + ' KB');
