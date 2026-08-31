@@ -156,6 +156,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .dossier h4{margin:0 0 7px;font-size:11.5px;display:flex;align-items:center;gap:8px}
 .sw{width:9px;height:9px;border-radius:2px;display:inline-block}
 
+/* ---------- §4/§5 experiment attribution ---------- */
+.attrib-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
+.attrib-tbl td,.attrib-tbl th{padding:4px 0;text-align:right}
+.attrib-tbl td:first-child,.attrib-tbl th:first-child{text-align:left;color:var(--ink-3)}
+.attrib-tbl th{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);font-weight:500;border-bottom:1px solid var(--line)}
+.attrib-tbl td{font-family:var(--mono);border-bottom:1px solid var(--line-soft)}
+.attrib-tbl tr:last-child td{border-bottom:none}
+.attrib-tbl tr.tot td{border-top:1px solid var(--line);border-bottom:none;color:var(--ink);padding-top:6px}
+.attrib-tbl tr.tot td:first-child{color:var(--ink)}
+
 /* ---------- transport ---------- */
 .tbtn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--raised);border:1px solid var(--line);border-radius:3px;cursor:pointer;color:var(--ink-2)}
 .tbtn:hover{border-color:var(--ink-3);color:var(--ink)}
@@ -1693,6 +1703,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var i = Math.floor(t), f = t - i, j = Math.min(H, i + 1);
     return series[i] + (series[j] - series[i]) * f;
   }
+  /* ------------------------------------------------------------------ *
+   * §1 — ONE canonical selected-month accessor. Every surface that prints
+   * an exact economic fact for "the selected month" (the Company chart's
+   * on-canvas Cash/leakage figures, the side panel, the waterfall, System)
+   * resolves it from the SAME res.months[m-1] object this returns — never
+   * from a continuously interpolated series. lerpAt/stackAt above still
+   * drive the smooth on-screen POSITION of curves and the playhead as tau
+   * moves between whole months; interpolation must never drive a printed
+   * number, which is what produced two different on-screen Cash figures
+   * for "the same selected month" before this fix.
+   * ------------------------------------------------------------------ */
+  function selectedMonth(){ return Math.max(1, Math.min(H, Math.round(tau))); }
   function stackAt(S, t, k){
     var i = Math.floor(t), f = t - i, j = Math.min(H, i + 1);
     return S.stack[i][k] + (S.stack[j][k] - S.stack[i][k]) * f;
@@ -1716,10 +1738,65 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     return out;
   }
 
+  /* ------------------------------------------------------------------ *
+   * §4 — EXPERIMENT ATTRIBUTION.
+   *
+   * "Which parts of the experiment are doing the economic work?" answered
+   * entirely by RE-RUNNING the frozen deterministic engine on variant
+   * assumption objects — never a share, a percentage, or a Shapley value.
+   *
+   * 4A groups the two levers that reach recurring state through the
+   * engine's own reduced form, ARR(t+1) = g·ARR(t) + N (verified exactly by
+   * research-checks.js's HOMOGENEOUS-REDUCTION, worst rel err ~1e-15):
+   *   ACQUISITION      N = S&M ÷ CAC — changed sm and/or cacPerARR
+   *   INSTALLED-BASE   g — changed persistenceAnnual and/or expansionCoefficientAnnual
+   * INTERACTION is DEFINED as the residual (Total − Acquisition − InstalledBase),
+   * so the three terms sum to the total by construction — ATTRIBUTION-TOTAL
+   * checks that the implementation does not silently break that identity.
+   *
+   * Valid only when both runs share flat bands AND the same opening state —
+   * Scenario 6's per-side state construction is excluded because the N/g
+   * reduction this rests on does not describe a state-dependent world.
+   *
+   * 4B is lever-by-lever, for Cash: STAND-ALONE (Base + only this lever) and
+   * ADDED-LAST (Full experiment minus this lever alone). The two need not
+   * sum to the total in a system with interactions, and are not forced to.
+   * ------------------------------------------------------------------ */
+  function attributionValid(){
+    return baseRes.bandsAreFlat && expRes.bandsAreFlat && baseStart===undefined && expStart===undefined;
+  }
+  var attrAcqRes = null, attrIbRes = null, attrCash = null;
+  function recurringAttribution(m){
+    if(!attrAcqRes || !attrIbRes) return null;
+    var b = baseRes.months[m-1].closingARR, x = expRes.months[m-1].closingARR;
+    var acq = attrAcqRes.months[m-1].closingARR - b;
+    var ib  = attrIbRes.months[m-1].closingARR - b;
+    var total = x - b;
+    return { total:total, acquisition:acq, installedBase:ib, interaction: total - acq - ib };
+  }
+  function cashAttribution(m){
+    if(!attrCash) return null;
+    return attrCash.map(function(c){
+      return { key:c.key, from:c.from, to:c.to,
+        standAlone: c.standAloneRes.months[m-1].cashClosing - baseRes.months[m-1].cashClosing,
+        addedLast:  expRes.months[m-1].cashClosing - c.withoutRes.months[m-1].cashClosing };
+    });
+  }
   function recompute(prevExp){
     baseRes = E.run(baseA, baseStart); expRes = E.run(expA, expStart);
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
     capAgg = aggCapital(expRes);
+    if(attributionValid()){
+      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR });
+      var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual });
+      attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
+      var changedLevers = E.compare(baseRes, expRes).changed;
+      attrCash = changedLevers.map(function(c){
+        var soA = Object.assign({}, baseA); soA[c.key] = expA[c.key];
+        var wA = Object.assign({}, expA); wA[c.key] = baseA[c.key];
+        return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) };
+      });
+    } else { attrAcqRes = attrIbRes = attrCash = null; }
     syncForces(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
   }
 
@@ -1762,7 +1839,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var mrow=document.createElement('div'); mrow.className='measured-kpi';
       mrow.innerHTML = F.measures.map(function(mk){
         return '\u2192 <span class="mk-label">'+esc(MEASURED_LABEL[mk])+' (R12M):</span> <b id="mk-'+F.k+'-'+mk+'"></b>';
-      }).join('<br>');
+      }).join('<br>') + '<div id="mn-'+F.k+'" hidden style="margin-top:6px;font-style:italic;color:var(--ink-3)"></div>';
       d.appendChild(mrow);
     }
     d.querySelector('input').addEventListener('input', function(e){
@@ -1777,7 +1854,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      window is anchored to the current month, so it must track tau. Every
      number is K.measureR12M(expRes, m); nothing here is a placeholder. */
   function syncMeasuredKPI(){
-    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    var m = selectedMonth();
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     FORCE_GROUPS.forEach(function(G){ G.forces.forEach(function(F){
       if(!F.measures) return;
@@ -1786,6 +1863,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         el.textContent = kpi ? pct(kpi[mk],1) : 'needs 12 months of history';
       });
     }); });
+    /* §8 — explain the coefficient→KPI interaction, but only when the actual
+       engine/KPI result exhibits it: an unchanged coefficient whose MEASURED
+       counterpart still moved, because the OTHER process changed the balance
+       it operates on inside the R12M window. Gated on a real measured gap —
+       never hard-coded — so it says nothing when there is nothing to explain. */
+    function note(key, show, text){
+      var el=document.getElementById('mn-'+key); if(!el) return;
+      el.hidden = !show; if(show) el.textContent = text;
+    }
+    var baseKpi = m>=12 ? K.measureR12M(baseRes, m) : null;
+    var changedKeys = kpi ? E.compare(baseRes, expRes).changed.map(function(c){ return c.key; }) : [];
+    var GAP = 0.0005;
+    note('persistenceAnnual',
+      !!(kpi && baseKpi && changedKeys.indexOf('expansionCoefficientAnnual')>=0 && changedKeys.indexOf('persistenceAnnual')<0 && Math.abs(kpi.grr-baseKpi.grr)>GAP),
+      'Why did measured GRR move? Persistence is unchanged, but Expansion changes the balance subsequently exposed to leakage within the R12M measurement window — a within-period interaction the measurement layer reports, not a new mechanism.');
+    note('expansionCoefficientAnnual',
+      !!(kpi && baseKpi && changedKeys.indexOf('persistenceAnnual')>=0 && changedKeys.indexOf('expansionCoefficientAnnual')<0 && Math.abs(kpi.expansionRate-baseKpi.expansionRate)>GAP),
+      'Why did measured Expansion move? Expansion is unchanged, but Persistence changes the balance expansion subsequently accrues on within the R12M measurement window — the same within-period interaction, from the other side.');
   }
   function buildForces(){
     var host = document.getElementById('forces'); host.innerHTML='';
@@ -1797,10 +1892,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       host.appendChild(g);
     });
     var fx=document.getElementById('fixedcosts');
-    fx.className='fgrp inert';
-    fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Fixed operating costs</span></div>'+
-      '<div class="fgrp-note">Inert under this engine: they change financial outputs and nothing else. '+
-      'Moving them does not alter recurring-state economics, so they are not levers.</div>';
+    fx.className='fgrp';
+    fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
+      '<div class="fgrp-note">Affect modeled FCF and Cash directly. v1 models no effect from them on recurring-state dynamics.</div>';
     FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
   }
   function syncForces(){
@@ -1826,6 +1920,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * `shows`  which consequence rows are relevant — only those are displayed
    * `bounds` the model boundaries this scenario must disclose
    * ------------------------------------------------------------------ */
+  /* This is the exact construction research-checks.js's SAME-WORLD block
+     (Y = W.flagship('young'), M = W.flagship('mature')) verifies as an
+     authoritative, always-run check: identical law signature, differing
+     state, matching observed KPIs, diverging forward economics. */
   var STABLE_C = {p:0.94, x:0.14}, RISKY_C = {p:0.78, x:0.06};
   function bandOf(n, mx, c){ return {name:n, maxAgeExclusive:mx, persistenceAnnual:c.p, expansionCoefficientAnnual:c.x}; }
   /* ONE array object, shared by both portfolios of Scenario 6, so the same-world
@@ -1904,6 +2002,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     activeScenario = null;
     document.getElementById('mode-chip').textContent='base vs experiment';
     document.getElementById('mode-chip').classList.remove('on');
+    /* §9 — a scenario-driven capital track (Efficiency / Pair) reverts once
+       the scenario itself is cleared, unless a cohort is pinned separately. */
+    if(pinned===null && capitalMode){ capitalMode = false; resize(); }
     syncScenButtons();
   }
   function applyScenario(sc){
@@ -1911,6 +2012,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var prev = Object.assign({}, expA);
     activeScenario = sc; lastMsg = null; pinned = null;
     baseA = BASE_A; baseStart = undefined; expStart = undefined;
+    /* §9 — the capital-recovery track expands automatically for the two
+       scenarios that are actually about acquisition/payback, without
+       requiring a cohort click; it stays collapsed (compact payback summary
+       only, in the side panel) for every other scenario. */
+    anatomy = false; capitalMode = (sc.id==='efficiency' || sc.id==='pair');
+    resize();
 
     if(sc.pair){
       /* Scenario 5 — the calibrated pair. Both routes reach the same New ARR:
@@ -2129,7 +2236,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
       ctx.fillText('CUMULATIVE HISTORICAL LEAKAGE', geo.L+8, geo.leakTop+10);
       ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(178,90,94,.9)';
-      ctx.fillText(reur(lerpAt(expS.leak,t)), geo.L+8, geo.leakTop+22);
+      /* §1 — printed figure from the canonical selected-month object, not the
+         continuous lerpAt() the curve position above still (correctly) uses. */
+      ctx.fillText(reur(expRes.months[selectedMonth()-1].cumulative.leakage), geo.L+8, geo.leakTop+22);
     }
 
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
@@ -2144,7 +2253,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
     var y0 = S.yC(0);
     ctx.strokeStyle='#1c272e'; ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
+    /* cnow/dNow are the CONTINUOUS, sub-month position — they drive where the
+       curve, wedge boundary and playhead sit as tau moves between whole
+       months, so the animation stays smooth. The PRINTED Cash/ΔCash text
+       below never uses them — §1 SCREEN-RECONCILIATION requires the exact
+       same fact everywhere it is stated, so the text reads off the same
+       canonical selected-month object (res.months[m-1]) as the side panel,
+       the waterfall and System. */
     var cnow = lerpAt(expS.cash,t), dNow = cnow - lerpAt(baseS.cash,t);
+    var mSel = selectedMonth();
+    var cashSel = expRes.months[mSel-1].cashClosing, dCashSel = cashSel - baseRes.months[mSel-1].cashClosing;
 
     /* §3 — ΔCash is the primary fill of Plane 2: the shaded wedge BETWEEN
        Experiment and Base, not a hull under the Experiment curve down to zero
@@ -2176,7 +2294,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var c4=0; c4<=H; c4++){ var bx=X(c4), by=S.yC(baseS.cash[c4]); c4?ctx.lineTo(bx,by):ctx.moveTo(bx,by); }
     ctx.strokeStyle='rgba(90,143,214,.7)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
-    ctx.fillText('CASH  '+eur(cnow)+'   ΔCash '+(dNow>=0?'+':'−')+eur(Math.abs(dNow))+' vs Base', geo.L+8, geo.cashTop+2);
+    ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, geo.L+8, geo.cashTop+2);
 
     /* --- the playhead: now --- */
     var px2 = X(t);
@@ -2219,7 +2337,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function drawSystem(){
     valveHits = [];
     var isD = compare==='delta';
-    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    var m = selectedMonth();
     var d = isD ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
     var bm = baseRes.months[m-1];
     ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
@@ -2552,7 +2670,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function endFit(){ ctx.restore(); }
   function toScreen(x,y){ return { x:x*fitT.s+fitT.ox, y:y*fitT.s+fitT.oy }; }
   function pulseData(){
-    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    var m = selectedMonth();
     return compare==='delta' ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
   }
   /* The Pulse renderer is deliberately absent from the product build. The
@@ -2594,6 +2712,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
 
     if(subj){
+      /* Base runs as a ghost here too: same cohort, frozen reference scenario.
+         Computed up front so the payback label below can read its age and
+         merge into ONE sentence — two independently positioned labels used
+         to collide whenever the two payback ages landed close together. */
+      var bcap = CAP.cohortCapital(baseRes, subj.index);
       var j=subj.acquisitionMonth;
       var pts=[[X(j), -subj.acquisitionCost]];
       subj.series.forEach(function(s){ if(s.t<=t) pts.push([X(s.t), s.net]); });
@@ -2620,25 +2743,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         fut.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
         ctx.strokeStyle=rgba(col,.5); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
       }
-      if(subj.paybackMonth!==null){
-        var pxp=X(subj.paybackMonth), reached=subj.paybackMonth<=t;
-        ctx.save(); if(!reached) ctx.setLineDash([3,3]);
-        ctx.beginPath(); ctx.moveTo(pxp, geo.capTop+2); ctx.lineTo(pxp, geo.capBot);
-        ctx.strokeStyle= reached ? 'rgba(247,221,196,.8)' : 'rgba(247,221,196,.28)';
-        ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
-        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
-        ctx.fillStyle= reached ? '#f7ddc4' : '#5d6c75';
-        ctx.fillText('PAYBACK · age '+subj.paybackAge, pxp+6, geo.capTop+24);
-        if(j<=t){   /* the span that IS the payback time */
-          var yb=geo.capBot-5;
-          ctx.beginPath(); ctx.moveTo(X(j), yb); ctx.lineTo(pxp, yb);
-          ctx.strokeStyle=rgba(col,.55); ctx.lineWidth=1; ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(X(j),yb-3); ctx.lineTo(X(j),yb+3);
-          ctx.moveTo(pxp,yb-3); ctx.lineTo(pxp,yb+3); ctx.stroke();
-        }
-      }
-      /* Base runs as a ghost here too: same cohort, frozen reference scenario */
-      var bcap = CAP.cohortCapital(baseRes, subj.index);
+      /* Base's own ghost line and payback guide, drawn first so the ONE
+         combined payback sentence below can read bcap's age. */
       if(bcap && bcap.acquisitionCost!==null){
         ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
         ctx.moveTo(X(bcap.acquisitionMonth), yC2(-bcap.acquisitionCost));
@@ -2649,8 +2755,29 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
           ctx.moveTo(bx, geo.capTop+2); ctx.lineTo(bx, geo.capBot);
           ctx.strokeStyle='rgba(90,143,214,.55)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
-          ctx.textAlign='right'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(90,143,214,.9)';
-          ctx.fillText('base · age '+bcap.paybackAge, bx-6, geo.capTop+24);
+        }
+      }
+      /* §2 — ONE payback sentence, not two independently positioned labels
+         that collided whenever the two ages landed close together on screen. */
+      if(subj.paybackMonth!==null){
+        var pxp=X(subj.paybackMonth), reached=subj.paybackMonth<=t;
+        ctx.save(); if(!reached) ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(pxp, geo.capTop+2); ctx.lineTo(pxp, geo.capBot);
+        ctx.strokeStyle= reached ? 'rgba(247,221,196,.8)' : 'rgba(247,221,196,.28)';
+        ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+        var paybackLabel = 'PAYBACK · age '+subj.paybackAge;
+        if(bcap && bcap.paybackMonth!==null) paybackLabel += bcap.paybackMonth===subj.paybackMonth ?
+          '  (Base: same)' : '  ·  Base age '+bcap.paybackAge;
+        else if(bcap && bcap.paybackMonth===null) paybackLabel += '  ·  Base: not reached';
+        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
+        ctx.fillStyle= reached ? '#f7ddc4' : '#5d6c75';
+        ctx.fillText(paybackLabel, pxp+6, geo.capTop+24);
+        if(j<=t){   /* the span that IS the payback time */
+          var yb=geo.capBot-5;
+          ctx.beginPath(); ctx.moveTo(X(j), yb); ctx.lineTo(pxp, yb);
+          ctx.strokeStyle=rgba(col,.55); ctx.lineWidth=1; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(X(j),yb-3); ctx.lineTo(X(j),yb+3);
+          ctx.moveTo(pxp,yb-3); ctx.lineTo(pxp,yb+3); ctx.stroke();
         }
       }
       ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
@@ -2784,7 +2911,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      markers are kept on every step so the existing comparison grammar
      survives the rebuild. */
   function renderCascade(){
-    var t=tau, m=Math.max(1, Math.min(H, Math.round(t)));
+    var t=tau, m=selectedMonth();
     var em=expRes.months[m-1], bm=baseRes.months[m-1];
 
     /* `bal` is the figure PRINTED — for a '=' step, the new running balance; for a
@@ -2823,7 +2950,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span class="cv">'+eur(g.total)+'</span></div>'+
         '<div class="crow" style="margin-bottom:9px"><span class="cl" style="color:var(--ink-3)">produced by</span>'+
         '<span class="cl" style="color:var(--ink-2)">'+seg.map(function(s2){ return esc(s2[0])+' '+pct(s2[1]/g.total,1); }).join(' &middot; ')+
-        '</span><span class="cv" style="color:var(--ink-3)">capital out '+eur(p.outstanding)+'</span></div>';
+        '</span><span class="cv" style="color:var(--ink-3)" title="Acquisition cost deployed, not yet recovered by cumulative gross profit — summed across the portfolio, cumulative to month '+m+'">unrecovered acquisition capital '+eur(p.outstanding)+'</span></div>';
     }
     document.getElementById('cascade').innerHTML = attrib + expSteps.map(function(r,i){
       var lo = Math.min(r.from, r.to), hi = Math.max(r.from, r.to);
@@ -2881,7 +3008,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       host.innerHTML = consequencePanel(activeScenario);
       return;
     }
-    var t=tau, m=Math.max(1, Math.min(H, Math.round(t)));
+    var t=tau, m=selectedMonth();
     var em=expRes.months[m-1], bm=baseRes.months[m-1];
     var mix=E.arrMix(expRes, m);
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
@@ -2916,7 +3043,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       row('ARR growth, year on year', em.arrGrowthYoY===null?'—':pct(em.arrGrowthYoY)) +
       row('R12M GRR', kpi?pct(kpi.grr,1):'needs 12 months') +
       row('R12M NRR', kpi?pct(kpi.nrr,1):'needs 12 months') +
-      row('CAC payback', expRes.derived.cacPaybackMonths.toFixed(1)+' months') +
+      row('CAC payback', expRes.derived.cacPaybackMonths.toFixed(1)+' months · Base '+baseRes.derived.cacPaybackMonths.toFixed(1)) +
       '<div class="hint" style="margin-top:7px">Measurements of the system, not inputs to it.</div></div>';
 
     /* §9 — the honest R12M decomposition. NOT "100% - Churn + NetExpansion":
@@ -3178,8 +3305,54 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
          -(expRes.derived.cacPaybackMonths-baseRes.derived.cacPaybackMonths)) +
       cz('Acquisition capital deployed', eur(b.cumSM)+' → '+eur(x.cumSM), -d.cumSM) +
       cz('Ending cash', eur(b.endingCash)+' → '+eur(x.endingCash), d.endingCash) +
-      '</div></div>';
+      '</div></div>' + boundaryDisclosure(c.changed) + attributionBlock(c.changed);
     function cz(k,v,sign){ return '<span>'+esc(k)+'</span><b class="'+cls(sign)+'">'+v+'</b>'; }
+  }
+
+  /* §6 — lever-specific model boundaries for the active free-form Experiment
+     (Scenarios already disclose their own via sc.bounds). Only the bounds
+     that bear on what actually changed, never the whole list. */
+  function boundaryDisclosure(changed){
+    var keys = changed.map(function(u){ return u.key; });
+    var bounds = [];
+    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0) bounds.push('acq');
+    if(keys.indexOf('expansionCoefficientAnnual')>=0) bounds.push('exp');
+    if(keys.indexOf('rd')>=0) bounds.push('rd');
+    bounds.push('fcf');            // relevant whenever a financial consequence is displayed
+    return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>Model boundaries</summary><ul>'+
+      bounds.map(function(k2){ return '<li>'+esc(MODEL_BOUNDS[k2])+'</li>'; }).join('') + '</ul></details></div>';
+  }
+
+  /* §4/§5 — "what is driving the delta", gated on >1 changed assumption:
+     with exactly one lever moved the answer is the lever itself, not worth
+     a panel. Re-runs the frozen engine on cached variants (see recompute);
+     computes nothing new here, only reads off the cached results. */
+  function attributionBlock(changed){
+    if(changed.length<2) return '';
+    var m = selectedMonth();
+    if(!attributionValid()){
+      return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+
+        '<div class="hint" style="margin-top:8px;line-height:1.65">Attribution unavailable: this Experiment uses a state-dependent '+
+        'construction (a different opening cohort composition per side, as in Scenario 6). The Acquisition/Installed-base reduced '+
+        'form this attribution relies on — ARR(t+1) = g·ARR(t) + N — does not describe a world where the two sides start from '+
+        'different states.</div></details></div>';
+    }
+    var recur = recurringAttribution(m), cash = cashAttribution(m);
+    var t1 = '<div class="eyebrow" style="margin-bottom:2px">Driving '+basis+' at month '+m+'</div>'+
+      '<table class="attrib-tbl"><tbody>'+
+      '<tr><td>Acquisition (N)</td><td class="'+cls(recur.acquisition)+'">'+reurS(recur.acquisition)+'</td></tr>'+
+      '<tr><td>Installed-base law (g)</td><td class="'+cls(recur.installedBase)+'">'+reurS(recur.installedBase)+'</td></tr>'+
+      '<tr><td>Acquisition × installed-base interaction</td><td class="'+cls(recur.interaction)+'">'+reurS(recur.interaction)+'</td></tr>'+
+      '<tr class="tot"><td>Total Δ'+basis+'</td><td class="'+cls(recur.total)+'">'+reurS(recur.total)+'</td></tr>'+
+      '</tbody></table>';
+    var t2 = (cash && cash.length) ? '<div class="eyebrow" style="margin:11px 0 2px">Driving Cash at month '+m+'</div>'+
+      '<table class="attrib-tbl attrib-tbl3"><thead><tr><th>Lever</th><th>Stand-alone ΔCash</th><th>Added-last ΔCash</th></tr></thead><tbody>'+
+      cash.map(function(c2){ return '<tr><td>'+esc(LABEL[c2.key]||c2.key)+'</td>'+
+        '<td class="'+cls(c2.standAlone)+'">'+eurS(c2.standAlone)+'</td>'+
+        '<td class="'+cls(c2.addedLast)+'">'+eurS(c2.addedLast)+'</td></tr>'; }).join('') +
+      '</tbody></table><div class="hint" style="margin-top:7px">Stand-alone and added-last bracket each lever’s contribution '+
+      'in a system with interactions — they are not forced to sum to the total.</div>' : '';
+    return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+t1+t2+'</details></div>';
   }
   var LABEL={sm:'S&M', cacPerARR:'CAC / New ARR', persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A'};
@@ -3313,12 +3486,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   /* Acceptance-test hook only — read-only getters onto the closured state, so
      the DISPLAY-RECONCILIATION / DELTA-CASH / KPI-MEASUREMENT checks in
-     clarity-accept.js can verify against the exact objects the UI renders
-     from, not a re-derived copy. Nothing here can be assigned to; it changes
-     no product behaviour. */
+     clarity-accept.js, and the SCREEN-RECONCILIATION / ATTRIBUTION-TOTAL /
+     ADDED-LAST checks in attribution-accept.js, can verify against the exact
+     objects and functions the UI renders from, not a re-derived copy.
+     Nothing here can be assigned to; it changes no product behaviour. */
   window.__SP_DEBUG = {
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
-    get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K
+    get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
+    selectedMonth: selectedMonth,
+    recurringAttribution: recurringAttribution,
+    cashAttribution: cashAttribution,
+    attributionValid: attributionValid
   };
 })();
 </script>

@@ -24,10 +24,23 @@ console.log('─'.repeat(86));
 /* ================================================================== *
  * SAME-WORLD
  * The matched state-sufficiency portfolios use identical transition laws.
+ * This is also the AUTHORITATIVE check for v1.template.html's Scenario 6
+ * ("Same KPIs, different history"): W.flagship() is built from the exact
+ * same numbers Scenario 6 uses — STABLE {p:0.94,x:0.14} / RISKY {p:0.78,
+ * x:0.06} bands at [12,24,∞), openingARR €20.0m, openingCash €10.0m, sm:0,
+ * ages 0 ('young') and 24 ('mature') — so this block, not a duplicate, is
+ * what establishes Scenario 6's same-world construction:
+ *   LawSet_A = LawSet_B            · law signatures / no per-state calibration
+ *   State_A ≠ State_B              · state differs (below)
+ *   ObservedKPIs_A = ObservedKPIs_B · observations equal
+ *   ForwardEconomics_A ≠ ForwardEconomics_B · forward differs
  * ================================================================== */
 var Y = W.flagship('young'), M = W.flagship('mature');
 var sw = R.sameWorld(Y, M);
 check('SAME-WORLD · law signatures', sw.same, 'byte-identical law + control signature');
+var ageAtT0_Y = Y.cohorts[0].initialAge + W.FLAGSHIP.T0, ageAtT0_M = M.cohorts[0].initialAge + W.FLAGSHIP.T0;
+check('SAME-WORLD · state differs (cohort age at T0, despite identical laws and matching KPIs)',
+  ageAtT0_Y !== ageAtT0_M, 'young ' + ageAtT0_Y + 'mo vs mature ' + ageAtT0_M + 'mo at T0=' + W.FLAGSHIP.T0);
 var kY = K.measureR12M(Y, W.FLAGSHIP.T0), kM = K.measureR12M(M, W.FLAGSHIP.T0);
 var obsGap = Math.max(
   Math.abs(Y.months[W.FLAGSHIP.T0 - 1].closingARR - M.months[W.FLAGSHIP.T0 - 1].closingARR) /

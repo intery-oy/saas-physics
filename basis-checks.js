@@ -229,7 +229,7 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
   /* recurring call sites: must use the basis-aware formatter */
   var recurringPatterns = [
     /reur\(v\)/,                          // Company ARR gridlines
-    /reur\(lerpAt\(expS\.leak,t\)\)/,     // Company "LEAKED"
+    /reur\(expRes\.months\[selectedMonth\(\)-1\]\.cumulative\.leakage\)/,     // Company "CUMULATIVE HISTORICAL LEAKAGE" (§1: canonical selected-month figure, not the continuous lerpAt it used to read)
     /rn\(d\.closingARR\)/,                // System STOCK
     /rn\(d\.newARR\)/,                    // System FLOW New
     /rn\(d\.expansion\)/,                 // System FLOW Expansion

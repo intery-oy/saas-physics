@@ -24,7 +24,32 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 | **During the usage period** | Only genuine defects that block use, and clarity/precision passes over the existing product surface, may change the build. New physics, new scenarios and engine changes stay out. Conceptual or model limitations discovered in use are **recorded in [`USAGE-LOG.md`](USAGE-LOG.md)**, not built — see that file for the rules, the outcome codes, and what happens after six weeks. |
 
 `kpi.js` / `integrity.js` remain 0 diff lines since the freeze date, across every pass below.
-Three passes have run since:
+Four passes have run since:
+
+**Integrity + Experiment Attribution pass.** Fixed a real trust defect — the Company chart's
+printed Cash and cumulative-leakage figures read a continuously interpolated position while
+every other surface (side panel, waterfall, System) read the exact snapped month, so scrubbing
+to a non-integer month could show two different Cash numbers on one screen. Both now resolve
+through one canonical `selectedMonth()` accessor. Also fixed a colliding Experiment/Base payback
+label in the capital-recovery track (merged into one sentence) and an unlabelled "capital out"
+figure (renamed to state exactly what it is: unrecovered acquisition capital, cumulative to
+date). Added Experiment Attribution: re-running the frozen engine — never a share, percentage or
+Shapley value — decomposes a multi-lever Experiment's recurring-state delta into Acquisition (N),
+Installed-base law (g) and their Interaction (the residual, by construction), and decomposes its
+Cash delta per lever into Stand-alone and Added-last views, which are not forced to sum. Valid
+only for flat-band, same-state experiments; explicitly unavailable for Scenario 6's
+state-dependent construction. Added dynamic model-boundary disclosure and a coefficient→KPI
+interaction note (shown only when the actual measured gap is real). Made the capital-recovery
+track contextual — expanded automatically for the Efficiency and Pair scenarios or a pinned
+cohort, collapsed elsewhere behind a compact `payback · Base` summary — and relabelled R&D/G&A
+from "fixed operating costs, not levers" to **Financial levers** that move FCF and Cash directly.
+Confirmed Scenario 6's same-world construction (`LawSet_A=LawSet_B`, `State_A≠State_B`,
+`ObservedKPIs_A=ObservedKPIs_B`, `ForwardEconomics_A≠ForwardEconomics_B`) was already an
+authoritative, always-run check in `research-checks.js`'s SAME-WORLD block — added the one
+missing assertion (`State_A≠State_B`) there rather than duplicating the suite. Regression
+suites: `node attribution-checks.js` (pure Node — ATTRIBUTION-TOTAL, ADDED-LAST,
+ATTRIBUTION-SCOPE) and `node attribution-accept.js` (Playwright — SCREEN-RECONCILIATION,
+BOUNDARY-DISCLOSURE, and the on-screen attribution table).
 
 **MRR-native engine refactor (explicitly requested; a unit change, not new physics).** The
 only pass that touched `engine.js` itself. The recurring-revenue state the engine carries and
@@ -63,8 +88,9 @@ FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright
 DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
 scenario matrix).
 
-All 35 economic integrity checks, 18 research checks, 12 MRR/ARR basis-switch regression
-checks, 46 clarity regression checks and 20 MRR-native engine-refactor checks pass.
+All 35 economic integrity checks, 19 research checks, 12 MRR/ARR basis-switch regression
+checks, 46 clarity regression checks, 20 MRR-native engine-refactor checks and 22 Integrity +
+Experiment Attribution checks pass.
 
 ## The product
 
@@ -87,8 +113,9 @@ CAC, CAC payback): those stay on their own basis, labelled as period flows where
 
 Controls are grouped by *what kind of thing* they are — management input,
 installed-base laws, acquisition efficiency, economic conversion — because they
-are not equivalent. R&D and G&A are shown as fixed operating costs, not levers,
-because under this engine they are inert.
+are not equivalent. R&D and G&A are grouped as Financial levers: they move
+modeled FCF and Cash directly, but v1 models no effect from them on
+recurring-state dynamics.
 
 There is deliberately no "buy more growth" scenario: acquisition is linear and
 unbounded here, and canonising "increase S&M" would teach a known model
@@ -110,12 +137,14 @@ identity, bridge, measurement and integrity check, in numbers.
 ## Run it
 
 ```bash
-node checks.js            # 35 economic, measurement and state integrity checks
-node mrr-native-checks.js # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
-node basis-checks.js      # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
-node clarity-checks.js    # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
-node clarity-accept.js    # Clarity pass DOM/render checks — needs playwright (DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE)
-node research-checks.js   # 18 Phase 0/1 research checks
+node checks.js              # 35 economic, measurement and state integrity checks
+node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
+node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
+node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
+node clarity-accept.js      # Clarity pass DOM/render checks — needs playwright (DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE)
+node attribution-checks.js  # Integrity + Attribution pass checks (ATTRIBUTION-TOTAL, ADDED-LAST, ATTRIBUTION-SCOPE)
+node attribution-accept.js  # Integrity + Attribution pass DOM/render checks — needs playwright (SCREEN-RECONCILIATION, BOUNDARY-DISCLOSURE)
+node research-checks.js     # 19 Phase 0/1 research checks
 node research-study.js    # state sufficiency, observability, conditioning, decision gate
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
