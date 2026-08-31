@@ -21,15 +21,36 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 | **Frozen engine version** | v0.3 (`engine.js` / `kpi.js` / `integrity.js` — 0 diff lines since the freeze) |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 | **Planned usage period** | Six weeks, starting the freeze date |
-| **During the usage period** | Only genuine defects that block use may be fixed. Conceptual or model limitations discovered in use are **recorded in [`USAGE-LOG.md`](USAGE-LOG.md)**, not built — see that file for the rules, the outcome codes, and what happens after six weeks. |
+| **During the usage period** | Only genuine defects that block use, and clarity/precision passes over the existing product surface, may change the build. New physics, new scenarios and engine changes stay out. Conceptual or model limitations discovered in use are **recorded in [`USAGE-LOG.md`](USAGE-LOG.md)**, not built — see that file for the rules, the outcome codes, and what happens after six weeks. |
 
-This was the final planned v1 product change: one consistent recurring-revenue
-reporting-basis switch (MRR ⇄ ARR) across Company, System, Scenarios and Inspect, matching
-the Revenue Portal waterfall. It is a pure presentation transformation — `MRR = ARR / 12`,
-computed and displayed, never rounded before the transform — over the same frozen,
-ARR-native engine. No new physics, no new scenarios, no engine changes. All 35 economic
-integrity checks, 18 research checks and the new MRR/ARR regression suite
-(`node basis-checks.js` — BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE) pass.
+The engine freeze itself has held throughout: `engine.js` / `kpi.js` / `integrity.js` remain
+0 diff lines since the freeze date, across every pass below. Two passes have run since:
+
+**MRR/ARR reporting basis.** One consistent recurring-revenue basis switch (MRR ⇄ ARR)
+across Company, System, Scenarios and Inspect, matching the Revenue Portal waterfall. A pure
+presentation transformation — `MRR = ARR / 12`, computed and displayed, never rounded before
+the transform. Regression suite: `node basis-checks.js` (BASIS-12X, FINANCIAL-INVARIANCE,
+SCENARIO-INVARIANCE).
+
+**Clarity & Semantic Precision pass.** Made the existing economics easier to perceive without
+implying the model contains more than it does: Company split into two synchronised planes
+(recurring-asset MRR/ARR space, and a Cash-only financial-consequence space with an explicit
+ΔCash wedge); the leakage shadow defaulted off and, when shown, drawn as a subdued outline
+labelled *cumulative historical leakage* rather than a second filled mass; a real monthly
+P&L waterfall stepping from Revenue to modeled FCF; the measured R12M GRR/Expansion/NRR shown
+directly beneath the Persistence/Expansion coefficients that imply them; an Experiment summary
+naming exactly which assumptions changed; an Installed-base net (Expansion − Leakage) regime
+readout; an honest R12M decomposition that never invents a churn/contraction split the engine
+doesn't have; a corrected color ontology (green reserved for genuinely favourable deltas, New/
+Expansion kept in Experiment copper, Leakage in its own muted rose); and quarter-grouped
+cohort-strata display (presentation only — Inspect still resolves to one exact month).
+Regression suites: `node clarity-checks.js` (pure Node — TWO-PLANE-UNITS, INSTALLED-BASE-NET,
+FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright —
+DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
+scenario matrix).
+
+All 35 economic integrity checks, 18 research checks, 12 MRR/ARR regression checks and 46
+clarity regression checks pass.
 
 ## The product
 
@@ -77,6 +98,8 @@ identity, bridge, measurement and integrity check, in numbers.
 ```bash
 node checks.js            # 35 economic, measurement and state integrity checks
 node basis-checks.js      # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
+node clarity-checks.js    # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
+node clarity-accept.js    # Clarity pass DOM/render checks — needs playwright (DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE)
 node research-checks.js   # 18 Phase 0/1 research checks
 node research-study.js    # state sufficiency, observability, conditioning, decision gate
 node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
