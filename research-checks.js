@@ -217,6 +217,35 @@ check('SUFFICIENCY-METRIC · order-stable',
     'FIBC-60 per euro identical across all ' + flat.length + ' states, worst rel Δ = ' + ex(worst));
 })();
 
+/* ================================================================== *
+ * SYSTEM-STATE
+ * systemstate.js was extracted from the archived pulse.js so the kept SYSTEM
+ * view does not depend on a rejected prototype's module. The extraction must be
+ * behaviour-identical, value by value.
+ * ================================================================== */
+(function () {
+  var PU = require('./pulse.js'), SS = require('./systemstate.js');
+  var base = E.run(), exp = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { persistenceAnnual: 0.96, sm: 1.4e6 }));
+  var worst = 0, fields = 0;
+  function cmp(a, b) {
+    Object.keys(a).forEach(function (k) {
+      var va = a[k], vb = b[k];
+      if (typeof va === 'number' && typeof vb === 'number') { worst = Math.max(worst, Math.abs(va - vb)); fields++; }
+    });
+  }
+  for (var t = 1; t <= base.horizon; t++) {
+    var pa = PU.pulseAt(exp, t), sa = SS.stateAt(exp, t);
+    cmp(pa, sa);
+    if (pa.cohorts.length !== sa.cohorts.length) worst = Infinity;
+    for (var i = 0; i < pa.cohorts.length; i++) cmp(pa.cohorts[i], sa.cohorts[i]);
+    var pd = PU.deltaPulseAt(base, exp, t), sd = SS.deltaStateAt(base, exp, t);
+    cmp(pd, sd);
+    for (var j = 0; j < pd.cohorts.length; j++) cmp(pd.cohorts[j], sd.cohorts[j]);
+  }
+  check('SYSTEM-STATE · extraction faithful', worst === 0,
+    fields + ' numeric fields over ' + base.horizon + ' months, max |Δ| = ' + ex(worst));
+})();
+
 console.log(out.join('\n'));
 console.log('─'.repeat(86));
 console.log('  ' + pass + ' / ' + (pass + fail) + ' research checks passed\n');

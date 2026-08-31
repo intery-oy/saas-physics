@@ -307,11 +307,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 <script>/*__ENGINE__*/</script>
 <script>/*__KPI__*/</script>
 <script>/*__CAPITAL__*/</script>
-<script>/*__PULSE__*/</script>
+<script>/*__SYSTEMSTATE__*/</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, PU = window.SaaSPhysicsPulse;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -829,7 +829,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     valveHits = [];
     var isD = compare==='delta';
     var m = Math.max(1, Math.min(H, Math.round(tau)));
-    var d = isD ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
+    var d = isD ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
     var bm = baseRes.months[m-1];
     ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
     beginFit(SYS.W, SYS.H);
@@ -1158,7 +1158,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function toScreen(x,y){ return { x:x*fitT.s+fitT.ox, y:y*fitT.s+fitT.oy }; }
   function pulseData(){
     var m = Math.max(1, Math.min(H, Math.round(tau)));
-    return compare==='delta' ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
+    return compare==='delta' ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
   }
   /* The Pulse renderer is deliberately absent from the product build. The
      failed prototype is preserved in the research archive (visual.template.html
@@ -1576,10 +1576,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit, so it '+
       'reaches no valve. The absence is the honest drawing of the model boundary.</div></div>';
 
-    h+='<div class="sgrp"><div class="eyebrow">Why this replaced the bridge</div>'+
-      '<div class="hint" style="line-height:1.7;margin-top:5px">The bridge view redrew an identity you can already read as numbers. '+
-      'This view shows something numbers cannot: <b style="color:var(--ink)">which rates are functions of which stocks</b>, and which links do not exist. '+
-      'The failed prototype is kept under <em>Bridge</em> for reference.</div></div>';
+    h+='<div class="sgrp"><div class="eyebrow">Why this surface exists</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">This surface shows something a KPI table cannot: '+
+      '<b style="color:var(--ink)">which rates are functions of which stocks</b>, and which links do not exist. '+
+      'A fourth candidate — an intra-month bridge animation — established no unique percept and was rejected. '+
+      'It is preserved in the research archive, not shipped here.</div></div>';
     document.getElementById('side').innerHTML=h;
   }
 
@@ -1772,8 +1773,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('scenbar').hidden = l!=='scen';
     document.querySelector('.cascade').hidden = l==='flow';
     /* The system view is a time-varying stock-and-flow diagram: the transport
-       still drives it. Only the bridge sub-mode freezes time, because it steps
-       through one month with its own 9-step stepper. */
+       drives it in every mode. */
     setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
     syncPulse(); renderSide();
   }
