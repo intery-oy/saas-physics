@@ -652,6 +652,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * ==================================================================== */
   var SYS = { W:1260, H:770 };
   var valveHits = [];
+  /* Cheap per-frame test: is the Experiment the same run as Base? Comparing the
+     assumption objects directly avoids re-summarising 60 months twice a frame. */
+  function sameAsBase(){
+    var keys = Object.keys(expA);
+    for(var i=0;i<keys.length;i++){ if(keys[i]==='bands') continue;
+      if(expA[keys[i]] !== baseA[keys[i]]) return false; }
+    return JSON.stringify(baseRes.bands) === JSON.stringify(expRes.bands);
+  }
   function drawSystem(){
     valveHits = [];
     var isD = compare==='delta';
@@ -671,7 +679,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
     /* DELTA is a SIGNED world. Every scale below is symmetric about zero, and cash
        gets its own range: it is not measured in ARR. */
-    var cashDMax = 1, flowsAllFlat = true;
+    var cashDMax = 1, flowsAllFlat = true, noExperiment = false;
     if(isD){
       arrMax = 0; rateMax = 0; cashDMax = 0;
       for(i=0;i<H;i++){
@@ -682,6 +690,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                                     Math.abs(expRes.months[i].newARR-baseRes.months[i].newARR));
       }
       flowsAllFlat = rateMax < 1;
+      noExperiment = sameAsBase();
       arrMax = arrMax || 1; rateMax = rateMax || 1; cashDMax = cashDMax || 1;
     }
     /* A flow whose delta is exactly zero must NOT look like a small flow. It gets
@@ -929,9 +938,32 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* ---------- header and scales ---------- */
     ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
     ctx.fillText((isD?'SYSTEM · DELTA — Experiment − Base':'SYSTEM · stock and flow')+'   ·   month '+m, 30, 26);
-    if(isD && flowsAllFlat){
+    if(isD && flowsAllFlat && !noExperiment){
       ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#c9973f'; ctx.textAlign='right';
       ctx.fillText('Every ARR flow is identical to Base at every month — this change does not touch ARR physics. The whole effect is downstream, in cash.', SYS.W-30, 26);
+      ctx.textAlign='left';
+    }
+    /* NO EXPERIMENT SET. Delta is Experiment − Base and the two are the same run,
+       so every quantity is exactly zero. That is arithmetic, not a broken view —
+       but an empty diagram cannot say so, and the Forces rail is hidden on this
+       layer, so the way out has to be stated here, on the valves themselves. */
+    if(isD && noExperiment){
+      ctx.fillStyle='rgba(11,16,19,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
+      valveHits.forEach(function(v){
+        ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.arc(v.x, v.y, 23, 0, Math.PI*2); ctx.stroke();
+      });
+      var bw=680, bh=132, bx=(SYS.W-bw)/2, by=396;   /* the one band clear of every valve */
+      ctx.fillStyle='#0e1418'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center';
+      ctx.font='15px "Archivo",sans-serif'; ctx.fillStyle='#e2e9ec';
+      ctx.fillText('Delta is empty because no experiment is set.', SYS.W/2, by+38);
+      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText('This view draws Experiment − Base. Right now they are the same run, so every stock and every', SYS.W/2, by+64);
+      ctx.fillText('flow is exactly zero. Nothing is broken — there is simply no difference to draw yet.', SYS.W/2, by+81);
+      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#c9722f';
+      ctx.fillText('Click any circled valve to move an assumption — or switch Compare to Absolute.', SYS.W/2, by+108);
       ctx.textAlign='left';
     }
     ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
@@ -1538,9 +1570,26 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   function renderSystemSide(d, isD){
     var m = d.t, abs = isD ? d.experiment : d;
+    var noExp = isD && sameAsBase();
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
     function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
     var net = d.newARR + d.expansion - d.leakage;
+    if(noExp){
+      document.getElementById('side').innerHTML =
+        '<div class="sgrp"><div class="eyebrow" style="color:var(--exp)">Delta · nothing to compare yet</div>'+
+        '<div class="hint" style="line-height:1.7;margin-top:7px">Delta draws <b style="color:var(--ink)">Experiment − Base</b>. '+
+        'No force has been moved, so Experiment <em>is</em> Base — the same 60-month run subtracted from itself. '+
+        'Every stock and every flow is exactly zero, and the diagram is empty because the difference is empty.</div></div>'+
+        '<div class="sgrp"><div class="eyebrow">To see something here</div>'+
+        '<div class="hint" style="line-height:1.75;margin-top:7px">'+
+        '<b style="color:var(--ink)">1.</b> Click a circled bowtie valve on the diagram and move its slider. The Forces rail is hidden on this layer, so the valves are the controls.<br>'+
+        '<b style="color:var(--ink)">2.</b> Or open <b style="color:var(--ink)">Stock</b> and pick an experiment preset, then come back.<br>'+
+        '<b style="color:var(--ink)">3.</b> Or switch Compare to <b style="color:var(--ink)">Absolute</b> to watch the system itself rather than a difference.</div></div>'+
+        '<div class="sgrp"><div class="eyebrow">Why this is not a bug</div>'+
+        '<div class="hint" style="line-height:1.7;margin-top:7px">The engine is deterministic. Two runs on identical assumptions agree to the last euro at every one of the 60 months — '+
+        'so a delta of exactly zero everywhere is the correct answer, and the strongest evidence the two scenarios really do share one engine.</div></div>';
+      return;
+    }
     var h='<div class="sgrp"><div class="eyebrow">Stocks · month '+m+'</div><div class="recon" style="margin-top:5px">'+
       r('ARR', n(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
       '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
@@ -1549,7 +1598,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       r('+ New ARR', n(d.newARR)) + r('+ Expansion', n(d.expansion)) + r('− Leakage', n(-d.leakage)) +
       r('= net change in the stock', n(net), 'tot') + '</div>'+
       '<div class="hint" style="margin-top:8px">Net '+n(net)+' this month against a stock of '+eur(abs.closingARR)+
-      ' — <b style="color:var(--ink)">'+pct(Math.abs(net)/abs.closingARR,1)+'</b>. '+
+      ' — <b style="color:var(--ink)">'+(abs.closingARR ? pct(Math.abs(net)/abs.closingARR,1) : '—')+'</b>. '+
       'That ratio is why a stock this large is slow to turn, and why one month of flow could never be drawn at the stock\'s own scale.</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">The stock sets its own rates</div>'+

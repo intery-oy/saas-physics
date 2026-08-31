@@ -108,6 +108,37 @@ unchanged and the entire consequence is the cash tank draining EUR 22.42m below
 the Base line. The old rendering showed the same thing as a blank diagram and
 said nothing.
 
+## Fourth defect: delta with no experiment set had no empty state
+
+Reported with a screenshot: Delta open, every reading `+EUR 0`, diagram blank.
+The mode chip read `base vs experiment` and every valve read `unchanged` --
+so no force had been moved and Experiment *was* Base. Every delta was correctly
+zero. Three things were wrong with how that was presented:
+
+1. **The banner misdiagnosed it.** The flat-flow message added in the previous
+   fix ("this change does not touch ARR physics") fired even when there was no
+   change at all, blaming the wrong thing.
+2. **No empty state.** An all-zero diagram is indistinguishable from a broken
+   one. Nothing said which of the two it was.
+3. **No way out was visible.** `.app.flow .rail` hides the Forces rail on the
+   Flow layer, so a user who reaches Delta from Flow has no visible control to
+   create a difference with. The valves are the controls, but nothing said so.
+
+Now, when Experiment equals Base, the diagram dims, all five valves are ringed,
+and a callout states the arithmetic plainly -- "Delta is empty because no
+experiment is set" -- with the side panel giving three concrete routes out
+(move a valve, pick a preset on Stock, or switch to Absolute) and a note that a
+zero delta everywhere is the correct answer for a deterministic engine, and in
+fact the strongest evidence both scenarios run the same one.
+
+The callout sits at design y 396-532, the one horizontal band clear of all five
+valves (y 127-173, 195-241, 337-383, 557-603) -- a callout that covers a control
+it tells you to click is not a fix.
+
+The Experiment-equals-Base test is a direct comparison of the assumption objects
+rather than `E.compare()`, which re-summarises 60 months; it runs every frame,
+and the view holds 61 fps.
+
 ## The redesign — systems notation, and why it earns its place
 
 | Element | Notation | Bound to |
