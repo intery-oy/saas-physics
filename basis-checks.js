@@ -1,10 +1,12 @@
 /*
  * SaaS Physics v1 — MRR/ARR reporting-basis regression checks.
  *
- * The switch added in this pass is a PURE PRESENTATION transform
- * (basis.js): the engine stays frozen and ARR-native, and every recurring
- * quantity the UI shows is run through BS.toBasis(v, basis) only at the
- * point of display. These checks verify that claim three ways:
+ * The switch added in this pass is a PURE PRESENTATION transform (basis.js):
+ * every recurring quantity the UI shows is run through BS.toBasis(v, basis)
+ * only at the point of display. (The engine itself became MRR-native in a
+ * later refactor — see engine.js's header — but every field this switch
+ * reads is still ARR-denominated, so the transform and this file are
+ * unchanged.) These checks verify that claim three ways:
  *
  *   BASIS-12X            displayed ARR = 12 x displayed MRR, exactly,
  *                         before display rounding, for every kind of

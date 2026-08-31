@@ -18,13 +18,27 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 | | |
 |---|---|
 | **Freeze date** | 2026-08-31 |
-| **Frozen engine version** | v0.3 (`engine.js` / `kpi.js` / `integrity.js` — 0 diff lines since the freeze) |
+| **Frozen engine version** | v0.3 (`kpi.js` / `integrity.js` — 0 diff lines since the freeze; `engine.js` carries one deliberate, requested exception — the MRR-native unit refactor below) |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 | **Planned usage period** | Six weeks, starting the freeze date |
 | **During the usage period** | Only genuine defects that block use, and clarity/precision passes over the existing product surface, may change the build. New physics, new scenarios and engine changes stay out. Conceptual or model limitations discovered in use are **recorded in [`USAGE-LOG.md`](USAGE-LOG.md)**, not built — see that file for the rules, the outcome codes, and what happens after six weeks. |
 
-The engine freeze itself has held throughout: `engine.js` / `kpi.js` / `integrity.js` remain
-0 diff lines since the freeze date, across every pass below. Two passes have run since:
+`kpi.js` / `integrity.js` remain 0 diff lines since the freeze date, across every pass below.
+Three passes have run since:
+
+**MRR-native engine refactor (explicitly requested; a unit change, not new physics).** The
+only pass that touched `engine.js` itself. The recurring-revenue state the engine carries and
+evolves month to month is now MRR — `Revenue = (OpeningMRR + ClosingMRR) / 2`, no `/12`
+anywhere in the transition — and ARR is a DERIVED reporting view, `ARR = 12 × MRR`, exact to
+float precision at every month and every cohort row. The acquisition assumption itself
+(`cacPerARR`, still 1.20× by default) and every existing field name, transition coefficient,
+intra-month order, KPI definition and canonical scenario are unchanged; the new
+`derived.cacPerMRR` (14.40×, `= cacPerARR × 12`) is an additive reporting figure only. CAC
+payback is unchanged (18.0 months). Verified against a captured pre-refactor baseline (Base
+and all six canonical scenarios, at seven checkpoint months): worst absolute divergence
+1.5×10⁻⁷ € on cumulative FCF over 60 months — floating-point noise, not an economic change.
+Regression suite: `node mrr-native-checks.js` (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE,
+CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE).
 
 **MRR/ARR reporting basis.** One consistent recurring-revenue basis switch (MRR ⇄ ARR)
 across Company, System, Scenarios and Inspect, matching the Revenue Portal waterfall. A pure
@@ -49,8 +63,8 @@ FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright
 DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
 scenario matrix).
 
-All 35 economic integrity checks, 18 research checks, 12 MRR/ARR regression checks and 46
-clarity regression checks pass.
+All 35 economic integrity checks, 18 research checks, 12 MRR/ARR basis-switch regression
+checks, 46 clarity regression checks and 20 MRR-native engine-refactor checks pass.
 
 ## The product
 
@@ -97,6 +111,7 @@ identity, bridge, measurement and integrity check, in numbers.
 
 ```bash
 node checks.js            # 35 economic, measurement and state integrity checks
+node mrr-native-checks.js # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js      # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js    # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
 node clarity-accept.js    # Clarity pass DOM/render checks — needs playwright (DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE)

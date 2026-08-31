@@ -1,11 +1,13 @@
 /*
  * SaaS Physics — recurring-revenue reporting basis (MRR ⇄ ARR).
  *
- * Pure presentation transform. The engine stays frozen and ARR-native
- * internally — this module is never required by engine.js, kpi.js or
- * integrity.js, and never mutates anything they produce. It only converts
- * an already-computed ARR-denominated number into the basis the user has
- * chosen to read it in.
+ * Pure presentation transform. This module is never required by engine.js,
+ * kpi.js or integrity.js, and never mutates anything they produce. It only
+ * converts an already-computed ARR-denominated number into the basis the
+ * user has chosen to read it in. (The engine's own state became MRR-native
+ * in a later refactor — see engine.js's header — but it still exposes every
+ * field this module reads as ARR, exactly 12x the native MRR value, so
+ * nothing here changed.)
  *
  *   MRR = ARR / 12
  *   ARR = MRR × 12

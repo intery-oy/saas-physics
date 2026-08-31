@@ -342,6 +342,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
  * KPIs are computed by Layer B (kpi.js) by measuring this world's output. See
  * docs/MEASUREMENT.md.
  *
+ * RECURRING-REVENUE STATE (v0.3 clarity-pass follow-up, MRR-native refactor).
+ * The cohort/company recurring-revenue state the engine actually carries and
+ * evolves month to month is MRR (openingMRR/retainedMRR/leakageMRR/
+ * expansionMRR/closingMRR/newMRR, and Revenue = (OpeningMRR+ClosingMRR)/2 —
+ * no /12 anywhere in the transition). ARR (openingARR/closingARR/leakage/
+ * expansion/newARR, all pre-existing field names) is kept as a DERIVED
+ * reporting view, computed as exactly 12 x the matching MRR quantity in the
+ * same month — never re-derived independently. This is a unit refactor: the
+ * transition coefficients, their order of application, the KPI definitions
+ * and every scenario are unchanged; only which unit is native moved from ARR
+ * to MRR. See docs/ARCHITECTURE.md.
+ *
  * MODEL VERSION: v0.3
  *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
  *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
@@ -492,10 +504,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     return a.sm / a.cacPerARR;
   }
 
+  /* MRR-NATIVE. cacPerARR is unchanged as the public assumption — € of S&M
+   * per €1 of annualised New ARR, still 1.20 by default. The engine's own
+   * state is MRR, so New MRR is simply New ARR ÷ 12 — the same acquisition
+   * formula above, taken in the unit the engine now carries forward.
+   * Normalised the other way round, this is S&M ÷ cacPerMRR with
+   * cacPerMRR = cacPerARR x 12 = 14.40 by default; both give the same
+   * number, exactly. */
+  function cacPerMRR(a) { return a.cacPerARR * 12; }
+  function newMRRPerMonth(a) { return newARRPerMonth(a) / 12; }
+
   /* EMERGENT. Months of gross profit needed to repay the acquisition cost of €1 of
    * New ARR:  CAC = cacPerARR;  monthly gross profit on €1 of ARR = GM / 12.
    *   payback = cacPerARR / (GM / 12) = cacPerARR x 12 / GM
-   * Never an input, and never used to generate New ARR. */
+   * Equivalently, in MRR terms: CAC = cacPerMRR; monthly gross profit on €1
+   * of MRR = GM (MRR already IS the monthly amount) — payback = cacPerMRR / GM,
+   * the same number.
+   * Never an input, and never used to generate New ARR/MRR. */
   function cacPaybackMonths(a) {
     if (!(a.grossMargin > 0)) return Infinity;
     return (a.cacPerARR * 12) / a.grossMargin;
@@ -515,7 +540,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     var gM = toMonthlyPersistence(a.persistenceAnnual);
     var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
+    /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
+       newARR (still newARRPerMonth(a), unchanged) is kept as the exact
+       12x-derived reporting figure every existing caller reads. */
     var newARR = newARRPerMonth(a);
+    var newMRR = newARR / 12;
 
     var bands = resolveBands(a);
     var bandRates = bands.map(function (b) {
@@ -538,7 +567,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         acquisitionMonth: 0,
         initialAge: c.age || 0,
         initialARR: c.arr,
-        live: c.arr,
+        /* MRR-NATIVE: c.arr is the public, ARR-denominated seed input
+           (unchanged API); live is the engine's own state, carried in MRR. */
+        live: c.arr / 12,
         /* PROVENANCE. The cost of creating the opening base happened before the
            simulation and is genuinely unknown — recorded as null, never as zero. */
         acquisitionCost: null,
@@ -556,12 +587,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
 
     for (var t = 1; t <= H; t++) {
-      var openingARR = 0, i, c;
-      for (i = 0; i < cohorts.length; i++) openingARR += cohorts[i].live;
+      var openingMRR = 0, i, c;
+      for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
 
-      var totRetained = 0, totLeakage = 0, totExpansion = 0, totRevenue = 0;
+      var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0;
 
-      /* --- 5. ARR physics, applied cohort by cohort ---
+      /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
+         Same transition coefficients, same order, same identities as before —
+         only the unit the state is carried in changed, from ARR to MRR. ARR
+         fields below are kept for every existing reader, each now DERIVED as
+         exactly 12 x the MRR quantity computed the same month.
          v0.3: the coefficients used are those of the band the cohort occupies at
          the START of the month. Nothing else about the transition changed. */
       for (i = 0; i < cohorts.length; i++) {
@@ -570,51 +605,54 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var ageAtStart = ageEnd - 1;
         var bi = bandFor(bandRates, ageAtStart);
         var br = bandRates[bi];
-        var opening  = c.live;
-        var retained = opening * br.g;            // persistence can only shrink or hold
-        var leakage  = opening - retained;        // churn + contraction combined
-        var expansion= retained * br.e;           // expansion applies to RETAINED ARR
-        var closing  = retained + expansion;
-        var avgARR   = (opening + closing) / 2;   // 7. stock -> flow
-        var revenue  = avgARR / 12;
-        var gp       = revenue * a.grossMargin;
+        var openingC  = c.live;
+        var retainedC = openingC * br.g;            // persistence can only shrink or hold
+        var leakageC  = openingC - retainedC;        // churn + contraction combined
+        var expansionC= retainedC * br.e;            // expansion applies to RETAINED MRR
+        var closingC  = retainedC + expansionC;
+        var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
+        var revenue   = avgMRR;                       // MRR already IS the monthly amount
+        var gp        = revenue * a.grossMargin;
 
         c.rows.push({
           t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
-          openingARR: opening, retainedARR: retained, leakage: leakage,
-          expansion: expansion, closingARR: closing,
+          openingMRR: openingC, retainedMRR: retainedC, leakageMRR: leakageC,
+          expansionMRR: expansionC, closingMRR: closingC,
+          openingARR: openingC * 12, retainedARR: retainedC * 12, leakage: leakageC * 12,
+          expansion: expansionC * 12, closingARR: closingC * 12,
           revenue: revenue, grossProfit: gp
         });
-        c.live = closing;
+        c.live = closingC;
 
-        totRetained += retained; totLeakage += leakage;
-        totExpansion += expansion; totRevenue += revenue;
+        totRetainedMRR += retainedC; totLeakageMRR += leakageC;
+        totExpansionMRR += expansionC; totRevenue += revenue;
       }
 
       /* --- New acquisition cohort is created AFTER the base has aged --- */
       var nc = {
         id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
-        initialARR: newARR, live: newARR, rows: [],
+        initialARR: newMRR * 12, live: newMRR, rows: [],
         /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
         acquisitionCost: a.sm,
         cacPerARRAtCreation: a.cacPerARR
       };
-      var ncRevenue = ((0 + newARR) / 2) / 12;    // half a month of ARR, same midpoint rule
+      var ncRevenue = (0 + newMRR) / 2;    // half a month of MRR, same midpoint rule
       nc.rows.push({
         t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
-        openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newARR,
+        openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: newMRR,
+        openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newMRR * 12,
         revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin
       });
       cohorts.push(nc);
       totRevenue += ncRevenue;
 
-      var closingARR = totRetained + totExpansion + newARR;
+      var closingMRR = totRetainedMRR + totExpansionMRR + newMRR;
 
       /* --- 7/8. Revenue and gross profit (company = sum of cohorts) --- */
-      var avgARRco  = (openingARR + closingARR) / 2;
-      var revenue   = avgARRco / 12;
+      var avgMRRco  = (openingMRR + closingMRR) / 2;
+      var revenue   = avgMRRco;              // MRR-NATIVE: no /12 — MRR is already monthly
       var cogs      = revenue * (1 - a.grossMargin);
       var grossProfit = revenue * a.grossMargin;
 
@@ -627,14 +665,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var cashClosing = cashOpening + fcf;
       cash = cashClosing;
 
-      /* --- 11. NRR: eligible OPENING installed base only, New ARR excluded --- */
-      var nrrMonthly = openingARR > 0 ? (totRetained + totExpansion) / openingARR : 1;
+      /* --- 11. NRR: eligible OPENING installed base only, New MRR excluded ---
+         Ratio of same-unit MRR quantities — numerically identical whichever
+         scale (MRR or ARR) it is taken in, so unaffected by the refactor. */
+      var nrrMonthly = openingMRR > 0 ? (totRetainedMRR + totExpansionMRR) / openingMRR : 1;
       nrrMonthlyHistory.push(nrrMonthly);
       var window = nrrMonthlyHistory.slice(-12);
       var prod = window.reduce(function (p, x) { return p * x; }, 1);
       var nrrAnnualised = Math.pow(prod, 12 / window.length);
 
-      cum.newARR += newARR; cum.expansion += totExpansion; cum.leakage += totLeakage;
+      var openingARR = openingMRR * 12, closingARR = closingMRR * 12;
+      var totRetainedARR = totRetainedMRR * 12, totLeakageARR = totLeakageMRR * 12, totExpansionARR = totExpansionMRR * 12;
+
+      cum.newARR += newARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
       cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga;
       cum.ebita += ebita; cum.fcf += fcf;
@@ -643,14 +686,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         t: t,
         year: Math.ceil(t / 12),
         quarter: Math.ceil(t / 3),
+        /* MRR-NATIVE state (the engine's own quantities) */
+        openingMRR: openingMRR,
+        retainedMRR: totRetainedMRR,
+        leakageMRR: totLeakageMRR,
+        expansionMRR: totExpansionMRR,
+        newMRR: newMRR,
+        closingMRR: closingMRR,
+        avgMRR: avgMRRco,
+        /* ARR — DERIVED reporting view, ARR = 12 x MRR, exactly */
         openingARR: openingARR,
-        retainedARR: totRetained,
-        leakage: totLeakage,
-        expansion: totExpansion,
+        retainedARR: totRetainedARR,
+        leakage: totLeakageARR,
+        expansion: totExpansionARR,
         newARR: newARR,
         closingARR: closingARR,
         cohortRevenueSum: totRevenue,
-        avgARR: avgARRco,
+        avgARR: avgMRRco * 12,
         revenue: revenue,
         cogs: cogs,
         grossProfit: grossProfit,
@@ -682,7 +734,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       }
       co.cumLeakage = cl; co.cumExpansion = ce;
       co.cumRevenue = cr; co.cumGrossProfit = cg;
-      co.finalARR = co.live;
+      co.finalMRR = co.live;
+      co.finalARR = co.live * 12;
     }
 
     return {
@@ -698,10 +751,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       derived: {
         monthlyPersistence: gM,
         monthlyExpansion: eM,
-        newARRPerMonth: newARR,                       // € of ARR added per month
+        newMRRPerMonth: newMRR,                       // € of MRR added per month — MRR-NATIVE
+        newARRPerMonth: newARR,                       // € of ARR added per month — DERIVED, = 12 x newMRR
         newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
         annualAcquisitionSpend: a.sm * 12,
-        cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT
+        cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
+        cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
         impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
         impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
       },
@@ -916,6 +971,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
+    newMRRPerMonth: newMRRPerMonth,
+    cacPerMRR: cacPerMRR,
     run: run,
     bridge: bridge,
     cohortSnapshot: cohortSnapshot,
@@ -1481,11 +1538,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 <script>/*
  * SaaS Physics — recurring-revenue reporting basis (MRR ⇄ ARR).
  *
- * Pure presentation transform. The engine stays frozen and ARR-native
- * internally — this module is never required by engine.js, kpi.js or
- * integrity.js, and never mutates anything they produce. It only converts
- * an already-computed ARR-denominated number into the basis the user has
- * chosen to read it in.
+ * Pure presentation transform. This module is never required by engine.js,
+ * kpi.js or integrity.js, and never mutates anything they produce. It only
+ * converts an already-computed ARR-denominated number into the basis the
+ * user has chosen to read it in. (The engine's own state became MRR-native
+ * in a later refactor — see engine.js's header — but it still exposes every
+ * field this module reads as ARR, exactly 12x the native MRR value, so
+ * nothing here changed.)
  *
  *   MRR = ARR / 12
  *   ARR = MRR × 12

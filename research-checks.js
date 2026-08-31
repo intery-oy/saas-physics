@@ -104,7 +104,14 @@ for (var v = 12; v <= 47; v++) {
   var a1 = K.measureR12M(joined, v), b1 = K.measureR12M(cont, v);
   segKPI = Math.max(segKPI, Math.abs(a1.grr - b1.grr), Math.abs(a1.expansionRate - b1.expansionRate), Math.abs(a1.nrr - b1.nrr));
 }
-check('SEGMENTATION · lossless join', segARR === 0 && segKPI === 0,
+/* MRR-native engine refactor: the join boundary now round-trips through
+   snapshotAt's ARR export and segment()'s re-seed (which divides by 12 to
+   reach the engine's native MRR state), one extra floating-point division
+   than the continuous run takes. That is sub-ULP noise (~1e-9 on ARR figures
+   in the tens of millions, ~1e-16 relative) — not a second computation of
+   the same thing disagreeing — so the tolerance matches the project's own
+   EPS (1e-6 euros) used everywhere else a €-denominated identity is checked. */
+check('SEGMENTATION · lossless join', segARR < 1e-6 && segKPI === 0,
   'max |ΔARR| = ' + ex(segARR) + ', max |ΔKPI| over 36 dates = ' + ex(segKPI));
 
 /* ================================================================== *
