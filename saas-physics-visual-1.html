@@ -2009,18 +2009,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     valve(215, yNew, 'S&M per month', fmtF('eur', expA.sm), 'sm', -72, 44);
     valve(350, yNew, 'CAC per New ARR', fmtF('x', expA.cacPerARR), 'cacPerARR', -72, 44);
     ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('FLOW · New ARR', 430, yNew-34);
+    ctx.fillText('FLOW · New ARR', 408, yNew-34);
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
-    ctx.fillText(n(d.newARR), 430, yNew-18);
+    ctx.fillText(n(d.newARR), 408, yNew-18);
 
     cloud(80, yExp, 'outside the boundary');
     pipeH(112, ax, yExp, pipeW(d.expansion), 'rgba(247,221,196,.5)');
     arrow(ax-13, yExp, 'r', 'rgba(247,221,196,.85)');
     valve(350, yExp, 'expansion coefficient', fmtF('pct', expA.expansionCoefficientAnnual), 'expansionCoefficientAnnual', -72, 44);
     ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('FLOW · Expansion', 430, yExp-34);
+    ctx.fillText('FLOW · Expansion', 408, yExp-34);
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
-    ctx.fillText(n(d.expansion), 430, yExp-18);
+    ctx.fillText(n(d.expansion), 408, yExp-18);
 
     /* ---------- OUTFLOW ---------- */
     var xLeak=ax+aw/2;
@@ -2042,7 +2042,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     pipeH(965, cx, 330, Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26)), d.fcf>=0?'rgba(79,158,119,.6)':'rgba(201,151,63,.6)');
     arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,158,119,1)':'rgba(201,151,63,1)');
     ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
-    ctx.fillText('FLOW · FCF', 993, 306);
+    ctx.fillText('FLOW · FCF', 993, 300);
 
     /* ---------- INFORMATION LINKS: the stock sets its own future rates ---------- */
     link([[ax+aw,190],[700,190],[700,158]], 'midpoint ARR ÷ 12');
@@ -2415,7 +2415,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(flowMode==='system'){
       document.getElementById('pulse-law').innerHTML =
         '<b style="color:var(--ink-2)">Flow creates stock. Stock determines future flow.</b> &nbsp; '+
-        'Click any bowtie valve to set the assumption where it acts. Scrub time to watch the stocks fill and the rates change.';
+        'Click any bowtie valve to set the assumption where it acts. Press play, or scrub, to watch the stocks fill and the flow rates change with them.';
     } else {
       document.getElementById('pulse-step').textContent = STEPNAMES[pulseStep];
       var law = PU.LAW[pulseStep];
@@ -2780,7 +2780,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.querySelector('.app').classList.toggle('flow', l==='flow');
     document.getElementById('pulsebar').hidden = l!=='flow';
     document.querySelector('.cascade').hidden = l==='flow';
-    if(l==='flow'){ playing=false; document.getElementById('play').classList.remove('play'); playIcon(); }
+    /* The system view is a time-varying stock-and-flow diagram: the transport
+       still drives it. Only the bridge sub-mode freezes time, because it steps
+       through one month with its own 9-step stepper. */
+    if(l==='flow' && flowMode==='bridge'){ playing=false; document.getElementById('play').classList.remove('play'); playIcon(); }
     setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
     syncPulse(); renderSide();
   }
@@ -2806,7 +2809,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('pulse-controls').style.display = fm==='bridge' ? 'flex' : 'none';
     pulsePlaying=false; clearTimeout(pulseTimer);
     document.getElementById('pulse-play').classList.remove('play');
-    if(fm==='bridge') pulseStep=PULSE_STEPS-1;
+    if(fm==='bridge'){
+      pulseStep=PULSE_STEPS-1;
+      playing=false; document.getElementById('play').classList.remove('play'); playIcon();
+    }
     syncPulse(); renderSide();
   }
   document.getElementById('fm-system').addEventListener('click', function(){ setFlowMode('system'); });
@@ -2830,7 +2836,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var last=performance.now(), acc=0;
   function frame(now){
     var dt=Math.min(100, now-last); last=now;
-    if(playing && layer==='stock'){
+    if(playing && (layer==='stock' || (layer==='flow' && flowMode==='system'))){
       tau += dt/1000 * 2.2 * speed;                 // ~2.2 simulated months per second at 1×
       if(tau>=H){ tau=H; playing=false; playBtn.classList.remove('play'); playIcon(); }
       scrub.value=tau;

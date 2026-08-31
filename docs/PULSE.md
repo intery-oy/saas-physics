@@ -24,6 +24,50 @@ on-canvas.
 
 ---
 
+## Second defect: the transport did not drive the system view
+
+Reported after the redesign shipped: *"when i press play nothing happens."*
+
+Correct, and it was a leftover of the failed prototype. Two lines froze time
+whenever the Flow layer was open:
+
+```js
+if(l==='flow'){ playing=false; ... }              // setLayer
+if(playing && layer==='stock'){ tau += ... }      // frame loop
+```
+
+Both were right for the Pulse, which does not live on the 60-month timeline at
+all -- it steps through the nine intra-month operations of a single month with
+its own stepper. They are wrong for the system view, which is a function of
+month: the ARR tank fills, strata accumulate, every pipe width and every
+readout is `expRes.months[m-1]`. Freezing tau threw all of that away and left a
+still diagram with a dead play button.
+
+Fixed by scoping the freeze to the sub-mode that needs it:
+
+- entering Flow keeps the transport running; only the **bridge** sub-mode pauses it
+- the frame loop advances `tau` on `layer==='stock' || (layer==='flow' && flowMode==='system')`
+- switching to **bridge** hands time back to the pulse stepper and pauses the transport
+
+Verified at 1440x900: paused -> month and pixels both still; playing -> month 00
+-> 06 -> 11 with the canvas changing; bridge -> transport auto-pauses and time
+frozen; back to system -> resumes. No page errors.
+
+What running the clock shows, month 1 -> 60 at the default assumptions:
+
+| | month 1 | month 60 |
+|---|---|---|
+| ARR stock | EUR 20.73m | EUR 62.93m |
+| cohort vintages in the tank | 2 | 61 |
+| Expansion flow | EUR 158k | EUR 492k |
+| Leakage flow | EUR 175k | EUR 544k |
+| Cash stock | EUR 9.41m | EUR 59.57m |
+| FCF pipe | EUR 592k | EUR 2.22m, and green |
+
+The expansion and leakage pipes widen without either valve being touched. That
+is the point of the information links: the stock is setting the rate of its own
+future flows, and it is only legible when the clock runs.
+
 ## The redesign — systems notation, and why it earns its place
 
 | Element | Notation | Bound to |
