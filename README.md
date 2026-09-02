@@ -13,18 +13,16 @@ Not built yet, by design: enterprise value, multiples, 3D, real company data, cu
 modelling, churn/contraction split, pricing, usage, working capital, debt, tax, capex,
 pipeline, headcount, probabilistic simulation, AI commentary. **We are proving the physics first.**
 
-## SaaS Physics v1 — FROZEN FOR USE
+## SaaS Physics v1
 
 | | |
 |---|---|
-| **Freeze date** | 2026-08-31 |
-| **Frozen engine version** | v0.3 (`kpi.js` / `integrity.js` — 0 diff lines since the freeze; `engine.js` carries one deliberate, requested exception — the MRR-native unit refactor below) |
+| **Engine version** | v0.3 (`kpi.js` / `integrity.js` — 0 diff lines since the last engine change; `engine.js` carries one deliberate, requested exception — the MRR-native unit refactor below) |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
-| **Planned usage period** | Six weeks, starting the freeze date |
-| **During the usage period** | Only genuine defects that block use, and clarity/precision passes over the existing product surface, may change the build. New physics, new scenarios and engine changes stay out. Conceptual or model limitations discovered in use are **recorded in [`USAGE-LOG.md`](USAGE-LOG.md)**, not built — see that file for the rules, the outcome codes, and what happens after six weeks. |
 
-`kpi.js` / `integrity.js` remain 0 diff lines since the freeze date, across every pass below.
-Four passes have run since:
+`kpi.js` and `integrity.js` are the economic core: they stay untouched by convention, not by
+schedule — a change to either is deliberate and reviewed, never incidental. `engine.js` follows
+the same discipline with one recorded exception below. Four passes have run since v1 shipped:
 
 **Integrity + Experiment Attribution pass.** Fixed a real trust defect — the Company chart's
 printed Cash and cumulative-leakage figures read a continuously interpolated position while
