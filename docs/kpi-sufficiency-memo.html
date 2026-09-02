@@ -1,0 +1,355 @@
+<title>When Are SaaS KPIs Sufficient?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&display=swap">
+
+<style>
+/* ------------------------------------------------------------------
+   SaaS Physics — research memo.
+   Same identity family as the Builder's Brief (these are siblings in one
+   project), but a denser, more academic setting: one column, the chart as
+   the centrepiece, results as tables rather than prose.
+   Series colours are the project's own Experiment/Base pair, re-stepped
+   until the six dataviz checks pass on both surfaces.
+   ------------------------------------------------------------------ */
+:root{
+  --paper:#f6f3ef;  --surface:#fffdfa;  --sunk:#efeae2;
+  --ink:#1c1815;    --ink-2:#544b43;    --ink-3:#8b8076;
+  --rule:#ded6ca;   --rule-soft:#eae3d9;
+  --ember:#a8551c;  --ember-soft:#f4e5d7;
+  --base:#1a63bd;   --base-soft:#dfe7f4;
+  --good:#356b52;   --good-soft:#dbeae2;
+  --warn:#8a3f2c;   --warn-soft:#f5e1da;
+  --grid:#e6ded3;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1215;  --surface:#151b20;  --sunk:#0a0d10;
+    --ink:#e5e0d9;    --ink-2:#a3988c;    --ink-3:#726960;
+    --rule:#28313a;   --rule-soft:#1b232a;
+    --ember:#d17d3c;  --ember-soft:#2a1f16;
+    --base:#4f93e8;   --base-soft:#141f2c;
+    --good:#5c9b78;   --good-soft:#152219;
+    --warn:#c47a5e;   --warn-soft:#291a15;
+    --grid:#212a32;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1215;  --surface:#151b20;  --sunk:#0a0d10;
+  --ink:#e5e0d9;    --ink-2:#a3988c;    --ink-3:#726960;
+  --rule:#28313a;   --rule-soft:#1b232a;
+  --ember:#d17d3c;  --ember-soft:#2a1f16;
+  --base:#4f93e8;   --base-soft:#141f2c;
+  --good:#5c9b78;   --good-soft:#152219;
+  --warn:#c47a5e;   --warn-soft:#291a15;
+  --grid:#212a32;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.62;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation:none!important}}
+
+.wrap{max-width:790px;margin:0 auto;padding:0 26px 90px}
+.mast{padding:54px 0 26px;border-bottom:2px solid var(--ink)}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);margin:0 0 16px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(31px,5.2vw,46px);line-height:1.08;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.sub{font-family:var(--display);font-style:italic;font-size:clamp(16px,2vw,19px);color:var(--ink-2);margin:14px 0 0;max-width:60ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 22px;margin-top:22px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.meta b{color:var(--ink-2);font-weight:500}
+
+section{margin:44px 0;scroll-margin-top:20px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 7px;display:flex;align-items:baseline;gap:9px}
+.eyebrow::before{content:"";width:15px;height:1px;background:var(--ember);flex:none;transform:translateY(-3px)}
+h2{font-family:var(--display);font-weight:400;font-size:clamp(23px,3.2vw,29px);line-height:1.18;margin:0 0 8px;text-wrap:balance}
+h3{font-family:var(--ui);font-weight:600;font-size:14px;margin:24px 0 5px}
+p{margin:0 0 13px;max-width:66ch}
+p.lede{font-family:var(--display);font-size:17px;line-height:1.6;color:var(--ink-2);margin-bottom:18px}
+code,.m{font-family:var(--mono);font-size:.87em;background:var(--sunk);padding:1px 5px;border-radius:2px}
+strong{font-weight:600}
+ul{margin:0 0 15px;padding-left:19px;max-width:66ch}
+li{margin-bottom:6px}
+li::marker{color:var(--ink-3)}
+
+.finding{border-left:3px solid var(--ember);background:var(--ember-soft);padding:15px 19px;margin:0 0 18px;border-radius:0 3px 3px 0}
+.finding p{margin:0;font-family:var(--display);font-size:16px;line-height:1.55}
+.finding .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ember);display:block;margin-bottom:6px}
+.gate{border:1px solid var(--good);background:var(--good-soft);padding:15px 19px;margin:0 0 18px;border-radius:3px}
+.gate p{margin:0;font-size:14px}
+.gate b{color:var(--good)}
+.scope{border:1px solid var(--warn);background:var(--warn-soft);padding:15px 19px;margin:0 0 18px;border-radius:3px}
+.scope p{margin:0;font-size:14px}
+.scope b{color:var(--warn)}
+
+.tw{overflow-x:auto;margin:0 0 18px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:460px}
+th,td{text-align:left;padding:8px 13px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tr:last-child td{border-bottom:none}
+th{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:400;background:var(--sunk);border-bottom:1px solid var(--rule);white-space:nowrap}
+td.v,th.v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.k{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+caption{caption-side:bottom;text-align:left;padding:8px 13px;font-size:11px;color:var(--ink-3);border-top:1px solid var(--rule-soft)}
+tr.hi td{background:var(--ember-soft)}
+tr.hi td:first-child{font-weight:600}
+
+/* ---------- figure ---------- */
+figure{margin:0 0 22px;border:1px solid var(--rule);border-radius:3px;background:var(--surface);padding:20px 20px 14px}
+.figtitle{font-family:var(--ui);font-weight:600;font-size:14.5px;margin:0 0 2px}
+.figsub{font-size:12px;color:var(--ink-3);margin:0 0 14px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin:0 0 12px;font-size:12px}
+.legend span{display:flex;align-items:center;gap:7px;color:var(--ink-2)}
+.legend i{width:14px;height:3px;border-radius:2px;flex:none}
+figcaption{font-size:11.5px;color:var(--ink-3);line-height:1.55;margin-top:10px;border-top:1px solid var(--rule-soft);padding-top:10px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.ax{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
+.dl{font-family:var(--mono);font-size:10.5px;font-weight:500}
+
+.foot{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.7}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="kicker">SaaS Physics · Phase 0/1 research memo</p>
+  <h1>When are SaaS KPIs sufficient statistics?</h1>
+  <p class="sub">State, transition history, and hidden economic information in a deterministic cohort engine.</p>
+  <div class="meta">
+    <span>MODEL <b>v0.3, frozen</b></span>
+    <span>INTEGRITY <b>35/35</b></span>
+    <span>RESEARCH CHECKS <b>17/17</b></span>
+    <span>NEW PHYSICS <b>none</b></span>
+  </div>
+</header>
+
+<section>
+  <p class="eyebrow">01 · Executive finding</p>
+  <h2>The retention metrics are not incomplete. They are uninformative.</h2>
+
+  <div class="finding">
+    <span class="tag">Headline</span>
+    <p>Headline SaaS KPIs need not be sufficient statistics for future installed-base economics when transition laws depend on hidden cohort state — and where they fail, the failure is localised <em>entirely</em> in the retention ratios.</p>
+  </div>
+
+  <p>Two portfolios can report identical ARR, identical R12M GRR, identical R12M expansion and identical R12M NRR — to <span class="m">0.00e+0</span>, exactly, not to a tolerance — while the forward gross profit of their existing ARR differs by <strong>23.4%</strong>. Both are governed by the same law set: they receive the <em>same band array object</em>, so per-portfolio calibration is structurally impossible.</p>
+
+  <p>That much was expected. Three results were not.</p>
+
+  <p><strong>Retention history buys nothing.</strong> Given only R12M GRR and expansion, thirty-six months of history leaves exactly the ambiguity a single snapshot left: 4.51%, unchanged at every window. The entire collapse to zero is achieved by the <strong>ARR path</strong>, which does it alone.</p>
+
+  <p><strong>The ambiguity closes fast, and cheaply.</strong> Twelve months of ARR history closes it completely, and it stays closed under measurement error at twenty-four months and beyond. The remedy is not cohort disclosure — it is a number every company already reports.</p>
+
+  <p><strong>Observational and economic ambiguity are different quantities.</strong> At 24 and 36 months the state is still <em>not identifiable</em>, yet nothing economically relevant remains hidden. Had the study reported identifiability alone it would have concluded that KPI history fails at every window.</p>
+</section>
+
+<section>
+  <p class="eyebrow">02 · The result</p>
+  <h2>Where the information actually lives</h2>
+
+  <figure>
+    <p class="figtitle">Forward-economic ambiguity by observation lens</p>
+    <p class="figsub">SKSG — the maximum spread in 60-month forward installed-base gross profit among states that look identical through the lens. State-dependent world; 256 states, exhaustively enumerated.</p>
+    <div class="legend">
+      <span><i style="background:var(--base)"></i>ARR path + retention metrics</span>
+      <span><i style="background:var(--ember)"></i>Retention metrics only</span>
+    </div>
+    <svg viewBox="0 0 640 268" role="img" aria-label="SKSG falls from 4.51% at snapshot to 0.00% from 12 months onward when the ARR path is disclosed, but stays flat at 4.51% at every window when only retention metrics are disclosed.">
+      <!-- grid -->
+      <g stroke="var(--grid)" stroke-width="1">
+        <line x1="62" y1="30" x2="612" y2="30"/>
+        <line x1="62" y1="82" x2="612" y2="82"/>
+        <line x1="62" y1="134" x2="612" y2="134"/>
+        <line x1="62" y1="186" x2="612" y2="186"/>
+      </g>
+      <line x1="62" y1="212" x2="612" y2="212" stroke="var(--ink-3)" stroke-width="1"/>
+      <!-- y labels -->
+      <g class="ax" text-anchor="end">
+        <text x="52" y="34">6%</text>
+        <text x="52" y="86">4%</text>
+        <text x="52" y="138">2%</text>
+        <text x="52" y="216">0%</text>
+      </g>
+      <!-- x labels -->
+      <g class="ax" text-anchor="middle">
+        <text x="105" y="234">snapshot</text>
+        <text x="105" y="248">1 measure</text>
+        <text x="274" y="234">12 months</text>
+        <text x="443" y="234">24 months</text>
+        <text x="612" y="234">36 months</text>
+      </g>
+      <text class="ax" x="337" y="264" text-anchor="middle">KPI history disclosed</text>
+
+      <!-- ember: retention only — flat at 4.51% -->
+      <polyline points="105,94.7 274,94.7 443,94.7 612,94.7" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round"/>
+      <g fill="var(--ember)" stroke="var(--surface)" stroke-width="2">
+        <circle cx="105" cy="94.7" r="5"/><circle cx="274" cy="94.7" r="5"/>
+        <circle cx="443" cy="94.7" r="5"/><circle cx="612" cy="94.7" r="5"/>
+      </g>
+      <text class="dl" x="274" y="82" fill="var(--ember)" text-anchor="middle">4.51%</text>
+      <text class="dl" x="443" y="82" fill="var(--ember)" text-anchor="middle">4.51%</text>
+      <text class="dl" x="596" y="82" fill="var(--ember)" text-anchor="middle">4.51%</text>
+
+      <!-- base: full lens — collapses -->
+      <polyline points="105,94.7 274,212 443,212 612,212" fill="none" stroke="var(--base)" stroke-width="2" stroke-linecap="round"/>
+      <g fill="var(--base)" stroke="var(--surface)" stroke-width="2">
+        <circle cx="105" cy="94.7" r="5"/><circle cx="274" cy="212" r="5"/>
+        <circle cx="443" cy="212" r="5"/><circle cx="612" cy="212" r="5"/>
+      </g>
+      <text class="dl" x="105" y="82" fill="var(--base)" text-anchor="middle">4.51%</text>
+      <text class="dl" x="274" y="203" fill="var(--base)" text-anchor="middle">0.00%</text>
+      <text class="dl" x="443" y="203" fill="var(--base)" text-anchor="middle">0.00%</text>
+      <text class="dl" x="600" y="203" fill="var(--base)" text-anchor="middle">0.00%</text>
+    </svg>
+    <figcaption>The two lenses start at the same point and never meet again. Adding the ARR path collapses the ambiguity to zero within twelve months; adding three years of retention metrics changes nothing at all. Under homogeneous laws both lines sit flat on zero — composition carries no forward difference to hide.</figcaption>
+  </figure>
+
+  <div class="tw">
+    <table>
+      <caption>SKSG by lens and window, state-dependent world. Searched maximum over the declared domain — a lower bound, not a theorem.</caption>
+      <thead><tr><th>Observation lens</th><th class="v">Snapshot</th><th class="v">12M</th><th class="v">24M</th><th class="v">36M</th></tr></thead>
+      <tbody>
+        <tr><td>ARR path + GRR + expansion</td><td class="v">4.51%</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td></tr>
+        <tr class="hi"><td>Retention metrics only</td><td class="v">4.51%</td><td class="v">4.51%</td><td class="v">4.51%</td><td class="v">4.51%</td></tr>
+        <tr><td>ARR path only</td><td class="v">4.51%</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>Why.</strong> Under a non-monotone tenure profile a young cohort and a mature cohort transition <em>identically</em>, so no retention ratio can separate them — by construction, at any window length. What separates them is the <em>shape</em> of the ARR trajectory: a base being replenished by recent acquisition traces a different path than one that is not, and it is that path which reveals how much ARR still faces the risk window.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · The gate</p>
+  <h2>Does the flagship result survive a same-world test?</h2>
+  <p class="lede">The prerequisite: both states must inhabit the same economic world. If the KPI match had been achieved by calibrating laws per portfolio, the result would have been an artefact.</p>
+
+  <div class="tw">
+    <table>
+      <caption>T0 = month 12, acquisition off in both. Y has not yet crossed the mid-life band; M crossed it twelve months ago.</caption>
+      <thead><tr><th></th><th class="v">Y · young</th><th class="v">M · mature</th><th class="v">|Δ|</th></tr></thead>
+      <tbody>
+        <tr><td>Law signature</td><td class="v">identical</td><td class="v">identical</td><td class="v">0</td></tr>
+        <tr><td>Band array</td><td class="v">same object</td><td class="v">same object</td><td class="v">—</td></tr>
+        <tr><td>Age at T0</td><td class="v">12 months</td><td class="v">36 months</td><td class="v">differs</td></tr>
+        <tr><td>ARR at T0</td><td class="v">€21.43m</td><td class="v">€21.43m</td><td class="v">0.00e+0</td></tr>
+        <tr><td>R12M GRR</td><td class="v">93.628381%</td><td class="v">93.628381%</td><td class="v">0.00e+0</td></tr>
+        <tr><td>R12M expansion</td><td class="v">13.531619%</td><td class="v">13.531619%</td><td class="v">0.00e+0</td></tr>
+        <tr><td>R12M NRR</td><td class="v">107.160000%</td><td class="v">107.160000%</td><td class="v">0.00e+0</td></tr>
+        <tr class="hi"><td>FIBC-60 per € of ARR</td><td class="v">3.776441</td><td class="v">4.778639</td><td class="v">23.43%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="gate">
+    <p><b>PASSED.</b> The observations agree exactly, not within a tolerance. Both portfolios reference the same band array object in memory, so per-portfolio calibration is not merely absent — it is structurally impossible in this construction.</p>
+  </div>
+
+  <div class="scope">
+    <p><b>Scope condition, load-bearing.</b> The result depends on a <strong>non-monotone</strong> retention profile: bands 1 and 3 share coefficients, which is what lets two different ages report identical KPIs. Under a monotone tenure curve the (GRR, expansion) signature is nearly one-dimensional in age and an exact matched construction <em>does not exist</em>. That earlier infeasibility is the other half of this finding: under monotone tenure laws the KPI set may be very nearly sufficient. The model cannot say which regime real companies are in.</p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Definitions</p>
+  <h2>Two measures, to retire the vague language</h2>
+
+  <h3>FIBC-60 — Forward Installed-Base Contribution</h3>
+  <p><span class="m">FIBC60(s) = Σ (t=1..60) GrossProfit_t of the Time-0 installed base</span>. Only cohorts existing at T0 count; later acquisitions are excluded, so the measure is a property of the state, not of future acquisition policy.</p>
+  <p><strong>No discounting. No terminal value. No multiple. It is not called "value."</strong> "Economic content", "ARR quality" and "forward value" are retired.</p>
+
+  <h3>The historical 26.5% was an artefact of its denominator</h3>
+  <div class="tw">
+    <table>
+      <caption>The same two states, three different percentages. The old headline picked the largest.</caption>
+      <thead><tr><th>Normalisation</th><th class="v">Value</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td class="k">mature/young − 1</td><td class="v">26.54%</td><td>historical headline, asymmetric</td></tr>
+        <tr class="hi"><td class="k">|Δ| ÷ midpoint</td><td class="v">23.43%</td><td>SKSG — order-invariant</td></tr>
+        <tr><td class="k">1 − young/mature</td><td class="v">20.97%</td><td>same facts, third number</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>SKSG — the SaaS KPI Sufficiency Gap</h3>
+  <p>The maximum FIBC-60 spread among observationally identical states, over the symmetric midpoint. Chosen because it is order-invariant — swapping the states cannot change the number, so the metric cannot be inflated by choosing a baseline, a choice worth 5.6 percentage points on the flagship pair alone.</p>
+  <p>Every SKSG figure discloses its KPI set, history window, law set, state domain, forward horizon and normalisation. <strong>It is a searched maximum over a finite declared domain — a lower bound on true ambiguity, never a theorem.</strong></p>
+</section>
+
+<section>
+  <p class="eyebrow">05 · Method</p>
+  <h2>Two structural facts that shaped the experiment</h2>
+
+  <p><strong>The observation window ages the base.</strong> A cohort seeded at month 0 with age <span class="m">a</span> has age <span class="m">a + T0</span> at T0. With T0 = 47 every directly-seeded euro is at least 47 months old and sits in the terminal band — where composition is provably inert: seeded ages 50, 80 and 120 all give FIBC-60 per euro of <span class="m">4.778638602</span>, identical to nine decimals.</p>
+
+  <p><strong>So the hidden state is recent acquisition.</strong> The only Time-0 state that can differ economically is ARR young enough to still face the discriminating band, and with T0 ≥ 12 that ARR cannot have been seeded — it must have been acquired. Under a constant acquisition rate that mass is pinned by the rate itself, so the domain has to contain acquisition paths that are <em>not</em> constant. It does: two phases, joined losslessly (<span class="m">max |ΔKPI| = 0.00e+0</span> across all 36 measurement dates against a single continuous run).</p>
+
+  <p><strong>T0 is held fixed at 47</strong> for every window. Letting it move with W would confound <em>more observation</em> with <em>more ageing</em> — two different effects that both reduce ambiguity.</p>
+
+  <h3>Conditioning — each scenario perturbs exactly one observable</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Lens</th><th class="v">Exact</th><th class="v">Rates ±0.1pp</th><th class="v">ARR ±0.1%</th><th class="v">Both</th></tr></thead>
+      <tbody>
+        <tr><td>Snapshot</td><td class="v">4.51%</td><td class="v">4.51%</td><td class="v">4.51%</td><td class="v">4.51%</td></tr>
+        <tr><td>12-month history</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.04%</td></tr>
+        <tr><td>24-month history</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td></tr>
+        <tr><td>36-month history</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td><td class="v">0.00%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The snapshot ambiguity is <strong>structural, not noise</strong> — no amount of measurement precision reduces it. Longer history does not merely identify the state; it identifies it robustly. And note what carries that robustness: the identifying observable is the ARR path, a <em>balance</em>, reported precisely. The noisy observables were never doing the work.</p>
+  <p>No Jacobian, rank or condition number is reported. Those objects require a differentiable inversion of a continuous state vector; the domain here is a declared finite grid evaluated exhaustively. Computing one would have been decoration.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · Limits</p>
+  <h2>Model result, not empirical claim</h2>
+
+  <h3>What the model proves</h3>
+  <ul>
+    <li>Headline KPIs <strong>need not</strong> be sufficient statistics when transition laws depend on hidden cohort state — by exact counterexample, not approximation.</li>
+    <li>Where they fail, the failure is carried <strong>entirely by the retention ratios</strong>.</li>
+    <li>Under homogeneous laws compression is <strong>safe</strong>: 256 states collapse to one observational class with SKSG 0.00%.</li>
+    <li>Hidden state here has a <strong>finite lifetime</strong> — once every euro reaches the terminal band, composition is inert.</li>
+  </ul>
+
+  <h3>What it does not prove</h3>
+  <ul>
+    <li>That any real SaaS base has non-monotone tenure dependence. The entire result is conditional on it.</li>
+    <li>That real diligence processes are systematically wrong.</li>
+    <li>That cohort disclosure is always necessary — here, twelve months of ARR history sufficed.</li>
+    <li>That 23.4% is empirically typical.</li>
+    <li>That the searched maximum is the true maximum. A richer state space could only raise SKSG, never lower it.</li>
+  </ul>
+
+  <h3>Implications, stated as conditionals</h3>
+  <p><strong>If</strong> a base has non-monotone tenure-dependent retention, <strong>then</strong> a KPI snapshot cannot bound forward installed-base gross profit, and three years of retention metrics will not help. <strong>The cheap fix is the ARR path, not cohort disclosure</strong> — a materially smaller ask, and one every company already reports.</p>
+  <p>Where retention is genuinely tenure-flat, none of this applies and the standard KPI set is sufficient for forward ARR dynamics. Establishing which regime a company is in is therefore the prior question — and it is empirical.</p>
+
+  <h3>What would move it</h3>
+  <ul>
+    <li><strong>Do real SaaS bases show a mid-life retention trough?</strong> Load-bearing, and directly measurable from any company's own cohort data.</li>
+    <li>How large is tenure dispersion in practice? SKSG scales with the gap between band coefficients; 94/78 is an assumption.</li>
+    <li>What is the real reporting precision of GRR and NRR? ±0.1pp is a stipulation.</li>
+    <li>Does the finite lifetime of hidden state survive a finer band structure, or age-continuous laws?</li>
+  </ul>
+</section>
+
+<section>
+  <p class="eyebrow">07 · Gate</p>
+  <h2>Decision</h2>
+  <div class="finding">
+    <span class="tag">Recommended next move</span>
+    <p>Proceed to acquisition-nonlinearity design. The state-sufficiency thesis is not weak — it survived the same-world gate exactly and now sits inside a metric rather than an anecdote. But it has been answered as far as this engine can answer it, and the binding constraint has moved to the fact that acquisition is linear and unbounded, so the model can always buy growth and cannot say <em>stop</em>. That is a <strong>bound</strong> on an existing optimistic mechanism, not a new claimed benefit — the lower evidence bar. Not implemented in this iteration.</p>
+  </div>
+</section>
+
+<p class="foot">
+  SaaS Physics v0.3 · deterministic 60-month cohort simulation · no new physics in this iteration<br>
+  Reproduce: <span class="m">node research-study.js</span> · <span class="m">node research-checks.js</span> · <span class="m">node checks.js</span><br>
+  Illustrative assumptions throughout. No real company data is connected, and no valuation is computed.
+</p>
+
+</div>

@@ -1,0 +1,3038 @@
+<title>SaaS Physics Observatory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Spectral:wght@300;400&display=swap">
+<style>
+/* ------------------------------------------------------------------ *
+ * SaaS Physics — Visual Prototype 1
+ * A committed single dark environment. Every colour painted from a token.
+ * The economic engine (engine.js) and KPI layer (kpi.js) are inlined
+ * VERBATIM and unmodified — this file only looks at them.
+ * ------------------------------------------------------------------ */
+:root{
+  --ground:#080b0d; --scene:#0b1013; --panel:#0e1418; --raised:#131b20; --sunk:#070a0c;
+  --line:#1c272e; --line-soft:#141d22;
+  --ink:#e2e9ec; --ink-2:#8fa0aa; --ink-3:#5d6c75; --ink-4:#3d4952;
+  --base:#5a8fd6;       /* BASE — the frozen reference future */
+  --exp:#c9722f;        /* EXPERIMENT — the scenario you steer */
+  --leak:#3b4a55;       /* leakage — deliberately calm, never red */
+  --good:#4f9e77; --warn:#c9973f;
+  --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--exp);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;transition:grid-template-columns .2s}
+.app.flow{grid-template-columns:0 minmax(0,1fr) 320px}
+.app.flow .rail{opacity:0;pointer-events:none;overflow:hidden}
+.lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
+.lawchip:hover{border-color:var(--exp);color:var(--ink)}
+.lawchip b{font-family:var(--mono);color:var(--exp);font-weight:500}
+.lawchip input[type=range]{width:118px;margin-top:5px;display:block}
+.lawchip.open{border-color:var(--exp)}
+.pulsebar{display:flex;align-items:center;gap:10px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
+.pulsebar .stepname{font-family:var(--mono);font-size:11.5px;color:var(--exp);min-width:210px}
+.pulsebar .lawnote{font-size:10.5px;color:var(--ink-3);line-height:1.5}
+.recon{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:11px;margin-top:5px}
+.recon span{color:var(--ink-3)} .recon b{font-family:var(--mono);font-weight:500}
+.recon .tot{color:var(--ink);border-top:1px solid var(--line);padding-top:3px}
+.head{grid-column:1/-1;display:flex;align-items:baseline;gap:16px;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.head h1{margin:0;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.005em}
+.head .sub{font-size:11.5px;color:var(--ink-3);font-style:italic;font-family:var(--display)}
+.spacer{flex-grow:1}
+.chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--line);border-radius:2px;color:var(--ink-3)}
+.chip.on{border-color:var(--exp);color:var(--exp)}
+
+.rail{border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:0 0 16px}
+.stage{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--scene)}
+.side{border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:0 0 18px}
+.transport{grid-column:1/-1;display:flex;align-items:center;gap:13px;padding:10px 20px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:nowrap}
+.transport .btn-row{flex-wrap:nowrap}
+.transport .eyebrow{white-space:nowrap}
+
+/* ---------- forces ---------- */
+.grp{padding:14px 18px;border-bottom:1px solid var(--line-soft)}
+.grp:last-child{border-bottom:none}
+.force{margin-bottom:15px}
+.force:last-child{margin-bottom:0}
+.force-top{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+.force-top label{font-size:12px;font-weight:500;flex-grow:1;cursor:pointer}
+.force-val{font-family:var(--mono);font-size:12.5px;color:var(--exp)}
+.force-val.same{color:var(--ink)}
+.force-sub{font-size:10px;color:var(--ink-3);margin-bottom:6px;line-height:1.4}
+.force-base{font-family:var(--mono);font-size:10px;color:var(--ink-4)}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;height:16px;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--exp);border:2px solid var(--panel);margin-top:-5px}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--exp);border:2px solid var(--panel)}
+.btn{background:var(--raised);border:1px solid var(--line);border-radius:3px;padding:6px 9px;font-size:11px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:border-color .15s,color .15s}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn.on{border-color:var(--exp);color:var(--exp);background:rgba(201,114,47,.09)}
+.btn-row{display:flex;flex-wrap:wrap;gap:6px}
+.btn-wide{width:100%;text-align:left;padding:8px 10px;margin-bottom:5px}
+.btn-wide small{display:block;color:var(--ink-4);font-size:10px;font-weight:400;margin-top:2px;line-height:1.4}
+
+/* ---------- stage ---------- */
+#scene{flex-grow:1;width:100%;display:block;min-height:0}
+.cascade{border-top:1px solid var(--line);padding:11px 20px 12px;background:var(--sunk)}
+.cascade-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
+.crow{display:grid;grid-template-columns:104px minmax(0,1fr) 88px;gap:11px;align-items:center;margin-bottom:5px}
+.crow:last-child{margin-bottom:0}
+.crow .cl{font-size:11px;color:var(--ink-2)}
+.crow .cv{font-family:var(--mono);font-size:11.5px;text-align:right}
+.cbar{height:11px;position:relative;background:var(--line-soft);border-radius:1px;overflow:hidden}
+.cbar i{position:absolute;top:0;bottom:0;left:0;border-radius:1px;transition:width .28s cubic-bezier(.4,0,.2,1)}
+.cbar b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--base);opacity:.85}
+.hint{font-size:10.5px;color:var(--ink-4);line-height:1.5}
+
+/* ---------- side ---------- */
+.sgrp{padding:14px 17px;border-bottom:1px solid var(--line-soft)}
+.srow{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:11.5px}
+.srow span{color:var(--ink-3)}
+.srow b{margin-left:auto;font-family:var(--mono);font-weight:500;color:var(--ink)}
+.srow b.dim{color:var(--ink-2);font-weight:400}
+.big{display:flex;align-items:baseline;gap:9px;margin:2px 0 4px}
+.big .v{font-family:var(--mono);font-size:27px;font-weight:500;letter-spacing:-.02em;color:var(--exp)}
+.big .d{font-family:var(--mono);font-size:11.5px}
+.up{color:var(--good)} .down{color:var(--warn)} .flat{color:var(--ink-4)}
+.bridge{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.brow{display:grid;grid-template-columns:74px minmax(0,1fr) 74px;gap:8px;align-items:center;font-size:11px}
+.brow .bb{height:7px;background:var(--line-soft);position:relative;border-radius:1px}
+.brow .bb i{position:absolute;top:0;bottom:0;border-radius:1px}
+.brow .bv{font-family:var(--mono);text-align:right}
+.causal{border-left:2px solid var(--exp);padding-left:11px}
+.causal.idle{border-left-color:var(--line)}
+.causal h4{margin:0 0 3px;font-size:11.5px;font-weight:600}
+.causal .msg{font-size:11px;color:var(--ink-2);line-height:1.55;font-style:italic;font-family:var(--display);margin-bottom:8px}
+.cz{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:11px}
+.cz span{color:var(--ink-3)}
+.cz b{font-family:var(--mono);font-weight:500}
+.dossier{background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:11px 12px}
+.dossier h4{margin:0 0 7px;font-size:11.5px;display:flex;align-items:center;gap:8px}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* ---------- transport ---------- */
+.tbtn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--raised);border:1px solid var(--line);border-radius:3px;cursor:pointer;color:var(--ink-2)}
+.tbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.tbtn.play{border-color:var(--exp);color:var(--exp)}
+#scrub{flex-grow:1;min-width:120px}
+.tlabel{font-family:var(--mono);font-size:13px;color:var(--exp);min-width:132px;white-space:nowrap}
+.tlabel small{color:var(--ink-4);font-size:10px}
+
+/* ---------- key overlay ---------- */
+.key{position:absolute;inset:0;background:rgba(8,11,13,.94);padding:26px 32px;overflow-y:auto;display:none}
+.key.on{display:block}
+.key h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 4px}
+.key p.lede{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
+.key-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;max-width:1100px}
+.key-grid h5{margin:0 0 7px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.key-grid ul{margin:0;padding-left:15px;font-size:11.5px;line-height:1.75;color:var(--ink-2)}
+.key-grid li{margin-bottom:5px}
+.key-grid b{color:var(--ink);font-weight:500}
+.key .close{position:absolute;top:20px;right:26px}
+.note{font-size:10.5px;color:var(--ink-4);line-height:1.6;margin-top:12px}
+</style>
+
+<div class="app">
+  <header class="head">
+    <h1>SaaS Physics</h1>
+    <span class="sub">an economic system, observed</span>
+    <span class="spacer"></span>
+    <span class="chip" id="mode-chip">base vs experiment</span>
+    <span class="eyebrow">Layer</span>
+    <div class="btn-row"><button class="btn on" id="layer-stock">Stock</button><button class="btn" id="layer-flow">Flow</button></div>
+    <span class="eyebrow">Lens</span>
+    <button class="btn" id="anatomy">Inspect</button>
+    <span class="eyebrow">Compare</span>
+    <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
+    <button class="btn" id="keybtn">Visual key</button>
+  </header>
+
+  <aside class="rail">
+    <div class="grp">
+      <div class="eyebrow" style="margin-bottom:4px">Forces</div>
+      <div class="hint">Each control is a force acting on the system. Move one and the entire future recalculates.</div>
+    </div>
+    <div class="grp" id="forces"></div>
+    <div class="grp">
+      <div class="eyebrow" style="margin-bottom:9px">Experiments</div>
+      <div id="presets"></div>
+      <button class="btn btn-wide" id="paired" style="border-color:var(--base);color:var(--base)">Efficiency vs Spend
+        <small>Put the two growth routes side by side. Same ARR, different capital.</small></button>
+      <button class="btn btn-wide" id="reset" style="margin-top:5px">Reset to Base</button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <canvas id="scene"></canvas>
+    <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
+    <div class="pulsebar" id="pulsebar" hidden>
+      <span class="eyebrow">View</span>
+      <div class="btn-row"><button class="btn on" id="fm-system">System</button><button class="btn" id="fm-bridge">Bridge · failed prototype</button></div>
+      <span id="pulse-controls" style="display:flex;align-items:center;gap:10px">
+      <button class="tbtn" id="pulse-prev" aria-label="Previous step">◀</button>
+      <button class="tbtn play" id="pulse-play" aria-label="Run the pulse">▶</button>
+      <button class="tbtn" id="pulse-next" aria-label="Next step">▶|</button>
+      <span class="stepname" id="pulse-step"></span>
+      </span>
+      <span class="lawnote" id="pulse-law"></span>
+    </div>
+    <div class="cascade">
+      <div class="cascade-head">
+        <span class="eyebrow">Economic conversion</span>
+        <span class="hint" id="cascade-when"></span>
+        <span class="spacer"></span>
+        <span class="hint">bar width = € per month at this moment · <span style="color:var(--base)">▏</span> = Base</span>
+      </div>
+      <div id="cascade"></div>
+    </div>
+    <div class="key" id="key">
+      <button class="btn close" id="keyclose">Close</button>
+      <h3>What you are looking at</h3>
+      <p class="lede">Every visual property below is bound to a number the simulation actually computes. Nothing moves decoratively.</p>
+      <div class="key-grid">
+        <div>
+          <h5>The mass</h5>
+          <ul>
+            <li><b>Height</b> = ARR. The recurring stock, at every moment of its life.</li>
+            <li><b>Strata</b> = cohorts. Each band is one acquisition vintage; the opening base is the bottom layer and every month deposits a new one on top, so <b>vertical position is age</b>.</li>
+            <li><b>Colour</b> runs oldest–darkest to newest–lightest, so a vintage stays traceable for its whole life.</li>
+            <li><b>Brightness</b> = gross margin. Same mass, dimmer, means the same recurring revenue carrying less economic content.</li>
+            <li><b>A brighter top edge</b> marks a cohort in its first two months — new business entering.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Below the line</h5>
+          <ul>
+            <li><b>The shadow</b> = cumulative leakage. Every euro the installed base has lost and had to replace. It only ever deepens.</li>
+            <li>Deliberately calm slate, not red: leakage is physics, not an alarm.</li>
+            <li><b>The keel</b> = cash. Above the seam is cash generated, below it is cash consumed.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Time</h5>
+          <ul>
+            <li><b>Left of the playhead</b> is realised: solid, filled, already true.</li>
+            <li><b>Right of the playhead</b> is projected: unfilled outline, because it has not happened.</li>
+            <li>The <b>playhead</b> is now. Pause anywhere and the right-hand column describes the company at that instant.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Two futures</h5>
+          <ul>
+            <li><b>Solid, warm</b> = Experiment, the scenario you steer.</li>
+            <li><b>Dashed, cool</b> = Base, the frozen reference. It never changes.</li>
+            <li>When the assumptions match, the dashed line lies exactly on the mass. Move a force and the mass pulls away from its own ghost — the future itself has changed.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>The capital loop <span style="color:var(--ink-4);text-transform:none;letter-spacing:0">— concept study</span></h5>
+          <ul>
+            <li><b>The drop</b> at a cohort's acquisition month = the acquisition cost stamped on it when it was created. Capital leaving.</li>
+            <li><b>Below the surface</b> = capital still out: acquisition cost minus that cohort's cumulative gross profit.</li>
+            <li><b>The crossing</b> = payback — the first month cumulative gross profit reaches the acquisition cost. <b>The horizontal distance from the drop to the crossing is the payback time.</b></li>
+            <li><b>Above the surface</b> = gross profit beyond the acquisition cost attributed to that cohort. Not profit, value or ROI.</li>
+            <li><b>GP by vintage</b> shows which historical cohorts produce today's gross profit — the delayed return on capital deployed months or years ago.</li>
+            <li><b>The dashed cool curve</b> is the same cohort under Base. When retention or margin changes, the two recovery curves separate even though the money spent was identical.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>The Pulse <span style="color:var(--ink-4);text-transform:none;letter-spacing:0">— Flow layer</span></h5>
+          <ul>
+            <li><b>Nine steps, in the engine's own order.</b> Opening → leakage → expansion → new cohort → closing → revenue → margin → operating → cash. The order is the interaction; the formula for each step is on the transport bar.</li>
+            <li><b>Two columns, three bands.</b> The bands between them are the sums of the movements marked inside the strata — and the bridge residual is shown, so the identity proves itself.</li>
+            <li><b>Expansion applies to RETAINED ARR</b>, not opening. <b>Revenue comes from the midpoint</b> of opening and closing, marked with a dashed line — not from closing alone.</li>
+            <li><b>Three declared scales</b>, printed on screen: stock, ARR movement, and € per month. One month of flow is about 1% of the stock, so they cannot share a scale honestly.</li>
+            <li><b>Controls sit on the laws</b> they govern — persistence under the leakage band, gross margin at the revenue split.</li>
+            <li><b>Delta Pulse</b> renders Experiment − Base only. Base becomes zero, the delta becomes the whole canvas, and nothing is exaggerated to make it visible.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Disclosed boundaries</h5>
+          <ul>
+            <li>This is an <b>economic attribution</b>. Gross profit does not literally flow back to the euro of S&amp;M that was spent.</li>
+            <li><b>FCF = EBITA.</b> No working capital, deferred revenue, tax or capex — so cash timing is pessimistic for a fast grower.</li>
+            <li><b>Expansion carries no modelled acquisition cost.</b> An explicit current physics assumption, not a claim about SaaS.</li>
+            <li><b>One uniform gross margin applies to every cohort</b>, so GP-by-vintage is the ARR mix scaled by a constant. It carries no information the strata do not already carry.</li>
+            <li>Nothing here is discounted, and no valuation or embedded value is computed.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="note">Illustrative company. No real data. Forward GP density, valuation and ARR quality are deliberately absent — this prototype visualises the frozen v0.3 engine and adds no economics of its own.</div>
+    </div>
+  </main>
+
+  <aside class="side" id="side"></aside>
+
+  <div class="transport">
+    <button class="tbtn play" id="play" aria-label="Play or pause"></button>
+    <button class="tbtn" id="rewind" aria-label="Reset to month zero">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20 9 12l10-8zM5 19V5"></path></svg>
+    </button>
+    <span class="tlabel num" id="tlabel"></span>
+    <input type="range" id="scrub" min="0" max="60" step="0.02" value="0">
+    <span class="eyebrow">Speed</span>
+    <div class="btn-row" id="speeds"></div>
+  </div>
+</div>
+
+<script>/*
+ * SaaS Physics — Prototype 0
+ * Deterministic monthly economic engine. No DOM, no randomness, no I/O.
+ *
+ * ONE source of truth: this file is required by the Node checks/scenarios AND
+ * inlined verbatim into the inspection UI by build.js. Base and Experiment
+ * scenarios call the same run() with different assumption objects.
+ *
+ * LAYER A — ECONOMIC / STATE-TRANSITION ENGINE.
+ * This file is the world, not the report on it. Its parameters are TRANSITION
+ * COEFFICIENTS that govern how cohort ARR state evolves month to month. They are
+ * deliberately NOT the CFO-reported KPIs of the same-sounding names: the reported
+ * KPIs are computed by Layer B (kpi.js) by measuring this world's output. See
+ * docs/MEASUREMENT.md.
+ *
+ * RECURRING-REVENUE STATE (v0.3 clarity-pass follow-up, MRR-native refactor).
+ * The cohort/company recurring-revenue state the engine actually carries and
+ * evolves month to month is MRR (openingMRR/retainedMRR/leakageMRR/
+ * expansionMRR/closingMRR/newMRR, and Revenue = (OpeningMRR+ClosingMRR)/2 —
+ * no /12 anywhere in the transition). ARR (openingARR/closingARR/leakage/
+ * expansion/newARR, all pre-existing field names) is kept as a DERIVED
+ * reporting view, computed as exactly 12 x the matching MRR quantity in the
+ * same month — never re-derived independently. This is a unit refactor: the
+ * transition coefficients, their order of application, the KPI definitions
+ * and every scenario are unchanged; only which unit is native moved from ARR
+ * to MRR. See docs/ARCHITECTURE.md.
+ *
+ * MODEL VERSION: v0.3
+ *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
+ *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
+ *   identical), so the shipped default reproduces v0.2.1 exactly and the model
+ *   privileges no direction. Cohorts also carry acquisition-cost provenance.
+ *   v0.1 → v0.2: the acquisition primitive is inverted. CAC per €1 of New ARR is
+ *   now the input and CAC payback is an emergent output. Everything else about the
+ *   engine is unchanged. Weaknesses are flagged in docs/FINDINGS.md, never silently
+ *   "improved".
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysics = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  var HORIZON = 60;
+
+  /* ------------------------------------------------------------------ *
+   * 15. Conceptual classification — kept explicit, not collapsed to KPIs
+   * ------------------------------------------------------------------ */
+  var TAXONOMY = {
+    STATE: {
+      openingARR:  'Installed-base ARR at start of month (stock)',
+      closingARR:  'Installed-base ARR at end of month (stock)',
+      cohortARR:   'Per-cohort ARR balance (stock)',
+      cash:        'Cash balance (stock)'
+    },
+    FLOW: {
+      newARR:      'ARR added by acquisition this month',
+      expansion:   'ARR added by the installed base this month',
+      leakage:     'ARR lost by the installed base this month (churn + contraction combined in v0.1)',
+      revenue:     'Recognised revenue this month',
+      cogs:        'Cost of revenue this month',
+      grossProfit: 'Revenue less COGS this month',
+      ebita:       'Gross profit less S&M, R&D, G&A',
+      fcf:         'Free cash flow (= EBITA in v0.1)'
+    },
+    /* TRANSITION COEFFICIENTS — they govern the world. They are not measurements,
+       and they do not equal the KPIs of similar name. */
+    TRANSITION: {
+      persistenceAnnual:          'Annual persistence coefficient — 12-month multiplicative survival of installed ARR, applied BEFORE expansion. NOT reported GRR.',
+      expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
+      grossMargin:                'Gross margin coefficient',
+      cacPerARR:                  'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity'
+    },
+    CONTROL: {
+      sm: 'Monthly S&M investment (management control)',
+      rd: 'Monthly R&D investment (management control)',
+      ga: 'Monthly G&A investment (management control)'
+    },
+    /* MEASURED — produced by Layer B (kpi.js) by observing the world. Never settable. */
+    MEASURED: {
+      r12mGRR:          'R12M gross revenue retention over a frozen eligible cohort — see kpi.js',
+      r12mExpansion:    'R12M expansion rate over the same frozen cohort',
+      r12mNRR:          'R12M net revenue retention = closing eligible ARR / opening ARR',
+      cacPaybackMonths: 'Months of gross profit to repay acquisition cost — OUTPUT of cacPerARR and gross margin',
+      arrGrowthYoY:     'ARR growth',
+      ebitaMargin:      'EBITA margin',
+      burn:             'Cash burn when FCF < 0'
+    }
+  };
+
+  /* Illustrative defaults. Not real company data. */
+  var DEFAULT_ASSUMPTIONS = {
+    sm:                         900000,  // CONTROL   €/month
+    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR
+    persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
+    expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
+    grossMargin:                0.80,    // TRANSITION
+    rd:                         700000,  // CONTROL   €/month
+    ga:                         350000   // CONTROL   €/month
+  };
+  /* AGE BANDS (v0.3). Three bands by cohort age in months at the START of a month:
+     band 1 covers ages 0..11, band 2 covers 12..23, band 3 covers 24 and above.
+     Each band carries its OWN persistence and expansion coefficient — six
+     transition parameters in total, and no other new behavioural coefficient.
+
+     The DEFAULT is flat: every band inherits the scalar coefficients, so the
+     default world is exactly v0.2.1 and age carries no economic meaning until a
+     user makes it carry some. The simulator takes no position on whether older
+     cohorts are better, worse, or the same. */
+  var BAND_EDGES = [12, 24, Infinity];
+  var BAND_NAMES = ['Early', 'Developing', 'Mature'];
+
+  function resolveBands(a) {
+    if (a.bands && a.bands.length === 3) return a.bands;
+    return BAND_NAMES.map(function (n, i) {
+      return { name: n, maxAgeExclusive: BAND_EDGES[i],
+               persistenceAnnual: a.persistenceAnnual,
+               expansionCoefficientAnnual: a.expansionCoefficientAnnual };
+    });
+  }
+  function bandFor(bands, ageAtStart) {
+    for (var i = 0; i < bands.length; i++) if (ageAtStart < bands[i].maxAgeExclusive) return i;
+    return bands.length - 1;
+  }
+
+  /* NOTE ON NAMES. persistenceAnnual is NOT reported GRR and expansionCoefficientAnnual
+     is NOT reported expansion. At these defaults the measurement layer reports GRR
+     89.56% and expansion 9.44% — see rateDiagnostics() and docs/MEASUREMENT.md. */
+  /* cacPerARR 1.20 with GM 80% reproduces the v0.1 baseline exactly:
+     v0.1 CAC payback 18 months  ⇔  cacPerARR = payback × GM / 12 = 18 × 0.80 / 12 = 1.20 */
+
+  var DEFAULT_START = {
+    openingARR:  20000000,      // STATE €20.0m
+    openingCash: 10000000,      // STATE €10.0m
+    /* v0.3: the opening base may be a portfolio of vintages. Each entry is
+       { arr, age } where age is the cohort's age in months at t=0. Omit for the
+       v0.2.1 behaviour of one opening cohort at age 0. */
+    openingCohorts: null
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Rate conversions (spec §5)
+   * ------------------------------------------------------------------ */
+  function toMonthlyPersistence(persistenceAnnual) { return Math.pow(persistenceAnnual, 1 / 12); }
+
+  /* Geometric conversion so that 12 compounded monthly steps reproduce the
+   * stated annual expansion exactly: (1+e_m)^12 = 1+e_a */
+  function toMonthlyExpansion(expAnnual) { return Math.pow(1 + expAnnual, 1 / 12) - 1; }
+
+  /* ------------------------------------------------------------------ *
+   * v0.2 acquisition physics
+   *
+   * PRIMITIVE — acquisition productivity, a dimensionless ratio:
+   *   cacPerARR = acquisition spend / New ARR generated
+   *
+   * New ARR generated per year of spend:
+   *   annual New ARR = (Monthly S&M x 12) / cacPerARR
+   * so the ARR added to the stock in one month is:
+   *   monthly New ARR = Monthly S&M / cacPerARR
+   *
+   * UNITS. sm is €/month. cacPerARR is dimensionless. newARRPerMonth is therefore
+   * € of ARR (an annualised-run-rate quantity) added to the ARR stock each month —
+   * the same interpretation the v0.1 engine used, so every downstream identity,
+   * cohort rule and reconciliation is untouched.
+   *
+   * Gross margin does NOT appear here. That is the whole point of v0.2: acquisition
+   * productivity determines how much ARR the spend creates; gross margin determines
+   * how fast that investment is recovered, and shows up in cacPaybackMonths below.
+   *
+   * Still linear, instantaneous and unbounded in S&M — no capacity, ramp, pipeline,
+   * conversion, diminishing returns or acquisition lag. See FINDINGS.md.
+   * ------------------------------------------------------------------ */
+  function newARRPerMonth(a) {
+    if (!(a.cacPerARR > 0)) return 0;
+    return a.sm / a.cacPerARR;
+  }
+
+  /* MRR-NATIVE. cacPerARR is unchanged as the public assumption — € of S&M
+   * per €1 of annualised New ARR, still 1.20 by default. The engine's own
+   * state is MRR, so New MRR is simply New ARR ÷ 12 — the same acquisition
+   * formula above, taken in the unit the engine now carries forward.
+   * Normalised the other way round, this is S&M ÷ cacPerMRR with
+   * cacPerMRR = cacPerARR x 12 = 14.40 by default; both give the same
+   * number, exactly. */
+  function cacPerMRR(a) { return a.cacPerARR * 12; }
+  function newMRRPerMonth(a) { return newARRPerMonth(a) / 12; }
+
+  /* EMERGENT. Months of gross profit needed to repay the acquisition cost of €1 of
+   * New ARR:  CAC = cacPerARR;  monthly gross profit on €1 of ARR = GM / 12.
+   *   payback = cacPerARR / (GM / 12) = cacPerARR x 12 / GM
+   * Equivalently, in MRR terms: CAC = cacPerMRR; monthly gross profit on €1
+   * of MRR = GM (MRR already IS the monthly amount) — payback = cacPerMRR / GM,
+   * the same number.
+   * Never an input, and never used to generate New ARR/MRR. */
+  function cacPaybackMonths(a) {
+    if (!(a.grossMargin > 0)) return Infinity;
+    return (a.cacPerARR * 12) / a.grossMargin;
+  }
+
+  function normaliseAssumptions(a) {
+    return Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+  }
+
+  /* ------------------------------------------------------------------ *
+   * The engine
+   * ------------------------------------------------------------------ */
+  function run(assumptions, start, horizon) {
+    var a = normaliseAssumptions(assumptions);
+    var s = Object.assign({}, DEFAULT_START, start || {});
+    var H = horizon || HORIZON;
+
+    var gM = toMonthlyPersistence(a.persistenceAnnual);
+    var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
+    /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
+       newARR (still newARRPerMonth(a), unchanged) is kept as the exact
+       12x-derived reporting figure every existing caller reads. */
+    var newARR = newARRPerMonth(a);
+    var newMRR = newARR / 12;
+
+    var bands = resolveBands(a);
+    var bandRates = bands.map(function (b) {
+      return { name: b.name, maxAgeExclusive: b.maxAgeExclusive,
+               persistenceAnnual: b.persistenceAnnual,
+               expansionCoefficientAnnual: b.expansionCoefficientAnnual,
+               g: toMonthlyPersistence(b.persistenceAnnual),
+               e: toMonthlyExpansion(b.expansionCoefficientAnnual) };
+    });
+
+    /* 4. The company IS a set of cohorts. Aggregates are only ever sums.
+       v0.3: the opening base may be several vintages of different ages. */
+    var seed = (s.openingCohorts && s.openingCohorts.length)
+      ? s.openingCohorts
+      : [{ arr: s.openingARR, age: 0 }];
+    var cohorts = seed.map(function (c, i) {
+      return {
+        id: seed.length === 1 ? 'base' : 'base' + (i + 1),
+        label: c.label || (seed.length === 1 ? 'Opening base' : 'Opening vintage, age ' + c.age),
+        acquisitionMonth: 0,
+        initialAge: c.age || 0,
+        initialARR: c.arr,
+        /* MRR-NATIVE: c.arr is the public, ARR-denominated seed input
+           (unchanged API); live is the engine's own state, carried in MRR. */
+        live: c.arr / 12,
+        /* PROVENANCE. The cost of creating the opening base happened before the
+           simulation and is genuinely unknown — recorded as null, never as zero. */
+        acquisitionCost: null,
+        cacPerARRAtCreation: null,
+        rows: []
+      };
+    });
+
+    var months = [];
+    var cash = s.openingCash;
+    var nrrMonthlyHistory = [];
+    var cum = { newARR: 0, expansion: 0, leakage: 0, revenue: 0, cogs: 0,
+                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0 };
+
+    function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
+
+    for (var t = 1; t <= H; t++) {
+      var openingMRR = 0, i, c;
+      for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
+
+      var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0;
+
+      /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
+         Same transition coefficients, same order, same identities as before —
+         only the unit the state is carried in changed, from ARR to MRR. ARR
+         fields below are kept for every existing reader, each now DERIVED as
+         exactly 12 x the MRR quantity computed the same month.
+         v0.3: the coefficients used are those of the band the cohort occupies at
+         the START of the month. Nothing else about the transition changed. */
+      for (i = 0; i < cohorts.length; i++) {
+        c = cohorts[i];
+        var ageEnd     = c.initialAge + (t - c.acquisitionMonth);
+        var ageAtStart = ageEnd - 1;
+        var bi = bandFor(bandRates, ageAtStart);
+        var br = bandRates[bi];
+        var openingC  = c.live;
+        var retainedC = openingC * br.g;            // persistence can only shrink or hold
+        var leakageC  = openingC - retainedC;        // churn + contraction combined
+        var expansionC= retainedC * br.e;            // expansion applies to RETAINED MRR
+        var closingC  = retainedC + expansionC;
+        var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
+        var revenue   = avgMRR;                       // MRR already IS the monthly amount
+        var gp        = revenue * a.grossMargin;
+
+        c.rows.push({
+          t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
+          openingMRR: openingC, retainedMRR: retainedC, leakageMRR: leakageC,
+          expansionMRR: expansionC, closingMRR: closingC,
+          openingARR: openingC * 12, retainedARR: retainedC * 12, leakage: leakageC * 12,
+          expansion: expansionC * 12, closingARR: closingC * 12,
+          revenue: revenue, grossProfit: gp
+        });
+        c.live = closingC;
+
+        totRetainedMRR += retainedC; totLeakageMRR += leakageC;
+        totExpansionMRR += expansionC; totRevenue += revenue;
+      }
+
+      /* --- New acquisition cohort is created AFTER the base has aged --- */
+      var nc = {
+        id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
+        initialARR: newMRR * 12, live: newMRR, rows: [],
+        /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
+           economics in force in that month. Immutable thereafter, and never read
+           by any forward transition — it is a sunk cost, not a forward penalty. */
+        acquisitionCost: a.sm,
+        cacPerARRAtCreation: a.cacPerARR
+      };
+      var ncRevenue = (0 + newMRR) / 2;    // half a month of MRR, same midpoint rule
+      nc.rows.push({
+        t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
+        openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: newMRR,
+        openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newMRR * 12,
+        revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin
+      });
+      cohorts.push(nc);
+      totRevenue += ncRevenue;
+
+      var closingMRR = totRetainedMRR + totExpansionMRR + newMRR;
+
+      /* --- 7/8. Revenue and gross profit (company = sum of cohorts) --- */
+      var avgMRRco  = (openingMRR + closingMRR) / 2;
+      var revenue   = avgMRRco;              // MRR-NATIVE: no /12 — MRR is already monthly
+      var cogs      = revenue * (1 - a.grossMargin);
+      var grossProfit = revenue * a.grossMargin;
+
+      /* --- 9. EBITA --- */
+      var ebita = grossProfit - a.sm - a.rd - a.ga;
+
+      /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed. --- */
+      var fcf = ebita;
+      var cashOpening = cash;
+      var cashClosing = cashOpening + fcf;
+      cash = cashClosing;
+
+      /* --- 11. NRR: eligible OPENING installed base only, New MRR excluded ---
+         Ratio of same-unit MRR quantities — numerically identical whichever
+         scale (MRR or ARR) it is taken in, so unaffected by the refactor. */
+      var nrrMonthly = openingMRR > 0 ? (totRetainedMRR + totExpansionMRR) / openingMRR : 1;
+      nrrMonthlyHistory.push(nrrMonthly);
+      var window = nrrMonthlyHistory.slice(-12);
+      var prod = window.reduce(function (p, x) { return p * x; }, 1);
+      var nrrAnnualised = Math.pow(prod, 12 / window.length);
+
+      var openingARR = openingMRR * 12, closingARR = closingMRR * 12;
+      var totRetainedARR = totRetainedMRR * 12, totLeakageARR = totLeakageMRR * 12, totExpansionARR = totExpansionMRR * 12;
+
+      cum.newARR += newARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
+      cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
+      cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga;
+      cum.ebita += ebita; cum.fcf += fcf;
+
+      months.push({
+        t: t,
+        year: Math.ceil(t / 12),
+        quarter: Math.ceil(t / 3),
+        /* MRR-NATIVE state (the engine's own quantities) */
+        openingMRR: openingMRR,
+        retainedMRR: totRetainedMRR,
+        leakageMRR: totLeakageMRR,
+        expansionMRR: totExpansionMRR,
+        newMRR: newMRR,
+        closingMRR: closingMRR,
+        avgMRR: avgMRRco,
+        /* ARR — DERIVED reporting view, ARR = 12 x MRR, exactly */
+        openingARR: openingARR,
+        retainedARR: totRetainedARR,
+        leakage: totLeakageARR,
+        expansion: totExpansionARR,
+        newARR: newARR,
+        closingARR: closingARR,
+        cohortRevenueSum: totRevenue,
+        avgARR: avgMRRco * 12,
+        revenue: revenue,
+        cogs: cogs,
+        grossProfit: grossProfit,
+        sm: a.sm, rd: a.rd, ga: a.ga,
+        ebita: ebita,
+        ebitaMargin: revenue > 0 ? ebita / revenue : 0,
+        fcf: fcf,
+        burn: fcf < 0 ? -fcf : 0,
+        cashOpening: cashOpening,
+        cashClosing: cashClosing,
+        nrrMonthly: nrrMonthly,               /* chained transition NRR, not the R12M KPI */
+        nrrAnnualised: nrrAnnualised,         /* chained monthly NRR annualised — see kpi.js for the KPI */
+        arrGrowthMoM: openingARR > 0 ? closingARR / openingARR - 1 : 0,
+        arrGrowthYoY: t >= 12 ? closingARR / closingAt(t - 12) - 1 : null,
+        cohortCount: cohorts.length,
+        cumulative: Object.assign({}, cum)
+      });
+    }
+
+    /* --- Cohort cumulatives --- */
+    for (var k = 0; k < cohorts.length; k++) {
+      var co = cohorts[k];
+      var cl = 0, ce = 0, cr = 0, cg = 0;
+      for (var r = 0; r < co.rows.length; r++) {
+        cl += co.rows[r].leakage; ce += co.rows[r].expansion;
+        cr += co.rows[r].revenue; cg += co.rows[r].grossProfit;
+        co.rows[r].cumLeakage = cl; co.rows[r].cumExpansion = ce;
+        co.rows[r].cumRevenue = cr; co.rows[r].cumGrossProfit = cg;
+      }
+      co.cumLeakage = cl; co.cumExpansion = ce;
+      co.cumRevenue = cr; co.cumGrossProfit = cg;
+      co.finalMRR = co.live;
+      co.finalARR = co.live * 12;
+    }
+
+    return {
+      modelVersion: '0.3',
+      assumptions: a,
+      start: s,
+      horizon: H,
+      bands: bandRates,
+      bandsAreFlat: bandRates.every(function (b) {
+        return b.persistenceAnnual === bandRates[0].persistenceAnnual &&
+               b.expansionCoefficientAnnual === bandRates[0].expansionCoefficientAnnual;
+      }),
+      derived: {
+        monthlyPersistence: gM,
+        monthlyExpansion: eM,
+        newMRRPerMonth: newMRR,                       // € of MRR added per month — MRR-NATIVE
+        newARRPerMonth: newARR,                       // € of ARR added per month — DERIVED, = 12 x newMRR
+        newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
+        annualAcquisitionSpend: a.sm * 12,
+        cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
+        cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
+        impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
+        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
+      },
+      months: months,
+      cohorts: cohorts
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Read helpers used by both the UI and the reports
+   * ------------------------------------------------------------------ */
+  function bridge(res, t) {
+    var m = res.months[t - 1];
+    return {
+      t: t,
+      openingARR: m.openingARR,
+      newARR: m.newARR,
+      expansion: m.expansion,
+      leakage: m.leakage,
+      closingARR: m.closingARR,
+      residual: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR
+    };
+  }
+
+  function cohortSnapshot(res, t) {
+    var out = [];
+    for (var i = 0; i < res.cohorts.length; i++) {
+      var c = res.cohorts[i];
+      if (c.acquisitionMonth > t) continue;
+      /* base cohort rows start at t=1; acquisition cohorts start at t=acquisitionMonth */
+      var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+      var row = c.rows[idx];
+      if (!row) continue;
+      out.push({
+        id: c.id,
+        acquisitionMonth: c.acquisitionMonth,
+        bandName: row.bandName,
+        acquisitionCost: c.acquisitionCost,
+        cacPerARRAtCreation: c.cacPerARRAtCreation,
+        age: row.age,
+        initialARR: c.initialARR,
+        openingARR: row.openingARR,
+        currentARR: row.closingARR,
+        leakage: row.leakage,
+        expansion: row.expansion,
+        cumLeakage: row.cumLeakage,
+        cumExpansion: row.cumExpansion,
+        cumRevenue: row.cumRevenue,
+        cumGrossProfit: row.cumGrossProfit,
+        retainedShare: c.initialARR > 0 ? row.closingARR / c.initialARR : 0
+      });
+    }
+    return out;
+  }
+
+  /* ARR mix at month t: opening base vs cohorts by acquisition year */
+  function arrMix(res, t) {
+    var snap = cohortSnapshot(res, t);
+    var total = snap.reduce(function (s, c) { return s + c.currentARR; }, 0);
+    var buckets = { base: 0, y1: 0, y2: 0, y3: 0, y4: 0, y5: 0 };
+    snap.forEach(function (c) {
+      if (c.acquisitionMonth === 0) buckets.base += c.currentARR;
+      else buckets['y' + Math.ceil(c.acquisitionMonth / 12)] += c.currentARR;
+    });
+    var shares = {};
+    Object.keys(buckets).forEach(function (k) { shares[k] = total > 0 ? buckets[k] / total : 0; });
+    return { total: total, amounts: buckets, shares: shares };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Rate-conversion diagnostics (brief §8).
+   *
+   * The engine converts both annual rates geometrically and applies expansion to
+   * RETAINED ARR, so monthly NRR = mGRR x (1 + mExp) and twelve of those compound
+   * to exactly GRR x (1 + expansion). The intended annual NRR is reproduced exactly.
+   *
+   * What is NOT reproduced exactly is the DECOMPOSITION. A CFO measures annual gross
+   * retention as (leakage over the year / opening ARR) and annual expansion as
+   * (expansion over the year / opening ARR). Both of those flows accrue on a base
+   * that moves during the year, and expansion accrues on the post-churn base, so the
+   * measured rates differ from the input rates even though their net effect does not.
+   * This function reports both so the gap is visible rather than assumed away.
+   * ------------------------------------------------------------------ */
+  function rateDiagnostics(res) {
+    var a = res.assumptions, gM = res.derived.monthlyPersistence, eM = res.derived.monthlyExpansion;
+    var base = res.cohorts[0], rows = base.rows.slice(0, 12);
+    var opening = base.initialARR;
+    var leak = 0, exp = 0;
+    rows.forEach(function (r) { leak += r.leakage; exp += r.expansion; });
+    var closing = rows.length ? rows[rows.length - 1].closingARR : opening;
+    return {
+      inputPersistenceAnnual: a.persistenceAnnual,
+      inputExpansionCoefficient: a.expansionCoefficientAnnual,
+      monthlyPersistence: gM,
+      monthlyExpansion: eM,
+      monthlyNRR: gM * (1 + eM),
+      twelveMonthPersistence: Math.pow(gM, 12),                 // = input GRR
+      twelveMonthExpansionCoefficient: Math.pow(1 + eM, 12) - 1,   // = input expansion
+      twelveMonthNRRCompounded: Math.pow(gM * (1 + eM), 12),      // = GRR x (1 + expansion)
+      /* measured the way a finance team would, from the first 12 months of the
+         opening cohort's actual flows. See kpi.js for the general R12M measurement. */
+      realisedGrossRetention: opening > 0 ? 1 - leak / opening : 1,
+      realisedExpansionRate: opening > 0 ? exp / opening : 0,
+      realisedNRR: opening > 0 ? closing / opening : 1,
+      realisedLeakage: leak,
+      realisedExpansion: exp
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 14. Explainability — every number below comes out of the simulation,
+   * none of it is asserted prose. Shared by the report and the UI.
+   * ------------------------------------------------------------------ */
+  function summarise(res) {
+    var last = res.months[res.horizon - 1];
+    var y5 = yearSlice(res, Math.ceil(res.horizon / 12));
+    var cum = last.cumulative;
+    var trough = res.months.reduce(function (lo, m) { return m.cashClosing < lo.cashClosing ? m : lo; }, res.months[0]);
+    var firstProfit = null, firstOutOfCash = null;
+    for (var i = 0; i < res.months.length; i++) {
+      if (firstProfit === null && res.months[i].ebita > 0) firstProfit = res.months[i].t;
+      if (firstOutOfCash === null && res.months[i].cashClosing < 0) firstOutOfCash = res.months[i].t;
+    }
+    var mix = arrMix(res, res.horizon);
+    function arrAtYear(y) { var i = y * 12 - 1; return i < res.months.length ? res.months[i].closingARR : null; }
+    return {
+      newARRPerMonth: res.derived.newARRPerMonth,
+      cacPaybackMonths: res.derived.cacPaybackMonths,
+      y1ARR: arrAtYear(1), y3ARR: arrAtYear(3),
+      openingCohortARR: mix.amounts.base,
+      acquiredCohortARR: mix.total - mix.amounts.base,
+      finalARR: last.closingARR,
+      finalNRR: last.nrrAnnualised,
+      finalGrowthYoY: last.arrGrowthYoY,
+      cumNewARR: cum.newARR,
+      cumExpansion: cum.expansion,
+      cumLeakage: cum.leakage,
+      cumRevenue: cum.revenue,
+      cumGrossProfit: cum.grossProfit,
+      cumEbita: cum.ebita,
+      cumSM: cum.sm,
+      finalYearFCF: y5.fcf,
+      finalYearGrossProfit: y5.grossProfit,
+      finalYearEbitaMargin: y5.ebitaMargin,
+      endingCash: last.cashClosing,
+      cashTrough: trough.cashClosing,
+      cashTroughMonth: trough.t,
+      firstProfitableMonth: firstProfit,
+      firstNegativeCashMonth: firstOutOfCash,
+      baseCohortShare: mix.shares.base,
+      mix: mix
+    };
+  }
+
+  function compare(baseRes, expRes) {
+    var b = summarise(baseRes), x = summarise(expRes);
+    var delta = {};
+    Object.keys(b).forEach(function (k) {
+      if (typeof b[k] === 'number' && typeof x[k] === 'number') delta[k] = x[k] - b[k];
+    });
+    var changed = [];
+    Object.keys(expRes.assumptions).forEach(function (k) {
+      if (k === 'bands') return;                       // structural, compared separately
+      if (expRes.assumptions[k] !== baseRes.assumptions[k]) {
+        changed.push({ key: k, from: baseRes.assumptions[k], to: expRes.assumptions[k] });
+      }
+    });
+    var bandsChanged = JSON.stringify(baseRes.bands.map(function (bb) {
+      return [bb.persistenceAnnual, bb.expansionCoefficientAnnual]; })) !==
+      JSON.stringify(expRes.bands.map(function (bb) {
+        return [bb.persistenceAnnual, bb.expansionCoefficientAnnual]; }));
+    return { base: b, experiment: x, delta: delta, changed: changed, bandsChanged: bandsChanged };
+  }
+
+  function yearSlice(res, year) {
+    var ms = res.months.filter(function (m) { return m.year === year; });
+    var last = ms[ms.length - 1];
+    var sum = function (k) { return ms.reduce(function (s, m) { return s + m[k]; }, 0); };
+    return {
+      year: year,
+      closingARR: last.closingARR,
+      newARR: sum('newARR'),
+      expansion: sum('expansion'),
+      leakage: sum('leakage'),
+      revenue: sum('revenue'),
+      grossProfit: sum('grossProfit'),
+      ebita: sum('ebita'),
+      fcf: sum('fcf'),
+      burn: sum('burn'),
+      cashClosing: last.cashClosing,
+      nrrAnnualised: last.nrrAnnualised,
+      arrGrowthYoY: last.arrGrowthYoY,
+      ebitaMargin: sum('revenue') > 0 ? sum('ebita') / sum('revenue') : 0
+    };
+  }
+
+  function annualSummary(res) {
+    var years = [], n = Math.ceil(res.horizon / 12);
+    for (var y = 1; y <= n; y++) years.push(yearSlice(res, y));
+    return years;
+  }
+
+  return {
+    HORIZON: HORIZON,
+    TAXONOMY: TAXONOMY,
+    DEFAULT_ASSUMPTIONS: DEFAULT_ASSUMPTIONS,
+    DEFAULT_START: DEFAULT_START,
+    BAND_EDGES: BAND_EDGES,
+    BAND_NAMES: BAND_NAMES,
+    resolveBands: resolveBands,
+    bandFor: bandFor,
+    toMonthlyPersistence: toMonthlyPersistence,
+    toMonthlyExpansion: toMonthlyExpansion,
+    newARRPerMonth: newARRPerMonth,
+    newMRRPerMonth: newMRRPerMonth,
+    cacPerMRR: cacPerMRR,
+    run: run,
+    bridge: bridge,
+    cohortSnapshot: cohortSnapshot,
+    arrMix: arrMix,
+    yearSlice: yearSlice,
+    rateDiagnostics: rateDiagnostics,
+    cacPaybackMonths: cacPaybackMonths,
+    summarise: summarise,
+    compare: compare,
+    annualSummary: annualSummary
+  };
+});
+</script>
+<script>/*
+ * SaaS Physics — LAYER B: KPI MEASUREMENT ENGINE
+ *
+ * This file contains no economics. It observes a simulation produced by the
+ * economic engine (engine.js) and computes CFO-facing measurements using explicit,
+ * canonical definitions.
+ *
+ * GOVERNING PRINCIPLE
+ *   The business exists first. KPIs are measurements taken from it.
+ *   A KPI definition must never become an economic law.
+ *
+ * Consequently the transition coefficients that drive the world (persistenceAnnual,
+ * expansionCoefficientAnnual) are NOT the KPIs of similar name, and this file is
+ * where the difference is made computable rather than assumed away.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsKPI = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  var WINDOW = 12;
+
+  /* Row lookup: the base cohort's rows start at t=1; an acquisition cohort's rows
+     start at t = its acquisition month. */
+  function rowAt(c, t) {
+    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * CANONICAL R12M MEASUREMENT
+   *
+   * 1. Identify the ARR existing exactly 12 months before the measurement date.
+   * 2. Freeze that eligible cohort.
+   * 3. Follow only that cohort through the 12-month window.
+   * 4. Exclude every euro of New ARR created after the opening date.
+   * 5. Track surviving opening ARR, leakage (churn + contraction), and the
+   *    expansion attributable to the frozen cohort, separately.
+   *
+   * Definitions (all denominators are the FROZEN opening ARR):
+   *   R12M GRR       = (Opening − Churn − Contraction) / Opening
+   *                  = (Opening − Leakage) / Opening        [v0.2.1: leakage is combined]
+   *   R12M Expansion = Expansion / Opening
+   *   R12M NRR       = (Opening + Expansion − Leakage) / Opening
+   *                  = Closing ARR of the eligible cohort / Opening
+   *
+   * Expansion cannot improve GRR: it does not appear in the GRR numerator.
+   * New ARR cannot enter any of the three: it is not in the eligible cohort.
+   * ------------------------------------------------------------------ */
+  function measureR12M(res, T) {
+    if (T < WINDOW) return null;
+    var start = T - WINDOW + 1;             // first month inside the window
+    var asOf  = T - WINDOW;                 // the "12 months earlier" boundary
+    var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
+
+    var opening = 0, leakage = 0, expansion = 0, closing = 0, contributions = [];
+    eligible.forEach(function (c) {
+      var first = rowAt(c, start);
+      if (!first) return;
+      var o = first.openingARR, lk = 0, ex = 0, last = null;
+      for (var t = start; t <= T; t++) {
+        var r = rowAt(c, t);
+        if (!r) break;
+        lk += r.leakage; ex += r.expansion; last = r;
+      }
+      opening += o; leakage += lk; expansion += ex; closing += last ? last.closingARR : 0;
+      contributions.push({
+        id: c.id, acquisitionMonth: c.acquisitionMonth, ageAtOpening: start - 1 - c.acquisitionMonth,
+        openingARR: o, leakage: lk, expansion: ex, closingARR: last ? last.closingARR : 0,
+        grr: o > 0 ? (o - lk) / o : 1, nrr: o > 0 ? (last ? last.closingARR : 0) / o : 1
+      });
+    });
+
+    /* New ARR created inside the window — reported, but excluded from the cohort */
+    var newARRExcluded = 0;
+    for (var t2 = start; t2 <= T; t2++) newARRExcluded += res.months[t2 - 1].newARR;
+
+    var grr = opening > 0 ? (opening - leakage) / opening : 1;
+    var exr = opening > 0 ? expansion / opening : 0;
+    var nrr = opening > 0 ? closing / opening : 1;
+
+    return {
+      T: T, windowStart: start, asOf: asOf,
+      eligibleCohortCount: eligible.length,
+      openingARR: opening,
+      expansion: expansion,
+      leakage: leakage,
+      closingEligibleARR: closing,
+      bridgeResidual: opening + expansion - leakage - closing,
+      grr: grr,
+      expansionRate: exr,
+      nrr: nrr,
+      nrrFromBridge: opening > 0 ? (opening + expansion - leakage) / opening : 1,
+      identityResidual: (grr + exr) - nrr,
+      newARRExcluded: newARRExcluded,
+      companyOpeningARR: res.months[start - 1].openingARR,
+      companyClosingARR: res.months[T - 1].closingARR,
+      arrGrowth: res.months[start - 1].openingARR > 0
+        ? res.months[T - 1].closingARR / res.months[start - 1].openingARR - 1 : 0,
+      contributions: contributions
+    };
+  }
+
+  function measureSeries(res) {
+    var out = [];
+    for (var T = WINDOW; T <= res.horizon; T++) out.push(measureR12M(res, T));
+    return out;
+  }
+
+  /* Company-level KPIs over the same trailing-12 window. These are P&L and cash
+     measurements; they need no cohort freezing. */
+  function companyKPIs(res, T) {
+    var start = Math.max(1, T - WINDOW + 1), ms = res.months.slice(start - 1, T);
+    var sum = function (k) { return ms.reduce(function (s, m) { return s + m[k]; }, 0); };
+    var revenue = sum('revenue');
+    return {
+      T: T,
+      newARR: sum('newARR'),
+      revenue: revenue,
+      grossProfit: sum('grossProfit'),
+      grossMargin: revenue > 0 ? sum('grossProfit') / revenue : 0,
+      ebita: sum('ebita'),
+      ebitaMargin: revenue > 0 ? sum('ebita') / revenue : 0,
+      fcf: sum('fcf'),
+      cash: res.months[T - 1].cashClosing,
+      cacPerARR: res.assumptions.cacPerARR,
+      cacPaybackMonths: res.derived.cacPaybackMonths,
+      closingARR: res.months[T - 1].closingARR
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * FORWARD ECONOMIC CONTENT (v0.3)
+   *
+   * Not valuation. No discounting, no multiple, no score. Simply: how much gross
+   * profit does the ARR that exists at T0 go on to produce over the next N months?
+   *
+   * `gpDensity` is that quantity per euro of current ARR — an EXPERIMENTAL
+   * 60-month forward economic measure, deliberately not a canonical SaaS KPI and
+   * deliberately not enterprise value.
+   * ------------------------------------------------------------------ */
+  function forwardEconomics(res, T0, horizon) {
+    var end = Math.min(res.horizon, T0 + horizon);
+    var win = res.months.slice(T0, end);
+    var sum = function (k) { return win.reduce(function (s, m) { return s + m[k]; }, 0); };
+    var arrT0 = res.months[T0 - 1].closingARR;
+
+    /* flows attributable to the cohorts that already existed at T0 */
+    var existing = res.cohorts.filter(function (c) { return c.acquisitionMonth <= T0; });
+    var exLeak = 0, exExp = 0, exGP = 0, exARREnd = 0;
+    existing.forEach(function (c) {
+      var last = null;
+      for (var t = T0 + 1; t <= end; t++) {
+        var r = rowAt(c, t);
+        if (!r) continue;
+        exLeak += r.leakage; exExp += r.expansion; exGP += r.grossProfit; last = r;
+      }
+      if (last) exARREnd += last.closingARR;
+    });
+
+    return {
+      T0: T0, months: end - T0,
+      arrAtT0: arrT0,
+      arrAtEnd: res.months[end - 1].closingARR,
+      remainingRevenue: sum('revenue'),
+      remainingGP: sum('grossProfit'),
+      remainingEbita: sum('ebita'),
+      remainingFCF: sum('fcf'),
+      cashAtEnd: res.months[end - 1].cashClosing,
+      existingBaseARREnd: exARREnd,
+      existingBaseGP: exGP,
+      existingBaseExpansion: exExp,
+      existingBaseLeakage: exLeak,
+      /* EXPERIMENTAL forward economic measure — not a KPI, not a valuation */
+      gpDensity: arrT0 > 0 ? sum('grossProfit') / arrT0 : 0,
+      existingBaseGPDensity: arrT0 > 0 ? exGP / arrT0 : 0
+    };
+  }
+
+  /* ARR split by age band at month t — the state the KPIs cannot see. */
+  function ageComposition(res, t) {
+    var bands = res.bands, out = bands.map(function (b) { return { name: b.name, arr: 0 }; }), total = 0;
+    res.cohorts.forEach(function (c) {
+      var r = rowAt(c, t);
+      if (!r) return;
+      var age = r.age, bi = 0;
+      for (var i = 0; i < bands.length; i++) { if (age < bands[i].maxAgeExclusive) { bi = i; break; } bi = bands.length - 1; }
+      out[bi].arr += r.closingARR; total += r.closingARR;
+    });
+    out.forEach(function (o) { o.share = total > 0 ? o.arr / total : 0; });
+    return { total: total, bands: out };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * WHY MEASURED KPIs ≠ TRANSITION COEFFICIENTS
+   *
+   * With monthly persistence g and monthly expansion e, a cohort's balance follows
+   * A_t = A_0 · m^t where m = g(1+e). Over a 12-month window:
+   *
+   *   Σ leakage   = A_0 (1−g) · S        Σ expansion = A_0 · g·e · S
+   *   S = Σ_{t=0..11} m^t                (= 12 exactly when m = 1)
+   *
+   * so measured GRR = 1 − (1−g)S(m) and measured expansion = g·e·S(m), while
+   * measured NRR = m^12 = P(1+X) — EXACT, because NRR is a ratio of two STOCKS while
+   * GRR and expansion are ratios of FLOWS to a stock.
+   *
+   * THE CAUSE IS A SINGLE EFFECT, NOT SEVERAL. Switch one process off and the other
+   * measures its own coefficient exactly:
+   *
+   *   X = 0  ⇒  (1−g)·S(g)   = 1 − g^12 = 1 − P   ⇒  measured GRR = P       EXACTLY
+   *   P = 1  ⇒  e·S(1+e)     = (1+e)^12 − 1 = X   ⇒  measured expansion = X EXACTLY
+   *
+   * It is tempting to attribute the gap to the compounding convention (Σ of a monthly
+   * hazard ≠ the compounded annual total) plus a moving-base effect. Those two terms
+   * are real but they CANCEL EXACTLY — which is why each isolated case above is exact.
+   * The entire residual is the WITHIN-PERIOD INTERACTION of the two processes:
+   *
+   *   expansion enlarges the balance that is subsequently exposed to decay
+   *       → measured churn > 1 − P, so measured GRR < P
+   *   decay shrinks the balance that expansion subsequently accrues on
+   *       → measured expansion < X
+   *
+   * So the answer to "is it definition, timing, compounding, or flow attribution?" is:
+   * flow attribution under interaction. Neither flow ratio is a property of its own
+   * coefficient alone; each depends on the other process too.
+   * ------------------------------------------------------------------ */
+  function seriesSum(x) { return Math.abs(x - 1) < 1e-14 ? 12 : (Math.pow(x, 12) - 1) / (x - 1); }
+
+  function decompose(P, X) {
+    var g = Math.pow(P, 1 / 12), e = Math.pow(1 + X, 1 / 12) - 1, m = g * (1 + e);
+    var Sm = seriesSum(m), Sg = seriesSum(g), Se = seriesSum(1 + e);
+    var churnIsolated = (1 - g) * Sg;      // ≡ 1 − P
+    var churnMeasured = (1 - g) * Sm;
+    var expIsolated   = e * Se;            // ≡ X
+    var expMeasured   = g * e * Sm;
+    return {
+      P: P, X: X, g: g, e: e, m: m, S: Sm,
+      churn: {
+        isolated: churnIsolated,                          // what it measures with expansion off
+        expansionExposure: churnMeasured - churnIsolated, // the whole gap
+        measured: churnMeasured
+      },
+      expansion: {
+        isolated: expIsolated,                            // what it measures with decay off
+        retentionExposure: expMeasured - expIsolated,     // the whole gap
+        measured: expMeasured
+      },
+      measuredGRR: 1 - churnMeasured,
+      measuredExpansion: expMeasured,
+      measuredNRR: Math.pow(m, 12)
+    };
+  }
+
+  /* Month-by-month worked example on a stated opening balance (the €100 case). */
+  function workedExample(P, X, opening, months) {
+    var g = Math.pow(P, 1 / 12), e = Math.pow(1 + X, 1 / 12) - 1;
+    var rows = [], bal = opening, cumL = 0, cumE = 0;
+    for (var t = 1; t <= (months || 12); t++) {
+      var retained = bal * g, leak = bal - retained, exp = retained * e, close = retained + exp;
+      cumL += leak; cumE += exp;
+      rows.push({ t: t, opening: bal, retained: retained, leakage: leak, expansion: exp,
+                  closing: close, cumLeakage: cumL, cumExpansion: cumE });
+      bal = close;
+    }
+    return {
+      opening: opening, rows: rows,
+      cumLeakage: cumL, cumExpansion: cumE, closing: bal,
+      measuredGRR: (opening - cumL) / opening,
+      measuredExpansion: cumE / opening,
+      measuredNRR: bal / opening
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * INVERSE CALIBRATION — closed form.
+   *
+   * Given TARGET MEASURED KPIs, solve for the transition coefficients that make the
+   * measurement engine report them.
+   *
+   *   NRR* = GRR* + Expansion*        (the KPI bridge, exactly)
+   *   m    = NRR*^(1/12)              (NRR is a stock ratio, so m follows directly)
+   *   S    = Σ m^t, t = 0..11
+   *   g    = 1 − (1 − GRR*) / S       (invert measured churn)
+   *   e    = m/g − 1
+   *   P    = g^12                     X = (1+e)^12 − 1
+   * ------------------------------------------------------------------ */
+  function calibrate(targetGRR, targetExpansion) {
+    var nrr = targetGRR + targetExpansion;
+    var m = Math.pow(nrr, 1 / 12);
+    var S = Math.abs(m - 1) < 1e-14 ? 12 : (Math.pow(m, 12) - 1) / (m - 1);
+    var g = 1 - (1 - targetGRR) / S;
+    if (!(g > 0 && g <= 1)) return null;
+    var e = m / g - 1;
+    return {
+      targetGRR: targetGRR, targetExpansion: targetExpansion, targetNRR: nrr,
+      monthlyPersistence: g, monthlyExpansion: e, monthlyMultiplier: m, S: S,
+      persistenceAnnual: Math.pow(g, 12),
+      expansionCoefficientAnnual: Math.pow(1 + e, 12) - 1
+    };
+  }
+
+  return {
+    WINDOW: WINDOW,
+    rowAt: rowAt,
+    measureR12M: measureR12M,
+    measureSeries: measureSeries,
+    companyKPIs: companyKPIs,
+    forwardEconomics: forwardEconomics,
+    ageComposition: ageComposition,
+    seriesSum: seriesSum,
+    decompose: decompose,
+    workedExample: workedExample,
+    calibrate: calibrate
+  };
+});
+</script>
+<script>/*
+ * SaaS Physics — CAPITAL LOOP derivations (concept study).
+ *
+ * This file adds NO physics. Every quantity below is derived from values the
+ * frozen engine already stores:
+ *   cohort.acquisitionCost      stamped at creation (v0.3 provenance)
+ *   cohort.rows[].cumGrossProfit  cumulative gross profit of that cohort
+ *
+ * It is an ECONOMIC ATTRIBUTION model. It does not claim that gross profit
+ * literally flows back to the euro of S&M that was spent; it measures how long
+ * a cohort takes to produce cumulative gross profit equal to the acquisition
+ * cost attributed to it.
+ *
+ * DISCLOSED BOUNDARY: the engine applies one uniform gross margin to every
+ * cohort, and models no marginal acquisition cost for expansion. So a cohort's
+ * gross profit is exactly its ARR × GM / 12, and "gross profit by vintage" is
+ * the ARR mix scaled by a constant. That is a property of the current physics,
+ * not of SaaS, and it is surfaced rather than hidden.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsCapital = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  function rowAt(c, t) {
+    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * One cohort, from capital deployment through recovery.
+   *
+   *   unrecovered(t) = max(acquisitionCost − cumulativeGP(t), 0)
+   *   net(t)         = cumulativeGP(t) − acquisitionCost      (signed)
+   *   payback        = first t where cumulativeGP(t) ≥ acquisitionCost
+   * ------------------------------------------------------------------ */
+  function cohortCapital(res, k) {
+    var c = res.cohorts[k];
+    if (!c) return null;
+    var cost = c.acquisitionCost;                    // null for the opening base
+    var series = [], payback = null, paybackAge = null;
+    for (var t = Math.max(1, c.acquisitionMonth); t <= res.horizon; t++) {
+      var r = rowAt(c, t);
+      if (!r) continue;
+      var cum = r.cumGrossProfit;
+      var unrec = cost === null ? null : Math.max(cost - cum, 0);
+      var net = cost === null ? null : cum - cost;
+      if (cost !== null && payback === null && cum >= cost) {
+        payback = t; paybackAge = t - c.acquisitionMonth;
+      }
+      series.push({ t: t, age: r.age, cumGP: cum, gp: r.grossProfit,
+                    arr: r.closingARR, unrecovered: unrec, net: net });
+    }
+    var last = series.length ? series[series.length - 1] : null;
+    return {
+      index: k, id: c.id, acquisitionMonth: c.acquisitionMonth,
+      acquisitionCost: cost, cacPerARRAtCreation: c.cacPerARRAtCreation,
+      initialARR: c.initialARR, series: series,
+      paybackMonth: payback, paybackAge: paybackAge,
+      finalCumGP: last ? last.cumGP : 0,
+      surplusAtHorizon: (cost !== null && last) ? Math.max(last.cumGP - cost, 0) : null,
+      /* the engine's closed form, for cross-checking the observed crossing */
+      formulaPaybackMonths: res.derived.cacPaybackMonths
+    };
+  }
+
+  function cohortCapitalAt(res, k, t) {
+    var cap = cohortCapital(res, k);
+    if (!cap) return null;
+    var row = null;
+    for (var i = 0; i < cap.series.length; i++) if (cap.series[i].t <= t) row = cap.series[i];
+    return { cap: cap, now: row,
+             paidBack: cap.paybackMonth !== null && cap.paybackMonth <= t };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Portfolio view at month t: how much capital is out, how much has come
+   * back, and how the deployed capital is distributed across payback states.
+   * ------------------------------------------------------------------ */
+  function portfolioCapital(res, t) {
+    var deployed = 0, recovered = 0, outstanding = 0;
+    var states = { prePayback: 0, paidBack: 0 }, counts = { prePayback: 0, paidBack: 0 };
+    for (var k = 0; k < res.cohorts.length; k++) {
+      var c = res.cohorts[k];
+      if (c.acquisitionCost === null || c.acquisitionMonth > t) continue;
+      var r = rowAt(c, t);
+      var cum = r ? r.cumGrossProfit : 0;
+      deployed += c.acquisitionCost;
+      recovered += Math.min(cum, c.acquisitionCost);
+      var unrec = Math.max(c.acquisitionCost - cum, 0);
+      outstanding += unrec;
+      if (unrec > 0) { states.prePayback += c.acquisitionCost; counts.prePayback++; }
+      else { states.paidBack += c.acquisitionCost; counts.paidBack++; }
+    }
+    return { t: t, deployed: deployed, recovered: recovered, outstanding: outstanding,
+             states: states, counts: counts,
+             recoveredShare: deployed > 0 ? recovered / deployed : 0 };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Which vintages produce THIS month's gross profit.
+   * Under the current physics this is the ARR mix scaled by GM/12 — stated
+   * plainly wherever it is displayed.
+   * ------------------------------------------------------------------ */
+  function gpByVintage(res, t) {
+    var out = [], total = 0;
+    for (var k = 0; k < res.cohorts.length; k++) {
+      var c = res.cohorts[k], r = rowAt(c, t);
+      if (!r || r.grossProfit <= 0) continue;
+      out.push({ index: k, acquisitionMonth: c.acquisitionMonth, gp: r.grossProfit, age: r.age });
+      total += r.grossProfit;
+    }
+    out.forEach(function (o) { o.share = total > 0 ? o.gp / total : 0; });
+    var fromBase = out.filter(function (o) { return o.acquisitionMonth === 0; })
+                      .reduce(function (s, o) { return s + o.gp; }, 0);
+    var fromThisMonth = out.filter(function (o) { return o.acquisitionMonth === t; })
+                           .reduce(function (s, o) { return s + o.gp; }, 0);
+    return { t: t, total: total, rows: out,
+             fromOpeningBase: fromBase,
+             fromCohortAcquiredThisMonth: fromThisMonth,
+             fromEarlierAcquisitions: total - fromBase - fromThisMonth };
+  }
+
+  /* Cumulative acquisition capital deployed up to month t. */
+  function deployedSeries(res) {
+    var out = [], acc = 0;
+    for (var t = 0; t <= res.horizon; t++) {
+      if (t > 0) acc += res.months[t - 1].sm;
+      out.push(acc);
+    }
+    return out;
+  }
+
+  return {
+    cohortCapital: cohortCapital,
+    cohortCapitalAt: cohortCapitalAt,
+    portfolioCapital: portfolioCapital,
+    gpByVintage: gpByVintage,
+    deployedSeries: deployedSeries
+  };
+});
+</script>
+<script>/*
+ * SaaS Physics — PULSE derivations (Flow concept study).
+ *
+ * No physics. Every value is read out of the frozen engine's own month record
+ * and cohort rows. The ORDER below was read off engine.js, not invented:
+ * see intraMonthLaw() for the declared sequence and its conventions.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsPulse = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ *
+   * §3 — the intra-month law, as the frozen engine actually applies it.
+   * ------------------------------------------------------------------ */
+  var LAW = [
+    { n:1, key:'opening',   title:'Opening cohort state',
+      formula:'openingARR = Σ cohort.live', note:'Every cohort alive at the start of the month.' },
+    { n:2, key:'leakage',   title:'Retention, then leakage',
+      formula:'retained = opening × g   ·   leakage = opening − retained',
+      note:'Applied per cohort, to that cohort’s OPENING balance, using the age band it occupies at the START of the month.' },
+    { n:3, key:'expansion', title:'Expansion',
+      formula:'expansion = retained × e',
+      note:'Applied to RETAINED ARR — the post-leakage balance — not to opening ARR. This is a real convention, not a rounding detail.' },
+    { n:4, key:'new',       title:'New cohort creation',
+      formula:'newARR = S&M ÷ cacPerARR',
+      note:'Created AFTER every existing cohort has aged. It neither leaks nor expands in its birth month.' },
+    { n:5, key:'closing',   title:'Closing ARR',
+      formula:'closing = Σ retained + Σ expansion + newARR',
+      note:'Identical to opening + new + expansion − leakage. The bridge is an identity, not a check.' },
+    { n:6, key:'revenue',   title:'Revenue',
+      formula:'revenue = ((openingARR + closingARR) ÷ 2) ÷ 12',
+      note:'A MIDPOINT convention. Revenue does not come from closing ARR alone. The new cohort contributes (0 + newARR)/2 — half a month — in its birth month.' },
+    { n:7, key:'margin',    title:'Gross-margin split',
+      formula:'COGS = revenue × (1 − GM)   ·   GP = revenue × GM', note:'One uniform margin across every cohort.' },
+    { n:8, key:'opex',      title:'Operating absorption',
+      formula:'EBITA = GP − S&M − R&D − G&A', note:'S&M is a current-period expense AND the thing that created this month’s new cohort.' },
+    { n:9, key:'cash',      title:'FCF and cash',
+      formula:'FCF = EBITA   ·   closing cash = opening cash + FCF',
+      note:'Frozen simplification: no working capital, deferred revenue, tax or capex.' }
+  ];
+
+  function rowAt(c, t) {
+    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * One month, absolute. Cohort-anchored first, aggregates second — the
+   * aggregates are literally the sums of the cohort movements above them.
+   * ------------------------------------------------------------------ */
+  function pulseAt(res, t) {
+    var m = res.months[t - 1];
+    var cohorts = [], sumLeak = 0, sumExp = 0, sumOpen = 0, sumClose = 0;
+    for (var k = 0; k < res.cohorts.length; k++) {
+      var c = res.cohorts[k], r = rowAt(c, t);
+      if (!r) continue;
+      var isNew = c.acquisitionMonth === t;
+      cohorts.push({ index:k, id:c.id, acquisitionMonth:c.acquisitionMonth, isNew:isNew,
+                     opening:r.openingARR, retained:r.retainedARR, leakage:r.leakage,
+                     expansion:r.expansion, closing:r.closingARR,
+                     revenue:r.revenue, grossProfit:r.grossProfit });
+      sumLeak += r.leakage; sumExp += r.expansion;
+      sumOpen += r.openingARR; sumClose += r.closingARR;
+    }
+    var newC = cohorts.filter(function(x){ return x.isNew; })[0] || null;
+    var otherOpex = m.rd + m.ga;
+    return {
+      t:t, year:m.year, cohorts:cohorts,
+      openingARR:m.openingARR, leakage:m.leakage, expansion:m.expansion,
+      newARR:m.newARR, closingARR:m.closingARR,
+      /* the ARR bridge, as an identity */
+      arrResidual: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      cohortSumResidual: { opening: sumOpen - m.openingARR, closing: sumClose - m.closingARR,
+                           leakage: sumLeak - m.leakage, expansion: sumExp - m.expansion },
+      midpointARR:(m.openingARR + m.closingARR) / 2,
+      revenue:m.revenue, cogs:m.cogs, grossProfit:m.grossProfit,
+      sm:m.sm, rd:m.rd, ga:m.ga, otherOpex:otherOpex,
+      ebita:m.ebita, fcf:m.fcf, cashOpening:m.cashOpening, cashClosing:m.cashClosing,
+      gpResidual: m.revenue - m.cogs - m.grossProfit,
+      fcfResidual: m.grossProfit - m.sm - otherOpex - m.fcf,
+      cashResidual: m.cashOpening + m.fcf - m.cashClosing,
+      /* §6 honesty: how much of this month's GP the new cohort actually produced */
+      newCohortRevenueThisMonth: newC ? newC.revenue : 0,
+      newCohortGPThisMonth: newC ? newC.grossProfit : 0,
+      sameMonthReturnOnSM: (newC && m.sm > 0) ? newC.grossProfit / m.sm : 0
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * §9 — the same month, rendered as Experiment − Base. Base becomes zero.
+   * ------------------------------------------------------------------ */
+  function deltaPulseAt(baseRes, expRes, t) {
+    var b = pulseAt(baseRes, t), x = pulseAt(expRes, t);
+    var keys = ['openingARR','leakage','expansion','newARR','closingARR','midpointARR',
+                'revenue','cogs','grossProfit','sm','rd','ga','otherOpex','ebita','fcf',
+                'cashOpening','cashClosing'];
+    var d = { t:t, base:b, experiment:x };
+    keys.forEach(function(kk){ d[kk] = x[kk] - b[kk]; });
+    d.arrResidual = d.openingARR + d.newARR + d.expansion - d.leakage - d.closingARR;
+    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.fcf;
+    d.cashResidual = d.cashOpening + d.fcf - d.cashClosing;
+    /* per-cohort deltas, so the delta stays cohort-anchored too */
+    d.cohorts = x.cohorts.map(function(xc){
+      var bc = b.cohorts.filter(function(y){ return y.index===xc.index; })[0];
+      return { index:xc.index, acquisitionMonth:xc.acquisitionMonth, isNew:xc.isNew,
+               opening:xc.opening-(bc?bc.opening:0), leakage:xc.leakage-(bc?bc.leakage:0),
+               expansion:xc.expansion-(bc?bc.expansion:0), closing:xc.closing-(bc?bc.closing:0) };
+    });
+    return d;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * §11 — ΔARR today IS the running sum of every monthly Δflow.
+   *   ΔClosing(T) = Σ_{t=1..T} (ΔNew + ΔExpansion − ΔLeakage)
+   * because ΔOpening(t) = ΔClosing(t−1) and ΔClosing(0) = 0.
+   * ------------------------------------------------------------------ */
+  function deltaAccumulator(baseRes, expRes) {
+    var rows = [], acc = 0, worst = 0;
+    for (var t = 1; t <= expRes.horizon; t++) {
+      var bm = baseRes.months[t-1], xm = expRes.months[t-1];
+      var dNew = xm.newARR - bm.newARR, dExp = xm.expansion - bm.expansion, dLeak = xm.leakage - bm.leakage;
+      var step = dNew + dExp - dLeak;
+      acc += step;
+      var dClose = xm.closingARR - bm.closingARR;
+      worst = Math.max(worst, Math.abs(acc - dClose));
+      rows.push({ t:t, dNew:dNew, dExpansion:dExp, dLeakage:dLeak, monthlyStep:step,
+                  cumulative:acc, dClosingARR:dClose, residual:acc - dClose,
+                  dRevenue:xm.revenue-bm.revenue, dGrossProfit:xm.grossProfit-bm.grossProfit,
+                  dFCF:xm.fcf-bm.fcf, dCash:xm.cashClosing-bm.cashClosing });
+    }
+    return { rows:rows, maxResidual:worst };
+  }
+
+  /* §12 — an illustrative intuition calibration, deliberately separate from
+     the engine scenario: repeated survival is exponential. */
+  function retentionExponent(a, b, n) {
+    a = a===undefined?0.98:a; b = b===undefined?0.99:b; n = n||60;
+    return { a:a, b:b, n:n, survA:Math.pow(a,n), survB:Math.pow(b,n),
+             ratio: Math.pow(b,n)/Math.pow(a,n), illustrative:true };
+  }
+
+  return { LAW:LAW, pulseAt:pulseAt, deltaPulseAt:deltaPulseAt,
+           deltaAccumulator:deltaAccumulator, retentionExponent:retentionExponent };
+});
+</script>
+<script>
+(function () {
+  'use strict';
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, PU = window.SaaSPhysicsPulse;
+  var H = E.HORIZON;                               // 60 months
+
+  /* Base is frozen. The Experiment is always a copy. */
+  var BASE_A = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS));
+  var expA   = Object.assign({}, E.DEFAULT_ASSUMPTIONS);
+  var baseA  = BASE_A;                             // swapped only in paired mode
+  var pairMode = false;
+  var baseRes, expRes, baseS, expS;
+  var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
+  var capitalMode = false, capAgg = null;
+  /* §14 — two layers, two lenses, one comparator. Inspect subsumes the old
+     Anatomy and Capital-loop toggles; nothing new is navigable. */
+  var layer = 'stock', compare = 'absolute';
+  var flowMode = 'system';                 /* 'system' = stock-and-flow · 'bridge' = superseded pulse */
+  var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
+  var pulseStep = 0, pulsePlaying = false, pulseTimer = 0, PULSE_STEPS = 9;
+  var lastMsg = null;
+
+  /* ---------- formatting ---------- */
+  function eur(v){ var a=Math.abs(v);
+    if(a>=1e6) return '€'+(v/1e6).toFixed(2)+'m';
+    if(a>=1e3) return '€'+Math.round(v/1e3)+'k';
+    return '€'+Math.round(v); }
+  function eurS(v){ return (v>=0?'+':'−')+eur(Math.abs(v)); }
+  function pct(v,d){ return (v*100).toFixed(d===undefined?1:d)+'%'; }
+  function cls(v){ return v>1?'up':(v<-1?'down':'flat'); }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+  /* ---------- validated vintage ramp: oldest darkest → newest lightest ---------- */
+  var RAMP = [[149,86,42],[176,110,60],[203,138,85],[224,166,119],[238,196,158],[247,221,196]];
+  function rampAt(t){                                  // t: 0 = oldest, 1 = newest
+    t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
+    var i = Math.floor(t), f = t - i, a = RAMP[i], b = RAMP[Math.min(RAMP.length-1, i+1)];
+    return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
+  }
+  function rgba(c, alpha){ return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+alpha+')'; }
+
+  /* ------------------------------------------------------------------ *
+   * Precompute: everything drawn is a simulation value, never an effect.
+   * stack[m][k] = cumulative ARR of cohorts 0..k at the end of month m.
+   * ------------------------------------------------------------------ */
+  function stacksOf(res){
+    var C = res.cohorts.length, stack = [], arr = [], leak = [], cash = [], gp = [], rev = [], ebita = [];
+    for (var m = 0; m <= H; m++){
+      var row = new Float64Array(C), acc = 0;
+      for (var k = 0; k < C; k++){
+        var c = res.cohorts[k], v = 0;
+        if (m === 0) v = c.acquisitionMonth === 0 ? c.initialARR : 0;
+        else {
+          var idx = c.acquisitionMonth === 0 ? m - 1 : m - c.acquisitionMonth;
+          if (idx >= 0 && idx < c.rows.length) v = c.rows[idx].closingARR;
+        }
+        acc += v; row[k] = acc;
+      }
+      stack.push(row); arr.push(acc);
+      if (m === 0){ leak.push(0); cash.push(res.start.openingCash); gp.push(0); rev.push(0); ebita.push(0); }
+      else { var mm = res.months[m-1];
+        leak.push(mm.cumulative.leakage); cash.push(mm.cashClosing);
+        gp.push(mm.grossProfit); rev.push(mm.revenue); ebita.push(mm.ebita); }
+    }
+    return { C:C, stack:stack, arr:arr, leak:leak, cash:cash, gp:gp, rev:rev, ebita:ebita };
+  }
+  function lerpAt(series, t){
+    var i = Math.floor(t), f = t - i, j = Math.min(H, i + 1);
+    return series[i] + (series[j] - series[i]) * f;
+  }
+  function stackAt(S, t, k){
+    var i = Math.floor(t), f = t - i, j = Math.min(H, i + 1);
+    return S.stack[i][k] + (S.stack[j][k] - S.stack[i][k]) * f;
+  }
+
+  /* Aggregate capital still out, and gross profit beyond attributed cost.
+     Derived only from stamped acquisitionCost and cumGrossProfit; cached per scenario. */
+  function aggCapital(res){
+    var out=[];
+    for(var t=0;t<=H;t++){
+      if(t===0){ out.push({out:0, surplus:0, dep:0, rec:0}); continue; }
+      var p=CAP.portfolioCapital(res,t), s=0;
+      for(var k2=0;k2<res.cohorts.length;k2++){
+        var c=res.cohorts[k2];
+        if(c.acquisitionCost===null || c.acquisitionMonth>t) continue;
+        var idx=c.acquisitionMonth===0 ? t-1 : t-c.acquisitionMonth;
+        var r=c.rows[idx]; if(r) s+=Math.max(0, r.cumGrossProfit-c.acquisitionCost);
+      }
+      out.push({ out:p.outstanding, surplus:s, dep:p.deployed, rec:p.recovered });
+    }
+    return out;
+  }
+
+  function recompute(prevExp){
+    baseRes = E.run(baseA); expRes = E.run(expA);
+    baseS = stacksOf(baseRes); expS = stacksOf(expRes);
+    capAgg = aggCapital(expRes);
+    syncForces(); renderCausal(prevExp); renderSide(); renderCascade();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Forces
+   * ------------------------------------------------------------------ */
+  var FORCES = [
+    {k:'sm', label:'S&M investment', sub:'buys new recurring mass every month', min:0, max:2500000, step:25000, f:'eur'},
+    {k:'cacPerARR', label:'CAC / New ARR', sub:'how much spend one euro of new ARR costs', min:0.3, max:3, step:0.05, f:'x'},
+    {k:'persistenceAnnual', label:'Persistence', sub:'how much of the installed base survives a year', min:0.6, max:0.99, step:0.005, f:'pct'},
+    {k:'expansionCoefficientAnnual', label:'Expansion', sub:'how much the surviving base grows on its own', min:0, max:0.4, step:0.005, f:'pct'},
+    {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'},
+    {k:'rd', label:'R&D investment', sub:'a cost only — no modelled benefit', min:0, max:2000000, step:25000, f:'eur'},
+    {k:'ga', label:'G&A investment', sub:'a cost only', min:0, max:1500000, step:25000, f:'eur'}
+  ];
+  function fmtF(f, v){ return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×'; }
+
+  function buildForces(){
+    var host = document.getElementById('forces'); host.innerHTML='';
+    FORCES.forEach(function(F){
+      var d=document.createElement('div'); d.className='force';
+      d.innerHTML='<div class="force-top"><label for="f-'+F.k+'">'+esc(F.label)+'</label>'+
+        '<span class="force-val" id="v-'+F.k+'"></span></div>'+
+        '<div class="force-sub">'+esc(F.sub)+' &middot; <span class="force-base" id="b-'+F.k+'"></span></div>'+
+        '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">';
+      host.appendChild(d);
+      d.querySelector('input').addEventListener('input', function(e){
+        var prev = Object.assign({}, expA);
+        expA = Object.assign({}, expA); expA[F.k] = parseFloat(e.target.value);
+        recompute(prev);
+      });
+    });
+    var P = document.getElementById('presets');
+    PRESETS.forEach(function(p){
+      var b=document.createElement('button'); b.className='btn btn-wide';
+      b.innerHTML=esc(p.name)+'<small>'+esc(p.teach)+'</small>';
+      b.addEventListener('click', function(){
+        exitPair(); var prev=Object.assign({},expA);
+        expA = Object.assign({}, BASE_A, p.ch); lastMsg = p; recompute(prev);
+      });
+      P.appendChild(b);
+    });
+  }
+  function syncForces(){
+    FORCES.forEach(function(F){
+      var el=document.getElementById('f-'+F.k); if(!el) return;
+      el.value = expA[F.k];
+      var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
+      v.className = 'force-val' + (expA[F.k]===baseA[F.k] ? ' same' : '');
+      document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
+    });
+  }
+
+  var PRESETS = [
+    {id:'ret',  name:'Better retention', ch:{persistenceAnnual:0.96},
+     teach:'Less of the installed base has to be replaced.'},
+    {id:'eff',  name:'Better acquisition efficiency', ch:{cacPerARR:0.80},
+     teach:'The same commercial investment creates more recurring state.'},
+    {id:'spend',name:'Growth through spend', ch:{sm:BASE_A.sm*1.5},
+     teach:'A similar ARR trajectory, bought with more capital.'},
+    {id:'gm',   name:'Margin deterioration', ch:{grossMargin:0.65},
+     teach:'The mass stays the same size and produces materially less.'}
+  ];
+
+  /* ------------------------------------------------------------------ *
+   * The scene
+   * ------------------------------------------------------------------ */
+  var cv = document.getElementById('scene'), ctx = cv.getContext('2d');
+  var W=0, HH=0, geo=null;
+
+  function resize(){
+    var r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio||1);
+    W = Math.max(320, r.width); HH = Math.max(240, r.height);
+    cv.width = W*dpr; cv.height = HH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    var L=64, R=20, T=18, B=16;
+    var inner = HH - T - B;
+    var massH = capitalMode ? inner*0.46 : inner*0.55;
+    var midH  = capitalMode ? inner*0.30 : inner*0.19;      /* capital track, or leakage */
+    var cashH = capitalMode ? inner*0.24 : inner*0.26;
+    geo = { L:L, R:R, T:T, massTop:T, massBot:T+massH,
+            leakTop:T+massH+1, leakBot:T+massH+midH,
+            capTop:T+massH+8, capBot:T+massH+midH,
+            cashTop:T+massH+midH+12, cashBot:T+massH+midH+12+cashH-12, w:W-L-R };
+  }
+  function X(m){ return geo.L + (m/H)*geo.w; }
+  function invX(px){ return Math.max(0, Math.min(H, ((px-geo.L)/geo.w)*H)); }
+
+  function scales(){
+    var arrMax = Math.max.apply(null, baseS.arr.concat(expS.arr)) * 1.06;
+    var leakMax = Math.max(1, Math.max(baseS.leak[H], expS.leak[H])) * 1.08;
+    var all = baseS.cash.concat(expS.cash);
+    var cLo = Math.min(0, Math.min.apply(null, all)), cHi = Math.max.apply(null, all);
+    var pad = (cHi-cLo)*0.1 || 1;
+    return {
+      arrMax: arrMax, leakMax: leakMax, cLo: cLo-pad, cHi: cHi+pad,
+      yA: function(v){ return geo.massBot - (v/arrMax)*(geo.massBot-geo.massTop); },
+      yL: function(v){ return geo.leakTop + (v/leakMax)*(geo.leakBot-geo.leakTop); },
+      yC: function(v){ return geo.cashBot - ((v-(cLo-pad))/((cHi+pad)-(cLo-pad)))*(geo.cashBot-geo.cashTop); }
+    };
+  }
+
+  function render(){
+    if(!geo) resize();
+    if(layer==='flow'){ flowMode==='system' ? drawSystem() : drawFlow(); return; }
+    var S = scales(), t = tau, mi = Math.floor(t);
+    ctx.clearRect(0,0,W,HH);
+
+    /* --- ground + year grid --- */
+    ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    ctx.strokeStyle='#141d22'; ctx.lineWidth=1;
+    for(var y=1;y<=5;y++){
+      var x=X(y*12)+0.5; ctx.beginPath(); ctx.moveTo(x,geo.massTop); ctx.lineTo(x,geo.cashBot); ctx.stroke();
+    }
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('ARR', geo.L+8, geo.massTop+11);
+    /* ARR gridlines */
+    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+    for(var g=1;g<=3;g++){
+      var v=S.arrMax*g/4, yy=Math.round(S.yA(v))+0.5;
+      ctx.beginPath(); ctx.moveTo(geo.L,yy); ctx.lineTo(W-geo.R,yy); ctx.strokeStyle='#111a1f'; ctx.stroke();
+      ctx.fillText(eur(v), geo.L-8, yy+3);
+    }
+
+    /* --- THE MASS: one filled band per cohort, oldest at the bottom --- */
+    var gm = expRes.assumptions.grossMargin;
+    var lum = 0.40 + 0.60 * Math.max(0, Math.min(1, (gm-0.30)/(0.95-0.30)));   // brightness = gross margin
+    var kMax = Math.min(expS.C-1, mi+1);
+    for(var k=0;k<=kMax;k++){
+      var top = [], bot = [];
+      var startM = Math.max(0, expRes.cohorts[k].acquisitionMonth - 1);
+      if(startM > t) continue;
+      for(var m=startM;m<=mi;m++){ top.push([X(m), S.yA(expS.stack[m][k])]); bot.push([X(m), S.yA(k?expS.stack[m][k-1]:0)]); }
+      top.push([X(t), S.yA(stackAt(expS,t,k))]);
+      bot.push([X(t), S.yA(k?stackAt(expS,t,k-1):0)]);
+      if(top.length<2) continue;
+      ctx.beginPath(); ctx.moveTo(top[0][0],top[0][1]);
+      for(var i=1;i<top.length;i++) ctx.lineTo(top[i][0],top[i][1]);
+      for(var j=bot.length-1;j>=0;j--) ctx.lineTo(bot[j][0],bot[j][1]);
+      ctx.closePath();
+      var col = rampAt(expRes.cohorts[k].acquisitionMonth / H);
+      var isHot = hover===k || (pinned!==null && pinned===k);
+      ctx.fillStyle = rgba(col, (anatomy?0.78:0.94)*lum*(isHot?1.3:1));
+      ctx.fill();
+      /* strata are always separated: the company is never one indivisible blob */
+      ctx.strokeStyle = anatomy ? 'rgba(11,16,19,.95)' : 'rgba(11,16,19,.55)';
+      ctx.lineWidth = anatomy ? 1.4 : 0.9; ctx.stroke();
+      /* a cohort in its first two months reads as new business entering */
+      var ageNow = t - expRes.cohorts[k].acquisitionMonth;
+      if(expRes.cohorts[k].acquisitionMonth>0 && ageNow>=0 && ageNow<2){
+        ctx.beginPath(); ctx.moveTo(top[Math.max(0,top.length-3)][0], top[Math.max(0,top.length-3)][1]);
+        for(var q=Math.max(0,top.length-2);q<top.length;q++) ctx.lineTo(top[q][0],top[q][1]);
+        ctx.strokeStyle = rgba([255,240,225], 0.55*(1-ageNow/2)); ctx.lineWidth=2; ctx.stroke();
+      }
+      if(isHot){ ctx.strokeStyle='rgba(247,221,196,.95)'; ctx.lineWidth=2; ctx.stroke();
+                 ctx.fillStyle='rgba(247,221,196,.13)'; ctx.fill(); }
+    }
+
+    /* the realised silhouette, so the mass reads as one body made of layers */
+    ctx.beginPath();
+    for(var sm=0; sm<=mi; sm++){ var sx=X(sm), sy=S.yA(expS.arr[sm]); sm?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy); }
+    ctx.lineTo(X(t), S.yA(lerpAt(expS.arr,t)));
+    ctx.strokeStyle='rgba(247,221,196,.75)'; ctx.lineWidth=1.6; ctx.stroke();
+
+    /* --- projected future of the Experiment: outline only, it has not happened --- */
+    ctx.beginPath();
+    ctx.moveTo(X(t), S.yA(lerpAt(expS.arr,t)));
+    for(var fm=Math.ceil(t); fm<=H; fm++) ctx.lineTo(X(fm), S.yA(expS.arr[fm]));
+    ctx.lineTo(X(H), geo.massBot); ctx.lineTo(X(t), geo.massBot); ctx.closePath();
+    var fg = ctx.createLinearGradient(X(t),0,X(H),0);
+    fg.addColorStop(0,'rgba(201,114,47,.20)'); fg.addColorStop(1,'rgba(201,114,47,.05)');
+    ctx.fillStyle=fg; ctx.fill();
+    /* faint vintage banding in the projection: the future is made of cohorts too */
+    ctx.save(); ctx.globalAlpha=0.30;
+    for(var pk=0; pk<expS.C; pk+=4){
+      ctx.beginPath();
+      var started=false;
+      for(var pm=Math.ceil(t); pm<=H; pm++){
+        if(expS.stack[pm][pk]<=0) continue;
+        var ppx=X(pm), ppy=S.yA(expS.stack[pm][pk]);
+        started?ctx.lineTo(ppx,ppy):(ctx.moveTo(ppx,ppy),started=true);
+      }
+      if(started){ ctx.strokeStyle=rgba(rampAt(pk/expS.C),0.35); ctx.lineWidth=1; ctx.stroke(); }
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.moveTo(X(t), S.yA(lerpAt(expS.arr,t)));
+    for(var fm2=Math.ceil(t); fm2<=H; fm2++) ctx.lineTo(X(fm2), S.yA(expS.arr[fm2]));
+    ctx.strokeStyle='rgba(201,114,47,.85)'; ctx.lineWidth=2; ctx.stroke();
+
+    /* --- BASE: the frozen reference future, dashed and cool --- */
+    ctx.save(); ctx.setLineDash([5,4]);
+    ctx.beginPath();
+    for(var bm=0; bm<=H; bm++){ var px=X(bm), py=S.yA(baseS.arr[bm]); bm?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.strokeStyle='rgba(90,143,214,.78)'; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.restore();
+
+    /* --- MIDDLE REGISTER: leakage, or in Capital mode the recovery track --- */
+    if(capitalMode){ drawCapital(S, t, mi); } else {
+    ctx.beginPath(); ctx.moveTo(geo.L, geo.leakTop);
+    for(var lm=0; lm<=mi; lm++) ctx.lineTo(X(lm), S.yL(expS.leak[lm]));
+    ctx.lineTo(X(t), S.yL(lerpAt(expS.leak,t)));
+    ctx.lineTo(X(t), geo.leakTop); ctx.closePath();
+    ctx.fillStyle='rgba(59,74,85,.62)'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(X(t), S.yL(lerpAt(expS.leak,t)));
+    for(var lf=Math.ceil(t); lf<=H; lf++) ctx.lineTo(X(lf), S.yL(expS.leak[lf]));
+    ctx.strokeStyle='rgba(59,74,85,.9)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+    for(var lb=0; lb<=H; lb++){ var lx=X(lb), ly=S.yL(baseS.leak[lb]); lb?ctx.lineTo(lx,ly):ctx.moveTo(lx,ly); }
+    ctx.strokeStyle='rgba(90,143,214,.42)'; ctx.lineWidth=1.4; ctx.stroke(); ctx.restore();
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('LEAKED  '+eur(lerpAt(expS.leak,t)), geo.L+8, geo.leakTop+12);
+    }
+
+    /* --- THE KEEL: cash --- */
+    var y0 = S.yC(0);
+    ctx.strokeStyle='#1c272e'; ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(geo.L, y0);
+    for(var cm=0; cm<=mi; cm++) ctx.lineTo(X(cm), S.yC(expS.cash[cm]));
+    ctx.lineTo(X(t), S.yC(lerpAt(expS.cash,t))); ctx.lineTo(X(t), y0); ctx.closePath();
+    var cnow = lerpAt(expS.cash,t);
+    ctx.fillStyle = cnow>=0 ? 'rgba(201,114,47,.24)' : 'rgba(59,74,85,.5)'; ctx.fill();
+    ctx.beginPath();
+    for(var c2=0; c2<=mi; c2++){ var cx=X(c2), cy=S.yC(expS.cash[c2]); c2?ctx.lineTo(cx,cy):ctx.moveTo(cx,cy); }
+    ctx.lineTo(X(t), S.yC(cnow));
+    ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(t), S.yC(cnow));
+    for(var c3=Math.ceil(t); c3<=H; c3++) ctx.lineTo(X(c3), S.yC(expS.cash[c3]));
+    ctx.strokeStyle='rgba(201,114,47,.4)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+    for(var c4=0; c4<=H; c4++){ var bx=X(c4), by=S.yC(baseS.cash[c4]); c4?ctx.lineTo(bx,by):ctx.moveTo(bx,by); }
+    ctx.strokeStyle='rgba(90,143,214,.7)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+    ctx.textAlign='left'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('CASH  '+eur(cnow), geo.L+8, geo.cashTop+2);
+
+    /* --- the playhead: now --- */
+    var px2 = X(t);
+    ctx.strokeStyle='rgba(226,233,236,.30)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(px2+0.5, geo.massTop); ctx.lineTo(px2+0.5, geo.cashBot); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px2, S.yA(lerpAt(expS.arr,t)), 3.5, 0, Math.PI*2);
+    ctx.fillStyle='#c9722f'; ctx.fill();
+    ctx.strokeStyle='#0b1013'; ctx.lineWidth=2; ctx.stroke();
+
+    /* --- year labels --- */
+    ctx.fillStyle='#3d4952'; ctx.textAlign='center'; ctx.font='9.5px "JetBrains Mono",monospace';
+    for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.cashBot+13);
+  }
+
+  /* ==================================================================== *
+   * FLOW LAYER · SYSTEM VIEW — stock and flow, in the classic notation.
+   *
+   *   STOCKS  accumulate            ARR (the cohort strata) · Cash
+   *   FLOWS   fill and drain them   New · Expansion · Leakage · FCF
+   *   VALVES  set the rates         the management assumptions
+   *   CLOUDS  the model boundary    where flows come from and go to
+   *   INFORMATION LINKS             stock → valve. This is the feedback,
+   *                                 and it is the reason for the notation:
+   *                                 flow fills the stock, and the stock then
+   *                                 sets the rate of its own future flows.
+   *
+   * Nothing here is new physics. Where the engine has no link, none is drawn —
+   * and the two absences are marked, because an absent feedback is a finding.
+   * ==================================================================== */
+  var SYS = { W:1260, H:770 };
+  var valveHits = [];
+  /* Cheap per-frame test: is the Experiment the same run as Base? Comparing the
+     assumption objects directly avoids re-summarising 60 months twice a frame. */
+  function sameAsBase(){
+    var keys = Object.keys(expA);
+    for(var i=0;i<keys.length;i++){ if(keys[i]==='bands') continue;
+      if(expA[keys[i]] !== baseA[keys[i]]) return false; }
+    return JSON.stringify(baseRes.bands) === JSON.stringify(expRes.bands);
+  }
+  function drawSystem(){
+    valveHits = [];
+    var isD = compare==='delta';
+    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    var d = isD ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
+    var bm = baseRes.months[m-1];
+    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    beginFit(SYS.W, SYS.H);
+
+    /* ---------- scales, declared ---------- */
+    var arrMax = 1, cashHi = 1, cashLo = 0, rateMax = 1;
+    for(var i=0;i<H;i++){
+      arrMax = Math.max(arrMax, expRes.months[i].closingARR, baseRes.months[i].closingARR);
+      cashHi = Math.max(cashHi, expRes.months[i].cashClosing, baseRes.months[i].cashClosing);
+      cashLo = Math.min(cashLo, expRes.months[i].cashClosing, baseRes.months[i].cashClosing);
+      rateMax = Math.max(rateMax, expRes.months[i].newARR, expRes.months[i].expansion, expRes.months[i].leakage);
+    }
+    /* DELTA is a SIGNED world. Every scale below is symmetric about zero, and cash
+       gets its own range: it is not measured in ARR. */
+    var cashDMax = 1, flowsAllFlat = true, noExperiment = false;
+    if(isD){
+      arrMax = 0; rateMax = 0; cashDMax = 0;
+      for(i=0;i<H;i++){
+        arrMax = Math.max(arrMax, Math.abs(expRes.months[i].closingARR-baseRes.months[i].closingARR));
+        cashDMax = Math.max(cashDMax, Math.abs(expRes.months[i].cashClosing-baseRes.months[i].cashClosing));
+        rateMax = Math.max(rateMax, Math.abs(expRes.months[i].leakage-baseRes.months[i].leakage),
+                                    Math.abs(expRes.months[i].expansion-baseRes.months[i].expansion),
+                                    Math.abs(expRes.months[i].newARR-baseRes.months[i].newARR));
+      }
+      flowsAllFlat = rateMax < 1;
+      noExperiment = sameAsBase();
+      arrMax = arrMax || 1; rateMax = rateMax || 1; cashDMax = cashDMax || 1;
+    }
+    /* A flow whose delta is exactly zero must NOT look like a small flow. It gets
+       width 0 and is drawn as a dotted "no change" line instead of a pipe. */
+    var ZERO = 1;                                   // €1/month — below this it is zero
+    var pipeW = function(v){
+      if(isD && Math.abs(v) < ZERO) return 0;
+      return Math.max(3, Math.min(30, Math.abs(v)/rateMax*30));
+    };
+    /* Sign, in delta: warm = more than Base, slate = less than Base. The ARROW never
+       reverses — a smaller leakage is still ARR leaving, just less of it. Reversing it
+       would assert a flow the engine does not have. */
+    function dTone(v, warm, cool){ return (!isD || v>=0) ? warm : cool; }
+    function dCaption(x,y,v){
+      if(!isD) return;
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif';
+      ctx.fillStyle = Math.abs(v)<ZERO ? '#3d4952' : (v>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
+      ctx.fillText(Math.abs(v)<ZERO ? 'no change vs Base' : (v>0?'more than Base':'less than Base'), x, y);
+    }
+    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+
+    /* ---------- primitives ---------- */
+    function pipeH(x1,x2,y,w,fill){ ctx.fillStyle=fill; ctx.fillRect(Math.min(x1,x2), y-w/2, Math.abs(x2-x1), w); }
+    function pipeV(x,y1,y2,w,fill){ ctx.fillStyle=fill; ctx.fillRect(x-w/2, Math.min(y1,y2), w, Math.abs(y2-y1)); }
+    function arrow(x,y,dir,col){
+      ctx.fillStyle=col; ctx.beginPath();
+      if(dir==='r'){ ctx.moveTo(x,y-7); ctx.lineTo(x+11,y); ctx.lineTo(x,y+7); }
+      else { ctx.moveTo(x-7,y); ctx.lineTo(x,y+11); ctx.lineTo(x+7,y); }
+      ctx.closePath(); ctx.fill();
+    }
+    function cloud(x,y,label){
+      ctx.strokeStyle='#3d4952'; ctx.lineWidth=1.4; ctx.beginPath();
+      [[-20,0,13],[-2,-7,15],[16,0,13],[0,7,12]].forEach(function(c){ ctx.moveTo(x+c[0]+c[2],y+c[1]); ctx.arc(x+c[0],y+c[1],c[2],0,Math.PI*2); });
+      ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+      ctx.fillText(label, x, y+34);
+    }
+    /* the SD valve: a bowtie astride the pipe. It is also the control. */
+    function valve(x,y,label,value,key,chipDx,chipDy){
+      ctx.fillStyle='#131b20'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.moveTo(x-13,y-11); ctx.lineTo(x+13,y+11); ctx.lineTo(x+13,y-11); ctx.lineTo(x-13,y+11);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText(label, x, y-20);
+      ctx.font='10.5px "JetBrains Mono",monospace';
+      var moved = key && isD && expA[key]!==baseA[key];
+      ctx.fillStyle = moved ? '#c9722f' : (isD ? '#5d6c75' : '#c9722f');
+      ctx.fillText(value, x, y+31);
+      /* A valve setting is a setting, not a difference — so in delta it still reads
+         its own value, but the Base it is being compared against is named, and a
+         valve that did NOT move is dimmed so the one you changed stands out. */
+      if(key && isD){
+        var fm2 = (FORCES.filter(function(F){ return F.k===key; })[0]||{}).f || 'eur';
+        ctx.font='8.5px "Archivo",sans-serif';
+        ctx.fillStyle = moved ? 'rgba(90,143,214,.95)' : '#3d4952';
+        ctx.fillText(moved ? 'base '+fmtF(fm2, baseA[key]) : 'unchanged', x, y+43);
+      }
+      if(key){
+        var sp=toScreen(x+(chipDx===undefined?-72:chipDx), y+(chipDy===undefined?44:chipDy));
+        lawAnchors[key]={x:sp.x, y:sp.y};
+        valveHits.push({key:key, x:x, y:y});
+        if(openChip===key){ ctx.strokeStyle='rgba(247,221,196,.9)'; ctx.lineWidth=1.4;
+          ctx.beginPath(); ctx.arc(x,y,19,0,Math.PI*2); ctx.stroke(); }
+      }
+    }
+    /* a delta of exactly zero: a dotted trace where the pipe would be, so the
+       absence of a difference is legible as an absence, not as a thin flow. */
+    function flatLine(x1,x2,y,v,vy1,vy2){
+      if(!isD || Math.abs(v)>=ZERO) return;
+      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(61,73,82,.9)'; ctx.lineWidth=1;
+      ctx.beginPath();
+      if(vy1===undefined){ ctx.moveTo(x1,y); ctx.lineTo(x2,y); }
+      else { ctx.moveTo(x1,vy1); ctx.lineTo(x1,vy2); }
+      ctx.stroke(); ctx.restore();
+    }
+    function aux(x,y,w,label,value,tone){
+      var h=38;
+      ctx.fillStyle='#0e1418'; ctx.strokeStyle=tone||'#22303a'; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText(label, x, y-3);
+      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+      ctx.fillText(value, x, y+12);
+    }
+    function link(pts, label, absent){
+      ctx.save(); ctx.setLineDash(absent?[3,4]:[4,4]); ctx.lineWidth=1.2;
+      ctx.strokeStyle = absent ? 'rgba(93,108,117,.7)' : 'rgba(90,143,214,.85)';
+      ctx.beginPath(); pts.forEach(function(pt,i){ i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); });
+      ctx.stroke(); ctx.restore();
+      var e=pts[pts.length-1], q=pts[pts.length-2];
+      if(absent){
+        ctx.strokeStyle='rgba(201,151,63,.95)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(e[0],e[1],7,0,Math.PI*2); ctx.moveTo(e[0]-5,e[1]-5); ctx.lineTo(e[0]+5,e[1]+5); ctx.stroke();
+      } else {
+        var a=Math.atan2(e[1]-q[1], e[0]-q[0]);
+        ctx.fillStyle='rgba(90,143,214,.9)'; ctx.beginPath();
+        ctx.moveTo(e[0],e[1]); ctx.lineTo(e[0]-8*Math.cos(a-0.4), e[1]-8*Math.sin(a-0.4));
+        ctx.lineTo(e[0]-8*Math.cos(a+0.4), e[1]-8*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
+      }
+      if(label){
+        var at = absent ? [e[0], e[1]] : pts[Math.floor(pts.length/2)];
+        ctx.textAlign = absent ? 'left' : 'center';
+        ctx.font='8.5px "Archivo",sans-serif';
+        ctx.fillStyle = absent ? 'rgba(201,151,63,.95)' : 'rgba(90,143,214,.8)';
+        ctx.fillText(label, absent ? at[0]+13 : at[0], absent ? at[1]+3 : at[1]-7);
+      }
+    }
+
+    /* ---------- ARR STOCK: the cohort strata ARE the stock ---------- */
+    var ax=470, aw=180, aTop=96, aH=430, aBot=aTop+aH;
+    /* In DELTA the tank is signed: zero sits mid-height, positive fills upward,
+       negative downward. Clamping a negative delta to an empty tank (the old
+       behaviour) made a WORSE experiment indistinguishable from no change. */
+    var aZero = isD ? aTop + aH/2 : aBot;
+    var aSpan = isD ? aH/2 : aH;
+    if(isD){
+      ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
+      ctx.moveTo(ax, aZero); ctx.lineTo(ax+aw, aZero);
+      ctx.strokeStyle='rgba(93,108,117,.8)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    }
+    /* The strata are the stock — in BOTH modes. In delta each stratum is that
+       vintage's own contribution to the difference, so you can see WHICH cohorts
+       the change acts on rather than one undifferentiated block. */
+    var accUp=0, accDn=0;
+    d.cohorts.forEach(function(c){
+      var hgt=(c.closing/arrMax)*aSpan;
+      if(Math.abs(hgt)<0.05) return;
+      var y, hh=Math.abs(hgt);
+      if(hgt>0){ y=aZero-accUp-hh; accUp+=hh; } else { y=aZero+accDn; accDn+=hh; }
+      ctx.fillStyle=rgba(rampAt(c.acquisitionMonth/H), hgt>0?.92:.45);
+      ctx.fillRect(ax+2, y, aw-4, hh);
+      ctx.strokeStyle='rgba(11,16,19,.5)'; ctx.lineWidth=0.7;
+      ctx.strokeRect(ax+2, y, aw-4, hh);
+    });
+    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
+    if(!isD){ var bLvl = aBot - Math.min(1, bm.closingARR/arrMax)*aH;
+      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+      ctx.moveTo(ax-10,bLvl); ctx.lineTo(ax+aw+10,bLvl);
+      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+      ctx.fillText('Base = 0', ax+aw+8, aZero+3); }
+    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('STOCK · ARR', ax+aw/2, aTop-24);
+    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.fillText(n(d.closingARR), ax+aw/2, aTop-6);
+    if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+      ctx.fillText(d.cohorts.length+' cohort vintages', ax-12, aBot+4); }
+
+    /* ---------- CASH STOCK ---------- */
+    var cx=1020, cw=160, cTop=200, cH=326, cBot=cTop+cH;
+    /* Cash is not measured in ARR. In delta it gets its OWN symmetric range —
+       the old code scaled it by arrMax and then halved it, which is why a
+       €22m cash difference rendered as a sliver. */
+    var cRange, cZero, cLvlY;
+    if(isD){
+      cZero = cTop + cH/2;
+      cLvlY = cZero - (d.cashClosing/cashDMax)*(cH/2);
+    } else {
+      cRange=(cashHi-Math.min(0,cashLo))||1;
+      cZero=cBot - (0-Math.min(0,cashLo))/cRange*cH;
+      cLvlY=cBot - (d.cashClosing-Math.min(0,cashLo))/cRange*cH;
+    }
+    ctx.fillStyle = d.cashClosing>=0 ? 'rgba(201,114,47,.5)' : 'rgba(59,74,85,.75)';
+    ctx.fillRect(cx+2, Math.min(cLvlY,cZero), cw-4, Math.abs(cZero-cLvlY));
+    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
+    ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(cx,cZero); ctx.lineTo(cx+cw,cZero);
+    ctx.strokeStyle='rgba(93,108,117,.7)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    if(!isD){ var bc=cBot-(bm.cashClosing-Math.min(0,cashLo))/cRange*cH;
+      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+      ctx.moveTo(cx-10,bc); ctx.lineTo(cx+cw+10,bc);
+      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+      ctx.fillText('Base = 0', cx+cw+8, cZero+3); }
+    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('STOCK · CASH', cx+cw/2, cTop-24);
+    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.fillText(n(d.cashClosing), cx+cw/2, cTop-6);
+
+    /* ---------- INFLOWS ---------- */
+    var yNew=150, yExp=360;
+    cloud(80, yNew, 'outside the boundary');
+    pipeH(112, ax, yNew, pipeW(d.newARR), dTone(d.newARR,'rgba(201,114,47,.55)','rgba(93,108,117,.5)'));
+    flatLine(112, ax, yNew, d.newARR);
+    arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(201,114,47,.9)','rgba(93,108,117,.85)'));
+    valve(215, yNew, 'S&M per month', fmtF('eur', expA.sm), 'sm', -72, 44);
+    valve(350, yNew, 'CAC per New ARR', fmtF('x', expA.cacPerARR), 'cacPerARR', -72, 44);
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · New ARR', 408, yNew-34);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(n(d.newARR), 408, yNew-18);
+    dCaption(408, yNew-46, d.newARR);
+
+    cloud(80, yExp, 'outside the boundary');
+    pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(247,221,196,.5)','rgba(93,108,117,.5)'));
+    flatLine(112, ax, yExp, d.expansion);
+    arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(247,221,196,.85)','rgba(93,108,117,.85)'));
+    valve(350, yExp, 'expansion coefficient', fmtF('pct', expA.expansionCoefficientAnnual), 'expansionCoefficientAnnual', -72, 44);
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · Expansion', 408, yExp-34);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(n(d.expansion), 408, yExp-18);
+    dCaption(408, yExp-46, d.expansion);
+
+    /* ---------- OUTFLOW ---------- */
+    var xLeak=ax+aw/2;
+    pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,'rgba(59,74,85,.9)','rgba(143,160,170,.55)'));
+    flatLine(xLeak, xLeak, 0, d.leakage, aBot, 648);
+    arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(143,160,170,.9)'));
+    valve(xLeak, 580, 'persistence coefficient', fmtF('pct', expA.persistenceAnnual), 'persistenceAnnual', -216, -10);
+    cloud(xLeak, 690, 'leaves the system');
+    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · Leakage', xLeak+62, 548);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(n(d.leakage), xLeak+62, 564);
+    if(isD){ ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif';
+      ctx.fillStyle = Math.abs(d.leakage)<ZERO ? '#3d4952' : (d.leakage>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
+      ctx.fillText(Math.abs(d.leakage)<ZERO ? 'no change vs Base' : (d.leakage>0?'more leaks than Base':'less leaks than Base'), xLeak+62, 578); }
+
+    /* ---------- ARR → economics → cash ---------- */
+    aux(760, 140, 150, 'Revenue', n(d.revenue));
+    valve(760, 218, 'gross margin', fmtF('pct', expA.grossMargin), 'grossMargin', -238, -10);
+    aux(760, 292, 150, 'Gross profit', n(d.grossProfit));
+    aux(760, 408, 150, 'Other operating', n(d.otherOpex));
+    aux(905, 330, 120, 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
+    var fcfW = (isD && Math.abs(d.fcf)<ZERO) ? 0 : Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26));
+    pipeH(965, cx, 330, fcfW, d.fcf>=0?'rgba(79,158,119,.6)':'rgba(201,151,63,.6)');
+    flatLine(965, cx, 330, d.fcf);
+    arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,158,119,1)':'rgba(201,151,63,1)');
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.fillText('FLOW · FCF', 993, 300);
+
+    /* ---------- INFORMATION LINKS: the stock sets its own future rates ---------- */
+    link([[ax+aw,190],[700,190],[700,158]], 'midpoint ARR ÷ 12');
+    link([[ax,462],[412,462],[382,392]], 'the stock sets this rate');
+    link([[ax+22,aBot],[ax+22,604],[xLeak-22,590]], 'the stock sets this rate');
+    link([[760,238],[760,270]], null);
+    link([[818,300],[880,318]], null);
+    link([[818,400],[880,346]], null);
+    link([[215,178],[215,726],[905,726],[905,352]], 'S&M is also an operating cost');
+
+    /* ---------- ABSENT LINKS: the model boundary, drawn ---------- */
+    link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'cash never constrains S&M', true);
+    link([[700,428],[700,616],[652,616]], 'R&D → retention or expansion', true);
+
+    /* ---------- header and scales ---------- */
+    ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.fillText((isD?'SYSTEM · DELTA — Experiment − Base':'SYSTEM · stock and flow')+'   ·   month '+m, 30, 26);
+    if(isD && flowsAllFlat && !noExperiment){
+      ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#c9973f'; ctx.textAlign='right';
+      ctx.fillText('Every ARR flow is identical to Base at every month — this change does not touch ARR physics. The whole effect is downstream, in cash.', SYS.W-30, 26);
+      ctx.textAlign='left';
+    }
+    /* NO EXPERIMENT SET. Delta is Experiment − Base and the two are the same run,
+       so every quantity is exactly zero. That is arithmetic, not a broken view —
+       but an empty diagram cannot say so, and the Forces rail is hidden on this
+       layer, so the way out has to be stated here, on the valves themselves. */
+    if(isD && noExperiment){
+      ctx.fillStyle='rgba(11,16,19,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
+      valveHits.forEach(function(v){
+        ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.arc(v.x, v.y, 23, 0, Math.PI*2); ctx.stroke();
+      });
+      var bw=680, bh=132, bx=(SYS.W-bw)/2, by=396;   /* the one band clear of every valve */
+      ctx.fillStyle='#0e1418'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center';
+      ctx.font='15px "Archivo",sans-serif'; ctx.fillStyle='#e2e9ec';
+      ctx.fillText('Delta is empty because no experiment is set.', SYS.W/2, by+38);
+      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText('This view draws Experiment − Base. Right now they are the same run, so every stock and every', SYS.W/2, by+64);
+      ctx.fillText('flow is exactly zero. Nothing is broken — there is simply no difference to draw yet.', SYS.W/2, by+81);
+      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#c9722f';
+      ctx.fillText('Click any circled valve to move an assumption — or switch Compare to Absolute.', SYS.W/2, by+108);
+      ctx.textAlign='left';
+    }
+    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('Rectangles accumulate. Pipes fill and drain them. Bowties are the valves you set. Clouds are the model boundary. '+
+                 'Dashed blue arrows are information: the stock setting the rate of its own future flows.', 30, 42);
+    ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.fillText('SCALES  stock level ∝ € of ARR and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
+    ctx.fillStyle='rgba(201,151,63,.95)';
+    ctx.fillText('⊘ marks a link the engine does not model. An absent feedback is a finding, not an omission in the drawing.', 30, SYS.H-30);
+    endFit(); positionLawChips();
+  }
+
+  /* ==================================================================== *
+   * FLOW LAYER — the Pulse. One month of the frozen engine, proved.
+   * Cohort transformations happen first; the aggregate bands beside them are
+   * literally the sums of those movements. Three declared scales, never mixed.
+   * ==================================================================== */
+  var lawAnchors = {};
+  /* Draw in a fixed design space and scale it uniformly into whatever canvas we
+     have. This is what makes the whole diagram visible at every viewport. */
+  function beginFit(dw, dh){
+    var s = Math.min(W/dw, HH/dh);
+    fitT = { s:s, ox:(W-dw*s)/2, oy:(HH-dh*s)/2 };
+    ctx.save(); ctx.translate(fitT.ox, fitT.oy); ctx.scale(s,s);
+  }
+  function endFit(){ ctx.restore(); }
+  function toScreen(x,y){ return { x:x*fitT.s+fitT.ox, y:y*fitT.s+fitT.oy }; }
+  function pulseData(){
+    var m = Math.max(1, Math.min(H, Math.round(tau)));
+    return compare==='delta' ? PU.deltaPulseAt(baseRes, expRes, m) : PU.pulseAt(expRes, m);
+  }
+  function drawFlow(){
+    var d = pulseData(), isD = compare==='delta';
+    var st = pulseStep;
+    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    var DW=1260, DHt=770; beginFit(DW, DHt);
+    var L=76, R=26, T=58, B=86;
+    var colTop=T, colBot=DHt-B, colH=colBot-colTop;
+    var xOpen=L+26, colW=76, xClose=L+392, xPnl=xClose+colW+118;
+
+    /* --- three declared scales --- */
+    var stockMax = Math.max(Math.abs(d.openingARR), Math.abs(d.closingARR)) || 1;
+    var sStock = (colH*0.86)/stockMax;                                    // px per € of ARR
+    var flowMax = Math.max(Math.abs(d.newARR), Math.abs(d.expansion), Math.abs(d.leakage)) || 1;
+    var sFlow = (colH*0.24)/flowMax;                                      // px per € of ARR movement
+    var pnlMax = Math.max(Math.abs(d.revenue), Math.abs(d.grossProfit)+Math.abs(d.cogs)) || 1;
+    var sPnl = (colH*0.60)/pnlMax;                                        // px per € per month
+
+    function num(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
+
+    /* --- opening column, cohort-anchored --- */
+    function drawColumn(x, which){
+      var acc=0, base=colBot;
+      d.cohorts.forEach(function(c){
+        var v = which==='open' ? c.opening : c.closing;
+        if(which==='open' && c.isNew) return;
+        var h = v*sStock, y = base-acc-h;
+        var col = rampAt(c.acquisitionMonth/H);
+        ctx.fillStyle = rgba(col, isD ? (v>=0?0.9:0.45) : 0.92);
+        ctx.fillRect(x, Math.min(y,base-acc), colW, Math.abs(h));
+        ctx.strokeStyle='rgba(11,16,19,.6)'; ctx.lineWidth=0.8; ctx.strokeRect(x, Math.min(y,base-acc), colW, Math.abs(h));
+        /* the cohort's own movement, marked in place before any aggregate exists */
+        if(which==='open' && st>=1 && c.leakage>0){
+          ctx.fillStyle='rgba(59,74,85,.95)';
+          ctx.fillRect(x, base-acc-h, colW, Math.max(0.7, c.leakage*sStock));
+        }
+        if(which==='close' && st>=2 && c.expansion>0 && !c.isNew){
+          ctx.fillStyle='rgba(247,221,196,.65)';
+          ctx.fillRect(x, base-acc-h, colW, Math.max(0.7, c.expansion*sStock));
+        }
+        acc += h;
+      });
+      return acc;
+    }
+    var hOpen = drawColumn(xOpen,'open');
+    ctx.fillStyle='#8fa0aa'; ctx.font='10px "Archivo",sans-serif'; ctx.textAlign='center';
+    ctx.fillText('OPENING', xOpen+colW/2, colBot+16);
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.fillText(num(d.openingARR), xOpen+colW/2, colBot+31);
+    if(st>=1){ ctx.fillStyle='#5d6c75'; ctx.font='9px "Archivo",sans-serif';
+      ctx.fillText(d.cohorts.filter(function(c){return !c.isNew;}).length+' cohorts', xOpen+colW/2, colBot+44); }
+
+    /* --- aggregate ARR movement bands: the sums of what just happened --- */
+    var bandX = xOpen+colW+34, bandW = xClose-bandX-34;
+    var BANDS = [
+      { s:1, key:'persistenceAnnual', label:'− Leakage',   v:-d.leakage,   col:'rgba(59,74,85,.95)',  note:'each cohort × (1 − g), on its OPENING balance' },
+      { s:2, key:'expansionCoefficientAnnual', label:'+ Expansion', v:d.expansion,  col:'rgba(247,221,196,.7)', note:'each retained cohort × e — on RETAINED, not opening' },
+      { s:3, key:'sm', label:'+ New ARR',   v:d.newARR,     col:'rgba(201,114,47,.9)',  note:'S&M ÷ CAC per New ARR — created after the others age' }
+    ];
+    var by = colTop + colH*0.14;
+    BANDS.forEach(function(b){
+      var h = Math.max(3, Math.abs(b.v)*sFlow);
+      lawAnchors[b.key] = { x:bandX, y:by+h+22 };   /* the control sits under the law it governs */
+      if(st >= b.s){
+        ctx.fillStyle=b.col; ctx.fillRect(bandX, by, bandW, h);
+        ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+        ctx.fillText(b.label, bandX, by-8);
+        ctx.textAlign='right'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+        ctx.fillText(num(b.v), bandX+bandW, by-8);
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+        ctx.fillText(b.note, bandX, by+h+12);
+      }
+      by += h + 84;
+    });
+
+    /* --- closing column --- */
+    if(st>=4){
+      drawColumn(xClose,'close');
+      ctx.fillStyle='#8fa0aa'; ctx.font='10px "Archivo",sans-serif'; ctx.textAlign='center';
+      ctx.fillText('CLOSING', xClose+colW/2, colBot+16);
+      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+      ctx.fillText(num(d.closingARR), xClose+colW/2, colBot+31);
+      ctx.fillStyle='#4f9e77'; ctx.font='9px "JetBrains Mono",monospace';
+      ctx.fillText('bridge residual '+d.arrResidual.toExponential(1), xClose+colW/2, colBot+44);
+      /* the midpoint the revenue convention actually uses */
+      if(st>=5){
+        var ym = colBot - d.midpointARR*sStock;
+        ctx.save(); ctx.setLineDash([4,3]); ctx.beginPath();
+        ctx.moveTo(xOpen-14, ym); ctx.lineTo(xClose+colW+14, ym);
+        ctx.strokeStyle='rgba(226,233,236,.5)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+        ctx.fillText('midpoint '+num(d.midpointARR)+' — revenue comes from HERE, not from closing', xOpen-14, ym-6);
+      }
+    }
+
+    /* --- P&L cascade: € per month, its own scale --- */
+    if(st>=5){
+      var revH = Math.abs(d.revenue)*sPnl, yRev = colTop+colH*0.13;
+      function bar(x,y,w,h,fill,label,val,sub){
+        ctx.fillStyle=fill; ctx.fillRect(x,y,w,Math.max(2,h));
+        ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+        ctx.fillText(label, x, y-5);
+        ctx.textAlign='right'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+        ctx.fillText(val, x+w, y-5);
+        if(sub){ ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+                 ctx.fillText(sub, x, y+Math.max(2,h)+11); }
+      }
+      bar(xPnl, yRev, 142, revH, 'rgba(201,114,47,.55)', 'Revenue', num(d.revenue), '(opening + closing) ÷ 2 ÷ 12');
+      var xg=xPnl+174, cogsH=Math.abs(d.cogs)*sPnl, gpH=Math.abs(d.grossProfit)*sPnl;
+      lawAnchors.grossMargin = { x:xg-6, y:yRev-56 };
+      if(st>=6){
+        bar(xg, yRev, 146, cogsH, 'rgba(59,74,85,.9)', 'COGS', num(d.cogs));
+        bar(xg, yRev+cogsH+10, 146, gpH, 'rgba(201,114,47,.85)', 'Gross profit', num(d.grossProfit));
+        var xo=xg+182, yo=yRev+cogsH+10;
+        lawAnchors.cacPerARR = { x:xo-4, y:yo-56 };
+        if(st>=7){
+          var smH=Math.abs(d.sm)*sPnl, otH=Math.abs(d.otherOpex)*sPnl, fcfH=Math.abs(d.fcf)*sPnl;
+          bar(xo, yo, 158, smH, 'rgba(90,143,214,.75)', 'S&M', num(d.sm), smH>26 ? 'creates this month’s new cohort' : '');
+          bar(xo, yo+smH+34, 158, otH, 'rgba(59,74,85,.85)', 'Other operating', num(d.otherOpex));
+          bar(xo, yo+smH+otH+52, 158, fcfH, d.fcf>=0?'rgba(79,158,119,.85)':'rgba(201,151,63,.85)', 'FCF', num(d.fcf));
+          /* §6 — S&M bends back to the deposition head. The return is delayed.
+             Suppressed when ΔS&M is zero: there would be no capital movement to draw. */
+          if(Math.abs(d.sm) > 1){
+          ctx.save(); ctx.beginPath();
+          ctx.moveTo(xo, yo+smH/2);
+          ctx.bezierCurveTo(xo-150, yo+smH/2, xClose+colW+70, colTop+18, xClose+colW+4, colTop+26);
+          ctx.strokeStyle='rgba(90,143,214,.6)'; ctx.lineWidth=1.6; ctx.setLineDash([5,4]); ctx.stroke(); ctx.restore();
+          ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+          ctx.fillText('S&M creates the new cohort — only '+eur(d.experiment?d.experiment.newCohortGPThisMonth:d.newCohortGPThisMonth)+
+                       ' of GP returns this month', xClose+colW-4, colTop+14);
+          }
+          if(st>=8){
+            ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+            ctx.fillText('Cash', xo, yo+smH+otH+fcfH+84);
+            ctx.font='12px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+            ctx.fillText(num(d.cashOpening)+'  +  '+num(d.fcf)+'  =  '+num(d.cashClosing), xo, yo+smH+otH+fcfH+102);
+          }
+        }
+      }
+    }
+
+    /* --- declared scales, so nothing is silently exaggerated --- */
+    ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.fillText('SCALES  stock '+(sStock*1e6).toFixed(2)+' px/€m ARR   ·   ARR movement '+(sFlow*1e6).toFixed(2)+
+                 ' px/€m   ·   P&L '+(sPnl*1e6).toFixed(2)+' px/€m per month', L, DHt-16);
+    ctx.fillText((isD?'DELTA PULSE · Experiment − Base':'ABSOLUTE PULSE')+'  ·  month '+d.t, L, 22);
+    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+    ctx.fillText('ARR movement is drawn at a finer scale than the stock: one month of flow against a stock measured in years.', L, 38);
+    ctx.fillStyle='#c9973f'; ctx.font='10px "Archivo",sans-serif';
+    ctx.fillText('SUPERSEDED PROTOTYPE — kept for reference. It redraws an identity the bridge panel already states.', L, DHt-34);
+    endFit(); positionLawChips();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * CAPITAL RECOVERY TRACK
+   * Below the surface line: capital still out. Above it: gross profit beyond
+   * the acquisition cost attributed to that cohort. The horizontal distance
+   * from the drop to the crossing IS the payback time.
+   * An economic attribution, not a claim that euros literally flow back.
+   * ------------------------------------------------------------------ */
+  function capSubject(){
+    var k = (pinned!==null ? pinned : (hover!==null ? hover : null));
+    if(k===null || !expRes.cohorts[k] || expRes.cohorts[k].acquisitionCost===null) return null;
+    return CAP.cohortCapital(expRes, k);
+  }
+  function drawCapital(S, t, mi){
+    var subj = capSubject(), lo, hi, label, col;
+    if(subj){
+      lo = -subj.acquisitionCost;
+      hi = Math.max(subj.acquisitionCost*0.55, subj.series.length ? subj.series[subj.series.length-1].net : 0);
+      col = rampAt(subj.acquisitionMonth / H);
+      label = 'CAPITAL · cohort M'+subj.acquisitionMonth;
+    } else {
+      /* symmetric so capital still out and gross profit beyond cost each get real room */
+      var sym = Math.max(1, Math.max.apply(null, capAgg.map(function(a){return a.out;})),
+                            Math.max.apply(null, capAgg.map(function(a){return a.surplus;})));
+      lo = -sym; hi = sym;
+      col = [201,150,110];
+      label = 'CAPITAL · whole portfolio';
+    }
+    var span = (hi-lo)||1;
+    function yC2(v){ return geo.capBot - ((v-lo)/span)*(geo.capBot-geo.capTop); }
+    var y0 = yC2(0), dark=[col[0]*0.36, col[1]*0.36, col[2]*0.42];
+
+    ctx.strokeStyle='#22303a'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
+
+    if(subj){
+      var j=subj.acquisitionMonth;
+      var pts=[[X(j), -subj.acquisitionCost]];
+      subj.series.forEach(function(s){ if(s.t<=t) pts.push([X(s.t), s.net]); });
+      if(j<=t && pts.length>1){
+        ['below','above'].forEach(function(side){
+          ctx.beginPath(); ctx.moveTo(pts[0][0], y0);
+          pts.forEach(function(pp){ var v = side==='below' ? Math.min(0,pp[1]) : Math.max(0,pp[1]); ctx.lineTo(pp[0], yC2(v)); });
+          ctx.lineTo(pts[pts.length-1][0], y0); ctx.closePath();
+          ctx.fillStyle = side==='below' ? rgba(dark,.9) : rgba(col,.5); ctx.fill();
+        });
+        ctx.beginPath(); pts.forEach(function(pp,i){ i?ctx.lineTo(pp[0],yC2(pp[1])):ctx.moveTo(pp[0],yC2(pp[1])); });
+        ctx.strokeStyle=rgba(col,.95); ctx.lineWidth=1.8; ctx.stroke();
+        /* the instant capital leaves */
+        ctx.beginPath(); ctx.moveTo(X(j), y0); ctx.lineTo(X(j), yC2(-subj.acquisitionCost));
+        ctx.strokeStyle=rgba(col,.95); ctx.lineWidth=2.4; ctx.stroke();
+        ctx.beginPath(); ctx.arc(X(j), yC2(-subj.acquisitionCost), 3.2, 0, Math.PI*2);
+        ctx.fillStyle=rgba(col,1); ctx.fill();
+      }
+      var fut=subj.series.filter(function(s){ return s.t>t; });
+      if(fut.length){
+        ctx.save(); ctx.setLineDash([4,3]); ctx.beginPath();
+        var startY = (j<=t && pts.length>1) ? pts[pts.length-1][1] : -subj.acquisitionCost;
+        ctx.moveTo(X(Math.max(j,t)), yC2(startY));
+        fut.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
+        ctx.strokeStyle=rgba(col,.5); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+      }
+      if(subj.paybackMonth!==null){
+        var pxp=X(subj.paybackMonth), reached=subj.paybackMonth<=t;
+        ctx.save(); if(!reached) ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(pxp, geo.capTop+2); ctx.lineTo(pxp, geo.capBot);
+        ctx.strokeStyle= reached ? 'rgba(247,221,196,.8)' : 'rgba(247,221,196,.28)';
+        ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
+        ctx.fillStyle= reached ? '#f7ddc4' : '#5d6c75';
+        ctx.fillText('PAYBACK · age '+subj.paybackAge, pxp+6, geo.capTop+24);
+        if(j<=t){   /* the span that IS the payback time */
+          var yb=geo.capBot-5;
+          ctx.beginPath(); ctx.moveTo(X(j), yb); ctx.lineTo(pxp, yb);
+          ctx.strokeStyle=rgba(col,.55); ctx.lineWidth=1; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(X(j),yb-3); ctx.lineTo(X(j),yb+3);
+          ctx.moveTo(pxp,yb-3); ctx.lineTo(pxp,yb+3); ctx.stroke();
+        }
+      }
+      /* Base runs as a ghost here too: same cohort, frozen reference scenario */
+      var bcap = CAP.cohortCapital(baseRes, subj.index);
+      if(bcap && bcap.acquisitionCost!==null){
+        ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+        ctx.moveTo(X(bcap.acquisitionMonth), yC2(-bcap.acquisitionCost));
+        bcap.series.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
+        ctx.strokeStyle='rgba(90,143,214,.8)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+        if(bcap.paybackMonth!==null && bcap.paybackMonth!==subj.paybackMonth){
+          var bx=X(bcap.paybackMonth);
+          ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
+          ctx.moveTo(bx, geo.capTop+2); ctx.lineTo(bx, geo.capBot);
+          ctx.strokeStyle='rgba(90,143,214,.55)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+          ctx.textAlign='right'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(90,143,214,.9)';
+          ctx.fillText('base · age '+bcap.paybackAge, bx-6, geo.capTop+24);
+        }
+      }
+      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.fillText(label+'   deployed '+eur(subj.acquisitionCost)+
+        (bcap && bcap.acquisitionCost!==null && bcap.acquisitionCost!==subj.acquisitionCost ? '   (base '+eur(bcap.acquisitionCost)+')' : ''),
+        geo.L+8, geo.capTop+11);
+    } else {
+      ctx.beginPath(); ctx.moveTo(geo.L, y0);
+      for(var m2=0;m2<=mi;m2++) ctx.lineTo(X(m2), yC2(-capAgg[m2].out));
+      ctx.lineTo(X(t), yC2(-capAgg[mi].out)); ctx.lineTo(X(t), y0); ctx.closePath();
+      ctx.fillStyle=rgba(dark,.92); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(geo.L, y0);
+      for(var m3=0;m3<=mi;m3++) ctx.lineTo(X(m3), yC2(capAgg[m3].surplus));
+      ctx.lineTo(X(t), yC2(capAgg[mi].surplus)); ctx.lineTo(X(t), y0); ctx.closePath();
+      ctx.fillStyle=rgba(col,.42); ctx.fill();
+      ctx.save(); ctx.setLineDash([4,3]);
+      ctx.beginPath(); for(var m4=mi;m4<=H;m4++){ var fx=X(m4); m4===mi?ctx.moveTo(fx,yC2(-capAgg[m4].out)):ctx.lineTo(fx,yC2(-capAgg[m4].out)); }
+      ctx.strokeStyle=rgba(dark,1); ctx.lineWidth=1.5; ctx.stroke();
+      ctx.beginPath(); for(var m5=mi;m5<=H;m5++){ var gx=X(m5); m5===mi?ctx.moveTo(gx,yC2(capAgg[m5].surplus)):ctx.lineTo(gx,yC2(capAgg[m5].surplus)); }
+      ctx.strokeStyle=rgba(col,.75); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.fillText(label, geo.L+8, geo.capTop+11);
+      ctx.fillStyle=rgba(col,.85);
+      ctx.fillText('beyond cost  '+eur(capAgg[mi].surplus), geo.L+8, y0-7);
+      ctx.fillStyle=rgba([col[0]*0.72,col[1]*0.72,col[2]*0.78],1);
+      ctx.fillText('still out  '+eur(capAgg[mi].out), geo.L+8, y0+15);
+      ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+      ctx.fillText('click a stratum to follow one cohort from deployment to payback', W-geo.R-6, geo.capTop+11);
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * §7 — the controls live on the laws, positioned at the transformation
+   * they govern. Same values as the Stock-layer rail; one source of truth.
+   * ------------------------------------------------------------------ */
+  var LAWCHIPS = [
+    {k:'persistenceAnnual', label:'persistence', f:'pct', min:0.6, max:0.99, step:0.005},
+    {k:'expansionCoefficientAnnual', label:'expansion', f:'pct', min:0, max:0.4, step:0.005},
+    {k:'sm', label:'S&M', f:'eur', min:0, max:2500000, step:25000},
+    {k:'cacPerARR', label:'CAC / New ARR', f:'x', min:0.3, max:3, step:0.05},
+    {k:'grossMargin', label:'gross margin', f:'pct', min:0.4, max:0.95, step:0.005}
+  ];
+  var openChip = null;
+  function buildLawChips(){
+    var host=document.getElementById('lawhost'); host.innerHTML='';
+    LAWCHIPS.forEach(function(Lc){
+      var el=document.createElement('div'); el.className='lawchip'; el.id='chip-'+Lc.k;
+      el.style.pointerEvents='auto'; el.style.display='none';
+      el.innerHTML='<span>'+esc(Lc.label)+' <b id="cv-'+Lc.k+'"></b></span>'+
+        '<input type="range" id="cr-'+Lc.k+'" min="'+Lc.min+'" max="'+Lc.max+'" step="'+Lc.step+'" hidden>';
+      host.appendChild(el);
+      el.addEventListener('click', function(ev){
+        if(ev.target.tagName==='INPUT') return;
+        var open = el.classList.toggle('open');
+        el.querySelector('input').hidden = !open;
+        openChip = open ? Lc.k : null;
+      });
+      el.querySelector('input').addEventListener('input', function(e){
+        expA = Object.assign({}, expA); expA[Lc.k] = parseFloat(e.target.value); recompute();
+      });
+    });
+  }
+  function positionLawChips(){
+    LAWCHIPS.forEach(function(Lc){
+      var el=document.getElementById('chip-'+Lc.k); if(!el) return;
+      var a=lawAnchors[Lc.k];
+      if(layer!=='flow' || !a){ el.style.display='none'; return; }
+      if(flowMode==='system' && openChip!==Lc.k){ el.style.display='none'; return; }
+      el.style.display='block'; el.style.left=Math.round(a.x)+'px'; el.style.top=Math.round(a.y)+'px';
+      document.getElementById('cv-'+Lc.k).textContent = fmtF(Lc.f, expA[Lc.k]);
+      var inp=document.getElementById('cr-'+Lc.k); inp.value=expA[Lc.k];
+    });
+  }
+
+  /* ---------- pulse transport ---------- */
+  var STEPNAMES = ['A · Opening state','B · Leakage','C · Expansion','D · New ARR','E · Closing state',
+                   'F · Revenue','G · Margin split','H · Operating allocation','I · Cash'];
+  function syncPulse(){
+    if(flowMode==='system'){
+      document.getElementById('pulse-law').innerHTML =
+        '<b style="color:var(--ink-2)">Flow creates stock. Stock determines future flow.</b> &nbsp; '+
+        'Click any bowtie valve to set the assumption where it acts. Press play, or scrub, to watch the stocks fill and the flow rates change with them.';
+    } else {
+      document.getElementById('pulse-step').textContent = STEPNAMES[pulseStep];
+      var law = PU.LAW[pulseStep];
+      document.getElementById('pulse-law').innerHTML =
+        '<b style="color:var(--warn)">Failed prototype.</b> <b style="color:var(--ink-2);font-family:var(--mono)">'+esc(law.formula)+'</b> &nbsp; '+esc(law.note);
+    }
+    render(); renderSide();
+  }
+  function stepTo(n){ pulseStep=Math.max(0,Math.min(PULSE_STEPS-1,n)); syncPulse(); }
+  function pulseTick(){
+    if(!pulsePlaying) return;
+    if(pulseStep>=PULSE_STEPS-1){ pulsePlaying=false; document.getElementById('pulse-play').classList.remove('play'); return; }
+    stepTo(pulseStep+1);
+    pulseTimer=setTimeout(pulseTick, 950);
+  }
+
+  /* ---------- hit testing: every euro of ARR has a history ---------- */
+  cv.addEventListener('mousemove', function(ev){
+    var r=cv.getBoundingClientRect(), mx=ev.clientX-r.left, my=ev.clientY-r.top;
+    hover = null;
+    if(my>=geo.massTop && my<=geo.massBot && mx>=geo.L && mx<=W-geo.R){
+      var m = Math.round(invX(mx)); if(m>tau) m = Math.floor(tau);
+      var S2 = scales();
+      for(var k=0;k<expS.C;k++){
+        var hi = S2.yA(expS.stack[m][k]), lo = S2.yA(k?expS.stack[m][k-1]:0);
+        if(my>=hi && my<=lo && lo-hi>0.4){ hover=k; break; }
+      }
+    }
+    cv.style.cursor = hover!==null ? 'pointer' : 'default';
+  });
+  cv.addEventListener('mouseleave', function(){ hover=null; });
+  cv.addEventListener('click', function(ev){
+    if(layer==='flow' && flowMode==='system'){
+      var rect=cv.getBoundingClientRect();
+      var dx=((ev.clientX-rect.left)-fitT.ox)/fitT.s, dy=((ev.clientY-rect.top)-fitT.oy)/fitT.s;
+      var hit=null;
+      valveHits.forEach(function(v){ if(Math.abs(v.x-dx)<24 && Math.abs(v.y-dy)<24) hit=v.key; });
+      openChip = (hit && openChip!==hit) ? hit : null;
+      LAWCHIPS.forEach(function(Lc){
+        var el=document.getElementById('chip-'+Lc.k); if(!el) return;
+        el.classList.toggle('open', openChip===Lc.k);
+        el.querySelector('input').hidden = openChip!==Lc.k;
+      });
+      render(); return;
+    }
+    if(hover===null) return;
+    pinned = (pinned===hover ? null : hover); renderSide();
+    var d=document.querySelector('.dossier');
+    if(d) d.scrollIntoView({block:'nearest', behavior:'smooth'});
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Economic conversion cascade
+   * ------------------------------------------------------------------ */
+  function renderCascade(){
+    var t=tau, m=Math.max(1, Math.min(H, Math.round(t)));
+    var em=expRes.months[m-1], bm=baseRes.months[m-1];
+    var scale = Math.max(em.revenue, bm.revenue) * 1.05 || 1;
+    var rows=[
+      ['Revenue', em.revenue, bm.revenue, 'var(--exp)'],
+      ['− Cost of revenue', em.cogs, bm.cogs, 'var(--leak)'],
+      ['= Gross profit', em.grossProfit, bm.grossProfit, 'var(--exp)'],
+      ['− S&M · R&D · G&A', em.sm+em.rd+em.ga, bm.sm+bm.rd+bm.ga, 'var(--leak)'],
+      ['= EBITA, and FCF', em.ebita, bm.ebita, em.ebita>=0?'var(--good)':'var(--warn)']
+    ];
+    document.getElementById('cascade-when').textContent = 'month '+m+' · year '+Math.ceil(m/12);
+    var attrib='';
+    if(capitalMode){
+      var g=CAP.gpByVintage(expRes,m), p=CAP.portfolioCapital(expRes,m);
+      var seg=[['this month\u2019s cohort', g.fromCohortAcquiredThisMonth],
+               ['earlier acquisitions', g.fromEarlierAcquisitions],
+               ['opening base', g.fromOpeningBase]];
+      attrib='<div class="crow" style="margin-bottom:9px"><span class="cl">GP by vintage</span>'+
+        '<span class="cbar" style="height:13px">'+ (function(){ var off=0; return g.rows.map(function(o){
+            var w=o.share*100, c=rampAt(o.acquisitionMonth/60), s='<i style="left:'+off.toFixed(3)+'%;width:'+w.toFixed(3)+'%;background:'+rgba(c,.95)+'"></i>'; off+=w; return s;
+          }).join(''); })() +'</span>'+
+        '<span class="cv">'+eur(g.total)+'</span></div>'+
+        '<div class="crow" style="margin-bottom:9px"><span class="cl" style="color:var(--ink-3)">produced by</span>'+
+        '<span class="cl" style="color:var(--ink-2)">'+seg.map(function(s2){ return esc(s2[0])+' '+pct(s2[1]/g.total,1); }).join(' &middot; ')+
+        '</span><span class="cv" style="color:var(--ink-3)">capital out '+eur(p.outstanding)+'</span></div>';
+    }
+    document.getElementById('cascade').innerHTML = attrib + rows.map(function(r){
+      var w = Math.max(0, Math.min(100, Math.abs(r[1])/scale*100));
+      var bw = Math.max(0, Math.min(100, Math.abs(r[2])/scale*100));
+      return '<div class="crow"><span class="cl">'+esc(r[0])+'</span>'+
+        '<span class="cbar"><i style="width:'+w.toFixed(2)+'%;background:'+r[3]+'"></i>'+
+        '<b style="left:calc('+bw.toFixed(2)+'% - 1px)"></b></span>'+
+        '<span class="cv" style="color:'+(r[1]<0?'var(--warn)':'var(--ink)')+'">'+eur(r[1])+'</span></div>';
+    }).join('') +
+    '<div class="crow" style="margin-top:7px"><span class="cl">Cash balance</span>'+
+      '<span class="cbar" style="background:transparent"></span>'+
+      '<span class="cv" style="color:var(--exp)">'+eur(expRes.months[m-1].cashClosing)+'</span></div>';
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Side column — pause and inspect
+   * ------------------------------------------------------------------ */
+  function renderSide(){
+    if(layer==='flow'){ return renderFlowSide(); }
+    var t=tau, m=Math.max(1, Math.min(H, Math.round(t)));
+    var em=expRes.months[m-1], bm=baseRes.months[m-1];
+    var mix=E.arrMix(expRes, m);
+    var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
+    var d=em.closingARR-bm.closingARR;
+
+    var h='<div class="sgrp"><div class="eyebrow">Where the company is</div>'+
+      '<div class="big"><span class="v">'+eur(em.closingARR)+'</span>'+
+      '<span class="d '+cls(d)+'">'+(Math.abs(d)<1?'on Base':eurS(d)+' vs Base')+'</span></div>'+
+      row('Revenue run rate', eur(em.revenue*12)) +
+      row('Gross margin', pct(expRes.assumptions.grossMargin)) +
+      row('Gross profit, this month', eur(em.grossProfit)) +
+      row('EBITA / FCF, this month', eur(em.ebita)) +
+      row('Cash', eur(em.cashClosing)) + '</div>';
+
+    var mx=Math.max(em.openingARR, em.closingARR);
+    function bar(v,color,from){ var w=Math.abs(v)/mx*100, l=(from||0)/mx*100;
+      return '<span class="bb"><i style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+color+'"></i></span>'; }
+    h+='<div class="sgrp"><div class="eyebrow">How it is moving</div><div class="bridge">'+
+      '<div class="brow"><span style="color:var(--ink-3)">Opening</span>'+bar(em.openingARR,'var(--ink-4)')+'<span class="bv">'+eur(em.openingARR)+'</span></div>'+
+      '<div class="brow"><span style="color:var(--ink-3)">+ New</span>'+bar(em.newARR,'var(--good)',em.openingARR)+'<span class="bv" style="color:var(--good)">'+eur(em.newARR)+'</span></div>'+
+      '<div class="brow"><span style="color:var(--ink-3)">+ Expansion</span>'+bar(em.expansion,'var(--good)',em.openingARR)+'<span class="bv" style="color:var(--good)">'+eur(em.expansion)+'</span></div>'+
+      '<div class="brow"><span style="color:var(--ink-3)">− Leakage</span>'+bar(em.leakage,'var(--leak)',em.openingARR-em.leakage)+'<span class="bv" style="color:var(--ink-2)">'+eur(em.leakage)+'</span></div>'+
+      '<div class="brow" style="margin-top:2px"><span style="color:var(--ink)">Closing</span>'+bar(em.closingARR,'var(--exp)')+'<span class="bv" style="color:var(--exp)">'+eur(em.closingARR)+'</span></div>'+
+      '</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">What it is made of</div>'+
+      row('Opening base still here', eur(mix.amounts.base)+' · '+pct(mix.shares.base)) +
+      row('From cohorts acquired since', eur(mix.total-mix.amounts.base)+' · '+pct(1-mix.shares.base)) +
+      row('Cohorts alive', String(E.cohortSnapshot(expRes,m).length)) + '</div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Emergent KPIs</div>'+
+      row('ARR growth, year on year', em.arrGrowthYoY===null?'—':pct(em.arrGrowthYoY)) +
+      row('R12M GRR', kpi?pct(kpi.grr,1):'needs 12 months') +
+      row('R12M NRR', kpi?pct(kpi.nrr,1):'needs 12 months') +
+      row('CAC payback', expRes.derived.cacPaybackMonths.toFixed(1)+' months') +
+      '<div class="hint" style="margin-top:7px">Measurements of the system, not inputs to it.</div></div>';
+
+    h+='<div class="sgrp" id="causal-slot"></div>';
+
+    if(pinned!==null && pinned<expS.C){
+      var c=expRes.cohorts[pinned], snap=E.cohortSnapshot(expRes,m).filter(function(x){return x.id===c.id;})[0];
+      var col=rampAt(c.acquisitionMonth/H);
+      h+='<div class="sgrp"><div class="dossier"><h4><span class="sw" style="background:'+rgba(col,1)+'"></span>'+
+        (c.acquisitionMonth===0?'Opening base cohort':'Cohort acquired in month '+c.acquisitionMonth)+'</h4>'+
+        (snap ? row('Age', snap.age+' months') +
+          row('Original ARR', eur(c.initialARR)) +
+          row('ARR now', eur(snap.currentARR)+' · '+pct(snap.retainedShare)+' of original') +
+          row('Cumulative expansion', eur(snap.cumExpansion)) +
+          row('Cumulative leakage', eur(snap.cumLeakage)) +
+          row('Cumulative gross profit', eur(snap.cumGrossProfit)) +
+          row('Acquisition cost', c.acquisitionCost===null?'unknown — predates the simulation':eur(c.acquisitionCost)) +
+          capitalRows(c, m)
+          : '<div class="hint">Not yet born at this moment.</div>')+
+        '<div class="hint" style="margin-top:8px">This euro of ARR has a history. Click again to release.</div></div></div>';
+    } else if(anatomy){
+      h+='<div class="sgrp"><div class="hint">Anatomy is on — the strata have separated. Hover the mass to trace a vintage, click to hold its dossier here.</div></div>';
+    }
+
+    document.getElementById('side').innerHTML=h;
+    renderCausal(null, true);
+    function row(a,b){ return '<div class="srow"><span>'+esc(a)+'</span><b>'+b+'</b></div>'; }
+    function capitalRows(c, mm){
+      if(c.acquisitionCost===null)
+        return '<div class="hint" style="margin-top:8px">The opening base has no stamped acquisition cost — it was created before the simulation, so its capital recovery cannot be attributed.</div>';
+      var cc=CAP.cohortCapital(expRes, expRes.cohorts.indexOf(c));
+      var now=null; cc.series.forEach(function(s){ if(s.t<=mm) now=s; });
+      if(!now) return '';
+      var out='<div style="height:1px;background:var(--line);margin:8px 0"></div>'+
+        '<div class="eyebrow" style="margin-bottom:5px">Capital recovery</div>'+
+        row('Cumulative gross profit', eur(now.cumGP)) +
+        row('Remaining unrecovered', now.unrecovered>0 ? eur(now.unrecovered) : '€0 — fully recovered');
+      if(cc.paybackMonth!==null && cc.paybackMonth<=mm)
+        out += row('Payback', 'reached in month '+cc.paybackMonth+' · age '+cc.paybackAge) +
+               row('GP beyond acquisition cost', eur(now.cumGP - cc.acquisitionCost));
+      else if(cc.paybackMonth!==null)
+        out += row('Payback', 'not yet — '+eur(now.unrecovered)+' remaining, expected month '+cc.paybackMonth);
+      else
+        out += row('Payback', 'not reached within the 60-month horizon');
+      return out + '<div class="hint" style="margin-top:7px">Cumulative cohort gross profit measured against the acquisition cost attributed to it. Not profit, value or ROI: the engine models no cost to serve, no expansion CAC and no discounting.</div>';
+    }
+  }
+
+  /* ---------- §17 reconciliation + §11 Δ-stock accumulator ---------- */
+  function renderFlowSide(){
+    var d = pulseData(), isD = compare==='delta';
+    if(flowMode==='system') return renderSystemSide(d, isD);
+    var m = d.t;
+    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
+    var h='<div class="sgrp"><div class="eyebrow">'+(isD?'Delta pulse · Experiment − Base':'Absolute pulse')+' · month '+m+'</div>'+
+      '<div class="hint" style="margin-top:5px">'+(isD
+        ? 'Base is zero. The canvas contains only differences, in euros, at their own honest scale.'
+        : 'Every band is engine output for this month. Nothing is illustrative.')+'</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">ARR bridge</div><div class="recon">'+
+      r('Opening ARR', n(d.openingARR)) + r('+ New', n(d.newARR)) + r('+ Expansion', n(d.expansion)) +
+      r('− Leakage', n(-d.leakage)) + r('= Closing ARR', n(d.closingARR), 'tot') +
+      r('residual', '<span style="color:var(--good)">'+d.arrResidual.toExponential(1)+'</span>') +
+      '</div>'+(isD && Math.abs(d.leakage)>1
+        ? '<div class="hint" style="margin-top:7px">Leakage itself is '+eur(Math.abs(d.leakage))+
+          (d.leakage<0?' <b style="color:var(--ink)">lower</b>':' <b style="color:var(--ink)">higher</b>')+
+          ' than Base, so its −term contributes '+n(-d.leakage)+' to closing ARR.</div>' : '')+'</div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Financial bridge</div><div class="recon">'+
+      r('Revenue', n(d.revenue)) + r('− COGS', n(-d.cogs)) + r('= Gross profit', n(d.grossProfit), 'tot') +
+      r('− S&M', n(-d.sm)) + r('− Other operating', n(-d.otherOpex)) + r('= FCF', n(d.fcf), 'tot') +
+      r('residual', '<span style="color:var(--good)">'+d.fcfResidual.toExponential(1)+'</span>') +
+      '</div><div class="recon" style="margin-top:8px">'+
+      r('Opening cash', n(d.cashOpening)) + r('+ FCF', n(d.fcf)) + r('= Closing cash', n(d.cashClosing), 'tot') +
+      r('residual', '<span style="color:var(--good)">'+d.cashResidual.toExponential(1)+'</span>') +
+      '</div></div>';
+
+    /* §6 — the delayed loop, stated in euros */
+    var abs = isD ? d.experiment : d;
+    h+='<div class="sgrp"><div class="eyebrow">The delayed loop</div><div class="hint" style="line-height:1.65;margin-top:5px">'+
+      'S&M of <b style="color:var(--ink)">'+eur(abs.sm)+'</b> created this month\'s cohort of <b style="color:var(--ink)">'+eur(abs.newARR)+
+      '</b> of ARR. That cohort produced <b style="color:var(--ink)">'+eur(abs.newCohortGPThisMonth)+'</b> of gross profit this month — '+
+      pct(abs.sameMonthReturnOnSM,1)+' of the spend, because the engine gives a birth-month cohort half a month of revenue. '+
+      'The rest arrives over the following '+expRes.derived.cacPaybackMonths.toFixed(0)+' months.</div></div>';
+
+    /* §11 — ΔARR today IS the running sum of the monthly Δflows */
+    if(isD){
+      var acc = PU.deltaAccumulator(baseRes, expRes), row = acc.rows[m-1];
+      h+='<div class="sgrp"><div class="eyebrow">Δ stock accumulator</div><div class="recon" style="margin-top:5px">'+
+        r('This month’s Δflow', n(row.monthlyStep)) +
+        r('Σ Δflows to date', n(row.cumulative)) +
+        r('Δ Closing ARR now', n(row.dClosingARR), 'tot') +
+        r('identity residual', '<span style="color:var(--good)">'+row.residual.toExponential(1)+'</span>') +
+        '</div><div class="hint" style="margin-top:8px;line-height:1.65">Δ ARR today <b style="color:var(--ink)">is</b> the sum of every monthly Δflow, because Δopening(t) = Δclosing(t−1). '+
+        'Flow creates stock; the stock then produces its own flows. Max identity residual over 60 months: €'+acc.maxResidual.toExponential(1)+'.</div>'+
+        '<div class="recon" style="margin-top:9px">'+
+        r('Δ Revenue this month', n(row.dRevenue)) + r('Δ Gross profit', n(row.dGrossProfit)) +
+        r('Δ FCF', n(row.dFCF)) + r('Δ Cash', n(row.dCash), 'tot') + '</div></div>';
+    }
+
+    /* §12 — illustrative exponent calibration, clearly separated */
+    var re = PU.retentionExponent();
+    h+='<div class="sgrp"><div class="eyebrow">Why small and repeated is large</div><div class="recon" style="margin-top:5px">'+
+      r('0.98 survival, 60 months', pct(re.survA,1)) + r('0.99 survival, 60 months', pct(re.survB,1)) +
+      r('ratio', re.ratio.toFixed(2)+'×', 'tot') +
+      '</div><div class="hint" style="margin-top:7px">One point of monthly survival nearly doubles what is left after five years. '+
+      '<b style="color:var(--warn)">Illustrative</b> — not the engine scenario\'s configuration.</div></div>';
+
+    document.getElementById('side').innerHTML=h;
+  }
+
+  function renderSystemSide(d, isD){
+    var m = d.t, abs = isD ? d.experiment : d;
+    var noExp = isD && sameAsBase();
+    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
+    function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
+    var net = d.newARR + d.expansion - d.leakage;
+    if(noExp){
+      document.getElementById('side').innerHTML =
+        '<div class="sgrp"><div class="eyebrow" style="color:var(--exp)">Delta · nothing to compare yet</div>'+
+        '<div class="hint" style="line-height:1.7;margin-top:7px">Delta draws <b style="color:var(--ink)">Experiment − Base</b>. '+
+        'No force has been moved, so Experiment <em>is</em> Base — the same 60-month run subtracted from itself. '+
+        'Every stock and every flow is exactly zero, and the diagram is empty because the difference is empty.</div></div>'+
+        '<div class="sgrp"><div class="eyebrow">To see something here</div>'+
+        '<div class="hint" style="line-height:1.75;margin-top:7px">'+
+        '<b style="color:var(--ink)">1.</b> Click a circled bowtie valve on the diagram and move its slider. The Forces rail is hidden on this layer, so the valves are the controls.<br>'+
+        '<b style="color:var(--ink)">2.</b> Or open <b style="color:var(--ink)">Stock</b> and pick an experiment preset, then come back.<br>'+
+        '<b style="color:var(--ink)">3.</b> Or switch Compare to <b style="color:var(--ink)">Absolute</b> to watch the system itself rather than a difference.</div></div>'+
+        '<div class="sgrp"><div class="eyebrow">Why this is not a bug</div>'+
+        '<div class="hint" style="line-height:1.7;margin-top:7px">The engine is deterministic. Two runs on identical assumptions agree to the last euro at every one of the 60 months — '+
+        'so a delta of exactly zero everywhere is the correct answer, and the strongest evidence the two scenarios really do share one engine.</div></div>';
+      return;
+    }
+    var h='<div class="sgrp"><div class="eyebrow">Stocks · month '+m+'</div><div class="recon" style="margin-top:5px">'+
+      r('ARR', n(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
+      '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Flows into and out of ARR</div><div class="recon" style="margin-top:5px">'+
+      r('+ New ARR', n(d.newARR)) + r('+ Expansion', n(d.expansion)) + r('− Leakage', n(-d.leakage)) +
+      r('= net change in the stock', n(net), 'tot') + '</div>'+
+      '<div class="hint" style="margin-top:8px">Net '+n(net)+' this month against a stock of '+eur(abs.closingARR)+
+      ' — <b style="color:var(--ink)">'+(abs.closingARR ? pct(Math.abs(net)/abs.closingARR,1) : '—')+'</b>. '+
+      'That ratio is why a stock this large is slow to turn, and why one month of flow could never be drawn at the stock\'s own scale.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">The stock sets its own rates</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">'+
+      'Leakage is <b style="color:var(--ink)">'+eur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
+      '</b>. Expansion is the retained balance × '+pct(Math.pow(1+expA.expansionCoefficientAnnual,1/12)-1,3)+
+      '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
+      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">'+
+      '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> S&amp;M is exogenous. Cash can fall to '+
+      eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend. The capital loop is drawn open because it <em>is</em> open.'+
+      '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit, so it '+
+      'reaches no valve. The absence is the honest drawing of the model boundary.</div></div>';
+
+    h+='<div class="sgrp"><div class="eyebrow">Why this replaced the bridge</div>'+
+      '<div class="hint" style="line-height:1.7;margin-top:5px">The bridge view redrew an identity you can already read as numbers. '+
+      'This view shows something numbers cannot: <b style="color:var(--ink)">which rates are functions of which stocks</b>, and which links do not exist. '+
+      'The failed prototype is kept under <em>Bridge</em> for reference.</div></div>';
+    document.getElementById('side').innerHTML=h;
+  }
+
+  /* ---------- causal feedback, from real simulation outputs ---------- */
+  function renderCausal(prevExp, reuse){
+    var slot=document.getElementById('causal-slot'); if(!slot) return;
+    var c=E.compare(baseRes, expRes), b=c.base, x=c.experiment, d=c.delta;
+    if(!c.changed.length && !pairMode){
+      slot.innerHTML='<div class="causal idle"><h4>Experiment matches Base</h4>'+
+        '<div class="msg">The two futures coincide exactly. Move a force and watch the mass pull away from its own ghost.</div></div>';
+      return;
+    }
+    var title = pairMode ? 'Efficiency versus Spend'
+      : (lastMsg ? lastMsg.name : c.changed.map(function(u){ return LABEL[u.key]||u.key; }).join(', ') + ' changed');
+    var msg = pairMode ? 'Two routes to the same ARR. Watch the mass — then watch the keel.'
+      : (lastMsg ? lastMsg.teach : 'The whole future recalculated.');
+    slot.innerHTML='<div class="causal"><h4>'+esc(title)+'</h4><div class="msg">'+esc(msg)+'</div>'+
+      '<div class="cz">'+
+      cz('Year-5 ARR', eur(b.finalARR)+' → '+eur(x.finalARR), d.finalARR) +
+      cz('Cumulative leakage', eur(b.cumLeakage)+' → '+eur(x.cumLeakage), -d.cumLeakage) +
+      cz('Cumulative gross profit', eur(b.cumGrossProfit)+' → '+eur(x.cumGrossProfit), d.cumGrossProfit) +
+      cz('Year-5 FCF', eur(b.finalYearFCF)+' → '+eur(x.finalYearFCF), d.finalYearFCF) +
+      cz('CAC payback', baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',
+         -(expRes.derived.cacPaybackMonths-baseRes.derived.cacPaybackMonths)) +
+      cz('Acquisition capital deployed', eur(b.cumSM)+' → '+eur(x.cumSM), -d.cumSM) +
+      cz('Ending cash', eur(b.endingCash)+' → '+eur(x.endingCash), d.endingCash) +
+      '</div></div>';
+    function cz(k,v,sign){ return '<span>'+esc(k)+'</span><b class="'+cls(sign)+'">'+v+'</b>'; }
+  }
+  var LABEL={sm:'S&M', cacPerARR:'CAC / New ARR', persistenceAnnual:'Persistence',
+             expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A'};
+
+  /* ------------------------------------------------------------------ *
+   * Paired mode — §14's signature comparison
+   * ------------------------------------------------------------------ */
+  var TARGET_NEW = 1125000;
+  function enterPair(){
+    pairMode = true;
+    baseA = Object.assign({}, BASE_A, { cacPerARR: BASE_A.sm/TARGET_NEW });     // efficiency route
+    expA  = Object.assign({}, BASE_A, { sm: TARGET_NEW*BASE_A.cacPerARR });     // spend route
+    document.getElementById('mode-chip').textContent='efficiency vs spend';
+    document.getElementById('mode-chip').classList.add('on');
+    document.getElementById('paired').classList.add('on');
+    lastMsg = null; recompute();
+  }
+  function exitPair(){
+    if(!pairMode) return;
+    pairMode=false; baseA=BASE_A;
+    document.getElementById('mode-chip').textContent='base vs experiment';
+    document.getElementById('mode-chip').classList.remove('on');
+    document.getElementById('paired').classList.remove('on');
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Transport
+   * ------------------------------------------------------------------ */
+  var playBtn=document.getElementById('play'), scrub=document.getElementById('scrub'), tl=document.getElementById('tlabel');
+  function playIcon(){
+    playBtn.innerHTML = playing
+      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/></svg>'
+      : '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>';
+  }
+  playBtn.addEventListener('click', function(){ playing=!playing; playBtn.classList.toggle('play',playing); playIcon(); });
+  document.getElementById('rewind').addEventListener('click', function(){ tau=0; scrub.value=0; syncTime(); });
+  scrub.addEventListener('input', function(){ playing=false; playBtn.classList.remove('play'); playIcon(); tau=parseFloat(scrub.value); syncTime(); });
+  [0.5,1,2,4].forEach(function(s){
+    var b=document.createElement('button'); b.className='btn'+(s===1?' on':''); b.textContent=s+'×';
+    b.addEventListener('click', function(){ speed=s;
+      [].forEach.call(document.getElementById('speeds').children,function(x){ x.classList.toggle('on', x.textContent===s+'×'); }); });
+    document.getElementById('speeds').appendChild(b);
+  });
+  function syncTime(){
+    var m=Math.round(tau);
+    tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
+    renderSide(); renderCascade();
+  }
+
+  function setLayer(l){
+    layer=l;
+    document.getElementById('layer-stock').classList.toggle('on', l==='stock');
+    document.getElementById('layer-flow').classList.toggle('on', l==='flow');
+    document.querySelector('.app').classList.toggle('flow', l==='flow');
+    document.getElementById('pulsebar').hidden = l!=='flow';
+    document.querySelector('.cascade').hidden = l==='flow';
+    /* The system view is a time-varying stock-and-flow diagram: the transport
+       still drives it. Only the bridge sub-mode freezes time, because it steps
+       through one month with its own 9-step stepper. */
+    if(l==='flow' && flowMode==='bridge'){ playing=false; document.getElementById('play').classList.remove('play'); playIcon(); }
+    setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
+    syncPulse(); renderSide();
+  }
+  document.getElementById('layer-stock').addEventListener('click', function(){ setLayer('stock'); });
+  document.getElementById('layer-flow').addEventListener('click', function(){ setLayer('flow'); });
+  ['abs','delta'].forEach(function(c){
+    document.getElementById('cmp-'+c).addEventListener('click', function(){
+      compare = c==='abs'?'absolute':'delta';
+      document.getElementById('cmp-abs').classList.toggle('on', compare==='absolute');
+      document.getElementById('cmp-delta').classList.toggle('on', compare==='delta');
+      render(); renderSide();
+    });
+  });
+  /* Inspect subsumes the old Anatomy and Capital-loop toggles (§14) */
+  document.getElementById('anatomy').addEventListener('click', function(){
+    anatomy=!anatomy; capitalMode=anatomy; this.classList.toggle('on',anatomy);
+    resize(); renderCascade(); renderSide(); render();
+  });
+  function setFlowMode(fm){
+    flowMode=fm;
+    document.getElementById('fm-system').classList.toggle('on', fm==='system');
+    document.getElementById('fm-bridge').classList.toggle('on', fm==='bridge');
+    document.getElementById('pulse-controls').style.display = fm==='bridge' ? 'flex' : 'none';
+    pulsePlaying=false; clearTimeout(pulseTimer);
+    document.getElementById('pulse-play').classList.remove('play');
+    if(fm==='bridge'){
+      pulseStep=PULSE_STEPS-1;
+      playing=false; document.getElementById('play').classList.remove('play'); playIcon();
+    }
+    syncPulse(); renderSide();
+  }
+  document.getElementById('fm-system').addEventListener('click', function(){ setFlowMode('system'); });
+  document.getElementById('fm-bridge').addEventListener('click', function(){ setFlowMode('bridge'); });
+  document.getElementById('pulse-prev').addEventListener('click', function(){ pulsePlaying=false; clearTimeout(pulseTimer); this.parentNode.querySelector('#pulse-play').classList.remove('play'); stepTo(pulseStep-1); });
+  document.getElementById('pulse-next').addEventListener('click', function(){ pulsePlaying=false; clearTimeout(pulseTimer); document.getElementById('pulse-play').classList.remove('play'); stepTo(pulseStep+1); });
+  document.getElementById('pulse-play').addEventListener('click', function(){
+    clearTimeout(pulseTimer);
+    pulsePlaying=!pulsePlaying; this.classList.toggle('play',pulsePlaying);
+    if(pulsePlaying){ if(pulseStep>=PULSE_STEPS-1) pulseStep=0; syncPulse(); pulseTimer=setTimeout(pulseTick,950); }
+  });
+  document.getElementById('keybtn').addEventListener('click', function(){ document.getElementById('key').classList.add('on'); });
+  document.getElementById('keyclose').addEventListener('click', function(){ document.getElementById('key').classList.remove('on'); });
+  document.getElementById('paired').addEventListener('click', function(){ pairMode ? (exitPair(), expA=Object.assign({},BASE_A), recompute()) : enterPair(); });
+  document.getElementById('reset').addEventListener('click', function(){
+    exitPair(); expA=Object.assign({},BASE_A); lastMsg=null; pinned=null; recompute();
+  });
+  window.addEventListener('resize', function(){ resize(); });
+
+  /* ---------- loop ---------- */
+  var last=performance.now(), acc=0;
+  function frame(now){
+    var dt=Math.min(100, now-last); last=now;
+    if(playing && (layer==='stock' || (layer==='flow' && flowMode==='system'))){
+      tau += dt/1000 * 2.2 * speed;                 // ~2.2 simulated months per second at 1×
+      if(tau>=H){ tau=H; playing=false; playBtn.classList.remove('play'); playIcon(); }
+      scrub.value=tau;
+      acc+=dt; if(acc>90){ acc=0; syncTime(); }
+    }
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  buildForces(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  document.getElementById('pulse-controls').style.display='none';
+  requestAnimationFrame(frame);
+})();
+</script>

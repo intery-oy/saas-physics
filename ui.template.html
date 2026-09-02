@@ -1,0 +1,953 @@
+<title>SaaS Physics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* ------------------------------------------------------------------ *
+ * SaaS Physics — Prototype 0 inspection interface
+ * Single committed dark instrument theme. Every colour painted from a
+ * token; nothing inherits the host ground.
+ * ------------------------------------------------------------------ */
+:root{
+  --ground:#0c1113; --panel:#10161a; --raised:#161f24; --sunk:#0a0f11;
+  --line:#22303a; --line-soft:#1a242b;
+  --ink:#dfe7ea; --ink-2:#93a3ac; --ink-3:#66757e;
+  --base:#5a8fd6;      /* BASE scenario — recessive reference */
+  --exp:#c9722f;       /* EXPERIMENT scenario — the thing you steer */
+  --good:#3f9e6b; --bad:#cf5b52; --warn:#c9973f;
+  --v0:#95562a; --v1:#b06e3c; --v2:#cb8a55; --v3:#e0a677; --v4:#eec49e; --v5:#f7ddc4;
+  --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:3px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--exp);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+
+/* taxonomy chips — structural, deliberately monochrome so the two series
+   colours stay the only carriers of identity in the charts */
+.tx{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.09em;padding:1px 5px;border:1px solid var(--line);color:var(--ink-3);border-radius:2px;white-space:nowrap}
+.tx-state{border-style:solid}
+.tx-flow{border-style:dashed}
+.tx-rate{border-style:dotted}
+.tx-control{border-style:solid;border-width:1px 1px 2px 1px;color:var(--ink-2)}
+.tx-emergent{border-color:var(--exp);color:var(--exp)}
+.emergent{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.erow{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:11.5px}
+.erow+.erow{border-top:1px solid var(--line-soft)}
+.erow.out{background:rgba(201,114,47,.07)}
+.erow b{margin-left:auto;font-family:var(--mono);font-weight:500;font-size:13px;color:var(--ink)}
+.erow.out b{color:var(--exp)}
+.ehint{padding:8px 12px;border-top:1px solid var(--line-soft);font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.subpanel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-top:16px}
+.subpanel h3{font-size:11.5px;margin-bottom:10px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 22px}
+.kvr{display:flex;align-items:baseline;gap:8px;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--line-soft)}
+.kvr span{color:var(--ink-3)}
+.kvr b{margin-left:auto;font-family:var(--mono);font-weight:500;color:var(--ink)}
+.kvr.exact b{color:var(--good)}
+.kvr.gap b{color:var(--warn)}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:352px minmax(0,1fr);min-height:100vh}
+.rail{background:var(--panel);border-right:1px solid var(--line);padding:0 0 40px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{min-width:0;padding:0 0 64px}
+@media (max-width:1080px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+}
+
+/* ---------- header ---------- */
+.head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:20px 26px 16px;border-bottom:1px solid var(--line)}
+.head h1{font-size:20px;letter-spacing:-.01em}
+.head .sub{color:var(--ink-2);font-size:12px}
+.pill{font-family:var(--mono);font-size:10px;padding:2px 7px;border:1px solid var(--line);color:var(--ink-3);border-radius:2px}
+
+/* ---------- control rail ---------- */
+.rail-head{padding:18px 20px 14px;border-bottom:1px solid var(--line)}
+.grp{padding:16px 20px;border-bottom:1px solid var(--line-soft)}
+.grp-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ctl{margin-bottom:16px}
+.ctl:last-child{margin-bottom:0}
+.ctl-top{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+.ctl-top label{font-size:12px;font-weight:500;flex-grow:1}
+.ctl-val{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.ctl-val input[type=number]{width:104px;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:5px 7px;font-family:var(--mono);font-size:12px;color:var(--exp);text-align:right}
+.ctl-unit{font-size:11px;color:var(--ink-3)}
+.ctl-base{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.ctl-base b{color:var(--base);font-weight:500}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;height:18px;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--exp);border:2px solid var(--panel);margin-top:-5px}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--exp);border:2px solid var(--panel)}
+.btn{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;font-size:11px;font-weight:500;color:var(--ink-2);cursor:pointer}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn.on{border-color:var(--exp);color:var(--exp)}
+.btn-row{display:flex;flex-wrap:wrap;gap:6px}
+.derived{background:var(--sunk);border:1px solid var(--line-soft);border-radius:var(--r);padding:11px 12px;display:flex;flex-direction:column;gap:7px}
+.drow{display:flex;align-items:baseline;gap:8px;font-size:11px}
+.drow span:first-child{color:var(--ink-3)}
+.drow b{margin-left:auto;font-family:var(--mono);font-weight:500;color:var(--ink)}
+.note{font-size:11px;line-height:1.65;color:var(--ink-3)}
+.note code{font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+
+/* ---------- sections ---------- */
+.sec{padding:24px 26px;border-bottom:1px solid var(--line-soft)}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.sec-head h2{font-size:14px;letter-spacing:-.005em}
+.sec-head .hint{font-size:11px;color:var(--ink-3)}
+.spacer{flex-grow:1}
+
+/* ---------- explainability ---------- */
+.explain{background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--exp);border-radius:var(--r);padding:16px 18px}
+.explain.idle{border-left-color:var(--line)}
+.explain h3{font-size:12.5px;margin-bottom:4px}
+.chg{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);margin-bottom:12px}
+.chg s{color:var(--base);text-decoration-color:var(--ink-3)}
+.chg b{color:var(--exp);font-weight:500}
+.xlist{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.xlist li{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px;font-size:12px;align-items:baseline}
+.xlist .k{color:var(--ink-3);font-size:11px}
+.xlist .v{color:var(--ink-2)}
+.xlist .v b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--ink-3)}
+.flag{margin-top:14px;padding:11px 12px;background:var(--sunk);border:1px solid var(--warn);border-radius:var(--r);font-size:11.5px;line-height:1.65;color:var(--ink-2)}
+.flag b{color:var(--warn)}
+
+/* ---------- charts ---------- */
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:820px){.charts{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px 6px;position:relative}
+.card-head{display:flex;align-items:baseline;gap:10px;margin-bottom:2px}
+.card-head h3{font-size:12px;font-weight:600}
+.card-head .kind{font-size:10px;color:var(--ink-3)}
+.card-head .delta{margin-left:auto;font-family:var(--mono);font-size:11px}
+.legend{display:flex;gap:16px;align-items:center;font-size:11px;color:var(--ink-2)}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.tip{position:absolute;pointer-events:none;background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;font-family:var(--mono);font-size:11px;white-space:nowrap;opacity:0;transition:opacity .08s;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.tip .tl{color:var(--ink-3);font-size:10px;margin-bottom:3px}
+.tip .tr{display:flex;gap:8px;align-items:center}
+.tip .sw{width:7px;height:7px;border-radius:50%}
+
+/* ---------- bridge ---------- */
+.bridge{display:flex;flex-direction:column;gap:1px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.brow{display:grid;grid-template-columns:150px minmax(120px,1fr) 118px;gap:14px;align-items:center;padding:10px 14px}
+.brow.alt{background:var(--raised)}
+.brow.tot{border-top:1px solid var(--line);background:var(--sunk)}
+.brow .lb{font-size:12px}
+.brow .lb small{color:var(--ink-3);font-size:10px;display:block}
+.brow .amt{font-family:var(--mono);font-size:12.5px;text-align:right}
+.bbar{height:12px;position:relative;background:var(--sunk);border-radius:1px}
+.bbar i{position:absolute;top:0;height:12px;border-radius:1px}
+.recon{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:11px;color:var(--ink-3);border-top:1px solid var(--line)}
+.recon b{font-family:var(--mono);color:var(--good)}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.tw.tall{max-height:420px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:11.5px}
+th{position:sticky;top:0;background:var(--raised);text-align:right;padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;border-bottom:1px solid var(--line);z-index:2}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 12px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;border-bottom:1px solid var(--line-soft);color:var(--ink-2)}
+tr:last-child td{border-bottom:none}
+td.k{font-family:var(--ui);color:var(--ink)}
+tbody tr:hover td{background:var(--raised)}
+tr.hl td{color:var(--ink)}
+
+/* ---------- scrubber ---------- */
+.scrub{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.scrub input[type=range]{flex-grow:1;min-width:200px;max-width:520px}
+.scrub .mlabel{font-family:var(--mono);font-size:13px;color:var(--exp);min-width:132px}
+
+/* ---------- integrity ---------- */
+.checks{display:flex;flex-direction:column;gap:1px;background:var(--line-soft);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.chk{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:9px 13px;background:var(--panel);align-items:start}
+.chk .st{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em}
+.chk .st.p{color:var(--good)} .chk .st.f{color:var(--bad)}
+.chk .nm{font-size:11.5px;color:var(--ink)}
+.chk .dt{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+
+/* ---------- disclosure ---------- */
+.disc{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.disc .b{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.disc h3{font-size:11.5px;margin-bottom:8px}
+.disc ul{margin:0;padding-left:16px;font-size:11.5px;line-height:1.7;color:var(--ink-2)}
+.disc li{margin-bottom:5px}
+.disc code{font-family:var(--mono);font-size:11px;color:var(--ink)}
+.formula{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;font-family:var(--mono);font-size:11.5px;color:var(--ink);margin:8px 0;overflow-x:auto}
+</style>
+
+<div class="shell">
+
+  <!-- ================= CONTROL RAIL ================= -->
+  <aside class="rail">
+    <div class="rail-head">
+      <div class="eyebrow" style="margin-bottom:6px">Experiment controls</div>
+      <div class="note">Every change re-runs all 60 months instantly. <b style="color:var(--base)">Base</b> is never overwritten.</div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-head"><span class="tx tx-state">STATE</span><span class="eyebrow">Starting state</span></div>
+      <div class="derived">
+        <div class="drow"><span>Opening ARR</span><b>€20.00m</b></div>
+        <div class="drow"><span>Opening cash</span><b>€10.00m</b></div>
+        <div class="drow"><span>Horizon</span><b>60 months</b></div>
+      </div>
+      <div class="note" style="margin-top:9px">Illustrative defaults. No real company data is connected.</div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-head"><span class="tx tx-control">CONTROL</span><span class="eyebrow">Management investment</span></div>
+      <div id="ctl-control"></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-head"><span class="tx tx-rate">TRANSITION</span><span class="eyebrow">Coefficients that govern the world</span></div>
+      <div id="ctl-rate"></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-head"><span class="tx tx-rate">TRANSITION</span><span class="eyebrow">Age bands (v0.3)</span></div>
+      <div class="note" style="margin-bottom:11px">One new state dimension: cohort maturity. Each band has its own coefficients. The default is <b style="color:var(--ink-2)">flat</b> — age carries no economic meaning until you give it some, and the model takes no position on which direction that should be.</div>
+      <div class="btn-row" style="margin-bottom:11px" id="band-presets"></div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse" id="bandtable"></table>
+    </div>
+
+    <div class="grp">
+      <div class="grp-head"><span class="tx tx-emergent">MEASURED</span><span class="eyebrow">Reported by the KPI layer</span></div>
+      <div class="emergent" id="measured"></div>
+      <div class="emergent" id="emergent"></div>
+      <div class="derived" id="derived"></div>
+      <div class="note" style="margin-top:10px">
+        <b style="color:var(--ink-2)">v0.2 acquisition physics.</b> New ARR is generated from spend and acquisition productivity — gross margin does not appear:
+        <div class="formula" style="margin:7px 0">New ARR<sub>month</sub> = S&amp;M ÷ (CAC / New ARR)
+New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
+        Acquisition productivity decides how much ARR the spend creates; gross margin decides how fast that investment comes back, which is why payback is an output. Still no sales capacity, rep ramp, pipeline, conversion, diminishing returns or acquisition delay. NRR is not an input either — it falls out of GRR and expansion.
+      </div>
+    </div>
+
+    <div class="grp" style="border-bottom:none">
+      <div class="grp-head"><span class="eyebrow">Preset experiments</span></div>
+      <div class="btn-row" id="presets"></div>
+      <div class="btn-row" style="margin-top:10px"><button class="btn" id="reset">Reset Experiment to Base</button></div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+    <header class="head">
+      <h1>SaaS&nbsp;Physics</h1>
+      <span class="sub">Prototype&nbsp;0 — deterministic economic engine</span>
+      <span class="spacer"></span>
+      <span class="pill">model v0.3</span>
+      <span class="pill">60 monthly periods</span>
+      <span class="pill" id="cohort-pill">61 cohorts</span>
+    </header>
+
+    <section class="sec">
+      <div id="explain"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>Future trajectory</h2>
+        <span class="hint">Base vs Experiment over 60 months</span>
+        <span class="spacer"></span>
+        <div class="legend">
+          <span><i style="border-color:var(--base);border-top-style:dashed"></i>Base</span>
+          <span><i style="border-color:var(--exp)"></i>Experiment</span>
+        </div>
+        <div class="btn-row" id="agg"></div>
+      </div>
+      <div class="charts" id="charts"></div>
+      <div class="sec-head" style="margin:20px 0 10px"><h2>Monthly values</h2><span class="hint">the simulation is always monthly; the charts above only aggregate the display</span></div>
+      <div class="tw tall"><table id="monthly"></table></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>ARR anatomy</h2><span class="hint">the governing identity, for one month of the Experiment</span></div>
+      <div class="scrub">
+        <span class="eyebrow">Inspect month</span>
+        <input type="range" id="month" min="1" max="60" step="1" value="60">
+        <span class="mlabel num" id="month-label">M60 · Y5</span>
+      </div>
+      <div class="bridge" id="bridge"></div>
+      <div class="subpanel">
+        <h3>Layer B — R12M measurement over a frozen cohort</h3>
+        <div class="kv" id="rates"></div>
+        <div class="note" id="rate-note" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Cohort inspector</h2><span class="hint">the company is a portfolio of vintages, not one number — total ARR is only ever their sum</span></div>
+      <div class="card" style="padding:14px 14px 8px;margin-bottom:16px">
+        <div class="card-head"><h3>ARR by acquisition vintage</h3><span class="kind">Experiment · stacked, oldest darkest</span></div>
+        <div id="mix-chart"></div>
+        <div class="legend" id="mix-legend" style="flex-wrap:wrap;gap:12px;padding:4px 0 8px;font-size:10.5px"></div>
+      </div>
+      <div class="tw tall"><table id="cohorts"></table></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>State sufficiency experiment</h2>
+        <span class="hint">two portfolios, same ARR and same trailing KPIs, different cohort maturity</span>
+      </div>
+      <div class="tw"><table id="statesuff"></table></div>
+      <div class="subpanel" id="statesuff-verdict"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>Matched-NRR experiment</h2>
+        <span class="hint">scenarios defined by target <em>measured</em> R12M KPIs, then calibrated back to transition coefficients</span>
+      </div>
+      <div class="tw"><table id="matched"></table></div>
+      <div class="subpanel" id="matched-verdict"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>Integrity checks</h2><span class="hint">re-run against the current Experiment on every change</span><span class="spacer"></span><span class="pill" id="chk-pill"></span></div>
+      <div class="checks" id="checks"></div>
+    </section>
+
+    <section class="sec" style="border-bottom:none">
+      <div class="sec-head"><h2>What this model does and does not claim</h2></div>
+      <div class="disc">
+        <div class="b">
+          <h3>Stated v0.1 equations</h3>
+          <div class="formula">monthly GRR = annual GRR ^ (1/12)
+monthly expansion = (1 + annual) ^ (1/12) − 1
+retained  = opening × monthly GRR
+leakage   = opening − retained
+expansion = retained × monthly expansion
+closing   = retained + expansion (+ new cohort)
+
+New ARR   = S&amp;M ÷ (CAC / New ARR)          ← v0.2
+payback   = (CAC / New ARR) × 12 ÷ GM       ← OUTPUT
+
+revenue = ((opening + closing) / 2) / 12
+EBITA   = GP − S&amp;M − R&amp;D − G&amp;A
+FCF     = EBITA</div>
+        </div>
+        <div class="b">
+          <h3>Explicit simplifications</h3>
+          <ul>
+            <li><code>FCF = EBITA</code>. No working capital, deferred revenue, tax, capex or debt. Real SaaS bills ahead of revenue, so cash here is <em>pessimistic</em> for fast growers.</li>
+            <li>Leakage combines churn and contraction, so the KPI layer cannot report them separately however correct its definitions are. Reactivation = 0. There are no customers, so logo retention and concentration do not exist.</li>
+            <li>Retention and expansion rates do not vary with cohort age, segment or product.</li>
+            <li>The future economic benefit of R&amp;D is <strong>outside the simulation boundary</strong>. v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law; there is no defensible universal coefficient. A later version may let you state a hypothesised delayed effect as an explicit management thesis.</li>
+            <li>Acquisition is linear and instantaneous in S&amp;M — no saturation, no lag.</li>
+            <li>Revenue uses a midpoint approximation of a stock that actually moves continuously.</li>
+          </ul>
+        </div>
+        <div class="b">
+          <h3>What v0.2 changed, and what it did not</h3>
+          <ul>
+            <li><strong>Fixed.</strong> Gross margin no longer generates ARR. In v0.1, cutting GM 80%→65% wrongly raised New ARR €0.75m→€0.92m/month; now it leaves New ARR untouched and moves CAC payback 18.0→22.2 months instead.</li>
+            <li><strong>Still true.</strong> Improving acquisition efficiency and raising S&amp;M by the same factor produce an identical ARR path — only cash separates them (€27m over 60 months at the calibrated settings).</li>
+            <li><strong>Still true.</strong> Acquisition remains linear, instantaneous and unbounded in S&amp;M. There is no spend level at which the next euro buys less.</li>
+            <li><strong>Discovered (v0.2).</strong> Retention-heavy and expansion-heavy businesses at matched NRR are economically indistinguishable to this model. A boundary, not a bug — see <code>docs/MATCHED-NRR.md</code>.</li>
+            <li><strong>v0.2.1 — two layers.</strong> The economic engine holds <em>transition coefficients</em>; the KPI engine holds <em>measurement definitions</em>, and events flow one way between them. A 90% persistence coefficient measures as 89.56% R12M GRR: the whole gap is the within-period interaction of decay and expansion, and it vanishes if either is switched off. See <code>docs/MEASUREMENT.md</code>.</li>
+            <li><strong>v0.2.1 — sharper boundary.</strong> Measured R12M NRR is a stock ratio, so pinning it pins the monthly multiplier uniquely. Any two systems reporting the same NRR are identical in this model <em>by construction</em>, not by coincidence.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>/*__ENGINE__*/</script>
+<script>/*__KPI__*/</script>
+<script>/*__INTEGRITY__*/</script>
+<script>
+(function () {
+  'use strict';
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, I = window.SaaSPhysicsIntegrity;
+
+  /* Base is frozen: the Experiment can never write through to it. */
+  var BASE_A = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS));
+  var MATCHED_NRR = 0.96 * 1.10;   /* 105.6% — the matched measured-NRR target */
+  /* Turn TARGET MEASURED KPIs into the transition coefficients that produce them. */
+  function calTo(grr, exp){
+    var c = K.calibrate(grr, exp);
+    return { persistenceAnnual: c.persistenceAnnual, expansionCoefficientAnnual: c.expansionCoefficientAnnual };
+  }
+  var expA   = Object.assign({}, E.DEFAULT_ASSUMPTIONS);
+  var baseRes = E.run(BASE_A);
+  var expRes  = E.run(expA);
+  var month = 60, agg = 'quarter';
+
+  /* ---------------- formatting ---------------- */
+  function eur(v){ var a=Math.abs(v);
+    if(a>=1e6) return '€'+(v/1e6).toFixed(2)+'m';
+    if(a>=1e3) return '€'+(v/1e3).toFixed(0)+'k';
+    return '€'+v.toFixed(0); }
+  function eurS(v){ return (v>=0?'+':'−')+eur(Math.abs(v)); }
+  function eurNeg(v){ return '−'+eur(Math.abs(v)); }
+  function eurPos(v){ return '+'+eur(Math.abs(v)); }
+  function pct(v,d){ return (v*100).toFixed(d===undefined?1:d)+'%'; }
+  function pp(v){ return (v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'pp'; }   /* percentage POINTS */
+  function relp(v){ return (v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%'; }  /* relative change */
+  function cls(v){ return v>1e-9?'up':(v<-1e-9?'down':'flat'); }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+  /* ---------------- control definitions ---------------- */
+  var CONTROLS = [
+    {k:'sm', g:'control', label:'S&M investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
+    {k:'rd', g:'control', label:'R&D investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
+    {k:'ga', g:'control', label:'G&A investment', unit:'€ thousand / month', min:0, max:2000000, step:25000, f:'eur'},
+    {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR', min:0.30, max:4.00, step:0.05, f:'x'},
+    {k:'persistenceAnnual', g:'rate', label:'Persistence coefficient', unit:'annual — NOT reported GRR', min:0.60, max:0.995, step:0.005, f:'pct'},
+    {k:'expansionCoefficientAnnual', g:'rate', label:'Expansion coefficient', unit:'annual, on retained ARR', min:0, max:0.50, step:0.005, f:'pct'},
+    {k:'grossMargin', g:'rate', label:'Gross margin', unit:'of revenue', min:0.30, max:0.95, step:0.005, f:'pct'}
+  ];
+  function fmtCtl(c,v){ return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1); }
+  function inputStep(c){ return c.f==='pct'?0.1:c.f==='eur'?25:c.f==='x'?0.05:0.5; }
+  function inputVal(c,v){ return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):c.f==='x'?v.toFixed(2):v; }
+  function fromInput(c,v){ return c.f==='pct'?v/100:c.f==='eur'?v*1000:v; }
+
+  var PRESETS = [
+    {id:'A', name:'A · Retention', ch:{persistenceAnnual:0.96}},
+    {id:'B', name:'B · Expansion', ch:{expansionCoefficientAnnual:0.20}},
+    {id:'C', name:'C · Efficiency', ch:{cacPerARR:0.80}},
+    {id:'D', name:'D · +50% S&M', ch:{sm:BASE_A.sm*1.5}},
+    {id:'E', name:'E · Margin', ch:{grossMargin:0.65}},
+    {id:'A2', name:'Target GRR 90 / exp 10', ch:calTo(0.90, 0.10)},
+    {id:'R', name:'R · measured GRR 96', ch:calTo(0.96, MATCHED_NRR-0.96)},
+    {id:'X', name:'X · measured GRR 90', ch:calTo(0.90, MATCHED_NRR-0.90)}
+  ];
+
+  /* ---------------- rail ---------------- */
+  function buildControls(){
+    ['control','rate'].forEach(function(g){
+      var host = document.getElementById('ctl-'+g); host.innerHTML='';
+      CONTROLS.filter(function(c){return c.g===g;}).forEach(function(c){
+        var d=document.createElement('div'); d.className='ctl';
+        d.innerHTML =
+          '<div class="ctl-top"><label for="i-'+c.k+'">'+esc(c.label)+'</label><span class="ctl-unit">'+esc(c.unit)+'</span></div>'+
+          '<div class="ctl-val"><input type="number" id="i-'+c.k+'" step="'+inputStep(c)+'">'+
+          '<span class="ctl-base">base <b>'+fmtCtl(c,BASE_A[c.k])+'</b></span></div>'+
+          '<input type="range" id="r-'+c.k+'" min="'+c.min+'" max="'+c.max+'" step="'+c.step+'">';
+        host.appendChild(d);
+        var num=d.querySelector('#i-'+c.k), rng=d.querySelector('#r-'+c.k);
+        rng.addEventListener('input',function(){ set(c.k, parseFloat(rng.value)); });
+        num.addEventListener('change',function(){
+          var v=parseFloat(num.value); if(isNaN(v)) return;
+          v=fromInput(c,v);
+          set(c.k, Math.min(c.max, Math.max(c.min, v)));
+        });
+      });
+    });
+    var p=document.getElementById('presets');
+    PRESETS.forEach(function(s){
+      var b=document.createElement('button'); b.className='btn'; b.textContent=s.name;
+      b.addEventListener('click',function(){ expA=Object.assign({},BASE_A,s.ch); recompute(); });
+      p.appendChild(b);
+    });
+    document.getElementById('reset').addEventListener('click',function(){ expA=Object.assign({},BASE_A); recompute(); });
+    var a=document.getElementById('agg');
+    [['month','Monthly'],['quarter','Quarterly'],['year','Annual']].forEach(function(o){
+      var b=document.createElement('button'); b.className='btn'+(agg===o[0]?' on':''); b.textContent=o[1]; b.dataset.agg=o[0];
+      b.addEventListener('click',function(){ agg=o[0];
+        [].forEach.call(a.children,function(x){x.classList.toggle('on',x.dataset.agg===agg);});
+        renderCharts(); });
+      a.appendChild(b);
+    });
+  }
+  function set(k,v){ expA=Object.assign({},expA); expA[k]=v; recompute(); }
+
+  function syncControls(){
+    CONTROLS.forEach(function(c){
+      var num=document.getElementById('i-'+c.k), rng=document.getElementById('r-'+c.k);
+      num.value=inputVal(c,expA[c.k]); rng.value=expA[c.k];
+      num.style.color = expA[c.k]===BASE_A[c.k] ? 'var(--ink)' : 'var(--exp)';
+    });
+    var d=expRes.derived;
+    var mNow = K.measureR12M(expRes, Math.max(K.WINDOW, month));
+    document.getElementById('measured').innerHTML =
+      '<div class="erow"><span class="tx tx-rate">TRANSITION</span><span>Persistence coefficient</span><b>'+pct(expA.persistenceAnnual,2)+'</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">KPI</span><span>R12M GRR</span><b>'+pct(mNow.grr,2)+'</b></div>'+
+      '<div class="erow"><span class="tx tx-rate">TRANSITION</span><span>Expansion coefficient</span><b>'+pct(expA.expansionCoefficientAnnual,2)+'</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">KPI</span><span>R12M expansion</span><b>'+pct(mNow.expansionRate,2)+'</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">KPI</span><span>R12M NRR</span><b>'+pct(mNow.nrr,2)+'</b></div>'+
+      '<div class="ehint">measured at M'+mNow.T+' over a frozen cohort · New ARR excluded</div>';
+    document.getElementById('emergent').innerHTML =
+      '<div class="erow"><span class="tx tx-rate">RATE</span><span>CAC / New ARR</span><b>'+expA.cacPerARR.toFixed(2)+'×</b></div>'+
+      '<div class="erow out"><span class="tx tx-emergent">OUTPUT</span><span>CAC payback</span><b>'+d.cacPaybackMonths.toFixed(1)+' mo</b></div>'+
+      '<div class="ehint">payback = (CAC / New ARR) × 12 ÷ gross margin</div>';
+    document.getElementById('derived').innerHTML =
+      row('New ARR / month', eur(d.newARRPerMonth)) +
+      row('New ARR per year of spend', eur(d.newARRAnnualised)) +
+      row('Monthly persistence g', pct(d.monthlyPersistence,3)) +
+      row('Monthly expansion e', pct(d.monthlyExpansion,3)) +
+      row('Monthly multiplier g(1+e)', d.monthlyPersistence*(1+d.monthlyExpansion) .toFixed(7));
+    function row(a,b){ return '<div class="drow"><span>'+a+'</span><b>'+b+'</b></div>'; }
+    document.getElementById('cohort-pill').textContent = expRes.cohorts.length+' cohorts';
+  }
+
+  /* ---------------- explainability (§14) ---------------- */
+  var LABELS = {sm:'S&M investment', rd:'R&D investment', ga:'G&A investment',
+    cacPaybackMonths:'CAC payback', persistenceAnnual:'Annual GRR', expansionCoefficientAnnual:'Annual expansion', grossMargin:'Gross margin'};
+  function fmtBy(k,v){ var c=CONTROLS.filter(function(x){return x.k===k;})[0]; return fmtCtl(c,v); }
+
+  function renderExplain(){
+    var host=document.getElementById('explain');
+    var c=E.compare(baseRes,expRes), d=c.delta, b=c.base, x=c.experiment;
+    if(!c.changed.length){
+      host.className='explain idle';
+      host.innerHTML='<h3>Experiment matches Base</h3><div class="note" style="margin-top:5px">Both scenarios are running the identical engine on identical assumptions, so the trajectories are byte-identical. Move a control to make the Experiment bend away.</div>';
+      return;
+    }
+    host.className='explain';
+    var chg=c.changed.map(function(u){
+      return '<s>'+esc(LABELS[u.key])+' '+fmtBy(u.key,u.from)+'</s> → <b>'+fmtBy(u.key,u.to)+'</b>';
+    }).join(' &nbsp;·&nbsp; ');
+
+    function li(k,v){ return '<li><span class="k">'+k+'</span><span class="v">'+v+'</span></li>'; }
+    function dv(v,f){ return Math.abs(v)<1 ? '<b class="flat">no change</b>' : '<b class="'+cls(v)+'">'+(f||eurS)(v)+'</b>'; }
+
+    var mixBase=b.mix.shares, mixExp=x.mix.shares;
+    var newY=(mixBase.y4+mixBase.y5), newYx=(mixExp.y4+mixExp.y5);
+
+    var items =
+      li('Year-5 ARR', '<b>'+eur(b.finalARR)+'</b> → <b>'+eur(x.finalARR)+'</b> &nbsp;'+dv(d.finalARR)+(Math.abs(d.finalARR)<1?'':' <span class="'+cls(d.finalARR)+'">('+relp(x.finalARR/b.finalARR-1)+')</span>')) +
+      li('New ARR per month', Math.abs(expRes.derived.newARRPerMonth-baseRes.derived.newARRPerMonth)<1 ?
+          '<b>'+eur(baseRes.derived.newARRPerMonth)+'</b> — unchanged. Nothing in this change touches acquisition.' :
+          '<b>'+eur(baseRes.derived.newARRPerMonth)+'</b> → <b>'+eur(expRes.derived.newARRPerMonth)+'</b> &nbsp;'+dv(expRes.derived.newARRPerMonth-baseRes.derived.newARRPerMonth)) +
+      li('CAC payback (emergent)', '<b>'+baseRes.derived.cacPaybackMonths.toFixed(1)+' mo</b> → <b>'+expRes.derived.cacPaybackMonths.toFixed(1)+' mo</b>'+
+         (Math.abs(d.cacPaybackMonths)<1e-9 ? ' — unchanged' : ' &nbsp;<b class="'+cls(-d.cacPaybackMonths)+'">'+(d.cacPaybackMonths>0?'+':'−')+Math.abs(d.cacPaybackMonths).toFixed(1)+' months</b>')) +
+      li('NRR (emergent)', '<b>'+pct(b.finalNRR)+'</b> → <b>'+pct(x.finalNRR)+'</b> &nbsp;<b class="'+cls(d.finalNRR)+'">'+pp(d.finalNRR)+'</b>') +
+      li('Cumulative leakage', '<b>'+eur(b.cumLeakage)+'</b> → <b>'+eur(x.cumLeakage)+'</b> &nbsp;<b class="'+cls(-d.cumLeakage)+'">'+eurS(d.cumLeakage)+'</b> over 60 months') +
+      li('Cumulative expansion', '<b>'+eur(b.cumExpansion)+'</b> → <b>'+eur(x.cumExpansion)+'</b> &nbsp;'+dv(d.cumExpansion)) +
+      li('Cumulative gross profit', '<b>'+eur(b.cumGrossProfit)+'</b> → <b>'+eur(x.cumGrossProfit)+'</b> &nbsp;'+dv(d.cumGrossProfit)) +
+      li('Year-5 FCF', '<b>'+eur(b.finalYearFCF)+'</b> → <b>'+eur(x.finalYearFCF)+'</b> &nbsp;'+dv(d.finalYearFCF)) +
+      li('Ending cash (M60)', '<b>'+eur(b.endingCash)+'</b> → <b>'+eur(x.endingCash)+'</b> &nbsp;'+dv(d.endingCash)) +
+      li('Cash trough', '<b>'+eur(b.cashTrough)+'</b> at M'+b.cashTroughMonth+' → <b>'+eur(x.cashTrough)+'</b> at M'+x.cashTroughMonth+' &nbsp;'+dv(d.cashTrough)) +
+      li('First profitable month', '<b>M'+(b.firstProfitableMonth||'—')+'</b> → <b>M'+(x.firstProfitableMonth||'—')+'</b>'+
+         (x.firstProfitableMonth&&b.firstProfitableMonth ? ' &nbsp;<b class="'+cls(b.firstProfitableMonth-x.firstProfitableMonth)+'">'+(x.firstProfitableMonth-b.firstProfitableMonth>0?'+':'')+(x.firstProfitableMonth-b.firstProfitableMonth)+' months</b>':'')) +
+      li('Year-5 ARR mix', 'opening base <b>'+pct(b.baseCohortShare)+'</b> → <b>'+pct(x.baseCohortShare)+'</b>; cohorts acquired in Years&nbsp;4–5 <b>'+pct(newY)+'</b> → <b>'+pct(newYx)+'</b>');
+
+    var flags='';
+    if(c.changed.some(function(u){return u.key==='grossMargin';})){
+      var unchanged=Math.abs(expRes.derived.newARRPerMonth-baseRes.derived.newARRPerMonth)<1e-9;
+      flags += '<div class="flag" style="border-color:var(--good)"><b style="color:var(--good)">v0.2 causal fix.</b> Margin moved and New ARR did '+
+        (unchanged?'not':'')+' change ('+eur(baseRes.derived.newARRPerMonth)+' → '+eur(expRes.derived.newARRPerMonth)+' / month). '+
+        'Gross margin no longer appears in the acquisition formula, so it acts where it should: CAC payback deteriorates '+
+        baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+
+        ' months and the company gets poorer without any change to acquisition productivity. In v0.1 this same change wrongly RAISED New ARR to €0.92m/month.</div>';
+    }
+    if(c.changed.some(function(u){return u.key==='rd';})){
+      flags += '<div class="flag"><b>Outside the model boundary.</b> The future economic benefit of R&amp;D is outside the current simulation boundary — v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law, because there is no defensible universal coefficient. The '+
+        eur(Math.abs(d.endingCash))+' cash difference is the full extent of what this model knows about R&amp;D.</div>';
+    }
+    if(x.firstNegativeCashMonth){
+      flags += '<div class="flag"><b>Cash runs out.</b> Closing cash first goes negative in month '+x.firstNegativeCashMonth+
+        '. Prototype 0 has no financing, so the simulation continues into negative cash rather than stopping.</div>';
+    }
+    host.innerHTML='<h3>What this changed</h3><div class="chg">'+chg+'</div><ul class="xlist">'+items+'</ul>'+flags;
+  }
+
+  /* ---------------- charts ---------------- */
+  var CHARTS = [
+    {key:'closingARR', kind:'stock', title:'ARR',              sub:'STATE · end of period'},
+    {key:'grossProfit',kind:'flow',  title:'Gross profit',     sub:'FLOW · period total'},
+    {key:'ebita',      kind:'flow',  title:'EBITA / FCF',      sub:'FLOW · period total (FCF = EBITA in v0.1)'},
+    {key:'cashClosing',kind:'stock', title:'Cash',             sub:'STATE · end of period'}
+  ];
+
+  function aggregate(res, key, kind){
+    var per = agg==='month'?1:agg==='quarter'?3:12, out=[];
+    for(var i=0;i<res.months.length;i+=per){
+      var slice=res.months.slice(i,i+per);
+      var v = kind==='stock' ? slice[slice.length-1][key] : slice.reduce(function(s,m){return s+m[key];},0);
+      out.push({t:slice[slice.length-1].t, v:v});
+    }
+    return out;
+  }
+
+  function renderCharts(){
+    var host=document.getElementById('charts'); host.innerHTML='';
+    CHARTS.forEach(function(cfg){
+      var b=aggregate(baseRes,cfg.key,cfg.kind), x=aggregate(expRes,cfg.key,cfg.kind);
+      var last=x[x.length-1].v-b[b.length-1].v;
+      var card=document.createElement('div'); card.className='card';
+      card.innerHTML='<div class="card-head"><h3>'+esc(cfg.title)+'</h3><span class="kind">'+esc(cfg.sub)+
+        '</span><span class="delta '+cls(last)+'">'+(Math.abs(last)<1?'no change':eurS(last)+' at M60')+'</span></div>'+
+        '<div class="plot"></div><div class="tip"></div>';
+      host.appendChild(card);
+      drawLine(card.querySelector('.plot'), card.querySelector('.tip'), b, x, cfg);
+    });
+  }
+
+  function drawLine(host, tip, sb, sx, cfg){
+    var W=host.clientWidth||520, H=178, L=58, R=54, T=12, B=22;
+    var all=sb.concat(sx).map(function(p){return p.v;});
+    var lo=Math.min.apply(null,all), hi=Math.max.apply(null,all);
+    if(lo>0) lo=0; if(hi<0) hi=0;
+    var pad=(hi-lo)*0.08||1; lo-=pad; hi+=pad;
+    var n=sb.length;
+    var X=function(i){ return L+(n<2?0:i*(W-L-R)/(n-1)); };
+    var Y=function(v){ return T+(hi-v)*(H-T-B)/(hi-lo||1); };
+    function path(s){ return s.map(function(p,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1);}).join(' '); }
+
+    var g='', i;
+    for(i=0;i<=4;i++){ var yv=lo+(hi-lo)*i/4, yy=Y(yv);
+      g+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+yy.toFixed(1)+'" stroke="var(--line-soft)" stroke-width="1"/>'+
+         '<text x="'+(L-8)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)">'+eur(yv)+'</text>';
+    }
+    if(lo<0&&hi>0) g+='<line x1="'+L+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-R)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--ink-3)" stroke-width="1"/>';
+    for(i=0;i<n;i++){ if(sb[i].t%12===0) g+='<text x="'+X(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)">Y'+(sb[i].t/12)+'</text>'; }
+
+    g+='<path d="'+path(sb)+'" fill="none" stroke="var(--base)" stroke-width="2.5" stroke-dasharray="6 4" stroke-linejoin="round" stroke-linecap="round"/>';
+    g+='<path d="'+path(sx)+'" fill="none" stroke="var(--exp)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    /* endpoint markers with a 2px surface ring so overlapping ends stay legible */
+    g+='<circle cx="'+X(n-1)+'" cy="'+Y(sb[n-1].v)+'" r="4.5" fill="var(--base)" stroke="var(--panel)" stroke-width="2"/>';
+    g+='<circle cx="'+X(n-1)+'" cy="'+Y(sx[n-1].v)+'" r="4.5" fill="var(--exp)" stroke="var(--panel)" stroke-width="2"/>';
+    g+='<text x="'+(W-R+8)+'" y="'+(Y(sb[n-1].v)+3.5)+'" font-family="var(--mono)" font-size="10" fill="var(--base)">'+eur(sb[n-1].v)+'</text>';
+    g+='<text x="'+(W-R+8)+'" y="'+(Y(sx[n-1].v)+3.5)+'" font-family="var(--mono)" font-size="10" fill="var(--exp)">'+eur(sx[n-1].v)+'</text>';
+    g+='<line class="xh" x1="0" y1="'+T+'" x2="0" y2="'+(H-B)+'" stroke="var(--ink-3)" stroke-width="1" opacity="0"/>';
+
+    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+esc(cfg.title)+', Base versus Experiment over 60 months">'+g+'</svg>';
+    var svg=host.querySelector('svg'), xh=svg.querySelector('.xh');
+    svg.addEventListener('mousemove',function(ev){
+      var r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)*W/r.width;
+      var idx=Math.max(0,Math.min(n-1,Math.round((px-L)/((W-L-R)/(n-1||1)))));
+      xh.setAttribute('x1',X(idx)); xh.setAttribute('x2',X(idx)); xh.setAttribute('opacity','.5');
+      tip.style.opacity='1';
+      tip.innerHTML='<div class="tl">Month '+sb[idx].t+' · '+(agg==='month'?'monthly':agg==='quarter'?'quarter to date':'year to date')+'</div>'+
+        '<div class="tr"><span class="sw" style="background:var(--base)"></span>Base <b style="margin-left:auto">'+eur(sb[idx].v)+'</b></div>'+
+        '<div class="tr"><span class="sw" style="background:var(--exp)"></span>Exp <b style="margin-left:auto">'+eur(sx[idx].v)+'</b></div>';
+      var lx=X(idx)*r.width/W;
+      tip.style.left=Math.min(r.width-tip.offsetWidth-8, Math.max(4,lx+12))+'px';
+      tip.style.top='26px';
+    });
+    svg.addEventListener('mouseleave',function(){ tip.style.opacity='0'; xh.setAttribute('opacity','0'); });
+  }
+
+  /* ---------------- monthly table ---------------- */
+  function renderMonthly(){
+    var cols=[['t','Month'],['openingARR','Opening ARR'],['newARR','New'],['expansion','Expansion'],['leakage','Leakage'],
+      ['closingARR','Closing ARR'],['nrrAnnualised','NRR'],['revenue','Revenue'],['grossProfit','Gross profit'],
+      ['ebita','EBITA'],['ebitaMargin','EBITA %'],['fcf','FCF'],['burn','Burn'],['cashClosing','Cash']];
+    var h='<thead><tr>'+cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'</tr></thead><tbody>';
+    expRes.months.forEach(function(m){
+      h+='<tr'+(m.t===month?' class="hl"':'')+'>'+cols.map(function(c){
+        var v=m[c[0]];
+        if(c[0]==='t') return '<td class="k">M'+v+'</td>';
+        if(c[0]==='nrrAnnualised'||c[0]==='ebitaMargin') return '<td>'+pct(v,1)+'</td>';
+        if(c[0]==='burn') return '<td'+(v>0?' style="color:var(--bad)"':'')+'>'+(v>0?eur(v):'—')+'</td>';
+        if(c[0]==='leakage') return '<td style="color:var(--bad)">'+eurNeg(v)+'</td>';
+        if(c[0]==='ebita'||c[0]==='fcf') return '<td style="color:'+(v<0?'var(--bad)':'var(--good)')+'">'+eur(v)+'</td>';
+        return '<td>'+eur(v)+'</td>';
+      }).join('')+'</tr>';
+    });
+    document.getElementById('monthly').innerHTML=h+'</tbody>';
+  }
+
+  /* ---------------- ARR anatomy ---------------- */
+  function renderBridge(){
+    var br=E.bridge(expRes,month);
+    var mx=Math.max(br.openingARR,br.closingARR);
+    function bar(v,color,from){ var w=Math.abs(v)/mx*100, l=(from||0)/mx*100;
+      return '<div class="bbar"><i style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+color+'"></i></div>'; }
+    var rows =
+      '<div class="brow"><div class="lb">Opening ARR<small>STATE · start of M'+month+'</small></div>'+bar(br.openingARR,'var(--ink-3)')+'<div class="amt">'+eur(br.openingARR)+'</div></div>'+
+      '<div class="brow alt"><div class="lb">+ New ARR<small>FLOW · acquisition cohort M'+month+'</small></div>'+bar(br.newARR,'var(--good)',br.openingARR)+'<div class="amt" style="color:var(--good)">'+eurPos(br.newARR)+'</div></div>'+
+      '<div class="brow"><div class="lb">+ Expansion<small>FLOW · on retained ARR</small></div>'+bar(br.expansion,'var(--good)',br.openingARR)+'<div class="amt" style="color:var(--good)">'+eurPos(br.expansion)+'</div></div>'+
+      '<div class="brow alt"><div class="lb">− Leakage<small>FLOW · churn + contraction combined</small></div>'+bar(br.leakage,'var(--bad)',br.openingARR-br.leakage)+'<div class="amt" style="color:var(--bad)">'+eurNeg(br.leakage)+'</div></div>'+
+      '<div class="brow tot"><div class="lb"><b>= Closing ARR</b><small>STATE · end of M'+month+'</small></div>'+bar(br.closingARR,'var(--exp)')+'<div class="amt" style="color:var(--exp)">'+eur(br.closingARR)+'</div></div>'+
+      '<div class="recon"><span>Bridge residual</span><b>€'+br.residual.toExponential(2)+'</b><span>· identity holds to floating-point precision</span>'+
+      '<span style="margin-left:auto">Cohorts alive: <b style="color:var(--ink-2)">'+E.cohortSnapshot(expRes,month).length+'</b></span></div>';
+    document.getElementById('bridge').innerHTML=rows;
+    document.getElementById('month-label').textContent='M'+month+' · Y'+Math.ceil(month/12);
+  }
+
+  /* ---------------- cohort inspector ---------------- */
+  var VINT=['var(--v0)','var(--v1)','var(--v2)','var(--v3)','var(--v4)','var(--v5)'];
+  var VNAME=['Opening base','Acquired Y1','Acquired Y2','Acquired Y3','Acquired Y4','Acquired Y5'];
+
+  function renderMix(){
+    var host=document.getElementById('mix-chart');
+    var W=host.clientWidth||700, H=170, L=58, R=14, T=10, B=22;
+    var series=[];
+    for(var t=1;t<=expRes.horizon;t++){
+      var mix=E.arrMix(expRes,t);
+      series.push([mix.amounts.base,mix.amounts.y1,mix.amounts.y2,mix.amounts.y3,mix.amounts.y4,mix.amounts.y5]);
+    }
+    var hi=Math.max.apply(null,series.map(function(s){return s.reduce(function(a,b){return a+b;},0);}));
+    var X=function(i){return L+i*(W-L-R)/(series.length-1);};
+    var Y=function(v){return T+(hi-v)*(H-T-B)/(hi||1);};
+    var g='',i,k;
+    for(i=0;i<=3;i++){ var yv=hi*i/3, yy=Y(yv);
+      g+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+yy.toFixed(1)+'" stroke="var(--line-soft)"/>'+
+         '<text x="'+(L-8)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)">'+eur(yv)+'</text>'; }
+    var cum=series.map(function(){return 0;});
+    for(k=0;k<6;k++){
+      var top=series.map(function(s,i2){ cum[i2]+=s[k]; return cum[i2]; });
+      var d='M'+X(0)+' '+Y(top[0]);
+      for(i=1;i<top.length;i++) d+='L'+X(i).toFixed(1)+' '+Y(top[i]).toFixed(1);
+      for(i=top.length-1;i>=0;i--) d+='L'+X(i).toFixed(1)+' '+Y(top[i]-series[i][k]).toFixed(1);
+      d+='Z';
+      /* 2px surface stroke keeps adjacent fills separated */
+      g+='<path d="'+d+'" fill="'+VINT[k]+'" stroke="var(--panel)" stroke-width="2"/>';
+    }
+    for(i=0;i<series.length;i++) if((i+1)%12===0) g+='<text x="'+X(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)">Y'+((i+1)/12)+'</text>';
+    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="Experiment ARR split by acquisition vintage over 60 months">'+g+'</svg>';
+    var mixNow=E.arrMix(expRes,month);
+    document.getElementById('mix-legend').innerHTML=VNAME.map(function(nm,k2){
+      var share=[mixNow.shares.base,mixNow.shares.y1,mixNow.shares.y2,mixNow.shares.y3,mixNow.shares.y4,mixNow.shares.y5][k2];
+      return '<span><i style="border:none;width:9px;height:9px;border-radius:2px;background:'+VINT[k2]+';display:inline-block;margin-right:6px"></i>'+
+        nm+' <b class="num" style="color:var(--ink)">'+pct(share)+'</b></span>';
+    }).join('');
+  }
+
+  function renderCohorts(){
+    var snap=E.cohortSnapshot(expRes,month);
+    var h='<thead><tr><th>Cohort</th><th>Acq. month</th><th>Age (mo)</th><th>Band</th><th>Acq. cost</th><th>Original ARR</th><th>Current ARR</th><th>% of original</th>'+
+      '<th>Cum. leakage</th><th>Cum. expansion</th><th>Cum. gross profit</th></tr></thead><tbody>';
+    snap.forEach(function(c){
+      h+='<tr><td class="k">'+(c.acquisitionMonth===0?'Opening base':'M'+c.acquisitionMonth)+'</td>'+
+        '<td>'+(c.acquisitionMonth===0?'—':'M'+c.acquisitionMonth)+'</td><td>'+c.age+'</td>'+
+        '<td>'+esc(c.bandName||'—')+'</td>'+
+        '<td'+(c.acquisitionCost===null?' style="color:var(--ink-3)"':'')+'>'+(c.acquisitionCost===null?'unknown':eur(c.acquisitionCost))+'</td>'+
+        '<td>'+eur(c.initialARR)+'</td><td style="color:var(--ink)">'+eur(c.currentARR)+'</td>'+
+        '<td style="color:'+(c.retainedShare>=1?'var(--good)':'var(--ink-2)')+'">'+pct(c.retainedShare)+'</td>'+
+        '<td style="color:var(--bad)">'+eurNeg(c.cumLeakage)+'</td>'+
+        '<td style="color:var(--good)">'+eurPos(c.cumExpansion)+'</td>'+
+        '<td>'+eur(c.cumGrossProfit)+'</td></tr>';
+    });
+    document.getElementById('cohorts').innerHTML=h+'</tbody>';
+  }
+
+  /* ---------------- v0.3: age bands ---------------- */
+  var STABLE={p:0.94,x:0.14}, RISKY={p:0.78,x:0.06};
+  function mkBands(rows){ var edges=[12,24,Infinity], names=E.BAND_NAMES;
+    return rows.map(function(r,i){ return {name:names[i], maxAgeExclusive:edges[i],
+      persistenceAnnual:r[0], expansionCoefficientAnnual:r[1]}; }); }
+  var BAND_PRESETS=[
+    {id:'flat', name:'Flat (default)', rows:[[BASE_A.persistenceAnnual,BASE_A.expansionCoefficientAnnual],
+                                             [BASE_A.persistenceAnnual,BASE_A.expansionCoefficientAnnual],
+                                             [BASE_A.persistenceAnnual,BASE_A.expansionCoefficientAnnual]]},
+    {id:'renewal', name:'Renewal-risk mid-life', rows:[[STABLE.p,STABLE.x],[RISKY.p,RISKY.x],[STABLE.p,STABLE.x]]},
+    {id:'inverted', name:'Inverted', rows:[[RISKY.p,RISKY.x],[STABLE.p,STABLE.x],[RISKY.p,RISKY.x]]}
+  ];
+  function currentBandRows(){
+    var b = expA.bands || E.resolveBands(expA);
+    return b.map(function(x){ return [x.persistenceAnnual, x.expansionCoefficientAnnual]; });
+  }
+  function buildBandUI(){
+    var host=document.getElementById('band-presets'); host.innerHTML='';
+    BAND_PRESETS.forEach(function(pr){
+      var b=document.createElement('button'); b.className='btn'; b.textContent=pr.name;
+      b.addEventListener('click',function(){ expA=Object.assign({},expA,{bands:mkBands(pr.rows)}); recompute(); });
+      host.appendChild(b);
+    });
+  }
+  function renderBandTable(){
+    var rows=currentBandRows(), edges=['0–11','12–23','24+'];
+    var h='<thead><tr><th style="padding:5px 6px">Band</th><th style="padding:5px 6px">Ages</th>'+
+          '<th style="padding:5px 6px">Persist.</th><th style="padding:5px 6px">Expans.</th><th style="padding:5px 6px">Mult</th></tr></thead><tbody>';
+    rows.forEach(function(r,i){
+      h+='<tr><td class="k" style="padding:5px 6px">'+esc(E.BAND_NAMES[i])+'</td><td style="padding:5px 6px">'+edges[i]+'</td>'+
+        '<td style="padding:3px 4px"><input type="number" step="0.5" data-b="'+i+'" data-f="0" value="'+(r[0]*100).toFixed(1)+
+        '" style="width:56px;background:var(--sunk);border:1px solid var(--line);border-radius:2px;padding:3px 4px;font-family:var(--mono);font-size:11px;color:var(--exp);text-align:right"></td>'+
+        '<td style="padding:3px 4px"><input type="number" step="0.5" data-b="'+i+'" data-f="1" value="'+(r[1]*100).toFixed(1)+
+        '" style="width:56px;background:var(--sunk);border:1px solid var(--line);border-radius:2px;padding:3px 4px;font-family:var(--mono);font-size:11px;color:var(--exp);text-align:right"></td>'+
+        '<td style="padding:5px 6px">'+(r[0]*(1+r[1])).toFixed(4)+'</td></tr>';
+    });
+    var el=document.getElementById('bandtable'); el.innerHTML=h+'</tbody>';
+    [].forEach.call(el.querySelectorAll('input'),function(inp){
+      inp.addEventListener('change',function(){
+        var v=parseFloat(inp.value); if(isNaN(v)) return;
+        var rs=currentBandRows(); rs[+inp.dataset.b][+inp.dataset.f]=v/100;
+        expA=Object.assign({},expA,{bands:mkBands(rs)}); recompute();
+      });
+    });
+  }
+
+  /* ---------------- v0.3: state sufficiency experiment ---------------- */
+  var SS_T0=12, SS_FWD=60, SS_HZ=72, SS_ARR=20000000;
+  function ssPort(bands, age){
+    return E.run(Object.assign({},BASE_A,{bands:bands, sm:0}),
+      {openingARR:SS_ARR, openingCash:BASE_A.openingCash||10000000,
+       openingCohorts:[{arr:SS_ARR, age:age}]}, SS_HZ);
+  }
+  function renderStateSufficiency(){
+    var bands = expA.bands || E.resolveBands(expA);
+    var flat  = mkBands([[bands[0].persistenceAnnual,bands[0].expansionCoefficientAnnual],
+                         [bands[0].persistenceAnnual,bands[0].expansionCoefficientAnnual],
+                         [bands[0].persistenceAnnual,bands[0].expansionCoefficientAnnual]]);
+    var Y=ssPort(bands,0), M=ssPort(bands,24);
+    var kY=K.measureR12M(Y,SS_T0), kM=K.measureR12M(M,SS_T0);
+    var fY=K.forwardEconomics(Y,SS_T0,SS_FWD), fM=K.forwardEconomics(M,SS_T0,SS_FWD);
+    var Yf=ssPort(flat,0), Mf=ssPort(flat,24);
+    var fYf=K.forwardEconomics(Yf,SS_T0,SS_FWD), fMf=K.forwardEconomics(Mf,SS_T0,SS_FWD);
+
+    function same(a,b,tol){ return Math.abs(a-b) < (tol||1e-9); }
+    var rows=[
+      ['Age at T0 (month 12)','12 months','36 months',false],
+      ['ARR at T0', eur(fY.arrAtT0), eur(fM.arrAtT0), same(fY.arrAtT0,fM.arrAtT0,1e-6)],
+      ['R12M GRR', pct(kY.grr,6), pct(kM.grr,6), same(kY.grr,kM.grr,1e-12)],
+      ['R12M expansion', pct(kY.expansionRate,6), pct(kM.expansionRate,6), same(kY.expansionRate,kM.expansionRate,1e-12)],
+      ['R12M NRR', pct(kY.nrr,6), pct(kM.nrr,6), same(kY.nrr,kM.nrr,1e-12)],
+      ['Gross margin', pct(BASE_A.grossMargin), pct(BASE_A.grossMargin), true],
+      ['New ARR per month (acquisition off)', eur(0), eur(0), true],
+      ['ARR at M72', eur(Y.months[SS_HZ-1].closingARR), eur(M.months[SS_HZ-1].closingARR), same(Y.months[SS_HZ-1].closingARR,M.months[SS_HZ-1].closingARR,1)],
+      ['Remaining gross profit, 60 months', eur(fY.remainingGP), eur(fM.remainingGP), same(fY.remainingGP,fM.remainingGP,1)],
+      ['Remaining FCF, 60 months', eur(fY.remainingFCF), eur(fM.remainingFCF), same(fY.remainingFCF,fM.remainingFCF,1)],
+      ['Forward GP density (experimental)', fY.gpDensity.toFixed(4)+'×', fM.gpDensity.toFixed(4)+'×', same(fY.gpDensity,fM.gpDensity,1e-9)],
+      ['— same, with FLAT bands', fYf.gpDensity.toFixed(4)+'×', fMf.gpDensity.toFixed(4)+'×', same(fYf.gpDensity,fMf.gpDensity,1e-12)]
+    ];
+    var h='<thead><tr><th>Time-0 state and forward outcome</th><th>Y · young base</th><th>M · mature base</th><th>Verdict</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var matched=r[3];
+      h+='<tr><td class="k">'+esc(r[0])+'</td><td'+(matched?'':' style="color:var(--exp)"')+'>'+r[1]+'</td>'+
+         '<td'+(matched?'':' style="color:var(--exp)"')+'>'+r[2]+'</td>'+
+         '<td style="color:'+(matched?'var(--good)':'var(--warn)')+'">'+(matched?'identical':'differs')+'</td></tr>';
+    });
+    document.getElementById('statesuff').innerHTML=h+'</tbody>';
+
+    var diverges = Math.abs(fY.gpDensity-fM.gpDensity) > 1e-9;
+    document.getElementById('statesuff-verdict').innerHTML =
+      '<h3>Can identical ARR with identical trailing KPIs carry different future economics?</h3><div class="note" style="line-height:1.75">'+
+      (diverges
+        ? '<b style="color:var(--ink)">Yes — and here is the computation.</b> Both portfolios hold '+eur(fY.arrAtT0)+
+          ' of ARR at T0 and report the same R12M GRR, expansion and NRR to twelve decimal places. Over the next 60 months '+
+          'Y produces <b>'+eur(fY.remainingGP)+'</b> of gross profit and M produces <b>'+eur(fM.remainingGP)+'</b> — '+
+          '<b>'+eur(Math.abs(fM.remainingGP-fY.remainingGP))+'</b> apart, '+pct(Math.abs(fM.gpDensity/fY.gpDensity-1))+' of forward economic content, '+
+          'from the same euro of current ARR.<br><br>The mechanism is not "quality". '+
+          'Y sits at age 12 and has <em>not yet passed through</em> the '+esc(E.BAND_NAMES[1])+' band; M passed through it a year ago. '+
+          'For twelve months Y runs at an annual multiplier of '+(bands[1].persistenceAnnual*(1+bands[1].expansionCoefficientAnnual)).toFixed(4)+
+          ' while M runs at '+(bands[2].persistenceAnnual*(1+bands[2].expansionCoefficientAnnual)).toFixed(4)+
+          '. After that both grow at the same rate, so the gap is a level difference created once and then carried forever.'
+        : '<b style="color:var(--ink)">Not with these bands.</b> The bands are currently flat, so cohort age carries no economic meaning and the two portfolios are bit-identical. Load the renewal-risk profile above to make maturity matter.')+
+      '<br><br><b style="color:var(--warn)">Control.</b> With the same two portfolios and FLAT bands, forward GP density is '+
+      fYf.gpDensity.toFixed(6)+'× versus '+fMf.gpDensity.toFixed(6)+'× — identical. '+
+      '<b>Maturity itself creates nothing.</b> Only economically different future transition behaviour associated with maturity does. '+
+      'Forward GP density is an experimental 60-month forward economic measure, not a KPI, not a quality score and not enterprise value.</div>';
+  }
+
+  /* ---------------- Layer B: R12M measurement (brief §4, §5) ---------------- */
+  function renderRates(){
+    var d=E.rateDiagnostics(expRes);
+    var T=Math.max(K.WINDOW, month), k=K.measureR12M(expRes,T);
+    var dec=K.decompose(expA.persistenceAnnual, expA.expansionCoefficientAnnual);
+    function r(a,b,klass){ return '<div class="kvr '+(klass||'')+'"><span>'+a+'</span><b>'+b+'</b></div>'; }
+    document.getElementById('rates').innerHTML =
+      r('Eligible cohorts frozen at M'+k.asOf, k.eligibleCohortCount) +
+      r('Opening ARR (frozen cohort)', eur(k.openingARR)) +
+      r('+ Expansion', eurPos(k.expansion)) +
+      r('− Leakage', eurNeg(k.leakage)) +
+      r('= Closing eligible ARR', eur(k.closingEligibleARR)) +
+      r('Bridge residual', '€'+k.bridgeResidual.toExponential(2),'exact') +
+      r('New ARR in window (EXCLUDED)', eur(k.newARRExcluded),'gap') +
+      r('R12M GRR', pct(k.grr,4)+' vs coefficient '+pct(expA.persistenceAnnual,2),'gap') +
+      r('R12M expansion', pct(k.expansionRate,4)+' vs coefficient '+pct(expA.expansionCoefficientAnnual,2),'gap') +
+      r('R12M NRR', pct(k.nrr,4),'exact') +
+      r('GRR + expansion − NRR', k.identityResidual.toExponential(2),'exact') +
+      r('Monthly g / e / m', pct(d.monthlyPersistence,4)+' · '+pct(d.monthlyExpansion,4)+' · '+d.monthlyNRR.toFixed(7));
+    document.getElementById('rate-note').innerHTML =
+      '<b style="color:var(--warn)">The coefficients that govern the world are not the KPIs that report on it.</b> '+
+      'Persistence '+pct(expA.persistenceAnnual,2)+' measures as GRR '+pct(k.grr,2)+' ('+pp(k.grr-expA.persistenceAnnual)+'), and expansion coefficient '+
+      pct(expA.expansionCoefficientAnnual,2)+' measures as '+pct(k.expansionRate,2)+' ('+pp(k.expansionRate-expA.expansionCoefficientAnnual)+'), while NRR is exact.'+
+      '<br><br>It is <b>one</b> effect, not several. Set the expansion coefficient to 0 and measured GRR equals persistence <em>exactly</em>; set persistence to 100% and measured expansion equals its coefficient <em>exactly</em>. '+
+      'The compounding and moving-base terms cancel. What remains is the within-period interaction: expansion enlarges the balance later exposed to decay (churn '+
+      (dec.churn.isolated*100).toFixed(3)+'% → '+(dec.churn.measured*100).toFixed(3)+'%), and decay shrinks the balance expansion later accrues on (expansion '+
+      (dec.expansion.isolated*100).toFixed(3)+'% → '+(dec.expansion.measured*100).toFixed(3)+'%). '+
+      'NRR escapes because it is a ratio of two <em>stocks</em>; GRR and expansion are ratios of <em>flows</em> to a stock, and only flow ratios pick up the interaction.';
+  }
+
+  /* ---------------- matched-NRR experiment (brief §7–§11) ---------------- */
+  function renderMatched(){
+    var cR=K.calibrate(0.96, MATCHED_NRR-0.96), cX=K.calibrate(0.90, MATCHED_NRR-0.90);
+    var R=E.run(Object.assign({},BASE_A,calTo(0.96, MATCHED_NRR-0.96)));
+    var X=E.run(Object.assign({},BASE_A,calTo(0.90, MATCHED_NRR-0.90)));
+    var rs=E.summarise(R), xs=E.summarise(X);
+    var kR=K.measureR12M(R,12), kX=K.measureR12M(X,12);
+    var rows=[
+      ['TARGET measured R12M GRR', pct(0.96,4), pct(0.90,4)],
+      ['TARGET measured R12M expansion', pct(MATCHED_NRR-0.96,4), pct(MATCHED_NRR-0.90,4)],
+      ['→ persistence coefficient', pct(cR.persistenceAnnual,4), pct(cX.persistenceAnnual,4)],
+      ['→ expansion coefficient', pct(cR.expansionCoefficientAnnual,4), pct(cX.expansionCoefficientAnnual,4)],
+      ['→ monthly multiplier m', cR.monthlyMultiplier.toFixed(9), cX.monthlyMultiplier.toFixed(9)],
+      ['ACTUAL measured R12M GRR', pct(kR.grr,4), pct(kX.grr,4)],
+      ['ACTUAL measured R12M expansion', pct(kR.expansionRate,4), pct(kX.expansionRate,4)],
+      ['ACTUAL measured R12M NRR', pct(kR.nrr,4), pct(kX.nrr,4)],
+      ['Year 1 ARR', eur(rs.y1ARR), eur(xs.y1ARR)],
+      ['Year 3 ARR', eur(rs.y3ARR), eur(xs.y3ARR)],
+      ['Year 5 ARR', eur(rs.finalARR), eur(xs.finalARR)],
+      ['Cumulative expansion', eur(rs.cumExpansion), eur(xs.cumExpansion)],
+      ['Cumulative leakage', eur(rs.cumLeakage), eur(xs.cumLeakage)],
+      ['Cumulative gross profit', eur(rs.cumGrossProfit), eur(xs.cumGrossProfit)],
+      ['Year 5 EBITA / FCF', eur(rs.finalYearFCF), eur(xs.finalYearFCF)],
+      ['Ending cash (M60)', eur(rs.endingCash), eur(xs.endingCash)],
+      ['M60 ARR from opening cohort', eur(rs.openingCohortARR), eur(xs.openingCohortARR)],
+      ['M60 ARR from acquired cohorts', eur(rs.acquiredCohortARR), eur(xs.acquiredCohortARR)]
+    ];
+    var h='<thead><tr><th>Metric</th><th>R · retention-heavy</th><th>X · expansion-heavy</th><th>Verdict</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var same=r[1]===r[2];
+      h+='<tr><td class="k">'+esc(r[0])+'</td><td'+(same?'':' style="color:var(--exp)"')+'>'+r[1]+'</td>'+
+         '<td'+(same?'':' style="color:var(--exp)"')+'>'+r[2]+'</td>'+
+         '<td style="color:'+(same?'var(--good)':'var(--warn)')+'">'+(same?'identical':'differs')+'</td></tr>';
+    });
+    document.getElementById('matched').innerHTML=h+'</tbody>';
+
+    var wARR=0,wCash=0;
+    for(var i=0;i<R.months.length;i++){
+      wARR=Math.max(wARR,Math.abs(R.months[i].closingARR-X.months[i].closingARR));
+      wCash=Math.max(wCash,Math.abs(R.months[i].cashClosing-X.months[i].cashClosing));
+    }
+    document.getElementById('matched-verdict').innerHTML =
+      '<h3>Does this simulation consider the two businesses economically identical?</h3>'+
+      '<div class="note" style="line-height:1.75">'+
+      '<b style="color:var(--ink)">Yes — completely.</b> Across all 60 months, closing ARR differs by at most €'+wARR.toExponential(2)+
+      ' and cash by €'+wCash.toExponential(2)+' — floating-point noise on a €78m company. Every cohort balance, every P&amp;L line and the entire cash path coincide.'+
+      '<br><br>The measurement layer sharpens the reason. Measured R12M NRR is a ratio of two <em>stocks</em>, so pinning it pins the monthly multiplier uniquely at m = NRR<sup>1/12</sup> = '+
+      cR.monthlyMultiplier.toFixed(9)+' — identical in both scenarios. A cohort\'s month is <span style="font-family:var(--mono);color:var(--ink-2)">closing = opening × m</span>, '+
+      'and the ARR recursion consumes nothing but m, so equal measured NRR forces equal everything downstream regardless of how GRR and expansion split it. '+
+      'The engine assigns no cost to expansion, no saturation limit, no cohort-age effect, no customer count, no concentration and no risk premium — '+
+      'so the two decompositions are, to this universe, the same number written twice. '+
+      'The only trace of the difference is gross flow: X churns '+eur(xs.cumLeakage-rs.cumLeakage)+' more and expands '+eur(xs.cumExpansion-rs.cumExpansion)+
+      ' more, netting exactly to zero.'+
+      '<br><br><b style="color:var(--warn)">This is a boundary of the model, not a bug.</b> No quality score, risk coefficient or weighting factor has been added to paper over it. '+
+      'What would have to exist for these two businesses to diverge is set out in <span style="font-family:var(--mono);color:var(--ink-2)">docs/MATCHED-NRR.md</span>.</div>';
+  }
+
+  /* ---------------- integrity ---------------- */
+  function renderChecks(){
+    var rs=I.runAll(expA), pass=rs.filter(function(r){return r.pass;}).length;
+    document.getElementById('chk-pill').textContent=pass+' / '+rs.length+' passing';
+    document.getElementById('chk-pill').style.color = pass===rs.length?'var(--good)':'var(--bad)';
+    document.getElementById('checks').innerHTML=rs.map(function(r,i){
+      return '<div class="chk"><span class="st '+(r.pass?'p':'f')+'">'+(r.pass?'PASS':'FAIL')+'</span>'+
+        '<span><span class="nm">'+(i+1)+'. '+esc(r.name)+'</span><span class="dt">'+esc(r.detail)+'</span></span></div>';
+    }).join('');
+  }
+
+  /* ---------------- orchestration ---------------- */
+  function recompute(){
+    expRes=E.run(expA);                    // same engine as Base, different assumptions
+    syncControls(); renderExplain(); renderCharts(); renderMonthly();
+    renderBridge(); renderRates(); renderMix(); renderCohorts(); renderBandTable();
+    renderStateSufficiency(); renderMatched(); renderChecks();
+  }
+
+  document.getElementById('month').addEventListener('input',function(e){
+    month=parseInt(e.target.value,10); renderBridge(); renderMix(); renderCohorts(); renderMonthly();
+  });
+  var rt; window.addEventListener('resize',function(){ clearTimeout(rt); rt=setTimeout(function(){ renderCharts(); renderMix(); },120); });
+
+  buildControls();
+  buildBandUI();
+  recompute();
+})();
+</script>
