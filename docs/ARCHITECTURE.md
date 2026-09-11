@@ -155,7 +155,8 @@ monthly revenue = average ARR / 12
 gross profit    = revenue × GM
 COGS            = revenue × (1 − GM)
 EBITA           = gross profit − S&M − R&D − G&A
-FCF             = EBITA                       ← v0.1 simplification, disclosed in the UI
+FCF             = EBITA                       ← null billing term (prior alias)
+                = EBITA + N × ΔMRR            ← finite billingAdvanceMonths N
 cash closing    = cash opening + FCF
 ```
 

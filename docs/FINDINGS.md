@@ -245,15 +245,18 @@ implementation or upsell effort. This is now the most consequential single omiss
 the cheapest defensible way to break the matched-NRR tie: one coefficient, no ARR effect, and the
 separation is exactly linear in it (`Δending cash = c × €15.12m`).
 
-### 15. `FCF = EBITA` inverts the cash reality of subscription businesses
+### 15. `FCF = EBITA` at the default — a real cash definition is now optional
 
 > **Blocked CFO question:** *how do billing timing and working-capital mechanics
 > alter liquidity relative to EBITA?*
 
+**Null / 0 (`billingAdvanceMonths`).** FCF is still aliased to EBITA — the prior contract,
+bit-identical. Tax, capex, interest and other WC remain out.
 
-No deferred revenue, billings, working capital, tax, capex or interest. Real SaaS collects ahead of
-recognition, so growth is *cash-generative* at the working-capital line — the opposite sign to what
-this model shows. Every growth scenario looks more cash-expensive than it is.
+**Finite N.** Smooth prepaid approximation: `Δdeferred = N × ΔMRR`, `billings = revenue +
+Δdeferred`, `FCF = EBITA + Δdeferred`. Annual prepaid is N = 12. Growing ARR is then
+cash-generative at the WC line — the sign a CFO expects. The ARR path does not move.
+The opening deferred stock is `openingMRR × N / 2` (midpoint remaining prepaid).
 
 ### 16. R&D is a cost with no modelled benefit — deliberately
 

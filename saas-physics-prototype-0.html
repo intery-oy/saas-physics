@@ -432,7 +432,9 @@ FCF     = EBITA</div>
       cogs:        'Cost of revenue this month',
       grossProfit: 'Revenue less COGS this month',
       ebita:       'Gross profit less S&M, R&D, G&A',
-      fcf:         'Free cash flow (= EBITA in v0.1)'
+      fcf:         'Free cash flow. Equals EBITA when billingAdvanceMonths is null; otherwise EBITA + Δdeferred.',
+      billings:    'Cash collected this month (recognised revenue + change in deferred)',
+      deferred:    'Deferred revenue liability (prepaid but unrecognised)'
     },
     /* TRANSITION COEFFICIENTS — they govern the world. They are not measurements,
        and they do not equal the KPIs of similar name. */
@@ -441,7 +443,8 @@ FCF     = EBITA</div>
       expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
       grossMargin:                'Gross margin coefficient',
       cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
-      acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).'
+      acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).',
+      billingAdvanceMonths:       'Prepaid billing term in months. Null/0 = FCF aliased to EBITA (prior). Finite N: billings = revenue + N×ΔMRR; FCF = EBITA + Δdeferred.'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control) — intended spend; may be cut when smCashReserve is set',
@@ -467,6 +470,7 @@ FCF     = EBITA</div>
     cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR (small-spend / linear)
     acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
     smCashReserve:              null,    // CONTROL   €; null = S&M unconstrained (prior). Finite = S&M ≤ max(0, cashOpening − reserve).
+    billingAdvanceMonths:       null,    // TRANSITION prepaid term in months. Null/0 = FCF=EBITA (prior). Finite N: FCF = EBITA + N×ΔMRR.
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -578,6 +582,20 @@ FCF     = EBITA</div>
     return intended < room ? intended : room;
   }
 
+  /* Prepaid term. Null / omitted / 0 / Infinity = FCF = EBITA (prior alias).
+   * Finite N > 0: the smooth annual-prepaid approximation
+   *   Δdeferred = N × (closingMRR − openingMRR)
+   *   billings  = revenue + Δdeferred
+   *   FCF       = EBITA + Δdeferred
+   * Growing ARR is then cash-generative at the WC line — the opposite sign
+   * of the old alias. No tax, capex, debt or other WC. See FINDINGS #15. */
+  function billingAdvanceOf(a) {
+    var n = a && a.billingAdvanceMonths;
+    if (n == null || n === Infinity || n === 0) return null;
+    if (typeof n !== 'number' || !(n > 0)) return null;
+    return n;
+  }
+
   function newARRPerMonth(a) {
     if (!(a.cacPerARR > 0)) return 0;
     var linear = a.sm / a.cacPerARR;
@@ -612,6 +630,7 @@ FCF     = EBITA</div>
     var out = Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
     out.acqSaturationSpend = saturationSpendOf(out);
     out.smCashReserve = smCashReserveOf(out);
+    out.billingAdvanceMonths = billingAdvanceOf(out);
     return out;
   }
 
@@ -669,9 +688,14 @@ FCF     = EBITA</div>
 
     var months = [];
     var cash = s.openingCash;
+    var billN = billingAdvanceOf(a);
+    /* Midpoint remaining prepaid: a stable book billed N months ahead carries
+       about N/2 months of unrecognised cash. Zero when the alias is on. */
+    var deferred = billN === null ? 0 : (s.openingARR / 12) * (billN / 2);
     var nrrMonthlyHistory = [];
     var cum = { newARR: 0, expansion: 0, leakage: 0, revenue: 0, cogs: 0,
-                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0 };
+                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0,
+                billings: 0, deltaDeferred: 0 };
 
     function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
 
@@ -763,8 +787,14 @@ FCF     = EBITA</div>
       /* --- 9. EBITA --- */
       var ebita = grossProfit - smEff - a.rd - a.ga;
 
-      /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed. --- */
-      var fcf = ebita;
+      /* --- 10. Cash. Null billing term: FCF = EBITA (prior alias).
+         Finite N: FCF = EBITA + N × ΔMRR = EBITA + Δdeferred. --- */
+      var deltaDeferred = billN === null ? 0 : billN * (closingMRR - openingMRR);
+      var billings = revenue + deltaDeferred;
+      var deferredOpening = deferred;
+      var deferredClosing = deferredOpening + deltaDeferred;
+      deferred = deferredClosing;
+      var fcf = ebita + deltaDeferred;
       var cashClosing = cashOpening + fcf;
       cash = cashClosing;
 
@@ -784,6 +814,7 @@ FCF     = EBITA</div>
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
       cum.sm += smEff; cum.rd += a.rd; cum.ga += a.ga;
       cum.ebita += ebita; cum.fcf += fcf;
+      cum.billings += billings; cum.deltaDeferred += deltaDeferred;
 
       months.push({
         t: t,
@@ -813,6 +844,10 @@ FCF     = EBITA</div>
         rd: a.rd, ga: a.ga,
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
+        billings: billings,
+        deferredOpening: deferredOpening,
+        deferredClosing: deferredClosing,
+        deltaDeferred: deltaDeferred,
         fcf: fcf,
         burn: fcf < 0 ? -fcf : 0,
         cashOpening: cashOpening,
@@ -868,7 +903,9 @@ FCF     = EBITA</div>
         newARRLinear: a.cacPerARR > 0 ? a.sm / a.cacPerARR : 0,
         acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR,
         smCashReserve: smReserve,                             // null when unconstrained
-        smIsUnconstrained: smReserve === null
+        smIsUnconstrained: smReserve === null,
+        billingAdvanceMonths: billN,                          // null when FCF=EBITA
+        fcfEqualsEbita: billN === null
       },
       months: months,
       cohorts: cohorts
@@ -1084,6 +1121,7 @@ FCF     = EBITA</div>
     saturationSpendOf: saturationSpendOf,
     smCashReserveOf: smCashReserveOf,
     effectiveSM: effectiveSM,
+    billingAdvanceOf: billingAdvanceOf,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,
@@ -1436,7 +1474,7 @@ FCF     = EBITA</div>
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -2010,6 +2048,48 @@ FCF     = EBITA</div>
        Math.abs(BASE.months[0].expansion - starved.months[0].expansion) < EPS,
        'M1 leakage €' + (starved.months[0].leakage / 1e6).toFixed(3) + 'm; expansion €' +
        (starved.months[0].expansion / 1e6).toFixed(3) + 'm');
+
+    /* ================================================================ *
+     * Deferred revenue / billings. Null/0 = FCF aliased to EBITA (prior).
+     * Finite N: FCF = EBITA + N × ΔMRR. ARR path unchanged.
+     * ================================================================ */
+    var rBillNull = E.run(Object.assign({}, A, { billingAdvanceMonths: null }));
+    var rBillZero = E.run(Object.assign({}, A, { billingAdvanceMonths: 0 }));
+    var aliasHeld = BASE.months.every(function (m) { return Math.abs(m.fcf - m.ebita) < EPS && Math.abs(m.deltaDeferred) < EPS; });
+    ok('DR · Null / omitted / 0 billing term keeps FCF aliased to EBITA (the prior contract)',
+       JSON.stringify(BASE.months) === JSON.stringify(rBillNull.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rBillZero.months) &&
+       aliasHeld && BASE.derived.fcfEqualsEbita === true,
+       'FCF=EBITA every month; omit≡null≡0');
+
+    var prepaid = E.run(Object.assign({}, A, { billingAdvanceMonths: 12 }));
+    var wDr = 0, wArr = 0, splitSomewhere = false;
+    for (i = 0; i < BASE.horizon; i++) {
+      var md = prepaid.months[i], mb = BASE.months[i];
+      var expect = mb.ebita + 12 * (md.closingMRR - md.openingMRR);
+      wDr = Math.max(wDr, Math.abs(md.fcf - expect), Math.abs(md.fcf - (md.ebita + md.deltaDeferred)));
+      wArr = Math.max(wArr, Math.abs(md.closingARR - mb.closingARR));
+      if (Math.abs(md.fcf - md.ebita) > 1) splitSomewhere = true;
+    }
+    ok('DR · Annual prepaid: FCF = EBITA + 12 × ΔMRR exactly, and FCF is not aliased to EBITA',
+       wDr < EPS && splitSomewhere && prepaid.derived.fcfEqualsEbita === false,
+       'max formula residual €' + wDr.toExponential(3) + '; M1 FCF €' +
+       (prepaid.months[0].fcf / 1e3).toFixed(1) + 'k vs EBITA €' + (prepaid.months[0].ebita / 1e3).toFixed(1) + 'k');
+
+    ok('DR · Billing term does not change the ARR path (cash definition only)',
+       wArr < EPS, 'max ARR delta €' + wArr.toExponential(3));
+
+    ok('DR · Prepaid growth is cash-generative: N=12 ending cash exceeds the EBITA-alias path',
+       prepaid.months[BASE.horizon - 1].cashClosing > BASE.months[BASE.horizon - 1].cashClosing + 1,
+       'ending cash €' + (prepaid.months[BASE.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm vs alias €' +
+       (BASE.months[BASE.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm');
+
+    var wCashId = 0;
+    prepaid.months.forEach(function (m) {
+      wCashId = Math.max(wCashId, Math.abs(m.cashOpening + m.fcf - m.cashClosing));
+    });
+    ok('DR · Cash still rolls: opening + FCF = closing under prepaid billings',
+       wCashId < EPS, 'max residual €' + wCashId.toExponential(3));
 
     return out;
   }

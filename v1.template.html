@@ -312,7 +312,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider. S&amp;M itself is unconstrained in cash unless a cash reserve is set.</li>
             <li><b>#19</b> The default opening book is still one age-0 €20m cohort. Opening ARR, cash and a three-band vintage mix are now on the rail — they write the engine&rsquo;s existing start object, they do not invent an adapter. Scenario 6 keeps its own construction.</li>
             <li><b>#14</b> Expansion carries no separately modelled marginal cost.</li>
-            <li><b>#15</b> FCF = EBITA. No working capital, deferred revenue, tax or capex.</li>
+            <li><b>#15</b> FCF = EBITA <em>at the default</em> (prepaid term off). Set a prepaid term so FCF = EBITA + N × ΔMRR — growth is then cash-generative at the WC line. No tax, capex or debt.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
             <li><b>#18</b> Leakage is one number; there are no customers, so churn and contraction cannot be separated.</li>
             <li><b>#21</b> There is no price.</li>
@@ -586,12 +586,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      interface does not imply a causal theory of R&D or G&A productivity. */
   var FIXED_COSTS = [
     {k:'rd', label:'R&D', sub:'no modelled effect on retention or expansion', min:0, max:2000000, step:25000, f:'eur'},
-    {k:'ga', label:'G&A', sub:'period cost', min:0, max:1500000, step:25000, f:'eur'}
+    {k:'ga', label:'G&A', sub:'period cost', min:0, max:1500000, step:25000, f:'eur'},
+    {k:'billingAdvanceMonths', label:'Prepaid term', sub:'months of MRR collected on a change in the book. Off = FCF=EBITA (prior). 12 = annual prepaid.', min:0, max:24, step:1, f:'offmo'}
   ];
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
   function fmtF(f, v){
     if(f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
     if(f==='offeur') return (v==null || !(v>0)) ? 'off · unconstrained' : eur(v);
+    if(f==='offmo') return (v==null || !(v>0)) ? 'off · FCF=EBITA' : (v|0)+' mo';
     return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
   }
 
@@ -615,7 +617,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       clearScenario();
       expA = Object.assign({}, expA);
       var raw = parseFloat(e.target.value);
-      expA[F.k] = ((F.f==='sat' || F.f==='offeur') && !(raw>0)) ? null : raw;
+      expA[F.k] = ((F.f==='sat' || F.f==='offeur' || F.f==='offmo') && !(raw>0)) ? null : raw;
       recompute(prev);
     });
     return d;
@@ -808,17 +810,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var fx=document.getElementById('fixedcosts');
     fx.className='fgrp';
     fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
-      '<div class="fgrp-note">Affect modeled FCF and Cash directly. v1 models no effect from them on recurring-state dynamics.</div>';
+      '<div class="fgrp-note">Affect modeled FCF and Cash. None of these change recurring-state dynamics. Prepaid term off = FCF aliased to EBITA (the prior contract).</div>';
     FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
   }
   function syncForces(){
     FORCES.forEach(function(F){
       var el=document.getElementById('f-'+F.k); if(!el) return;
       var cur = expA[F.k];
-      if((F.f==='sat' || F.f==='offeur') && !(cur>0)) cur = 0;
+      if((F.f==='sat' || F.f==='offeur' || F.f==='offmo') && !(cur>0)) cur = 0;
       el.value = cur;
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
-      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || ((F.f==='sat' || F.f==='offeur') && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
+      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || ((F.f==='sat' || F.f==='offeur' || F.f==='offmo') && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
     });
   }
@@ -896,7 +898,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     acq: 'Acquisition is linear and unbounded in S&M — the default cannot say stop. Set a saturation spend to bound it. (#10)',
     acqSat: 'Acquisition saturates: New ARR = (k / CAC) × S&M / (S&M + k). Marginal productivity falls as spend rises; the model can say stop. (#10)',
     exp: 'Expansion carries no separately modelled marginal cost. (#14)',
-    fcf: 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)',
+    fcf: 'FCF = EBITA when the prepaid term is off (the prior alias). Set a prepaid term so FCF = EBITA + N×ΔMRR. No tax, capex or debt. (#15)',
     cashsm: 'S&M is unconstrained in cash at the default. A cash reserve caps S&M at max(0, cashOpening − reserve). R&D and G&A stay unconstrained — this is not a financing model.',
     rd:  'R&D has no modelled effect on retention or expansion. (#16)'
   };
@@ -1856,7 +1858,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       steps.push({ label:'− R&D', from:running, to:running+mm.rd, bal:mm.rd, tone:'var(--leak)', op:'−' });
       running -= mm.ga;
       steps.push({ label:'− G&A', from:running, to:running+mm.ga, bal:mm.ga, tone:'var(--leak)', op:'−' });
-      steps.push({ label:'= Modeled FCF (= EBITA)', from:0, to:running, bal:running,
+      steps.push({ label:'= EBITA', from:0, to:running, bal:running,
+                   tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
+      running += mm.deltaDeferred;
+      steps.push({ label:'+ Δ deferred (billings − revenue)', from:running-mm.deltaDeferred, to:running, bal:mm.deltaDeferred,
+                   tone: mm.deltaDeferred>=0?'var(--good)':'var(--warn)', op:'+' });
+      steps.push({ label:'= FCF', from:0, to:running, bal:running,
                    tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
       return steps;
     }
@@ -1894,7 +1901,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     '<div class="crow" style="margin-top:7px"><span class="cl">Cash balance</span>'+
       '<span class="cbar" style="background:transparent"></span>'+
       '<span class="cv" style="color:var(--exp)">'+eur(expRes.months[m-1].cashClosing)+'</span></div>'+
-    '<div class="hint" style="margin-top:8px">v1 assumes modeled FCF = EBITA; no working capital, tax, capex or financing mechanics.</div>';
+    '<div class="hint" style="margin-top:8px">'+(expRes.derived.fcfEqualsEbita
+      ? 'Prepaid term is off: FCF is aliased to EBITA (the prior contract). No tax, capex or debt.'
+      : 'FCF = EBITA + Δdeferred, with Δdeferred = prepaid term × ΔMRR. Growing ARR is cash-generative at the WC line. No tax, capex or debt.')+'</div>';
   }
 
   /* ------------------------------------------------------------------ *
@@ -2292,8 +2301,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   var LABEL={sm:'S&M', smCashReserve:'S&M cash reserve', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
              persistenceAnnual:'Persistence',
-             expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A'};
-  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur'};
+             expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
+             billingAdvanceMonths:'Prepaid term'};
+  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur', billingAdvanceMonths:'offmo'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

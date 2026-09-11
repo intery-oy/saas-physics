@@ -139,6 +139,7 @@ identity, bridge, measurement and integrity check, in numbers.
 node checks.js              # 48 economic, measurement, state, NL and OPEN integrity checks
 node opening-checks.js      # B1+B2 opening-state UI + inverse-calibration contract
 node cash-checks.js         # S&M cash-reserve null default + bound
+node billings-checks.js     # prepaid term: null = FCF=EBITA; finite N splits them
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -170,6 +171,7 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
 | TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
 | TRANSITION | Gross margin | 80% |
+| TRANSITION | Prepaid term | off (null) — FCF=EBITA; finite N: FCF = EBITA + N×ΔMRR |
 | STATE | Opening ARR | €20.0m |
 | STATE | Opening cash | €10.0m |
 

@@ -13,7 +13,7 @@ Same branch / PR. Constitution: one mechanism at a time; null default reproduces
 | 0 | **A1** acquisition nonlinearity / diminishing S&M | done (v0.4) |
 | 1 | **B1+B2** opening-state controls + `kpi.calibrate()` UI | done — zero new physics |
 | 2 | Cash constrains S&M | done — null = unconstrained (prior) |
-| 3 | Deferred revenue / billings → FCF ≠ EBITA | queued |
+| 3 | Deferred revenue / billings → FCF ≠ EBITA | done — null = FCF=EBITA (prior) |
 | 4 | Expansion cost (`expansionCacPerARR`) | queued |
 | 5 | Logo vs contraction | queued |
 | 6 | Age/vintage editor on screen | queued |
@@ -47,12 +47,30 @@ One coefficient: `smCashReserve` (€). **Null / omitted / Infinity = unconstrai
 2. Set **S&M cash reserve** to €8m, raise S&M. When cash approaches the floor, S&M is cut and New ARR falls with it.
 3. System view: the ⊘ Cash → S&M link becomes a present link labelled with the reserve.
 
+---
+
+## Overnight build — Deferred revenue / billings
+
+One coefficient: `billingAdvanceMonths`. **Null / 0 = FCF aliased to EBITA** (prior, bit-identical). Finite `N`: `FCF = EBITA + N × ΔMRR`. Annual prepaid is 12. ARR path unchanged. Growing ARR is cash-generative at the WC line. No tax, capex or debt.
+
+### How to demo
+
+1. Default: Prepaid term **off · FCF=EBITA**. Waterfall shows Δ deferred = €0 and FCF = EBITA.
+2. Set Prepaid term to **12 mo**. Month-1 FCF exceeds EBITA by `12 × ΔMRR`. Ending cash is higher. ARR is unchanged.
+
+```bash
+node billings-checks.js
+```
+
+---
+
 ### Checks to run
 
 ```bash
-node checks.js                 # integrity checks including OPEN + CASHSM
+node checks.js                 # integrity checks including OPEN + CASHSM + DR
 node opening-checks.js         # B1+B2 UI contract + calibrate identity
 node cash-checks.js            # S&M cash-reserve null default + bound
+node billings-checks.js        # prepaid term null default + FCF split
 node mrr-native-checks.js
 node basis-checks.js
 node clarity-checks.js
@@ -155,9 +173,10 @@ Call it a **first demo of a research instrument**, not an MVP.
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 53 / 53 (35 + 9 NL + 4 OPEN + 5 CASHSM) |
+| `node checks.js` | 58 / 58 (prior + OPEN + CASHSM + DR) |
 | `node opening-checks.js` | 9 / 9 |
 | `node cash-checks.js` | 5 / 5 |
+| `node billings-checks.js` | 5 / 5 |
 | `node research-checks.js` | 19 / 19 |
 | `node basis-checks.js` | 12 / 12 |
 | `node clarity-checks.js` | 46 / 46 |

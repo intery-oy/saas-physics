@@ -18,7 +18,7 @@
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -592,6 +592,48 @@
        Math.abs(BASE.months[0].expansion - starved.months[0].expansion) < EPS,
        'M1 leakage €' + (starved.months[0].leakage / 1e6).toFixed(3) + 'm; expansion €' +
        (starved.months[0].expansion / 1e6).toFixed(3) + 'm');
+
+    /* ================================================================ *
+     * Deferred revenue / billings. Null/0 = FCF aliased to EBITA (prior).
+     * Finite N: FCF = EBITA + N × ΔMRR. ARR path unchanged.
+     * ================================================================ */
+    var rBillNull = E.run(Object.assign({}, A, { billingAdvanceMonths: null }));
+    var rBillZero = E.run(Object.assign({}, A, { billingAdvanceMonths: 0 }));
+    var aliasHeld = BASE.months.every(function (m) { return Math.abs(m.fcf - m.ebita) < EPS && Math.abs(m.deltaDeferred) < EPS; });
+    ok('DR · Null / omitted / 0 billing term keeps FCF aliased to EBITA (the prior contract)',
+       JSON.stringify(BASE.months) === JSON.stringify(rBillNull.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rBillZero.months) &&
+       aliasHeld && BASE.derived.fcfEqualsEbita === true,
+       'FCF=EBITA every month; omit≡null≡0');
+
+    var prepaid = E.run(Object.assign({}, A, { billingAdvanceMonths: 12 }));
+    var wDr = 0, wArr = 0, splitSomewhere = false;
+    for (i = 0; i < BASE.horizon; i++) {
+      var md = prepaid.months[i], mb = BASE.months[i];
+      var expect = mb.ebita + 12 * (md.closingMRR - md.openingMRR);
+      wDr = Math.max(wDr, Math.abs(md.fcf - expect), Math.abs(md.fcf - (md.ebita + md.deltaDeferred)));
+      wArr = Math.max(wArr, Math.abs(md.closingARR - mb.closingARR));
+      if (Math.abs(md.fcf - md.ebita) > 1) splitSomewhere = true;
+    }
+    ok('DR · Annual prepaid: FCF = EBITA + 12 × ΔMRR exactly, and FCF is not aliased to EBITA',
+       wDr < EPS && splitSomewhere && prepaid.derived.fcfEqualsEbita === false,
+       'max formula residual €' + wDr.toExponential(3) + '; M1 FCF €' +
+       (prepaid.months[0].fcf / 1e3).toFixed(1) + 'k vs EBITA €' + (prepaid.months[0].ebita / 1e3).toFixed(1) + 'k');
+
+    ok('DR · Billing term does not change the ARR path (cash definition only)',
+       wArr < EPS, 'max ARR delta €' + wArr.toExponential(3));
+
+    ok('DR · Prepaid growth is cash-generative: N=12 ending cash exceeds the EBITA-alias path',
+       prepaid.months[BASE.horizon - 1].cashClosing > BASE.months[BASE.horizon - 1].cashClosing + 1,
+       'ending cash €' + (prepaid.months[BASE.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm vs alias €' +
+       (BASE.months[BASE.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm');
+
+    var wCashId = 0;
+    prepaid.months.forEach(function (m) {
+      wCashId = Math.max(wCashId, Math.abs(m.cashOpening + m.fcf - m.cashClosing));
+    });
+    ok('DR · Cash still rolls: opening + FCF = closing under prepaid billings',
+       wCashId < EPS, 'max residual €' + wCashId.toExponential(3));
 
     return out;
   }
