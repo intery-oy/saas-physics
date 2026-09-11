@@ -83,10 +83,10 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
     var worst = 0;
     for (var t = 1; t <= res.horizon; t += 7) {
       var m = res.months[t - 1];
-      var running = m.revenue - m.cogs - m.sm - m.rd - m.ga;
+      var running = m.revenue - m.cogs - m.sm - m.rd - m.ga - (m.expansionCost || 0);
       worst = Math.max(worst, Math.abs(running - m.ebita));
     }
-    ok('FINANCIAL-WATERFALL', 'case ' + i + ': Revenue − COGS − S&M − R&D − G&A = engine EBITA, every 7th month',
+    ok('FINANCIAL-WATERFALL', 'case ' + i + ': Revenue − COGS − S&M − R&D − G&A − expansion cost = engine EBITA, every 7th month',
        worst < 1e-6, 'max |Δ| = ' + worst.toExponential(3));
     /* and EBITA = FCF under the stated v1 convention, exactly */
     var fcfGap = 0;
@@ -97,9 +97,10 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
   /* the waterfall's own COGS-step magnitude equals COGS, not the post-COGS
      balance — the exact bug this check exists to catch if it recurs */
   var cascadeSrc = tpl.slice(tpl.indexOf('function stepsFor'), tpl.indexOf('function renderCascade') + 2000);
-  ok('FINANCIAL-WATERFALL', 'the COGS/S&M/R&D/G&A steps print the deduction magnitude (mm.cogs etc.), not the running balance',
+  ok('FINANCIAL-WATERFALL', 'the COGS/S&M/R&D/G&A/expansion-cost steps print the deduction magnitude (mm.cogs etc.), not the running balance',
      /bal:\s*mm\.cogs/.test(cascadeSrc) && /bal:\s*mm\.sm/.test(cascadeSrc) &&
-     /bal:\s*mm\.rd/.test(cascadeSrc) && /bal:\s*mm\.ga/.test(cascadeSrc), '');
+     /bal:\s*mm\.rd/.test(cascadeSrc) && /bal:\s*mm\.ga/.test(cascadeSrc) &&
+     /bal:\s*mm\.expansionCost/.test(cascadeSrc), '');
 })();
 
 /* ------------------------------------------------------------------ *

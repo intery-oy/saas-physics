@@ -18,7 +18,7 @@
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths; delete A.expansionCacPerARR;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -634,6 +634,43 @@
     });
     ok('DR · Cash still rolls: opening + FCF = closing under prepaid billings',
        wCashId < EPS, 'max residual €' + wCashId.toExponential(3));
+
+    /* ================================================================ *
+     * Expansion cost. Null/0 = free expansion (prior). Finite c:
+     * expansionCost = Expansion ARR × c, deducted from EBITA. ARR unchanged.
+     * On the matched-NRR pair, Δending cash is linear in c × extra expansion.
+     * ================================================================ */
+    var rExp0 = E.run(Object.assign({}, A, { expansionCacPerARR: 0 }));
+    var rExpNull = E.run(Object.assign({}, A, { expansionCacPerARR: null }));
+    ok('EXPCAC · Null / 0 expansion CAC is bit-identical to free expansion (the prior contract)',
+       JSON.stringify(BASE.months) === JSON.stringify(rExp0.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rExpNull.months) &&
+       BASE.months.every(function (m) { return Math.abs(m.expansionCost) < EPS; }),
+       'omit≡0≡null; expansionCost = 0 every month');
+
+    var rExp1 = E.run(Object.assign({}, A, { expansionCacPerARR: 1 }));
+    var wExpArr = 0, costMatch = true, cashLinear = true;
+    for (i = 0; i < BASE.horizon; i++) {
+      wExpArr = Math.max(wExpArr, Math.abs(rExp1.months[i].closingARR - BASE.months[i].closingARR));
+      if (Math.abs(rExp1.months[i].expansionCost - rExp1.months[i].expansion * 1) > EPS) costMatch = false;
+    }
+    var expectedCash = BASE.months[BASE.horizon - 1].cashClosing - rExp1.months[BASE.horizon - 1].cumulative.expansionCost;
+    ok('EXPCAC · c=1 costs Expansion ARR one-for-one, leaves the ARR path unchanged, and cuts ending cash by cumulative expansion',
+       wExpArr < EPS && costMatch && Math.abs(rExp1.months[BASE.horizon - 1].cashClosing - expectedCash) < EPS,
+       'max ARR delta €' + wExpArr.toExponential(3) + '; ending cash cut €' +
+       (rExp1.months[BASE.horizon - 1].cumulative.expansionCost / 1e6).toFixed(2) + 'm');
+
+    var TARGETN = 0.96 * 1.10;
+    var rRet0 = E.run(Object.assign({}, A, { persistenceAnnual: 0.96, expansionCoefficientAnnual: 0.10, expansionCacPerARR: 0 }));
+    var rX0 = E.run(Object.assign({}, A, { persistenceAnnual: 0.90, expansionCoefficientAnnual: TARGETN / 0.90 - 1, expansionCacPerARR: 0 }));
+    var rRetC = E.run(Object.assign({}, A, { persistenceAnnual: 0.96, expansionCoefficientAnnual: 0.10, expansionCacPerARR: 1 }));
+    var rXC = E.run(Object.assign({}, A, { persistenceAnnual: 0.90, expansionCoefficientAnnual: TARGETN / 0.90 - 1, expansionCacPerARR: 1 }));
+    var extraExp = rX0.months[rX0.horizon - 1].cumulative.expansion - rRet0.months[rRet0.horizon - 1].cumulative.expansion;
+    var d0 = rX0.months[rX0.horizon - 1].cashClosing - rRet0.months[rRet0.horizon - 1].cashClosing;
+    var d1 = rXC.months[rXC.horizon - 1].cashClosing - rRetC.months[rRetC.horizon - 1].cashClosing;
+    ok('EXPCAC · On the matched-NRR pair, Δending cash moves linearly with extra expansion × c',
+       Math.abs((d1 - d0) + extraExp) < 1 && extraExp > 1e6,
+       'extra expansion €' + (extraExp / 1e6).toFixed(2) + 'm; ΔΔcash €' + ((d1 - d0) / 1e6).toFixed(2) + 'm');
 
     return out;
   }

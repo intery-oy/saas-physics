@@ -14,7 +14,7 @@ Same branch / PR. Constitution: one mechanism at a time; null default reproduces
 | 1 | **B1+B2** opening-state controls + `kpi.calibrate()` UI | done — zero new physics |
 | 2 | Cash constrains S&M | done — null = unconstrained (prior) |
 | 3 | Deferred revenue / billings → FCF ≠ EBITA | done — null = FCF=EBITA (prior) |
-| 4 | Expansion cost (`expansionCacPerARR`) | queued |
+| 4 | Expansion cost (`expansionCacPerARR`) | done — 0 = free (prior) |
 | 5 | Logo vs contraction | queued |
 | 6 | Age/vintage editor on screen | queued |
 
@@ -60,6 +60,21 @@ One coefficient: `billingAdvanceMonths`. **Null / 0 = FCF aliased to EBITA** (pr
 
 ```bash
 node billings-checks.js
+```
+
+---
+
+## Overnight build — Expansion cost
+
+One coefficient: `expansionCacPerARR`. **0 / null = free expansion** (prior). Finite `c`: `expansionCost = Expansion ARR × c`, deducted from EBITA. ARR path unchanged. On the matched-NRR pair the cash gap is linear in extra expansion × c.
+
+### How to demo
+
+1. Default: Expansion CAC reads **0.00×**. Waterfall expansion-cost step is €0.
+2. Set Expansion CAC to **1.00×**. ARR unchanged; ending cash falls by cumulative expansion ARR. Compare Retention vs Expansion scenarios — the expansion-heavy book now costs more cash.
+
+```bash
+node expansion-checks.js
 ```
 
 ---
@@ -173,7 +188,8 @@ Call it a **first demo of a research instrument**, not an MVP.
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 58 / 58 (prior + OPEN + CASHSM + DR) |
+| `node checks.js` | 61 / 61 (prior + OPEN + CASHSM + DR + EXPCAC) |
+| `node expansion-checks.js` | 4 / 4 |
 | `node opening-checks.js` | 9 / 9 |
 | `node cash-checks.js` | 5 / 5 |
 | `node billings-checks.js` | 5 / 5 |

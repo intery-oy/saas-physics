@@ -311,7 +311,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           <ul>
             <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider. S&amp;M itself is unconstrained in cash unless a cash reserve is set.</li>
             <li><b>#19</b> The default opening book is still one age-0 €20m cohort. Opening ARR, cash and a three-band vintage mix are now on the rail — they write the engine&rsquo;s existing start object, they do not invent an adapter. Scenario 6 keeps its own construction.</li>
-            <li><b>#14</b> Expansion carries no separately modelled marginal cost.</li>
+            <li><b>#14</b> Expansion is free <em>at the default</em> (expansion CAC = 0). Set Expansion CAC / €1 Exp ARR to price expansion without changing the ARR path.</li>
             <li><b>#15</b> FCF = EBITA <em>at the default</em> (prepaid term off). Set a prepaid term so FCF = EBITA + N × ΔMRR — growth is then cash-generative at the WC line. No tax, capex or debt.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
             <li><b>#18</b> Leakage is one number; there are no customers, so churn and contraction cannot be separated.</li>
@@ -575,9 +575,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
                {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
-    { kind:'Acquisition efficiency', note:'How much recurring state S&M creates. Saturation is off by default — the linear v0.3 generator.',
+    { kind:'Acquisition efficiency', note:'How much recurring state spend creates. Saturation is off by default. Expansion CAC is 0 by default — expansion is free (the prior contract).',
       forces:[ {k:'cacPerARR', label:'CAC / €1 New ARR', sub:'small-spend (linear) productivity — spend required per euro of new ARR', min:0.3, max:3, step:0.05, f:'x'},
-               {k:'acqSaturationSpend', label:'Saturation spend', sub:'monthly S&M at which average productivity is half the linear prediction. Off = linear, unbounded.', min:0, max:5000000, step:50000, f:'sat'} ] },
+               {k:'acqSaturationSpend', label:'Saturation spend', sub:'monthly S&M at which average productivity is half the linear prediction. Off = linear, unbounded.', min:0, max:5000000, step:50000, f:'sat'},
+               {k:'expansionCacPerARR', label:'Expansion CAC / €1 Exp ARR', sub:'cost of a euro of expansion ARR. 0 = free (prior). Does not change the ARR path.', min:0, max:3, step:0.05, f:'x'} ] },
     { kind:'Economic conversion', note:'How revenue becomes gross profit. Creates no ARR.',
       forces:[ {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'} ] }
   ];
@@ -897,7 +898,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var MODEL_BOUNDS = {
     acq: 'Acquisition is linear and unbounded in S&M — the default cannot say stop. Set a saturation spend to bound it. (#10)',
     acqSat: 'Acquisition saturates: New ARR = (k / CAC) × S&M / (S&M + k). Marginal productivity falls as spend rises; the model can say stop. (#10)',
-    exp: 'Expansion carries no separately modelled marginal cost. (#14)',
+    exp: 'Expansion CAC is 0 at the default — expansion is free. A positive expansionCacPerARR prices expansion ARR without changing the ARR path. (#14)',
     fcf: 'FCF = EBITA when the prepaid term is off (the prior alias). Set a prepaid term so FCF = EBITA + N×ΔMRR. No tax, capex or debt. (#15)',
     cashsm: 'S&M is unconstrained in cash at the default. A cash reserve caps S&M at max(0, cashOpening − reserve). R&D and G&A stay unconstrained — this is not a financing model.',
     rd:  'R&D has no modelled effect on retention or expansion. (#16)'
@@ -1858,6 +1859,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       steps.push({ label:'− R&D', from:running, to:running+mm.rd, bal:mm.rd, tone:'var(--leak)', op:'−' });
       running -= mm.ga;
       steps.push({ label:'− G&A', from:running, to:running+mm.ga, bal:mm.ga, tone:'var(--leak)', op:'−' });
+      running -= mm.expansionCost;
+      steps.push({ label:'− Expansion cost', from:running, to:running+mm.expansionCost, bal:mm.expansionCost, tone:'var(--leak)', op:'−' });
       steps.push({ label:'= EBITA', from:0, to:running, bal:running,
                    tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
       running += mm.deltaDeferred;
@@ -2301,9 +2304,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   var LABEL={sm:'S&M', smCashReserve:'S&M cash reserve', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
              persistenceAnnual:'Persistence',
-             expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
+             expansionCoefficientAnnual:'Expansion', expansionCacPerARR:'Expansion CAC',
+             grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              billingAdvanceMonths:'Prepaid term'};
-  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur', billingAdvanceMonths:'offmo'};
+  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', expansionCacPerARR:'x', grossMargin:'pct', rd:'eur', ga:'eur', billingAdvanceMonths:'offmo'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

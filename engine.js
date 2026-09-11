@@ -77,7 +77,8 @@
       grossMargin:                'Gross margin coefficient',
       cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
       acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).',
-      billingAdvanceMonths:       'Prepaid billing term in months. Null/0 = FCF aliased to EBITA (prior). Finite N: billings = revenue + N×ΔMRR; FCF = EBITA + Δdeferred.'
+      billingAdvanceMonths:       'Prepaid billing term in months. Null/0 = FCF aliased to EBITA (prior). Finite N: billings = revenue + N×ΔMRR; FCF = EBITA + Δdeferred.',
+      expansionCacPerARR:         'Cost per €1 of Expansion ARR, symmetric with cacPerARR. Null/0 = free expansion (prior).'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control) — intended spend; may be cut when smCashReserve is set',
@@ -104,6 +105,7 @@
     acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
     smCashReserve:              null,    // CONTROL   €; null = S&M unconstrained (prior). Finite = S&M ≤ max(0, cashOpening − reserve).
     billingAdvanceMonths:       null,    // TRANSITION prepaid term in months. Null/0 = FCF=EBITA (prior). Finite N: FCF = EBITA + N×ΔMRR.
+    expansionCacPerARR:         0,       // TRANSITION € of cost per €1 of Expansion ARR. 0 = free (prior).
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -222,6 +224,13 @@
    *   FCF       = EBITA + Δdeferred
    * Growing ARR is then cash-generative at the WC line — the opposite sign
    * of the old alias. No tax, capex, debt or other WC. See FINDINGS #15. */
+  function expansionCacOf(a) {
+    var c = a && a.expansionCacPerARR;
+    if (c == null || c === 0) return 0;
+    if (typeof c !== 'number' || !(c > 0)) return 0;
+    return c;
+  }
+
   function billingAdvanceOf(a) {
     var n = a && a.billingAdvanceMonths;
     if (n == null || n === Infinity || n === 0) return null;
@@ -264,6 +273,7 @@
     out.acqSaturationSpend = saturationSpendOf(out);
     out.smCashReserve = smCashReserveOf(out);
     out.billingAdvanceMonths = billingAdvanceOf(out);
+    out.expansionCacPerARR = expansionCacOf(out);
     return out;
   }
 
@@ -328,7 +338,7 @@
     var nrrMonthlyHistory = [];
     var cum = { newARR: 0, expansion: 0, leakage: 0, revenue: 0, cogs: 0,
                 grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0,
-                billings: 0, deltaDeferred: 0 };
+                billings: 0, deltaDeferred: 0, expansionCost: 0 };
 
     function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
 
@@ -418,7 +428,9 @@
       var grossProfit = revenue * a.grossMargin;
 
       /* --- 9. EBITA --- */
-      var ebita = grossProfit - smEff - a.rd - a.ga;
+      var expansionCac = expansionCacOf(a);
+      var expansionCost = (totExpansionMRR * 12) * expansionCac;
+      var ebita = grossProfit - smEff - a.rd - a.ga - expansionCost;
 
       /* --- 10. Cash. Null billing term: FCF = EBITA (prior alias).
          Finite N: FCF = EBITA + N × ΔMRR = EBITA + Δdeferred. --- */
@@ -448,6 +460,7 @@
       cum.sm += smEff; cum.rd += a.rd; cum.ga += a.ga;
       cum.ebita += ebita; cum.fcf += fcf;
       cum.billings += billings; cum.deltaDeferred += deltaDeferred;
+      cum.expansionCost += expansionCost;
 
       months.push({
         t: t,
@@ -474,7 +487,7 @@
         cogs: cogs,
         grossProfit: grossProfit,
         sm: smEff, smIntended: a.sm, smConstrained: smEff + 1e-12 < a.sm,
-        rd: a.rd, ga: a.ga,
+        rd: a.rd, ga: a.ga, expansionCost: expansionCost,
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
         billings: billings,
@@ -538,7 +551,8 @@
         smCashReserve: smReserve,                             // null when unconstrained
         smIsUnconstrained: smReserve === null,
         billingAdvanceMonths: billN,                          // null when FCF=EBITA
-        fcfEqualsEbita: billN === null
+        fcfEqualsEbita: billN === null,
+        expansionCacPerARR: expansionCacOf(a)
       },
       months: months,
       cohorts: cohorts
@@ -755,6 +769,7 @@
     smCashReserveOf: smCashReserveOf,
     effectiveSM: effectiveSM,
     billingAdvanceOf: billingAdvanceOf,
+    expansionCacOf: expansionCacOf,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,

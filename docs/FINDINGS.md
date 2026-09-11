@@ -234,16 +234,16 @@ Expansion may now vary by age band, but nothing caps a cohort at any multiple of
 no seat ceiling, no penetration curve, no product limit. Nothing can ever exhaust an account, so
 expansion headroom stays invisible.
 
-### 14. Expansion is free
+### 14. Expansion is free at the default — `expansionCacPerARR` is now optional
 
 > **Blocked CFO question:** *what incremental economic resources are required to
 > generate Expansion?*
 
+**Null / 0.** Expansion still costs nothing — the prior contract, bit-identical.
 
-There is no cost attached to generating expansion ARR — no CSM capacity, account management,
-implementation or upsell effort. This is now the most consequential single omission, because it is
-the cheapest defensible way to break the matched-NRR tie: one coefficient, no ARR effect, and the
-separation is exactly linear in it (`Δending cash = c × €15.12m`).
+**Finite c.** `expansionCost = Expansion ARR × c`, deducted from EBITA. The ARR path does
+not move. On the matched-NRR pair the cash separation is linear in extra expansion × c
+(the prediction in MATCHED-NRR.md). No saturation of expansion (Finding 13).
 
 ### 15. `FCF = EBITA` at the default — a real cash definition is now optional
 
