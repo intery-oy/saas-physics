@@ -225,10 +225,10 @@ tr.hl td{color:var(--ink)}
       <div class="emergent" id="emergent"></div>
       <div class="derived" id="derived"></div>
       <div class="note" style="margin-top:10px">
-        <b style="color:var(--ink-2)">v0.2 acquisition physics.</b> New ARR is generated from spend and acquisition productivity — gross margin does not appear:
-        <div class="formula" style="margin:7px 0">New ARR<sub>month</sub> = S&amp;M ÷ (CAC / New ARR)
-New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
-        Acquisition productivity decides how much ARR the spend creates; gross margin decides how fast that investment comes back, which is why payback is an output. Still no sales capacity, rep ramp, pipeline, conversion, diminishing returns or acquisition delay. NRR is not an input either — it falls out of GRR and expansion.
+        <b style="color:var(--ink-2)">v0.4 acquisition physics.</b> Default is the v0.2 linear generator — gross margin does not appear:
+        <div class="formula" style="margin:7px 0">New ARR<sub>month</sub> = S&amp;M ÷ (CAC / New ARR)          ← k off (null)
+New ARR<sub>month</sub> = (k / CAC) × S&amp;M / (S&amp;M + k)   ← finite saturation spend k</div>
+        <code>cacPerARR</code> is small-spend productivity; <code>k</code> is the monthly S&amp;M at which average productivity is half the linear prediction. Off by default, so every prior result is unchanged. Gross margin still only sets payback. No sales capacity, ramp, pipeline or acquisition delay.
       </div>
     </div>
 
@@ -245,7 +245,7 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
       <h1>SaaS&nbsp;Physics</h1>
       <span class="sub">Prototype&nbsp;0 — deterministic economic engine</span>
       <span class="spacer"></span>
-      <span class="pill">model v0.3</span>
+      <span class="pill">model v0.4</span>
       <span class="pill">60 monthly periods</span>
       <span class="pill" id="cohort-pill">61 cohorts</span>
     </header>
@@ -330,8 +330,9 @@ leakage   = opening − retained
 expansion = retained × monthly expansion
 closing   = retained + expansion (+ new cohort)
 
-New ARR   = S&amp;M ÷ (CAC / New ARR)          ← v0.2
-payback   = (CAC / New ARR) × 12 ÷ GM       ← OUTPUT
+New ARR   = S&amp;M ÷ (CAC / New ARR)          ← v0.2 / v0.4 default (k off)
+New ARR   = (k / CAC) × S&amp;M / (S&amp;M + k) ← v0.4 when k is set
+payback   = (CAC / New ARR) × 12 ÷ GM       ← OUTPUT (stated CAC)
 
 revenue = ((opening + closing) / 2) / 12
 EBITA   = GP − S&amp;M − R&amp;D − G&amp;A
@@ -344,7 +345,7 @@ FCF     = EBITA</div>
             <li>Leakage combines churn and contraction, so the KPI layer cannot report them separately however correct its definitions are. Reactivation = 0. There are no customers, so logo retention and concentration do not exist.</li>
             <li>Retention and expansion rates do not vary with cohort age, segment or product.</li>
             <li>The future economic benefit of R&amp;D is <strong>outside the simulation boundary</strong>. v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law; there is no defensible universal coefficient. A later version may let you state a hypothesised delayed effect as an explicit management thesis.</li>
-            <li>Acquisition is linear and instantaneous in S&amp;M — no saturation, no lag.</li>
+            <li>Acquisition is instantaneous in S&amp;M — no lag. Saturation exists (v0.4) but is <em>off</em> by default, so the shipped world is still linear.</li>
             <li>Revenue uses a midpoint approximation of a stock that actually moves continuously.</li>
           </ul>
         </div>
@@ -353,7 +354,7 @@ FCF     = EBITA</div>
           <ul>
             <li><strong>Fixed.</strong> Gross margin no longer generates ARR. In v0.1, cutting GM 80%→65% wrongly raised New ARR €0.75m→€0.92m/month; now it leaves New ARR untouched and moves CAC payback 18.0→22.2 months instead.</li>
             <li><strong>Still true.</strong> Improving acquisition efficiency and raising S&amp;M by the same factor produce an identical ARR path — only cash separates them (€27m over 60 months at the calibrated settings).</li>
-            <li><strong>Still true.</strong> Acquisition remains linear, instantaneous and unbounded in S&amp;M. There is no spend level at which the next euro buys less.</li>
+            <li><strong>v0.4 — optional bound.</strong> A finite saturation spend k makes New ARR = (k/CAC)×S&amp;M/(S&amp;M+k). The default k is null, so the linear generator is reproduced exactly.</li>
             <li><strong>Discovered (v0.2).</strong> Retention-heavy and expansion-heavy businesses at matched NRR are economically indistinguishable to this model. A boundary, not a bug — see <code>docs/MATCHED-NRR.md</code>.</li>
             <li><strong>v0.2.1 — two layers.</strong> The economic engine holds <em>transition coefficients</em>; the KPI engine holds <em>measurement definitions</em>, and events flow one way between them. A 90% persistence coefficient measures as 89.56% R12M GRR: the whole gap is the within-period interaction of decay and expansion, and it vanishes if either is switched off. See <code>docs/MEASUREMENT.md</code>.</li>
             <li><strong>v0.2.1 — sharper boundary.</strong> Measured R12M NRR is a stock ratio, so pinning it pins the monthly multiplier uniquely. Any two systems reporting the same NRR are identical in this model <em>by construction</em>, not by coincidence.</li>
@@ -404,15 +405,22 @@ FCF     = EBITA</div>
     {k:'sm', g:'control', label:'S&M investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'rd', g:'control', label:'R&D investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'ga', g:'control', label:'G&A investment', unit:'€ thousand / month', min:0, max:2000000, step:25000, f:'eur'},
-    {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR', min:0.30, max:4.00, step:0.05, f:'x'},
+    {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR (small-spend)', min:0.30, max:4.00, step:0.05, f:'x'},
+    {k:'acqSaturationSpend', g:'rate', label:'Saturation spend', unit:'€ thousand / month · 0 = linear', min:0, max:5000000, step:50000, f:'sat'},
     {k:'persistenceAnnual', g:'rate', label:'Persistence coefficient', unit:'annual — NOT reported GRR', min:0.60, max:0.995, step:0.005, f:'pct'},
     {k:'expansionCoefficientAnnual', g:'rate', label:'Expansion coefficient', unit:'annual, on retained ARR', min:0, max:0.50, step:0.005, f:'pct'},
     {k:'grossMargin', g:'rate', label:'Gross margin', unit:'of revenue', min:0.30, max:0.95, step:0.005, f:'pct'}
   ];
-  function fmtCtl(c,v){ return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1); }
-  function inputStep(c){ return c.f==='pct'?0.1:c.f==='eur'?25:c.f==='x'?0.05:0.5; }
-  function inputVal(c,v){ return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):c.f==='x'?v.toFixed(2):v; }
-  function fromInput(c,v){ return c.f==='pct'?v/100:c.f==='eur'?v*1000:v; }
+  function fmtCtl(c,v){
+    if(c.f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
+    return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1);
+  }
+  function inputStep(c){ return c.f==='pct'?0.1:(c.f==='eur'||c.f==='sat')?25:c.f==='x'?0.05:0.5; }
+  function inputVal(c,v){
+    if(c.f==='sat') return (v==null || !(v>0)) ? 0 : Math.round(v/1000);
+    return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):c.f==='x'?v.toFixed(2):v;
+  }
+  function fromInput(c,v){ return c.f==='pct'?v/100:(c.f==='eur'||c.f==='sat')?v*1000:v; }
 
   var PRESETS = [
     {id:'A', name:'A · Retention', ch:{persistenceAnnual:0.96}},
@@ -462,13 +470,20 @@ FCF     = EBITA</div>
       a.appendChild(b);
     });
   }
-  function set(k,v){ expA=Object.assign({},expA); expA[k]=v; recompute(); }
+  function set(k,v){
+    expA=Object.assign({},expA);
+    expA[k]=(k==='acqSaturationSpend' && !(v>0)) ? null : v;
+    recompute();
+  }
 
   function syncControls(){
     CONTROLS.forEach(function(c){
       var num=document.getElementById('i-'+c.k), rng=document.getElementById('r-'+c.k);
-      num.value=inputVal(c,expA[c.k]); rng.value=expA[c.k];
-      num.style.color = expA[c.k]===BASE_A[c.k] ? 'var(--ink)' : 'var(--exp)';
+      var cur=expA[c.k];
+      num.value=inputVal(c,cur);
+      rng.value=(c.f==='sat' && !(cur>0)) ? 0 : cur;
+      var same = expA[c.k]===BASE_A[c.k] || (c.f==='sat' && !(expA[c.k]>0) && !(BASE_A[c.k]>0));
+      num.style.color = same ? 'var(--ink)' : 'var(--exp)';
     });
     var d=expRes.derived;
     var mNow = K.measureR12M(expRes, Math.max(K.WINDOW, month));
@@ -484,7 +499,8 @@ FCF     = EBITA</div>
       '<div class="erow out"><span class="tx tx-emergent">OUTPUT</span><span>CAC payback</span><b>'+d.cacPaybackMonths.toFixed(1)+' mo</b></div>'+
       '<div class="ehint">payback = (CAC / New ARR) × 12 ÷ gross margin</div>';
     document.getElementById('derived').innerHTML =
-      row('New ARR / month', eur(d.newARRPerMonth)) +
+      row('New ARR / month', eur(d.newARRPerMonth) + (d.acqIsLinear ? ' · linear' : ' · saturating')) +
+      row('Linear New ARR (unconstrained)', eur(d.newARRLinear)) +
       row('New ARR per year of spend', eur(d.newARRAnnualised)) +
       row('Monthly persistence g', pct(d.monthlyPersistence,3)) +
       row('Monthly expansion e', pct(d.monthlyExpansion,3)) +
@@ -495,6 +511,7 @@ FCF     = EBITA</div>
 
   /* ---------------- explainability (§14) ---------------- */
   var LABELS = {sm:'S&M investment', rd:'R&D investment', ga:'G&A investment',
+    cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
     cacPaybackMonths:'CAC payback', persistenceAnnual:'Annual GRR', expansionCoefficientAnnual:'Annual expansion', grossMargin:'Gross margin'};
   function fmtBy(k,v){ var c=CONTROLS.filter(function(x){return x.k===k;})[0]; return fmtCtl(c,v); }
 

@@ -1,4 +1,11 @@
-# Economic architecture — Prototype 0.3 (model v0.3)
+# Economic architecture — Prototype 0.4 (model v0.4)
+
+> **v0.4.** One new transition coefficient: **acquisition saturation** (`acqSaturationSpend`).
+> New ARR may saturate in S&M. The shipped default is **null** — the linear v0.2 / v0.3
+> generator — so the default world is exactly v0.3 and the model asserts no saturation
+> scale until a user sets one. Finding 10's blocked question (*when should we stop
+> increasing S&M?*) is answerable only when `k` is finite. No new hidden state; the
+> Phase 0/1 observability gate was not re-run.
 
 > **v0.3.** One new state dimension: **cohort maturity**. Transition coefficients may vary by the
 > age band a cohort occupies (0–11, 12–23, 24+ months), giving six transition parameters. The
@@ -79,44 +86,60 @@ Company identity, asserted every month:
 Closing ARR = Opening ARR + New ARR + Expansion − Leakage
 ```
 
-## Acquisition (v0.2)
+## Acquisition (v0.2 primitive, v0.4 optional saturation)
 
-The primitive is **acquisition productivity** — a dimensionless ratio:
-
-```
-cacPerARR = acquisition spend ÷ New ARR generated
-```
-
-New ARR is generated from spend and productivity alone:
+The primitive is **acquisition productivity** — a dimensionless ratio, now the *small-spend*
+(linear) productivity:
 
 ```
-New ARR per year of spend = Monthly S&M × 12 ÷ cacPerARR
+cacPerARR = acquisition spend ÷ New ARR generated     (when spend is well below saturation)
+```
+
+**Null / default** (`acqSaturationSpend` absent, null, 0 or Infinity) — exact v0.2 / v0.3 generator:
+
+```
 New ARR added per month   = Monthly S&M ÷ cacPerARR
+New ARR per year of spend = Monthly S&M × 12 ÷ cacPerARR
 ```
+
+**Saturating** (finite `k = acqSaturationSpend`, €/month of S&M):
+
+```
+New ARR added per month = (k / cacPerARR) × S&M / (S&M + k)
+                        = linear × k / (S&M + k)
+```
+
+`k` is the monthly S&M at which *average* productivity has fallen to half the linear prediction.
+Equivalent rising-CAC form: average CAC = `cacPerARR × (1 + S&M/k)`. As S&M → ∞, New ARR →
+`A_max = k / cacPerARR`. Marginal New ARR = `A_max × k / (S&M + k)²` is strictly decreasing in
+S&M — that is the bound that lets the model say *stop*.
 
 **Units.** `sm` is €/month, `cacPerARR` is dimensionless, so `newARRPerMonth` is € of ARR (an
 annualised run-rate quantity) added to the ARR stock each month — the same interpretation the v0.1
 engine used, which is why every downstream identity, cohort rule and reconciliation is untouched.
-Worked example from the brief: €500k/month at 1.5× → €500k × 12 ÷ 1.5 = **€4.0m of New ARR per
+Worked example from the brief, k off: €500k/month at 1.5× → €500k × 12 ÷ 1.5 = **€4.0m of New ARR per
 year of spend**, i.e. €333k added to the stock each month.
 
-**Gross margin does not appear.** That is the point of v0.2. CAC payback becomes an output:
+**Gross margin does not appear.** That is the point of v0.2 and it still holds under saturation.
+Stated CAC payback remains an output of the *linear* primitive:
 
 ```
 CAC payback = cacPerARR × 12 ÷ Gross margin
 ```
 
-Derivation: the cost of €1 of New ARR is `cacPerARR`; the monthly gross profit that €1 of ARR
-throws off is `GM / 12`; so recovery takes `cacPerARR ÷ (GM / 12)` months. At 1.00× and GM 80%
-that is 15.0 months; at the 1.20× default and GM 80%, 18.0 months.
+Realized CAC (`S&M / New ARR`) rises with spend when `k` is finite; it is stamped on each
+acquisition cohort as `cacPerARRAtCreation` so cost = initialARR × stamp. Under the linear
+default the stamp equals the stated `cacPerARR`, bit-identically.
 
-So: **acquisition productivity determines how much ARR the spend creates; gross margin determines
-how fast that investment is economically recovered.** Integrity check A1 asserts structurally that
-neither `cacPayback` nor `grossMargin` appears anywhere in the New ARR generator.
+So: **small-spend productivity determines the linear slope; saturation determines when that
+slope bends; gross margin determines how fast the stated investment is economically recovered.**
+Integrity check A1 asserts structurally that neither `cacPayback` nor `grossMargin` appears
+anywhere in the New ARR generator. The NL checks assert the null default is bit-identical to
+v0.3 and that a finite `k` is a genuine bound.
 
-Still linear, instantaneous and unbounded in S&M — no sales capacity, rep ramp, pipeline,
-conversion, diminishing returns or acquisition delay. The interface states the formula on screen
-next to the controls that drive it.
+Still instantaneous — no sales capacity, rep ramp, pipeline, conversion or acquisition delay.
+Saturation is the one new bound. The interface states both formulae on screen next to the
+controls that drive them.
 
 ## Stock to flow
 
@@ -179,7 +202,7 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 |---|---|
 | **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band** |
 | **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, EBITA, FCF |
-| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band |
+| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR**, **acquisition saturation spend** (null = linear) — each of the first two may vary by age band |
 | **CONTROL** | S&M, R&D, G&A investment |
 | **MEASURED** | **R12M GRR / expansion / NRR**, **CAC payback**, ARR growth, EBITA margin, burn — produced by Layer B, never settable |
 
@@ -189,7 +212,7 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 |---|---|
 | `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. |
 | `kpi.js` | **Layer B** — the KPI measurement engine, plus forward economic content. Contains no economics of its own. UMD. |
-| `integrity.js` | The 35 economic, measurement and state assertions. UMD. |
+| `integrity.js` | The economic, measurement, state and NL (Finding 10) assertions. UMD. |
 | `checks.js` | Node CLI for the assertions. |
 | `scenarios.js` | Node CLI for Scenarios A–E and the 0.2/0.2.1 experiments. |
 | `state-sufficiency.js` | Node CLI for the v0.3 State Sufficiency Experiment. |
@@ -249,6 +272,8 @@ interpretation, and a named check.
 
 The Phase 0/1 gate ran on v0.3 and returned **PROCEED TO ACQUISITION-NONLINEARITY
 DESIGN** — a bound, not a benefit. See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
+**v0.4 implements that bound.** It adds no hidden state, so the observability
+gate was not re-run.
 
 ---
 

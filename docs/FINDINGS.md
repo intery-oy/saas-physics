@@ -168,22 +168,36 @@ invertible in closed form (see §D of `MEASUREMENT.md`).
 
 ## Still broken
 
-### 10. Acquisition is linear and unbounded in S&M — the model can always buy growth
+### 10. ✅ Acquisition nonlinearity — bound exists, default still linear (v0.4)
 
 > **Blocked CFO question:** *when should we stop increasing S&M because marginal
 > acquisition productivity deteriorates?*
 
+**Implemented as a bound, not a new default.** `acqSaturationSpend` (`k`, €/month) is a
+transition coefficient. Null / 0 / Infinity — the shipped default — is the exact v0.3
+linear generator (`New ARR = S&M ÷ cacPerARR`), bit-identical across 60 months and 61
+cohorts. A finite `k` saturates:
 
-`New ARR = S&M ÷ cacPerARR` has no saturation term at any spend level. v0.2 fixed *which* variables
-drive acquisition; it did not touch the *shape*. Doubling S&M still doubles New ARR, at month 1 and
-at month 60, forever.
+```
+New ARR = (k / cacPerARR) × S&M / (S&M + k)
+```
 
-**What it teaches, wrongly:** every growth-investment experiment eventually pays off, and the S&M
-slider has no wrong setting.
+which is also a rising average CAC: `cacPerARR × (1 + S&M/k)`. At `S&M = k`, average
+productivity is half the linear prediction. Marginal New ARR is strictly decreasing in
+S&M. Gross margin still does not appear in the generator. Stated CAC payback is unchanged
+(still `cacPerARR × 12 ÷ GM`); realized CAC is stamped on each cohort.
 
-**Recommended:** a saturating response — `New ARR = A_max × S&M/(S&M+k)`, or a `cacPerARR` that
-rises with spend (marginal worse than average). The single change that would give the model the
-ability to say *stop*.
+**What it teaches, when k is set:** there is a spend level at which the next euro of S&M
+buys vanishing New ARR while still costing full S&M in the P&L. The model can say *stop*.
+
+**What it still does not teach:** a universal empirical `k`. The engine asserts no
+saturation scale until someone sets one. Cash still does not constrain S&M (the capital
+loop remains open). No acquisition lag.
+
+**Demo:** v1 Forces rail → Saturation spend off by default. Set `k` to €1.5m, then raise
+S&M toward €2.5m and watch New ARR flatten while cash keeps falling. Reset saturation to
+off — doubling S&M doubles New ARR again. No new canonical scenario; the six stay as they
+were. See the NL checks in `integrity.js`.
 
 ### 11. ✅ RECLASSIFIED — ARR trajectory alone does not reveal the capital required to produce it
 
@@ -359,9 +373,9 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
   testable prediction rather than an assertion.
 - **Invertibility.** Target measured KPIs can be reproduced by calibrated coefficients in closed
   form, to nine decimals, without touching acquisition physics.
-- **Backward compatibility across four model versions.** v0.3's flat default reproduces v0.2.1
-  exactly; v0.2.1's rename reproduced v0.2 exactly; v0.2's inverted primitive reproduced v0.1's
-  baseline exactly. Every earlier result remains comparable.
+- **Backward compatibility across five model versions.** v0.4's null saturation reproduces v0.3
+  exactly; v0.3's flat default reproduces v0.2.1 exactly; v0.2.1's rename reproduced v0.2 exactly;
+  v0.2's inverted primitive reproduced v0.1's baseline exactly. Every earlier result remains comparable.
 - **Sunk cost stays sunk.** Doubling historical acquisition cost per cohort at identical New ARR
   leaves forward ARR, gross profit and retention unchanged to €0.0.
 - **Lever separation, now complete.** Retention changes leakage and nothing else. S&M and
@@ -374,20 +388,19 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 ## Suggested order from here
 
-1. **The observability experiment** — can a 24- or 36-month KPI *history* identify the Time-0
-   state, or is cohort vintage disclosure strictly necessary? No new physics; reuses everything
-   v0.3 built; determines whether forward economic content is knowable from outside a company.
-   **Recommended next.**
-2. **Expansion cost** (`expansionCacPerARR`) — one coefficient, breaks the v0.2 matched-NRR tie
+The Phase 0/1 observability experiment and **A1 acquisition nonlinearity** (Finding 10) have
+both been run. Remaining order:
+
+1. **Expansion cost** (`expansionCacPerARR`) — one coefficient, breaks the v0.2 matched-NRR tie
    without touching ARR, structurally symmetric with `cacPerARR`.
-3. **Customer count and logo retention** — makes matched portfolios observably different with no
+2. **Customer count and logo retention** — makes matched portfolios observably different with no
    judgment coefficient, and unlocks ARPA and concentration later.
-3. **Diminishing returns on S&M** — gives the model the ability to say *stop*.
-4. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*.
-5. **Deferred revenue and billings** → a real FCF line.
-6. Age-dependent retention (with the normalisation constraint in `MATCHED-NRR.md`), split leakage,
+3. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*
+   of an existing cohort (A1 changed only the *acquisition* path).
+4. **Deferred revenue and billings** → a real FCF line.
+5. Age-dependent retention (with the normalisation constraint in `MATCHED-NRR.md`), split leakage,
    acquisition lag, efficiency metrics on screen.
-7. R&D as a user-stated intervention with an explicit lag — never as a universal coefficient.
+6. R&D as a user-stated intervention with an explicit lag — never as a universal coefficient.
 
 Valuation, enterprise value and any 3D or final product design stay out until at least items 1–5
 are done.

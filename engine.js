@@ -25,7 +25,11 @@
  * and every scenario are unchanged; only which unit is native moved from ARR
  * to MRR. See docs/ARCHITECTURE.md.
  *
- * MODEL VERSION: v0.3
+ * MODEL VERSION: v0.4
+ *   v0.3 → v0.4: ONE new transition coefficient — acquisition saturation.
+ *   New ARR may saturate in S&M. The shipped default is NULL (linear /
+ *   unbounded), so the default world is exactly v0.3 and the model does not
+ *   assert a saturation scale until a user sets one. See FINDINGS.md #10.
  *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
  *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
  *   identical), so the shipped default reproduces v0.2.1 exactly and the model
@@ -69,7 +73,8 @@
       persistenceAnnual:          'Annual persistence coefficient — 12-month multiplicative survival of installed ARR, applied BEFORE expansion. NOT reported GRR.',
       expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
       grossMargin:                'Gross margin coefficient',
-      cacPerARR:                  'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity'
+      cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
+      acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control)',
@@ -91,7 +96,8 @@
   /* Illustrative defaults. Not real company data. */
   var DEFAULT_ASSUMPTIONS = {
     sm:                         900000,  // CONTROL   €/month
-    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR
+    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR (small-spend / linear)
+    acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -148,15 +154,22 @@
   function toMonthlyExpansion(expAnnual) { return Math.pow(1 + expAnnual, 1 / 12) - 1; }
 
   /* ------------------------------------------------------------------ *
-   * v0.2 acquisition physics
+   * v0.4 acquisition physics (v0.2 primitive + optional saturation)
    *
    * PRIMITIVE — acquisition productivity, a dimensionless ratio:
-   *   cacPerARR = acquisition spend / New ARR generated
+   *   cacPerARR = acquisition spend / New ARR generated   (small-spend / linear)
    *
-   * New ARR generated per year of spend:
-   *   annual New ARR = (Monthly S&M x 12) / cacPerARR
-   * so the ARR added to the stock in one month is:
+   * NULL / DEFAULT (k absent, null, 0 or Infinity) — exact v0.2 / v0.3 generator:
    *   monthly New ARR = Monthly S&M / cacPerARR
+   *
+   * SATURATING (finite k = acqSaturationSpend, €/month):
+   *   monthly New ARR = (k / cacPerARR) × S&M / (S&M + k)
+   *                   = linear × k / (S&M + k)
+   *
+   * Equivalent rising-CAC form: average CAC = cacPerARR × (1 + S&M/k).
+   * At S&M = k, average productivity is half the linear prediction.
+   * As S&M → ∞, New ARR → A_max = k / cacPerARR. Marginal New ARR falls
+   * in S&M, which is what lets the model say *stop*.
    *
    * UNITS. sm is €/month. cacPerARR is dimensionless. newARRPerMonth is therefore
    * € of ARR (an annualised-run-rate quantity) added to the ARR stock each month —
@@ -167,12 +180,22 @@
    * productivity determines how much ARR the spend creates; gross margin determines
    * how fast that investment is recovered, and shows up in cacPaybackMonths below.
    *
-   * Still linear, instantaneous and unbounded in S&M — no capacity, ramp, pipeline,
-   * conversion, diminishing returns or acquisition lag. See FINDINGS.md.
+   * Still instantaneous — no capacity, ramp, pipeline, conversion or acquisition
+   * lag. Saturation is the one new bound. See FINDINGS.md #10.
    * ------------------------------------------------------------------ */
+  function saturationSpendOf(a) {
+    var k = a && a.acqSaturationSpend;
+    if (k == null || k === Infinity) return null;
+    if (typeof k !== 'number' || !(k > 0)) return null;
+    return k;
+  }
+
   function newARRPerMonth(a) {
     if (!(a.cacPerARR > 0)) return 0;
-    return a.sm / a.cacPerARR;
+    var linear = a.sm / a.cacPerARR;
+    var k = saturationSpendOf(a);
+    if (k === null) return linear;
+    return linear * (k / (a.sm + k));
   }
 
   /* MRR-NATIVE. cacPerARR is unchanged as the public assumption — € of S&M
@@ -198,7 +221,9 @@
   }
 
   function normaliseAssumptions(a) {
-    return Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    var out = Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    out.acqSaturationSpend = saturationSpendOf(out);
+    return out;
   }
 
   /* ------------------------------------------------------------------ *
@@ -216,6 +241,8 @@
        12x-derived reporting figure every existing caller reads. */
     var newARR = newARRPerMonth(a);
     var newMRR = newARR / 12;
+    var kSat = saturationSpendOf(a);
+    var stampCac = kSat === null ? a.cacPerARR : (newARR > 0 ? a.sm / newARR : a.cacPerARR);
 
     var bands = resolveBands(a);
     var bandRates = bands.map(function (b) {
@@ -307,7 +334,9 @@
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
         acquisitionCost: a.sm,
-        cacPerARRAtCreation: a.cacPerARR
+        /* Stated coefficient when linear (bit-identical to v0.3). Realized
+           S&M / New ARR when saturating, so cost = initialARR × stamp. */
+        cacPerARRAtCreation: stampCac
       };
       var ncRevenue = (0 + newMRR) / 2;    // half a month of MRR, same midpoint rule
       nc.rows.push({
@@ -410,7 +439,7 @@
     }
 
     return {
-      modelVersion: '0.3',
+      modelVersion: '0.4',
       assumptions: a,
       start: s,
       horizon: H,
@@ -429,7 +458,11 @@
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
         impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
-        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
+        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0,  // = cacPerARR when linear; rises with spend when saturating
+        acqSaturationSpend: kSat,                             // null when linear
+        acqIsLinear: kSat === null,
+        newARRLinear: a.cacPerARR > 0 ? a.sm / a.cacPerARR : 0,
+        acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR
       },
       months: months,
       cohorts: cohorts
@@ -642,6 +675,7 @@
     toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
+    saturationSpendOf: saturationSpendOf,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,

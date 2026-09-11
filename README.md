@@ -17,7 +17,7 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 
 | | |
 |---|---|
-| **Engine version** | v0.3 (`kpi.js` / `integrity.js` — 0 diff lines since the last engine change; `engine.js` carries one deliberate, requested exception — the MRR-native unit refactor below) |
+| **Engine version** | v0.4 (`engine.js` — A1 acquisition saturation, null default = v0.3 linear generator; `kpi.js` untouched) |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
 `kpi.js` and `integrity.js` are the economic core: they stay untouched by convention, not by
@@ -86,7 +86,7 @@ FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright
 DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
 scenario matrix).
 
-All 35 economic integrity checks, 19 research checks, 12 MRR/ARR basis-switch regression
+All economic integrity checks (35 prior + 9 NL / Finding 10), 19 research checks, 12 MRR/ARR basis-switch regression
 checks, 46 clarity regression checks, 20 MRR-native engine-refactor checks and 22 Integrity +
 Experiment Attribution checks pass.
 
@@ -115,9 +115,10 @@ are not equivalent. R&D and G&A are grouped as Financial levers: they move
 modeled FCF and Cash directly, but v1 models no effect from them on
 recurring-state dynamics.
 
-There is deliberately no "buy more growth" scenario: acquisition is linear and
-unbounded here, and canonising "increase S&M" would teach a known model
-limitation as though it were economic truth.
+There is still no "buy more growth" scenario. Acquisition is linear at the
+default (`acqSaturationSpend` off). A saturation spend on the Forces rail is
+the v0.4 bound that lets the model say *stop*; demo it there, not as a seventh
+canonical scenario.
 
 ## Research archive
 
@@ -135,7 +136,7 @@ identity, bridge, measurement and integrity check, in numbers.
 ## Run it
 
 ```bash
-node checks.js              # 35 economic, measurement and state integrity checks
+node checks.js              # 44 economic, measurement, state and NL (Finding 10) integrity checks
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -161,7 +162,8 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | CONTROL | Monthly S&M investment | €900k |
 | CONTROL | Monthly R&D investment | €700k |
 | CONTROL | Monthly G&A investment | €350k |
-| TRANSITION | CAC / New ARR | 1.20× |
+| TRANSITION | CAC / New ARR | 1.20× (small-spend / linear) |
+| TRANSITION | Saturation spend | off (null) — finite `k` saturates New ARR |
 | TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
 | TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
 | TRANSITION | Gross margin | 80% |
@@ -217,14 +219,15 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Model version
 
-v0.3. The one v0.1 equation that was conceptually wrong — gross margin generating ARR — has been
-corrected by inverting the acquisition primitive. Everything else that looked weak is still built
-as specified and flagged in `FINDINGS.md` rather than quietly patched. The point of the prototype
-is to surface weaknesses, not bury them.
+v0.4. Acquisition may saturate in S&M (`acqSaturationSpend`). The default is null, so the
+shipped world is exactly v0.3. The one v0.1 equation that was conceptually wrong — gross margin
+generating ARR — was corrected in v0.2 by inverting the acquisition primitive. Everything else
+that looked weak is still built as specified and flagged in `FINDINGS.md` rather than quietly
+patched. The point of the prototype is to surface weaknesses, not bury them.
 
-Each iteration's default reproduces the previous one exactly — v0.3's flat bands give v0.2.1,
-v0.2.1's rename gives v0.2, and v0.2's inverted primitive reproduces v0.1's baseline — so results
-stay comparable across all four versions.
+Each iteration's default reproduces the previous one exactly — v0.4's null saturation gives v0.3,
+v0.3's flat bands give v0.2.1, v0.2.1's rename gives v0.2, and v0.2's inverted primitive
+reproduces v0.1's baseline — so results stay comparable across versions.
 
 The built file keeps the name `saas-physics-prototype-0.html` across iterations so the published
 link stays stable; the page header carries the model version.

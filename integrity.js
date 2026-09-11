@@ -18,7 +18,7 @@
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -130,7 +130,7 @@
     /* A1. CAC payback is structurally incapable of generating New ARR */
     var src = E.newARRPerMonth.toString();
     var clean = src.indexOf('cacPayback') === -1 && src.indexOf('grossMargin') === -1 && src.indexOf('cacPerARR') !== -1;
-    ok('ACQ · New ARR generator reads only S&M and cacPerARR — CAC payback and GM appear nowhere in it',
+    ok('ACQ · New ARR generator never reads CAC payback or GM — only S&M, cacPerARR, and optional saturation',
        clean, 'newARRPerMonth() source references cacPerARR: ' + (src.indexOf('cacPerARR') !== -1) +
        ', cacPayback: ' + (src.indexOf('cacPayback') !== -1) + ', grossMargin: ' + (src.indexOf('grossMargin') !== -1));
 
@@ -405,6 +405,107 @@
        Math.abs(withAcq.derived.cacPaybackMonths - (A.cacPerARR * 12) / A.grossMargin) < 1e-9,
        'New ARR €' + (withAcq.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo = S&M ÷ cacPerARR; payback ' +
        withAcq.derived.cacPaybackMonths.toFixed(2) + ' months = cacPerARR × 12 ÷ GM');
+
+    /* ================================================================ *
+     * v0.4 — acquisition nonlinearity (Finding 10). One bound. Null
+     * default must reproduce the v0.3 linear generator exactly.
+     * ================================================================ */
+    var rOmit = E.run(A);
+    var rNull = E.run(Object.assign({}, A, { acqSaturationSpend: null }));
+    var rZero = E.run(Object.assign({}, A, { acqSaturationSpend: 0 }));
+    var rInf  = E.run(Object.assign({}, A, { acqSaturationSpend: Infinity }));
+    var sameOmitNull = JSON.stringify(rOmit.months) === JSON.stringify(rNull.months) &&
+                       JSON.stringify(rOmit.cohorts) === JSON.stringify(rNull.cohorts);
+    var sameZero = JSON.stringify(rOmit.months) === JSON.stringify(rZero.months);
+    var sameInf  = JSON.stringify(rOmit.months) === JSON.stringify(rInf.months);
+    var sameBase = JSON.stringify(rOmit.months) === JSON.stringify(BASE.months) &&
+                   JSON.stringify(rOmit.cohorts) === JSON.stringify(BASE.cohorts);
+    ok('NL · Null / omitted / 0 / ∞ saturation is bit-identical to the v0.3 linear generator',
+       sameOmitNull && sameZero && sameInf && sameBase,
+       'omit≡null: ' + sameOmitNull + '; omit≡0: ' + sameZero + '; omit≡∞: ' + sameInf +
+       '; omit≡BASE: ' + sameBase + ' over ' + rOmit.horizon + ' months and ' + rOmit.cohorts.length + ' cohorts');
+
+    var wLin = 0;
+    rOmit.months.forEach(function (m) {
+      wLin = Math.max(wLin, Math.abs(m.newARR - A.sm / A.cacPerARR));
+    });
+    ok('NL · Default New ARR equals S&M ÷ cacPerARR on every month (the linear formula, exactly)',
+       wLin < EPS && rOmit.derived.acqIsLinear === true && rOmit.derived.acqSaturationSpend === null,
+       'max monthly deviation €' + wLin.toExponential(3) + '; acqIsLinear=' + rOmit.derived.acqIsLinear);
+
+    var kSat = 1500000;
+    var satA = Object.assign({}, A, { acqSaturationSpend: kSat });
+    var satRun = E.run(satA);
+    var nSatExpected = (kSat / A.cacPerARR) * (A.sm / (A.sm + kSat));
+    ok('NL · Saturating New ARR = (k / cacPerARR) × S&M / (S&M + k) exactly',
+       Math.abs(satRun.derived.newARRPerMonth - nSatExpected) < EPS &&
+       satRun.derived.acqIsLinear === false &&
+       Math.abs(satRun.derived.acqAMax - kSat / A.cacPerARR) < EPS,
+       'New ARR €' + satRun.derived.newARRPerMonth.toFixed(2) + ' vs formula €' + nSatExpected.toFixed(2) +
+       '; A_max €' + (satRun.derived.acqAMax / 1e6).toFixed(3) + 'm');
+
+    var sat2 = E.run(Object.assign({}, A, { acqSaturationSpend: kSat, sm: A.sm * 2 }));
+    var doubled = 2 * satRun.derived.newARRPerMonth;
+    ok('NL · Doubling S&M under saturation does not double New ARR (the model can say stop)',
+       sat2.derived.newARRPerMonth < doubled - 1 &&
+       sat2.derived.newARRPerMonth > satRun.derived.newARRPerMonth &&
+       sat2.months[0].sm === A.sm * 2,
+       'S&M ×2 moves New ARR €' + (satRun.derived.newARRPerMonth / 1e6).toFixed(3) + 'm → €' +
+       (sat2.derived.newARRPerMonth / 1e6).toFixed(3) + 'm (linear would be €' +
+       (doubled / 1e6).toFixed(3) + 'm); spend itself doubles');
+
+    var huge = E.run(Object.assign({}, A, { acqSaturationSpend: kSat, sm: kSat * 1000 }));
+    var aMax = kSat / A.cacPerARR;
+    ok('NL · As S&M grows, New ARR approaches A_max = k / cacPerARR and never exceeds it',
+       huge.derived.newARRPerMonth < aMax &&
+       (aMax - huge.derived.newARRPerMonth) / aMax < 0.002,
+       'S&M = 1000×k → New ARR €' + huge.derived.newARRPerMonth.toFixed(2) +
+       ' vs A_max €' + aMax.toFixed(2) + ' (gap ' +
+       ((aMax - huge.derived.newARRPerMonth) / aMax * 100).toFixed(3) + '%)');
+
+    var spends = [0.25, 0.5, 1, 2, 4].map(function (f) { return A.sm * f; });
+    var Ns = spends.map(function (s) {
+      return E.newARRPerMonth(Object.assign({}, A, { sm: s, acqSaturationSpend: kSat }));
+    });
+    var marg = [];
+    for (i = 1; i < Ns.length; i++) marg.push((Ns[i] - Ns[i - 1]) / (spends[i] - spends[i - 1]));
+    var decreasing = true;
+    for (i = 1; i < marg.length; i++) if (!(marg[i] < marg[i - 1] - 1e-18)) decreasing = false;
+    ok('NL · Marginal acquisition productivity is strictly decreasing in S&M',
+       decreasing && marg[marg.length - 1] < marg[0],
+       'marginal €ARR/€S&M at successive spend steps: ' +
+       marg.map(function (g) { return g.toFixed(4); }).join(' → '));
+
+    var satGM = E.run(Object.assign({}, satA, { grossMargin: A.grossMargin * 0.7 }));
+    var wSatGM = Math.abs(satGM.derived.newARRPerMonth - satRun.derived.newARRPerMonth);
+    ok('NL · Saturation does not reintroduce gross margin into New ARR (GM still changes only payback)',
+       wSatGM < EPS && src.indexOf('cacPayback') === -1 && src.indexOf('grossMargin') === -1 &&
+       satGM.derived.cacPaybackMonths > satRun.derived.cacPaybackMonths + 1e-9,
+       'New ARR delta under GM cut €' + wSatGM.toExponential(3) +
+       '; stated payback ' + satRun.derived.cacPaybackMonths.toFixed(2) + ' → ' +
+       satGM.derived.cacPaybackMonths.toFixed(2) + ' months');
+
+    var satStamp = satRun.cohorts.filter(function (c) { return c.acquisitionMonth > 0; })[0];
+    ok('NL · Under saturation, stamped CAC is realized S&M ÷ New ARR and still equals cost / initialARR',
+       satStamp &&
+       Math.abs(satStamp.cacPerARRAtCreation - A.sm / satRun.derived.newARRPerMonth) < 1e-12 &&
+       Math.abs(satStamp.acquisitionCost - satStamp.initialARR * satStamp.cacPerARRAtCreation) < EPS &&
+       satStamp.cacPerARRAtCreation > A.cacPerARR + 1e-9,
+       'stamp ' + satStamp.cacPerARRAtCreation.toFixed(4) + '× vs stated ' + A.cacPerARR.toFixed(2) +
+       '×; cost reconciles to €' +
+       Math.abs(satStamp.acquisitionCost - satStamp.initialARR * satStamp.cacPerARRAtCreation).toExponential(2));
+
+    var satBig = E.run(Object.assign({}, A, { acqSaturationSpend: kSat, sm: A.sm * 10 }));
+    var wSatK = 0;
+    for (i = 12; i <= BASE.horizon; i++) {
+      var ks = K.measureR12M(satRun, i), kb = K.measureR12M(satBig, i);
+      wSatK = Math.max(wSatK, Math.abs(ks.grr - kb.grr), Math.abs(ks.expansionRate - kb.expansionRate), Math.abs(ks.nrr - kb.nrr));
+    }
+    ok('NL · Saturation does not contaminate retention KPIs (10× S&M leaves R12M GRR / expansion / NRR unchanged)',
+       wSatK < 1e-12,
+       'max KPI delta ' + wSatK.toExponential(3) + ' while New ARR moved €' +
+       (satRun.derived.newARRPerMonth / 1e6).toFixed(3) + 'm → €' +
+       (satBig.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo');
 
     return out;
   }

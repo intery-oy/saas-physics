@@ -2,6 +2,52 @@
 
 *Prepared 11 September 2026 for Harri, Chief of Staff, and a SaaS CFO. Review only — no new physics, no product surface. Read against commit `ba98265` on `main`.*
 
+---
+
+## Overnight build A1 — acquisition nonlinearity (v0.4)
+
+Harri picked **A1** (Finding 10). **B1 + B2 opening-state controls were not done.**
+
+**What changed.** One transition coefficient, `acqSaturationSpend` (`k`, €/month). Finite `k` saturates New ARR:
+
+```
+New ARR = (k / cacPerARR) × S&M / (S&M + k)     // also: average CAC = cacPerARR × (1 + S&M/k)
+```
+
+**Null default preserves prior behavior.** `k` omitted, null, 0 or Infinity is the exact v0.3 linear generator `New ARR = S&M ÷ cacPerARR`. Integrity check **NL · Null / omitted / 0 / ∞ saturation is bit-identical to the v0.3 linear generator** compares full 60-month / 61-cohort trajectories. Stated CAC payback, GM-does-not-create-ARR, and every pre-existing suite stay on that linear path.
+
+**Not in this run:** opening-state sliders, inverse-calibration box, adapter, auth, valuation, R&D → retention, a seventh canonical scenario.
+
+### How to demo
+
+```bash
+node build.js
+open saas-physics-v1.html          # or File → Open
+```
+
+1. On load, Experiment equals Base. Saturation spend reads **off · linear**. Year-5 ARR is still €62.93m. This *is* last night's company.
+2. Forces rail → **Saturation spend** → set **€1.5m**. New ARR drops below the linear €0.75m/mo (you are already part-way up the curve at €900k S&M).
+3. Raise **S&M** toward €2.5m. New ARR flattens toward `A_max = k / cacPerARR` (€1.25m/mo at these settings). Cash keeps paying full S&M. That is *stop*.
+4. Reset saturation to off. Doubling S&M doubles New ARR again.
+5. System view: the New ARR pipe is labelled `linear · unbounded (k off)` or `saturates · k=… · A_max=…`.
+
+### Checks to run
+
+```bash
+node checks.js                 # 35 prior + 9 NL (Finding 10) integrity checks
+node mrr-native-checks.js
+node basis-checks.js
+node clarity-checks.js
+node attribution-checks.js
+node research-checks.js
+```
+
+---
+
+*The 11 September review below is unchanged. A1 is the written next physics from §5 Fork A; it does not make the demo a CFO-shapable opening book (that is still B1 + B2).*
+
+---
+
 This note is a status brief, not a vision document. Every claim below is taken from `README.md`, `docs/`, or code that was re-run for this review. Where the repo is silent, it says so.
 
 **Verdict in one line.** A serious, check-backed *economic instrument* with a first demo UI. Not an MVP of a commercial SaaS. The overnight question is which fork to take: **advance the frozen physics**, or **make the existing demo something a visiting CFO can actually set to their shape**.
@@ -50,7 +96,7 @@ Call it a **first demo of a research instrument**, not an MVP.
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 35 / 35 |
+| `node checks.js` | 35 / 35 (now 44 / 44 after A1) |
 | `node research-checks.js` | 19 / 19 |
 | `node basis-checks.js` | 12 / 12 |
 | `node clarity-checks.js` | 46 / 46 |

@@ -301,7 +301,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <div>
           <h5>Major current boundaries</h5>
           <ul>
-            <li><b>#10</b> Acquisition is linear and unbounded in S&amp;M. The model can always buy growth and cannot say <em>stop</em>. This is why no scenario here is "spend more".</li>
+            <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider.</li>
             <li><b>#14</b> Expansion carries no separately modelled marginal cost.</li>
             <li><b>#15</b> FCF = EBITA. No working capital, deferred revenue, tax or capex.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
@@ -364,7 +364,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
  * and every scenario are unchanged; only which unit is native moved from ARR
  * to MRR. See docs/ARCHITECTURE.md.
  *
- * MODEL VERSION: v0.3
+ * MODEL VERSION: v0.4
+ *   v0.3 → v0.4: ONE new transition coefficient — acquisition saturation.
+ *   New ARR may saturate in S&M. The shipped default is NULL (linear /
+ *   unbounded), so the default world is exactly v0.3 and the model does not
+ *   assert a saturation scale until a user sets one. See FINDINGS.md #10.
  *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
  *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
  *   identical), so the shipped default reproduces v0.2.1 exactly and the model
@@ -408,7 +412,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       persistenceAnnual:          'Annual persistence coefficient — 12-month multiplicative survival of installed ARR, applied BEFORE expansion. NOT reported GRR.',
       expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
       grossMargin:                'Gross margin coefficient',
-      cacPerARR:                  'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity'
+      cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
+      acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control)',
@@ -430,7 +435,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* Illustrative defaults. Not real company data. */
   var DEFAULT_ASSUMPTIONS = {
     sm:                         900000,  // CONTROL   €/month
-    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR
+    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR (small-spend / linear)
+    acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -487,15 +493,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function toMonthlyExpansion(expAnnual) { return Math.pow(1 + expAnnual, 1 / 12) - 1; }
 
   /* ------------------------------------------------------------------ *
-   * v0.2 acquisition physics
+   * v0.4 acquisition physics (v0.2 primitive + optional saturation)
    *
    * PRIMITIVE — acquisition productivity, a dimensionless ratio:
-   *   cacPerARR = acquisition spend / New ARR generated
+   *   cacPerARR = acquisition spend / New ARR generated   (small-spend / linear)
    *
-   * New ARR generated per year of spend:
-   *   annual New ARR = (Monthly S&M x 12) / cacPerARR
-   * so the ARR added to the stock in one month is:
+   * NULL / DEFAULT (k absent, null, 0 or Infinity) — exact v0.2 / v0.3 generator:
    *   monthly New ARR = Monthly S&M / cacPerARR
+   *
+   * SATURATING (finite k = acqSaturationSpend, €/month):
+   *   monthly New ARR = (k / cacPerARR) × S&M / (S&M + k)
+   *                   = linear × k / (S&M + k)
+   *
+   * Equivalent rising-CAC form: average CAC = cacPerARR × (1 + S&M/k).
+   * At S&M = k, average productivity is half the linear prediction.
+   * As S&M → ∞, New ARR → A_max = k / cacPerARR. Marginal New ARR falls
+   * in S&M, which is what lets the model say *stop*.
    *
    * UNITS. sm is €/month. cacPerARR is dimensionless. newARRPerMonth is therefore
    * € of ARR (an annualised-run-rate quantity) added to the ARR stock each month —
@@ -506,12 +519,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * productivity determines how much ARR the spend creates; gross margin determines
    * how fast that investment is recovered, and shows up in cacPaybackMonths below.
    *
-   * Still linear, instantaneous and unbounded in S&M — no capacity, ramp, pipeline,
-   * conversion, diminishing returns or acquisition lag. See FINDINGS.md.
+   * Still instantaneous — no capacity, ramp, pipeline, conversion or acquisition
+   * lag. Saturation is the one new bound. See FINDINGS.md #10.
    * ------------------------------------------------------------------ */
+  function saturationSpendOf(a) {
+    var k = a && a.acqSaturationSpend;
+    if (k == null || k === Infinity) return null;
+    if (typeof k !== 'number' || !(k > 0)) return null;
+    return k;
+  }
+
   function newARRPerMonth(a) {
     if (!(a.cacPerARR > 0)) return 0;
-    return a.sm / a.cacPerARR;
+    var linear = a.sm / a.cacPerARR;
+    var k = saturationSpendOf(a);
+    if (k === null) return linear;
+    return linear * (k / (a.sm + k));
   }
 
   /* MRR-NATIVE. cacPerARR is unchanged as the public assumption — € of S&M
@@ -537,7 +560,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   function normaliseAssumptions(a) {
-    return Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    var out = Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    out.acqSaturationSpend = saturationSpendOf(out);
+    return out;
   }
 
   /* ------------------------------------------------------------------ *
@@ -555,6 +580,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        12x-derived reporting figure every existing caller reads. */
     var newARR = newARRPerMonth(a);
     var newMRR = newARR / 12;
+    var kSat = saturationSpendOf(a);
+    var stampCac = kSat === null ? a.cacPerARR : (newARR > 0 ? a.sm / newARR : a.cacPerARR);
 
     var bands = resolveBands(a);
     var bandRates = bands.map(function (b) {
@@ -646,7 +673,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
         acquisitionCost: a.sm,
-        cacPerARRAtCreation: a.cacPerARR
+        /* Stated coefficient when linear (bit-identical to v0.3). Realized
+           S&M / New ARR when saturating, so cost = initialARR × stamp. */
+        cacPerARRAtCreation: stampCac
       };
       var ncRevenue = (0 + newMRR) / 2;    // half a month of MRR, same midpoint rule
       nc.rows.push({
@@ -749,7 +778,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
 
     return {
-      modelVersion: '0.3',
+      modelVersion: '0.4',
       assumptions: a,
       start: s,
       horizon: H,
@@ -768,7 +797,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
         impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
-        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
+        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0,  // = cacPerARR when linear; rises with spend when saturating
+        acqSaturationSpend: kSat,                             // null when linear
+        acqIsLinear: kSat === null,
+        newARRLinear: a.cacPerARR > 0 ? a.sm / a.cacPerARR : 0,
+        acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR
       },
       months: months,
       cohorts: cohorts
@@ -981,6 +1014,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
+    saturationSpendOf: saturationSpendOf,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,
@@ -1748,7 +1782,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * 4A groups the two levers that reach recurring state through the
    * engine's own reduced form, ARR(t+1) = g·ARR(t) + N (verified exactly by
    * research-checks.js's HOMOGENEOUS-REDUCTION, worst rel err ~1e-15):
-   *   ACQUISITION      N = S&M ÷ CAC — changed sm and/or cacPerARR
+   *   ACQUISITION      N = newARRPerMonth(sm, cacPerARR, k) — changed sm, cacPerARR and/or acqSaturationSpend
    *   INSTALLED-BASE   g — changed persistenceAnnual and/or expansionCoefficientAnnual
    * INTERACTION is DEFINED as the residual (Total − Acquisition − InstalledBase),
    * so the three terms sum to the total by construction — ATTRIBUTION-TOTAL
@@ -1787,7 +1821,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
     capAgg = aggCapital(expRes);
     if(attributionValid()){
-      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR });
+      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR, acqSaturationSpend: expA.acqSaturationSpend });
       var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual });
       attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
       var changedLevers = E.compare(baseRes, expRes).changed;
@@ -1812,8 +1846,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
                {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
-    { kind:'Acquisition efficiency', note:'How much recurring state S&M creates.',
-      forces:[ {k:'cacPerARR', label:'CAC / €1 New ARR', sub:'spend required per euro of new ARR', min:0.3, max:3, step:0.05, f:'x'} ] },
+    { kind:'Acquisition efficiency', note:'How much recurring state S&M creates. Saturation is off by default — the linear v0.3 generator.',
+      forces:[ {k:'cacPerARR', label:'CAC / €1 New ARR', sub:'small-spend (linear) productivity — spend required per euro of new ARR', min:0.3, max:3, step:0.05, f:'x'},
+               {k:'acqSaturationSpend', label:'Saturation spend', sub:'monthly S&M at which average productivity is half the linear prediction. Off = linear, unbounded.', min:0, max:5000000, step:50000, f:'sat'} ] },
     { kind:'Economic conversion', note:'How revenue becomes gross profit. Creates no ARR.',
       forces:[ {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'} ] }
   ];
@@ -1825,7 +1860,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     {k:'ga', label:'G&A', sub:'period cost', min:0, max:1500000, step:25000, f:'eur'}
   ];
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
-  function fmtF(f, v){ return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×'; }
+  function fmtF(f, v){
+    if(f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
+    return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
+  }
 
   /* §6 — "underlying law -> measured KPI." kpi.js's own labels for each. */
   var MEASURED_LABEL = { grr:'measured GRR', expansionRate:'measured Expansion', nrr:'measured NRR' };
@@ -1845,7 +1883,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     d.querySelector('input').addEventListener('input', function(e){
       var prev = Object.assign({}, expA);
       clearScenario();
-      expA = Object.assign({}, expA); expA[F.k] = parseFloat(e.target.value);
+      expA = Object.assign({}, expA);
+      var raw = parseFloat(e.target.value);
+      expA[F.k] = (F.f==='sat' && !(raw>0)) ? null : raw;
       recompute(prev);
     });
     return d;
@@ -1900,9 +1940,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function syncForces(){
     FORCES.forEach(function(F){
       var el=document.getElementById('f-'+F.k); if(!el) return;
-      el.value = expA[F.k];
+      var cur = expA[F.k];
+      if(F.f==='sat' && !(cur>0)) cur = 0;
+      el.value = cur;
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
-      v.className = 'force-val' + (expA[F.k]===baseA[F.k] ? ' same' : '');
+      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || (F.f==='sat' && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
     });
   }
@@ -1910,9 +1952,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* ------------------------------------------------------------------ *
    * §7 — the six canonical scenarios.
    *
-   * There is deliberately NO "buy more growth" scenario. Acquisition is linear
-   * and unbounded in this engine (New ARR = S&M ÷ CAC), so canonising "increase
-   * S&M" would teach a known model limitation as though it were an economic law.
+   * There is still no canonical "buy more growth" scenario. Acquisition is
+   * linear at the default (k = null). A saturation spend on the rail is the
+   * bound that lets the model say *stop*; it is not a seventh scenario.
    *
    * `ch`     assumption changes applied to the Experiment
    * `pair`   both Base and Experiment are set (Scenario 5)
@@ -1977,7 +2019,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   ];
 
   var MODEL_BOUNDS = {
-    acq: 'Acquisition is linear and unbounded in S&M — the model can always buy growth and cannot say stop. (#10)',
+    acq: 'Acquisition is linear and unbounded in S&M — the default cannot say stop. Set a saturation spend to bound it. (#10)',
+    acqSat: 'Acquisition saturates: New ARR = (k / CAC) × S&M / (S&M + k). Marginal productivity falls as spend rises; the model can say stop. (#10)',
     exp: 'Expansion carries no separately modelled marginal cost. (#14)',
     fcf: 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)',
     rd:  'R&D has no modelled effect on retention or expansion. (#16)'
@@ -2560,6 +2603,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
     ctx.fillText(rn(d.newARR), 408, yNew-18);
     dCaption(408, yNew-46, d.newARR);
+    ctx.font='8.5px "Archivo",sans-serif';
+    ctx.fillStyle = (expA.acqSaturationSpend>0) ? 'rgba(201,151,63,.95)' : '#3d4952';
+    ctx.fillText(expA.acqSaturationSpend>0
+      ? 'saturates · k='+eur(expA.acqSaturationSpend)+' · A_max='+eur(expRes.derived.acqAMax)
+      : 'linear · unbounded (k off)', 282, yNew+58);
 
     cloud(80, yExp, 'existing customer demand / budget');
     pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(247,221,196,.5)','rgba(93,108,117,.5)'));
@@ -3151,7 +3199,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
       '</b>. Expansion is the retained balance × '+pct(Math.pow(1+expA.expansionCoefficientAnnual,1/12)-1,3)+
       '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
-      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
+      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M'+
+      (expA.acqSaturationSpend>0
+        ? ' — and it saturates: New ARR = (k / CAC) × S&amp;M / (S&amp;M + k) with k = '+eur(expA.acqSaturationSpend)+'.'
+        : ' — linearly at the default (saturation spend off).')+'</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
@@ -3315,7 +3366,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function boundaryDisclosure(changed){
     var keys = changed.map(function(u){ return u.key; });
     var bounds = [];
-    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0) bounds.push('acq');
+    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0 || keys.indexOf('acqSaturationSpend')>=0){
+      var satOn = (expA.acqSaturationSpend>0) || (baseA.acqSaturationSpend>0);
+      bounds.push(satOn ? 'acqSat' : 'acq');
+    }
     if(keys.indexOf('expansionCoefficientAnnual')>=0) bounds.push('exp');
     if(keys.indexOf('rd')>=0) bounds.push('rd');
     bounds.push('fcf');            // relevant whenever a financial consequence is displayed
@@ -3354,9 +3408,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       'in a system with interactions — they are not forced to sum to the total.</div>' : '';
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+t1+t2+'</details></div>';
   }
-  var LABEL={sm:'S&M', cacPerARR:'CAC / New ARR', persistenceAnnual:'Persistence',
+  var LABEL={sm:'S&M', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
+             persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A'};
-  var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur'};
+  var LABEL_FMT={sm:'eur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */
