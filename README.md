@@ -1,4 +1,4 @@
-# SaaS Physics — Prototype 0.3
+# SaaS Physics — Prototype 0.4
 
 A deterministic monthly economic engine for a SaaS business, plus a deliberately simple
 inspection interface. It answers one question:
@@ -9,20 +9,25 @@ This is an economic simulation, not a forecast spreadsheet. Outputs emerge from 
 assumptions: NRR, growth, EBITA margin, burn and cash are all calculated, never entered.
 Company ARR is only ever the sum of a portfolio of cohorts.
 
-Not built yet, by design: enterprise value, multiples, 3D, real company data, customer-level
-modelling, churn/contraction split, pricing, usage, working capital, debt, tax, capex,
-pipeline, headcount, probabilistic simulation, AI commentary. **We are proving the physics first.**
+Not built yet, by design: enterprise value, multiples, 3D, real company data, pricing, usage,
+debt, tax, capex, pipeline, headcount, probabilistic simulation, AI commentary, auth, or
+deploy-as-product. Optional overnight coefficients (saturation, cash reserve, prepaid term,
+expansion CAC, logo vs contraction, opening state, tenure editor) are **off by default** and
+do not change the locked Year-5 ARR. **We are proving the physics first.** See
+[`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) for the post-build review.
 
 ## SaaS Physics v1
 
 | | |
 |---|---|
-| **Engine version** | v0.4 (`engine.js` — A1 acquisition saturation, null default = v0.3 linear generator; `kpi.js` untouched) |
+| **Engine version** | v0.4 (`engine.js` — A1 saturation + optional overnight coefficients, all null-default = v0.3 world; `kpi.js` reports logo fields when that layer is on) |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
 `kpi.js` and `integrity.js` are the economic core: they stay untouched by convention, not by
 schedule — a change to either is deliberate and reviewed, never incidental. `engine.js` follows
-the same discipline with one recorded exception below. Four passes have run since v1 shipped:
+the same discipline. `kpi.js` was touched once in the overnight sequence, only to *report*
+logo churn / contraction / customer counts when `logoRetentionAnnual` is on; it does not
+create those flows. Four passes have run since v1 shipped:
 
 **Integrity + Experiment Attribution pass.** Fixed a real trust defect — the Company chart's
 printed Cash and cumulative-leakage figures read a continuously interpolated position while
@@ -77,8 +82,9 @@ labelled *cumulative historical leakage* rather than a second filled mass; a rea
 P&L waterfall stepping from Revenue to modeled FCF; the measured R12M GRR/Expansion/NRR shown
 directly beneath the Persistence/Expansion coefficients that imply them; an Experiment summary
 naming exactly which assumptions changed; an Installed-base net (Expansion − Leakage) regime
-readout; an honest R12M decomposition that never invents a churn/contraction split the engine
-doesn't have; a corrected color ontology (green reserved for genuinely favourable deltas, New/
+readout; an honest R12M decomposition that, at the default, does not invent a churn/contraction
+split the engine does not have (the optional logo layer later *discloses* that split
+without moving ARR); a corrected color ontology (green reserved for genuinely favourable deltas, New/
 Expansion kept in Experiment copper, Leakage in its own muted rose); and quarter-grouped
 cohort-strata display (presentation only — Inspect still resolves to one exact month).
 Regression suites: `node clarity-checks.js` (pure Node — TWO-PLANE-UNITS, INSTALLED-BASE-NET,
@@ -200,7 +206,8 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Documents
 
-- [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps, overnight build pick)
+- [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) — post-build instrument assessment, philosophy, overclaims, sequenced roadmap
+- [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps; overnight sequence is done)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
 - [`docs/PULSE.md`](docs/PULSE.md) — **Flow as stock and flow**: ARR and Cash as stocks, the
@@ -229,15 +236,18 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Model version
 
-v0.4. Acquisition may saturate in S&M (`acqSaturationSpend`). The default is null, so the
-shipped world is exactly v0.3. The one v0.1 equation that was conceptually wrong — gross margin
-generating ARR — was corrected in v0.2 by inverting the acquisition primitive. Everything else
-that looked weak is still built as specified and flagged in `FINDINGS.md` rather than quietly
+v0.4. Acquisition may saturate in S&M (`acqSaturationSpend`). Optional overnight coefficients
+(`smCashReserve`, `billingAdvanceMonths`, `expansionCacPerARR`, `logoRetentionAnnual`, plus
+opening-state / tenure UI) are all null or flat at the default, so the shipped world is
+exactly v0.3. The one v0.1 equation that was conceptually wrong — gross margin generating
+ARR — was corrected in v0.2 by inverting the acquisition primitive. Everything else that
+looked weak is still built as specified and flagged in `FINDINGS.md` rather than quietly
 patched. The point of the prototype is to surface weaknesses, not bury them.
 
-Each iteration's default reproduces the previous one exactly — v0.4's null saturation gives v0.3,
-v0.3's flat bands give v0.2.1, v0.2.1's rename gives v0.2, and v0.2's inverted primitive
-reproduces v0.1's baseline — so results stay comparable across versions.
+Each iteration's default reproduces the previous one exactly — v0.4's null optional
+coefficients give v0.3, v0.3's flat bands give v0.2.1, v0.2.1's rename gives v0.2, and
+v0.2's inverted primitive reproduces v0.1's baseline — so results stay comparable across
+versions.
 
 The built file keeps the name `saas-physics-prototype-0.html` across iterations so the published
 link stays stable; the page header carries the model version.

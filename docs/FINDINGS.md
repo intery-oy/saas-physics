@@ -4,8 +4,9 @@ Conceptual weaknesses exposed by running the prototype. Nothing here was silentl
 where an equation looked weak it was implemented as specified, and it stays that way until an
 iteration is explicitly chartered to change it.
 
-Updated for **model v0.3**. Ordered by how badly each distorts a CFO's intuition, not by how hard
-it is to fix.
+Updated for **model v0.4** (optional overnight coefficients; default world still v0.3).
+Ordered by how badly each distorts a CFO's intuition, not by how hard it is to fix.
+Current instrument review: [`PRODUCT_ASSESSMENT.md`](../PRODUCT_ASSESSMENT.md).
 
 ---
 
@@ -399,19 +400,19 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 ## Suggested order from here
 
-The Phase 0/1 observability experiment and **A1 acquisition nonlinearity** (Finding 10) have
-both been run. Remaining order:
+The Phase 0/1 observability experiment, **A1 acquisition nonlinearity** (Finding 10), and the
+overnight optional bounds (opening state, cash-constrains-S&M, prepaid billings, expansion
+cost, logo vs contraction, tenure editor) have all landed. Remaining *physics*, one at a
+time, null-default:
 
-1. **Expansion cost** (`expansionCacPerARR`) — one coefficient, breaks the v0.2 matched-NRR tie
-   without touching ARR, structurally symmetric with `cacPerARR`.
-2. **Customer count and logo retention** — makes matched portfolios observably different with no
-   judgment coefficient, and unlocks ARPA and concentration later.
-3. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*
-   of an existing cohort (A1 changed only the *acquisition* path).
-4. **Deferred revenue and billings** → a real FCF line.
-5. Age-dependent retention (with the normalisation constraint in `MATCHED-NRR.md`), split leakage,
-   acquisition lag, efficiency metrics on screen.
-6. R&D as a user-stated intervention with an explicit lag — never as a universal coefficient.
+1. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*
+   of an existing cohort (A1 changed only the *acquisition* path). Finding 13 is still open.
+2. **Acquisition lag** — hire → capacity, not spend → ARR in the same month.
+3. **Price as a first-class lever** (Finding 21). ARPA is currently a logo *unit*, not a
+   price law. Do not invent a form.
+4. **R&D as a user-stated intervention with an explicit lag** — never as a universal
+   coefficient (Finding 16). Higher evidence bar: this is a claimed benefit.
 
-Valuation, enterprise value and any 3D or final product design stay out until at least items 1–5
-are done.
+The binding constraint on the *demo* is no longer a missing coefficient. It is grouping and
+language on a crowded rail — see [`PRODUCT_ASSESSMENT.md`](../PRODUCT_ASSESSMENT.md).
+Do not start valuation, auth, adapter, or deploy-as-product.

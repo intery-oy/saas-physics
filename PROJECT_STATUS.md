@@ -1,6 +1,6 @@
 # SaaS Physics — owner review (demo, not a product build)
 
-*Prepared 11 September 2026 for Harri, Chief of Staff, and a SaaS CFO. Review only — no new physics, no product surface. Read against commit `ba98265` on `main`.*
+*Updated 11 September 2026 after A1 + overnight items 1–6. Owner-facing status, not a launch plan. The post-build assessment, philosophy, overclaim flags and sequenced roadmap are in [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md). Read the overnight sequence against this branch; the 11 September baseline below `main` was `ba98265`.*
 
 ---
 
@@ -138,7 +138,7 @@ New ARR = (k / cacPerARR) × S&M / (S&M + k)     // also: average CAC = cacPerAR
 
 **Null default preserves prior behavior.** `k` omitted, null, 0 or Infinity is the exact v0.3 linear generator `New ARR = S&M ÷ cacPerARR`. Integrity check **NL · Null / omitted / 0 / ∞ saturation is bit-identical to the v0.3 linear generator** compares full 60-month / 61-cohort trajectories. Stated CAC payback, GM-does-not-create-ARR, and every pre-existing suite stay on that linear path.
 
-**Not in this run:** opening-state sliders, inverse-calibration box, adapter, auth, valuation, R&D → retention, a seventh canonical scenario.
+**Not in the A1 commit** (landed later on this same PR): opening-state sliders, inverse-calibration box. **Still out:** adapter, auth, valuation, R&D → retention, a seventh canonical scenario, deploy-as-product.
 
 ### How to demo
 
@@ -156,8 +156,13 @@ open saas-physics-v1.html          # or File → Open
 ### Checks to run
 
 ```bash
-node checks.js                 # 35 prior + 9 NL (Finding 10) + 4 OPEN integrity checks
+node checks.js                 # 66 integrity (prior + NL + OPEN + CASHSM + DR + more)
 node opening-checks.js
+node cash-checks.js
+node billings-checks.js
+node expansion-checks.js
+node logo-checks.js
+node age-checks.js
 node mrr-native-checks.js
 node basis-checks.js
 node clarity-checks.js
@@ -167,13 +172,13 @@ node research-checks.js
 
 ---
 
-*The 11 September review below is the baseline. A1 is Fork A; B1+B2 are Fork B on the same demo. Items 2–6 follow on this PR.*
+*The 11 September review below was the pre-overnight baseline. A1 (Fork A), B1+B2 (Fork B), and items 2–6 all landed on this PR. Next work is craft and language, not another coefficient and not commercialization — [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md).*
 
 ---
 
 This note is a status brief, not a vision document. Every claim below is taken from `README.md`, `docs/`, or code that was re-run for this review. Where the repo is silent, it says so.
 
-**Verdict in one line.** A serious, check-backed *economic instrument* with a first demo UI. Not an MVP of a commercial SaaS. The overnight question is which fork to take: **advance the frozen physics**, or **make the existing demo something a visiting CFO can actually set to their shape**.
+**Verdict in one line.** A serious, check-backed *economic instrument* with a crowded first demo UI. Default world unchanged (Year-5 ARR €62.93m). Optional bounds are real. Not an MVP of a commercial SaaS. The binding constraint is now grouping and language on the rail, not a missing coefficient.
 
 ---
 
@@ -189,7 +194,9 @@ This note is a status brief, not a vision document. Every claim below is taken f
 
 **What it is not, by written decision** (`README.md`, Method overlay in `v1.template.html`):
 
-enterprise value, multiples, 3D, real company data, customer-level modelling, churn/contraction split, price, usage, working capital, debt, tax, capex, pipeline, headcount, probabilistic simulation, AI commentary.
+enterprise value, multiples, 3D, real company data, price, usage, debt, tax, capex, pipeline, headcount, probabilistic simulation, AI commentary, auth, deploy-as-product.
+
+Optional and **off at the default** (do not read as “the company now has these”): saturation, cash-constrains-S&M, prepaid billings (smooth, not invoices), expansion CAC, logo vs contraction split, opening-state / tenure editor.
 
 The standing rule: prove the physics before building the product. Weaknesses are filed in `docs/FINDINGS.md`, not silently patched.
 
@@ -201,7 +208,7 @@ Call it a **first demo of a research instrument**, not an MVP.
 
 | Layer | Maturity | Evidence |
 |---|---|---|
-| Economic engine (v0.3) | Unusually complete for a demo | `engine.js` + `kpi.js` + `integrity.js`. 35/35 integrity checks re-run green this review. Four model versions, each reproducing the last exactly. |
+| Economic engine (v0.4) | Unusually complete for a demo | `engine.js` + `kpi.js` + `integrity.js`. 66/66 integrity checks. Optional overnight coefficients are null at the default, so the shipped world is still v0.3. Four model versions, each reproducing the last exactly. |
 | Research programme | Complete on the declared domain | Phase 0/1 observability / KPI-sufficiency gate has run. Decision recorded: proceed to acquisition-nonlinearity design (`docs/KPI-SUFFICIENCY.md`, `docs/ARCHITECTURE.md`). |
 | v1 product surface | Shippable as a *local* demo | Single-file `saas-physics-v1.html`. Four actions: Observe → Change → Compare → Inspect. Six canonical scenarios. MRR ⇄ ARR switch. Experiment attribution. Method overlay. |
 | Earlier surfaces | Archive, kept inspectable | `saas-physics-visual-1.html` (living system). `saas-physics-prototype-0.html` (numeric instrument). Pulse / intra-month bridge: rejected, documented in `docs/PULSE.md`, not in v1. |
@@ -245,7 +252,7 @@ Call it a **first demo of a research instrument**, not an MVP.
 | CI, license, `.gitignore`, deploy | repo root | **Absent.** |
 | Auth, multi-tenant, billing, save/share of an experiment | — | **Absent by design**, not stubbed. |
 
-**Stale documents (do not treat as current plan).** `docs/FINDINGS.md` “Suggested order” still lists the observability experiment as recommended next — that experiment has already been run. `docs/BRIEF.md` still says 17 research checks; the suite is 19. The v1 Method overlay still says the engine stores recurring state in ARR; `engine.js` is now MRR-native with ARR as a derived 12× view.
+**Historical documents.** `docs/BRIEF.md` is the original brief (check counts in its body are of their time; it now carries a dated header). Archive docs (`docs/PULSE.md`, `docs/RESULTS.md`, `docs/CAPITAL-LOOP.md`, `visual.template.html`) describe earlier surfaces and are not rewritten as if they were the current product. Current next-work is [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) and `docs/FINDINGS.md` “Suggested order.”
 
 ---
 
@@ -262,7 +269,7 @@ assumptions + opening state
         ▼
  Layer B   kpi.js        measurements: R12M GRR / expansion / NRR, forward GP (FIBC-60)
         │
-        ├── integrity.js     35 economic / measurement / state assertions
+        ├── integrity.js     66 economic / measurement / state assertions
         ├── capital.js       payback distance (derived)
         ├── systemstate.js   one-month System readout (derived)
         └── basis.js         MRR ⇄ ARR display (derived; never mutates the engine)
@@ -296,11 +303,12 @@ No `npm install`. Google Fonts load from the network; everything else is in the 
 **Useful CLI (offline, same engine):**
 
 ```bash
-node checks.js              # 35 integrity checks
+node checks.js              # 66 integrity checks
+node opening-checks.js cash-checks.js billings-checks.js expansion-checks.js logo-checks.js age-checks.js
 node research-checks.js     # 19 Phase 0/1 checks (includes Scenario 6 same-world gate)
 node scenarios.js           # Scenarios A–E + layer-separation printout
 node state-sufficiency.js   # the matched-KPI / different-future experiment
-npm run report              # checks + basis + state-sufficiency + scenarios
+npm run report              # integrity + overnight suites + basis + state-sufficiency + scenarios
 ```
 
 `package.json` scripts cover only a subset (`check`, `basis`, `scenarios`, `build`, `state`, `report`). The README lists the rest as raw `node …` commands.
@@ -311,75 +319,52 @@ npm run report              # checks + basis + state-sufficiency + scenarios
 
 ---
 
-## 5. Gaps, risks, and overnight-sized next builds
+## 5. Gaps, risks, and what is next
+
+Fork A (A1), Fork B (B1+B2), and overnight items 2–6 **have landed**. The table that used to say “pick one fork” is historical. Sequenced next work is in [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) §5.
 
 ### Risks if this demo is shown as “the company”
 
-1. **It can always buy growth.** `New ARR = S&M ÷ cacPerARR` is linear and unbounded (Finding 10). There is deliberately no “spend more” canonical scenario, but the S&M slider still has no wrong setting. A CFO who treats the demo as a planning model will conclude every growth push pays.
-2. **Cash never constrains spend.** The trough on the default run is €6.10m at month 13; nothing throttles S&M. Cash → S&M is drawn as ⊘ on the System map.
-3. **FCF = EBITA.** No deferred revenue, billings, or working capital (Finding 15). Real subscription growth is often cash-*generative* at the WC line. Every growth path here looks more cash-expensive than a prepaid SaaS.
-4. **Expansion is free and uncapped** (Findings 13–14). Matched-NRR businesses are indistinguishable on ARR, GP, cash.
-5. **R&D buys nothing** (Finding 16). The only modelled conclusion about product spend is “spend less.” The UI says so; a hurried demo can still be misread as a verdict on R&D.
-6. **One opening vintage by default** (Finding 19). A real €20m book is a mix. The default overstates decay of the existing book (~30% of Year-5 ARR on the baseline).
-7. **Scenario 6’s 23.4% SKSG is conditional** on a *non-monotone* tenure profile. Under monotone laws a matched construction was infeasible. The model cannot say which regime a real company is in (`docs/KPI-SUFFICIENCY.md`).
-8. **Trust defect class already bitten once.** Interpolated Cash vs snapped-month Cash showed two numbers on one screen; fixed via `selectedMonth()`. Any new surface that prints a month-exact figure must use that accessor.
+These are true **at the default** (null / off). Several have an optional bound; turning it on does not make the default world a planning model. Overclaim list: `PRODUCT_ASSESSMENT.md` §4.
 
-### Highest-leverage next builds (overnight-sized)
+1. **It can always buy growth *until saturation is set*.** Default `New ARR = S&M ÷ cacPerARR` is linear and unbounded (Finding 10). There is still no “spend more” canonical scenario. A CFO who never touches Saturation spend will conclude every growth push pays.
+2. **Cash never constrains spend *until a reserve is set*.** The trough on the default run is €6.10m at month 13; nothing throttles S&M. `smCashReserve` is the optional bound. R&D and G&A stay uncapped either way.
+3. **FCF = EBITA *until a prepaid term is set*.** Default has no deferred revenue (Finding 15). The optional form is a **smooth** `N×ΔMRR` approximation, not invoices. Tax, capex, debt still out.
+4. **Expansion is free *until expansion CAC is set*, and still uncapped** (Findings 13–14). Matched-NRR pair still ties on ARR; cash separates only when `c > 0`. Expansion saturation is the remaining ARR-path bound.
+5. **R&D buys nothing** (Finding 16). Still true. The only modelled conclusion about product spend is “spend less.” The UI says so; a hurried demo can still be misread as a verdict on R&D.
+6. **One opening vintage *until the mix or tenure is set*** (Finding 19). Default overstates decay of the existing book (~30% of Year-5 ARR on the baseline). Mix under *flat* laws is a no-op on ARR — do not demo it as “older customers are more valuable” unless the bands say so.
+7. **Logo retention does not change ARR.** Persistence still drives leakage. Easy to present “98% logo retention” as a healthy book while 10% of ARR still leaks as contraction.
+8. **Scenario 6’s 23.4% SKSG is conditional** on a *non-monotone* tenure profile. Under monotone laws a matched construction was infeasible. The model cannot say which regime a real company is in (`docs/KPI-SUFFICIENCY.md`).
+9. **Trust defect class already bitten once.** Interpolated Cash vs snapped-month Cash showed two numbers on one screen; fixed via `selectedMonth()`. Any new surface that prints a month-exact figure must use that accessor.
+10. **The rail is now the product defect.** Too many optional knobs look like “the company.” A guest cannot tell which sliders are off-by-default bounds.
 
-Pick **one** fork. Both are in-scope for a single cloud-agent session. Doing both in one night will dilute the constitution (one mechanism, one check).
+### Next builds (sequenced — not a dump)
 
-#### Fork A — advance the physics (the project’s own next move)
+Do **not** pick another physics fork until the rail is grouped. Full sequence: `PRODUCT_ASSESSMENT.md` §5.
 
-**A1. Acquisition nonlinearity (Finding 10).** Recommended by the Phase 0/1 gate: *proceed to acquisition-nonlinearity design, a bound not a benefit.*
+**(a) Instrument craft.** (1) Group “the company” vs “bounds off by default.” (2) Attribution honesty when opening/tenure is non-default. (3) `systemstate.js` / `pulse.js` stay default-only or move together. (4) Portable accept tests. (5) Then, one at a time: expansion saturation → acquisition lag → price → R&D-as-intervention.
 
-- One saturating form, e.g. `New ARR = A_max × S&M / (S&M + k)`, or `cacPerARR` rising in spend.
-- Null / default must reproduce today’s linear generator exactly (admission criterion 4).
-- New named integrity check; System map loses the “always buy growth” ⊘ or marks the new bound; no “buy more growth” scenario until the bound exists.
-- Do **not** add R&D → retention in the same session (that is a claimed benefit; higher evidence bar).
+**(b) Visual / UX.** Information architecture first (collapse optional laws), then one claim per chart, then space/type, then off-states that read “off” not “0.00,” then a 60-second guest path. Not a landing page.
 
-#### Fork B — make the demo a CFO can set to a shape (no new physics)
+### Still out (wrong size, or forbidden)
 
-The engine already accepts opening state. The demo does not expose it. This is the gap a visiting CFO hits in the first minute: “this is not my book.”
-
-**B1. Opening-state controls on the v1 rail (Finding 19).** Sliders or fields for opening ARR, opening cash, and a small vintage mix (`[{arr, age}, …]`). Default remains one age-0 €20m / €10m cash cohort so every existing check and scenario stays comparable. Scenario 6 keeps its own construction. No adapter, no file upload, no company names.
-
-**B2. Inverse-calibration box (already written).** Surface `K.calibrate(targetGRR, targetExpansion)` so a CFO can type reported R12M GRR and expansion and *see* the coefficients the engine would need. Label them as coefficients, not as “your GRR.” Flat-law only; refuse or disclose when bands are not flat (check 34 already encodes this).
-
-**B3. Shareable experiment URL.** Serialise assumptions + opening state + active scenario + basis into the query string. Makes the demo sendable without accounts. Overnight if B1 exists; otherwise it only shares the current sliders.
-
-#### Do not do overnight (wrong size, or forbidden by the constitution)
-
-| Ask | Why not tonight |
+| Ask | Why not |
 |---|---|
 | Opening-state adapter / Stripe / billing CSV | Documented out of v1. Contaminates the portable engine if rushed. |
-| Customer count + logo vs contraction (Finding 18) | Real physics, but larger than one mechanism and unlocks ARPA later — not a night. |
-| Deferred revenue / true FCF (Finding 15) | Changes every cash number; needs its own iteration. |
 | Price (Finding 21) | Highest-leverage *real* CFO control; not specified, do not invent a form. |
 | R&D intervention with lag (Finding 16) | Benefit, not bound. User-owned hypothesis, not a SaaS law. |
 | Auth, tenancy, pricing page, telemetry product | Invents a commercial product the standing rule deferred. |
-| Valuation / multiples | Explicitly out until several physics items land. |
+| Valuation / multiples | Explicitly out. |
 | “Fix” FINDINGS by patching equations | Against the constitution. |
+| Shareable experiment URL | Useful later; not commercialization, but not the next craft item either. |
 
-#### Hygiene that fits in the same night as Fork B (not instead of A1)
-
-- Point Playwright accept tests at `path.join(__dirname, 'saas-physics-v1.html')`; add `playwright` as a devDependency or drop the files from the README’s “run it” list.
-- One GitHub Action: `node checks.js && node research-checks.js && node basis-checks.js && node clarity-checks.js && node mrr-native-checks.js && node attribution-checks.js`.
-- Strike the observability item from `docs/FINDINGS.md` “Suggested order”; point at the constitution’s gate result.
-- Remove or wire `PRESETS`.
-
-### Recommended overnight pick
-
-| If the next meeting is… | Pick |
-|---|---|
-| Advisory / “is the sequencing right?” (`docs/BRIEF.md` Q1–Q5) | **A1** — acquisition nonlinearity. That is the written next physics. |
-| Showing the demo to a CFO who will ask “can I put *my* opening book in?” | **B1 + B2**. Highest demo leverage, zero new physics, engine already supports it. |
-| Unsure | **B1 + B2.** A1 is the more important scientific step; B1/B2 are what make the first demo usable. Do not start a commercial surface. |
+Hygiene still unpaid: portable Playwright paths, one GitHub Action for the Node suites, remove or wire `PRESETS`.
 
 ---
 
 ## 6. What a SaaS CFO needs later for unit economics, pricing, and ICP
 
-Nothing in this repo is a commercial product. There are no users, prices, conversion rates, or cost-to-serve figures for SaaS Physics itself. The notes below are *what the current work already implies*, and *what would have to be true later* to talk about pricing and ICP without inventing them.
+Nothing in this repo is a commercial product. There are no users, prices, conversion rates, or cost-to-serve figures for SaaS Physics itself. **Do not start commercialization** (auth, billing, deploy-as-product, a pricing page). The notes below are diagnostic — *what the current work already implies*, and *what would have to be true much later* to talk about pricing and ICP without inventing them.
 
 ### What the illustrative company already is (not an ICP claim)
 
@@ -405,14 +390,14 @@ That is a **mid-market B2B SaaS silhouette** (~€20m ARR, heavy fixed opex, ~18
 
 From `docs/FINDINGS.md` / the Method overlay — these are the questions a pricing or planning conversation will hit:
 
-| # | Question | Why it is blocked |
+| # | Question | Status after this build |
 |---|---|---|
-| 10 | When should we stop increasing S&M? | Acquisition is linear and unbounded. |
-| 14 | What does expansion cost? | No CSM / implementation cost on expansion ARR. |
-| 15 | How does billing timing change cash vs EBITA? | FCF = EBITA. |
-| 16 | What is the return on product investment? | R&D reaches no valve. |
-| 18 | How much of leakage is logo vs contraction? | No customers. |
-| 21 | How much of a revenue change came from price? | No price. |
+| 10 | When should we stop increasing S&M? | Optional: set `acqSaturationSpend`. Default still linear. |
+| 14 | What does expansion cost? | Optional: set `expansionCacPerARR`. Default still free. No saturation (Finding 13). |
+| 15 | How does billing timing change cash vs EBITA? | Optional: set `billingAdvanceMonths`. Smooth `N×ΔMRR`, not invoices. Default still FCF = EBITA. |
+| 16 | What is the return on product investment? | Still blocked. R&D reaches no valve. |
+| 18 | How much of leakage is logo vs contraction? | Optional: set `logoRetentionAnnual`. Disclosure only — ARR unchanged. |
+| 21 | How much of a revenue change came from price? | Still blocked. No price. |
 
 A later commercial claim that “this replaces your planning model” is false until several of these are addressed. A claim that “this is a sparring instrument for mechanism-up questions” is true now.
 
@@ -434,7 +419,7 @@ Do not invent packages. The gaps are empirical:
 | ICP | Who sat through Scenarios 5 and 6 and changed a decision; whether they had non-monotone tenure in *their* data; CFO vs FP&A vs PE/operator. | A persona workshop. The brief already says SaaS CFO. |
 | Willingness to pay | Whether the buyer is paying for *mechanism literacy*, a recurring planning seat, or a one-off diagnostic. The standing rule says the first. | A pricing page. |
 | Unit economics of *this* tool | Cost-to-serve is currently ~zero (static HTML, no backend). The real cost is research time and Harri’s attention. | Usage-based billing, seats, SSO. |
-| Calibration to real books | Inverse calibration + vintage mix (B1/B2). Then, later, an adapter that emits `{openingARR, openingCash, openingCohorts[]}` and **never** writes into `engine.js`. | Bending the engine around a billing system (`docs/ARCHITECTURE.md`). |
+| Calibration to real books | B1+B2 are on the rail (typed opening + `K.calibrate()`). Later, an adapter that emits `{openingARR, openingCash, openingCohorts[]}` and **never** writes into `engine.js`. | Bending the engine around a billing system (`docs/ARCHITECTURE.md`). |
 | “Is this my shape?” | A one-screen card of the illustrative defaults vs the visitor’s typed opening state (opex ratio, payback, NRR, cash trough). | Rule-of-40 scores, quality scores, or any invented index. The constitution forbids that language. |
 
 **ICP hypothesis, grounded only in what was built:** the person who gets value today is a SaaS CFO (or PE/operator) who already thinks in cohorts, is willing to treat GRR/NRR as measurements, and has a question the six scenarios can land — especially *same ARR / different capital* and *same KPIs / different history*. The person who will bounce is anyone who wants a forecast, a valuation, or a connected source system. That split is already written down; it does not need a new story.
@@ -443,6 +428,7 @@ Do not invent packages. The gaps are empirical:
 
 ## Sources
 
+- Post-build assessment: `PRODUCT_ASSESSMENT.md`
 - Product intent: `README.md`, `docs/BRIEF.md`, Method overlay in `v1.template.html`
 - Equations and constitution: `docs/ARCHITECTURE.md`, `docs/MEASUREMENT.md`
 - Results and baseline numbers: `docs/RESULTS.md` (regenerate with `npm run report`)
@@ -450,4 +436,4 @@ Do not invent packages. The gaps are empirical:
 - Flagship experiments: `docs/STATE-SUFFICIENCY.md`, `docs/KPI-SUFFICIENCY.md`, `docs/MATCHED-NRR.md`, `docs/CAPITAL-LOOP.md`
 - Engine / UI: `engine.js`, `kpi.js`, `integrity.js`, `v1.template.html`, `build.js`
 
-*SaaS Physics v0.3 engine · v1 demo surface · illustrative assumptions · no real company data · no valuation.*
+*SaaS Physics v0.4 engine · v1 demo surface · default world = v0.3 · illustrative assumptions · no real company data · no valuation · no commercialization.*

@@ -1,11 +1,17 @@
 # Economic architecture — Prototype 0.4 (model v0.4)
 
-> **v0.4.** One new transition coefficient: **acquisition saturation** (`acqSaturationSpend`).
-> New ARR may saturate in S&M. The shipped default is **null** — the linear v0.2 / v0.3
-> generator — so the default world is exactly v0.3 and the model asserts no saturation
-> scale until a user sets one. Finding 10's blocked question (*when should we stop
-> increasing S&M?*) is answerable only when `k` is finite. No new hidden state; the
-> Phase 0/1 observability gate was not re-run.
+> **v0.4.** One new transition coefficient in the generator: **acquisition saturation**
+> (`acqSaturationSpend`). New ARR may saturate in S&M. The shipped default is **null** —
+> the linear v0.2 / v0.3 generator — so the default world is exactly v0.3 and the model
+> asserts no saturation scale until a user sets one. Finding 10's blocked question
+> (*when should we stop increasing S&M?*) is answerable only when `k` is finite. No new
+> hidden state; the Phase 0/1 observability gate was not re-run.
+>
+> Optional overnight coefficients, all null/flat at the default so Year-5 ARR is
+> unchanged: `smCashReserve` (cash may cap S&M), `billingAdvanceMonths` (FCF may
+> leave EBITA), `expansionCacPerARR` (expansion may cost cash), `logoRetentionAnnual`
+> (customer stock; ARR path unchanged), plus UI for opening state and the existing
+> three-band tenure array. Equations below. See [`PRODUCT_ASSESSMENT.md`](../PRODUCT_ASSESSMENT.md).
 
 > **v0.3.** One new state dimension: **cohort maturity**. Transition coefficients may vary by the
 > age band a cohort occupies (0–11, 12–23, 24+ months), giving six transition parameters. The
@@ -39,8 +45,10 @@ RATE (GRR, expansion) ──────────────────► 
 ```
 
 Nothing downstream is an input. NRR, growth, EBITA margin, burn and cash are all read off
-the simulation; the only things a user can set are three management controls and four
-coefficients.
+the simulation. At the default a user sets three management controls and four coefficients;
+optional overnight coefficients (saturation, cash reserve, prepaid term, expansion CAC,
+logo retention) are off unless set. Opening state and tenure bands are UI on existing
+engine fields.
 
 ## Time
 

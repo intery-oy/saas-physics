@@ -277,7 +277,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <div>
           <h5>Reporting basis — MRR ⇄ ARR</h5>
           <ul>
-            <li>SaaS Physics stores recurring state internally in <b>ARR</b> in v1. <b>MRR is an exact presentation transformation</b> (<span style="font-family:var(--mono);font-size:11px">ARR / 12</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
+            <li>SaaS Physics stores recurring state internally in <b>MRR</b>. <b>ARR is an exact 12× reporting view</b> (<span style="font-family:var(--mono);font-size:11px">ARR = 12 × MRR</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
             <li><b>MRR/ARR are recurring run-rate state measures.</b> Revenue, gross profit and FCF are period financial flows and therefore do not toggle — they stay labelled <span style="font-family:var(--mono);font-size:11px">· this month</span> in both bases.</li>
             <li>The default is <b>MRR</b>: the engine steps monthly, and New/Expansion/Leakage are monthly state movements, so a monthly basis matches the simulation's own resolution.</li>
           </ul>
