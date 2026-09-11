@@ -99,6 +99,12 @@ button,input{font:inherit;color:inherit}
 .force-val.same{color:var(--ink)}
 .force-sub{font-size:10px;color:var(--ink-3);margin-bottom:6px;line-height:1.4}
 .force-base{font-family:var(--mono);font-size:10px;color:var(--ink-4)}
+.cal-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cal-row label{font-size:11.5px;flex-grow:1;color:var(--ink-2)}
+.cal-row input[type=number]{width:72px;background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:4px 6px;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.cal-out{margin-top:8px;font-size:10.5px;color:var(--ink-3);line-height:1.55}
+.cal-out b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.cal-out.warn{color:var(--warn)}
 .measured-kpi{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);font-size:10px;color:var(--ink-3);line-height:1.65}
 .measured-kpi .mk-label{color:var(--ink-3)}
 .measured-kpi b{font-family:var(--mono);font-weight:500;color:var(--base)}
@@ -209,7 +215,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <div class="eyebrow" style="margin-bottom:4px">Change</div>
       <div class="hint">Controls are grouped by <b style="color:var(--ink-2)">what kind of thing</b> they are. They are not equivalent.</div>
     </div>
+    <div id="opening"></div>
     <div id="forces"></div>
+    <div id="calibrate"></div>
     <div class="grp" id="fixedcosts"></div>
     <div class="grp">
       <button class="btn btn-wide" id="reset">Reset to Base</button>
@@ -302,6 +310,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           <h5>Major current boundaries</h5>
           <ul>
             <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider.</li>
+            <li><b>#19</b> The default opening book is still one age-0 €20m cohort. Opening ARR, cash and a three-band vintage mix are now on the rail — they write the engine&rsquo;s existing start object, they do not invent an adapter. Scenario 6 keeps its own construction.</li>
             <li><b>#14</b> Expansion carries no separately modelled marginal cost.</li>
             <li><b>#15</b> FCF = EBITA. No working capital, deferred revenue, tax or capex.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
@@ -356,6 +365,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* Base and Experiment may differ in STATE as well as in assumptions. That is
      what Scenario 6 needs: one law set, two opening cohort compositions. */
   var baseStart = undefined, expStart = undefined;
+  var DEFAULT_UI_START = {
+    openingARR: E.DEFAULT_START.openingARR,
+    openingCash: E.DEFAULT_START.openingCash,
+    w0: 100, w12: 0, w24: 0
+  };
+  var expOpen = Object.assign({}, DEFAULT_UI_START);
   var activeScenario = null;
   var baseRes, expRes, baseS, expS;
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
@@ -544,7 +559,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) };
       });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
-    syncForces(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
+    syncForces(); syncOpening(); syncCalibrate(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
   }
 
   /* ------------------------------------------------------------------ *
@@ -635,6 +650,150 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       !!(kpi && baseKpi && changedKeys.indexOf('persistenceAnnual')>=0 && changedKeys.indexOf('expansionCoefficientAnnual')<0 && Math.abs(kpi.expansionRate-baseKpi.expansionRate)>GAP),
       'Why did measured Expansion move? Expansion is unchanged, but Persistence changes the balance expansion subsequently accrues on within the R12M measurement window — the same within-period interaction, from the other side.');
   }
+  /* ------------------------------------------------------------------ *
+   * B1 — opening state. Writes the engine's existing start object.
+   * Default (one age-0 €20m / €10m cash cohort) leaves expStart undefined
+   * so every existing check, attribution gate and scenario stays comparable.
+   * ------------------------------------------------------------------ */
+  function isDefaultOpen(o){
+    return o.openingARR===DEFAULT_UI_START.openingARR &&
+           o.openingCash===DEFAULT_UI_START.openingCash &&
+           o.w12===0 && o.w24===0 && o.w0>0;
+  }
+  function startFromOpen(o){
+    var w0=o.w0||0, w12=o.w12||0, w24=o.w24||0;
+    var sum=w0+w12+w24;
+    if(!(sum>0)){ w0=100; w12=0; w24=0; sum=100; }
+    if(o.openingARR===DEFAULT_UI_START.openingARR &&
+       o.openingCash===DEFAULT_UI_START.openingCash &&
+       w12===0 && w24===0) return undefined;
+    var start = { openingARR: o.openingARR, openingCash: o.openingCash, openingCohorts: null };
+    if(w12>0 || w24>0){
+      start.openingCohorts = [];
+      if(w0>0) start.openingCohorts.push({ arr: o.openingARR*(w0/sum), age: 0 });
+      if(w12>0) start.openingCohorts.push({ arr: o.openingARR*(w12/sum), age: 12 });
+      if(w24>0) start.openingCohorts.push({ arr: o.openingARR*(w24/sum), age: 24 });
+    }
+    return start;
+  }
+  function applyOpeningToRun(){
+    if(activeScenario && (activeScenario.world || activeScenario.pair)) return;
+    expStart = startFromOpen(expOpen);
+  }
+  function openRow(id, label, sub, min, max, step, fmt){
+    var d=document.createElement('div'); d.className='force';
+    d.innerHTML='<div class="force-top"><label for="o-'+id+'">'+esc(label)+'</label>'+
+      '<span class="force-val" id="ov-'+id+'"></span></div>'+
+      '<div class="force-sub">'+esc(sub)+' &middot; <span class="force-base" id="ob-'+id+'"></span></div>'+
+      '<input type="range" id="o-'+id+'" min="'+min+'" max="'+max+'" step="'+step+'">';
+    d.querySelector('input').addEventListener('input', function(e){
+      if(activeScenario && (activeScenario.world || activeScenario.pair)) return;
+      var prev = Object.assign({}, expA);
+      clearScenario();
+      expOpen = Object.assign({}, expOpen);
+      expOpen[id] = parseFloat(e.target.value);
+      applyOpeningToRun();
+      recompute(prev);
+    });
+    return d;
+  }
+  function buildOpening(){
+    var host=document.getElementById('opening'); host.innerHTML='';
+    var g=document.createElement('div'); g.className='fgrp'; g.id='opening-grp';
+    g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Opening state</span></div>'+
+      '<div class="fgrp-note">The engine already accepted this. Default is one age-0 €20m cohort and €10m cash — the v0.4 company. A vintage mix writes <code>{arr, age}</code> cohorts. Not an adapter; no file, no company name.</div>';
+    g.appendChild(openRow('openingARR','Opening ARR','installed-base ARR at t=0',5000000,80000000,500000,'eur'));
+    g.appendChild(openRow('openingCash','Opening cash','cash balance at t=0',0,50000000,250000,'eur'));
+    g.appendChild(openRow('w0','Early vintage (age 0)','share of opening ARR in a brand-new cohort',0,100,5,'pct100'));
+    g.appendChild(openRow('w12','Developing vintage (age 12)','share at the first band edge',0,100,5,'pct100'));
+    g.appendChild(openRow('w24','Mature vintage (age 24)','share in the terminal band',0,100,5,'pct100'));
+    host.appendChild(g);
+  }
+  function fmtOpen(id, v){
+    if(id==='w0'||id==='w12'||id==='w24') return (v||0).toFixed(0)+'%';
+    return eur(v);
+  }
+  function syncOpening(){
+    ['openingARR','openingCash','w0','w12','w24'].forEach(function(id){
+      var el=document.getElementById('o-'+id); if(!el) return;
+      el.value = expOpen[id];
+      var same = expOpen[id]===DEFAULT_UI_START[id];
+      var v=document.getElementById('ov-'+id); v.textContent = fmtOpen(id, expOpen[id]);
+      v.className = 'force-val'+(same?' same':'');
+      document.getElementById('ob-'+id).textContent = 'base '+fmtOpen(id, DEFAULT_UI_START[id]);
+    });
+    var locked = !!(activeScenario && (activeScenario.world || activeScenario.pair));
+    var grp=document.getElementById('opening-grp');
+    if(grp) grp.classList.toggle('inert', locked);
+    ['openingARR','openingCash','w0','w12','w24'].forEach(function(id){
+      var el=document.getElementById('o-'+id); if(el) el.disabled = locked;
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * B2 — inverse calibration. Surfaces K.calibrate() already in kpi.js.
+   * Labels the outputs as transition coefficients, not "your GRR".
+   * Flat-law only; refused when bands are not flat (check 34).
+   * ------------------------------------------------------------------ */
+  function calibrationAllowed(){
+    return !!(baseRes && expRes && baseRes.bandsAreFlat && expRes.bandsAreFlat);
+  }
+  function applyCalibrate(){
+    var out=document.getElementById('cal-out');
+    if(!calibrationAllowed()){
+      out.className='cal-out warn';
+      out.textContent='Refused: bands are not flat. Inverse calibration is a flat-law closed form (check 34). Scenario 6 cannot be inverted this way.';
+      return;
+    }
+    var grr=parseFloat(document.getElementById('cal-grr').value)/100;
+    var ex=parseFloat(document.getElementById('cal-exp').value)/100;
+    if(!(grr>0 && grr<1) || !(ex>=0)){
+      out.className='cal-out warn';
+      out.textContent='Targets must be measured rates: GRR in (0, 1) and expansion ≥ 0.';
+      return;
+    }
+    var cal=K.calibrate(grr, ex);
+    if(!cal){
+      out.className='cal-out warn';
+      out.textContent='Infeasible: those measured targets do not invert to coefficients in (0, 1].';
+      return;
+    }
+    var prev=Object.assign({}, expA);
+    clearScenario();
+    expA=Object.assign({}, expA);
+    expA.persistenceAnnual=cal.persistenceAnnual;
+    expA.expansionCoefficientAnnual=cal.expansionCoefficientAnnual;
+    out.className='cal-out';
+    out.innerHTML='Coefficients, not reported KPIs: persistence <b>'+pct(cal.persistenceAnnual,2)+'</b> · expansion coefficient <b>'+pct(cal.expansionCoefficientAnnual,2)+'</b> · implied NRR* <b>'+pct(cal.targetNRR,2)+'</b>. '+
+      'A 90% measured GRR is not a 90% persistence coefficient — see docs/MEASUREMENT.md.';
+    recompute(prev);
+  }
+  function buildCalibrate(){
+    var host=document.getElementById('calibrate'); host.innerHTML='';
+    var g=document.createElement('div'); g.className='fgrp';
+    g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Inverse calibration</span></div>'+
+      '<div class="fgrp-note">Type measured R12M GRR and expansion. The closed form in <code>kpi.js</code> solves for transition coefficients. Flat-law only. These are not &ldquo;your GRR.&rdquo;</div>'+
+      '<div class="cal-row"><label for="cal-grr">Target measured GRR</label><input type="number" id="cal-grr" min="50" max="99.5" step="0.1" value="90"></div>'+
+      '<div class="cal-row"><label for="cal-exp">Target measured expansion</label><input type="number" id="cal-exp" min="0" max="40" step="0.1" value="10"></div>'+
+      '<button class="btn btn-wide" id="cal-apply" type="button">Set coefficients from measured KPIs</button>'+
+      '<div class="cal-out" id="cal-out"></div>';
+    host.appendChild(g);
+    document.getElementById('cal-apply').addEventListener('click', applyCalibrate);
+  }
+  function syncCalibrate(){
+    var btn=document.getElementById('cal-apply'); if(!btn) return;
+    var ok=calibrationAllowed();
+    btn.disabled=!ok;
+    var out=document.getElementById('cal-out');
+    if(!out) return;
+    if(!ok){
+      out.className='cal-out warn';
+      out.textContent='Refused: bands are not flat. Inverse calibration is a flat-law closed form (check 34).';
+    } else if(out.className.indexOf('warn')>=0 && /Refused/.test(out.textContent)){
+      out.className='cal-out'; out.textContent='';
+    }
+  }
+
   function buildForces(){
     var host = document.getElementById('forces'); host.innerHTML='';
     FORCE_GROUPS.forEach(function(G){
@@ -791,6 +950,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       expStart  = { openingARR:20000000, openingCash:10000000, openingCohorts:[{arr:20000000, age:0}] };   // young
     } else {
       expA = Object.assign({}, BASE_A, sc.ch);
+      expStart = startFromOpen(expOpen);
     }
     document.getElementById('mode-chip').textContent = sc.name.toLowerCase();
     document.getElementById('mode-chip').classList.add('on');
@@ -2137,7 +2297,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         'Experiment buys the same New ARR with S&amp;M. See the Scenarios panel for the calibrated values.</div>';
       return;
     }
-    if(!changed.length){
+    var startRows = '';
+    if(expStart){
+      if(expOpen.openingARR!==DEFAULT_UI_START.openingARR)
+        startRows += '<div class="exp-row"><span>Opening ARR</span><b>'+eur(DEFAULT_UI_START.openingARR)+' \u2192 '+eur(expOpen.openingARR)+'</b></div>';
+      if(expOpen.openingCash!==DEFAULT_UI_START.openingCash)
+        startRows += '<div class="exp-row"><span>Opening cash</span><b>'+eur(DEFAULT_UI_START.openingCash)+' \u2192 '+eur(expOpen.openingCash)+'</b></div>';
+      if(expOpen.w12!==0 || expOpen.w24!==0)
+        startRows += '<div class="exp-row"><span>Vintage mix</span><b>age 0/12/24 · '+
+          expOpen.w0.toFixed(0)+'/'+expOpen.w12.toFixed(0)+'/'+expOpen.w24.toFixed(0)+'%</b></div>';
+    }
+    if(!changed.length && !startRows){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         '<div class="hint">0 assumptions changed &middot; Experiment equals Base</div>';
       return;
@@ -2147,9 +2317,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return '<div class="exp-row"><span>'+esc(LABEL[c.key]||c.key)+'</span>'+
         '<b>'+fmtF(f,c.from)+' \u2192 '+fmtF(f,c.to)+'</b></div>';
     }).join('');
+    var n = changed.length + (startRows?1:0);
     host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
-      '<div class="hint" style="margin-bottom:7px">'+changed.length+' assumption'+(changed.length>1?'s':'')+' changed</div>'+
-      '<div class="exp-summary">'+rows+'</div>';
+      '<div class="hint" style="margin-bottom:7px">'+n+' change'+(n>1?'s':'')+' vs Base</div>'+
+      '<div class="exp-summary">'+startRows+rows+'</div>';
   }
 
   /* ------------------------------------------------------------------ *
@@ -2228,8 +2399,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function resetAll(){
     exitPair(); clearScenario();
     baseA = BASE_A; expA = Object.assign({}, BASE_A);
+    expOpen = Object.assign({}, DEFAULT_UI_START);
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
+    var calOut=document.getElementById('cal-out');
+    if(calOut){ calOut.className='cal-out'; calOut.textContent=''; }
     resize(); recompute(); render();
   }
   document.getElementById('reset').addEventListener('click', resetAll);
@@ -2249,7 +2423,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     requestAnimationFrame(frame);
   }
 
-  buildForces(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  buildOpening(); buildForces(); buildCalibrate(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
   requestAnimationFrame(frame);
 
   /* Acceptance-test hook only — read-only getters onto the closured state, so
@@ -2261,10 +2435,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   window.__SP_DEBUG = {
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
+    get expStart(){ return expStart; }, get expOpen(){ return expOpen; },
     selectedMonth: selectedMonth,
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
-    attributionValid: attributionValid
+    attributionValid: attributionValid,
+    startFromOpen: startFromOpen,
+    calibrationAllowed: calibrationAllowed,
+    applyCalibrate: applyCalibrate
   };
 })();
 </script>

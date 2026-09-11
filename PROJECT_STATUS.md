@@ -4,9 +4,54 @@
 
 ---
 
+## Overnight sequence — A1 then CoS+CFO items 1–6
+
+Same branch / PR. Constitution: one mechanism at a time; null default reproduces prior; bounds before benefits. No R&D lag, valuation, auth, deploy, or real-book adapter.
+
+| Step | Item | Status |
+|---|---|---|
+| 0 | **A1** acquisition nonlinearity / diminishing S&M | done (v0.4) |
+| 1 | **B1+B2** opening-state controls + `kpi.calibrate()` UI | done — zero new physics |
+| 2 | Cash constrains S&M | next |
+| 3 | Deferred revenue / billings → FCF ≠ EBITA | queued |
+| 4 | Expansion cost (`expansionCacPerARR`) | queued |
+| 5 | Logo vs contraction | queued |
+| 6 | Age/vintage editor on screen | queued |
+
+---
+
+## Overnight build B1+B2 — opening state + inverse calibration
+
+Zero new physics. The engine already accepted `{openingARR, openingCash, openingCohorts[]}`; `kpi.js` already had `calibrate()`. This step only exposes both on the v1 rail.
+
+**B1.** Opening ARR, opening cash, and a three-share vintage mix (ages 0 / 12 / 24). Default remains one age-0 €20m / €10m cash cohort, so `expStart` stays `undefined` and every prior check, attribution gate and scenario stays comparable. Scenario 6 / the calibrated pair lock the sliders and keep their own constructions. No adapter, no file, no company name.
+
+**B2.** Inverse-calibration box calls `K.calibrate(targetGRR, targetExpansion)` and writes `persistenceAnnual` + `expansionCoefficientAnnual`. Outputs are labelled **coefficients, not reported KPIs**. Refused when bands are not flat (check 34). Flat-law closed form only.
+
+### How to demo
+
+1. Opening state rail: raise Opening ARR to €30m. Month-1 opening ARR moves one-for-one; New ARR is unchanged.
+2. Raise Opening cash to €25m. ARR path unchanged; cash path shifts.
+3. Set a 50/50 age-0 / age-24 mix. Under the default flat laws the ARR and cash paths do not move (maturity itself creates nothing). Load Scenario 6 to see why mix matters when laws are not flat.
+4. Inverse calibration: type measured GRR 90% and expansion 10% → Set coefficients. Persistence becomes ~90.45%, expansion coefficient ~10.56%. Load Scenario 6: the button refuses.
+
+### Checks to run
+
+```bash
+node checks.js                 # 48 integrity checks (35 + 9 NL + 4 OPEN)
+node opening-checks.js         # B1+B2 UI contract + calibrate identity
+node mrr-native-checks.js
+node basis-checks.js
+node clarity-checks.js
+node attribution-checks.js
+node research-checks.js
+```
+
+---
+
 ## Overnight build A1 — acquisition nonlinearity (v0.4)
 
-Harri picked **A1** (Finding 10). **B1 + B2 opening-state controls were not done.**
+Harri picked **A1** (Finding 10), then expanded the overnight scope to B1+B2 and roadmap items 2–6 on this same PR.
 
 **What changed.** One transition coefficient, `acqSaturationSpend` (`k`, €/month). Finite `k` saturates New ARR:
 
@@ -34,7 +79,8 @@ open saas-physics-v1.html          # or File → Open
 ### Checks to run
 
 ```bash
-node checks.js                 # 35 prior + 9 NL (Finding 10) integrity checks
+node checks.js                 # 35 prior + 9 NL (Finding 10) + 4 OPEN integrity checks
+node opening-checks.js
 node mrr-native-checks.js
 node basis-checks.js
 node clarity-checks.js
@@ -44,7 +90,7 @@ node research-checks.js
 
 ---
 
-*The 11 September review below is unchanged. A1 is the written next physics from §5 Fork A; it does not make the demo a CFO-shapable opening book (that is still B1 + B2).*
+*The 11 September review below is the baseline. A1 is Fork A; B1+B2 are Fork B on the same demo. Items 2–6 follow on this PR.*
 
 ---
 
@@ -87,16 +133,17 @@ Call it a **first demo of a research instrument**, not an MVP.
 ### Implemented (real, not stubbed)
 
 - Deterministic 60-month cohort engine. Opening base may be several vintages (`engine.js` `DEFAULT_START.openingCohorts`). Age bands exist (0–11 / 12–23 / 24+); default is **flat** so age carries no dynamics until someone sets them.
-- KPI measurement layer with closed-form inverse calibration (`kpi.js` `calibrate`) — **not wired into the v1 UI**.
+- KPI measurement layer with closed-form inverse calibration (`kpi.js` `calibrate`) — **wired into the v1 rail** (B2). Flat-law only; refused when bands are not flat.
 - Capital-recovery readout from stamped `acquisitionCost` and cumulative gross profit (`capital.js`). CAC payback is a measured crossing, not a typed-in ratio.
 - System-map state extraction (`systemstate.js`) and MRR/ARR presentation transform (`basis.js`). Neither adds physics.
-- v1 UI: Company (two planes: recurring stock, cash), System (causal topology with ⊘ for absent links), Scenarios 1–6, Inspect (click a cohort). Sliders for S&M, persistence, expansion, CAC/ARR, GM, R&D, G&A. Play/scrub over 60 months. Only persisted preference: `localStorage` key `saas-physics-basis`.
+- v1 UI: Company (two planes: recurring stock, cash), System (causal topology with ⊘ for absent links), Scenarios 1–6, Inspect (click a cohort). Sliders for S&M, persistence, expansion, CAC/ARR, saturation, GM, R&D, G&A, plus opening ARR/cash/vintage mix and inverse calibration. Play/scrub over 60 months. Only persisted preference: `localStorage` key `saas-physics-basis`.
 - Six canonical scenarios in `v1.template.html`: Retention, Expansion, Acquisition efficiency, Margin, Efficiency vs Spend (same ARR path, different capital), Same KPIs / different history (Scenario 6 — the state-sufficiency construction).
 - Check suites, re-run this review, all green:
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 35 / 35 (now 44 / 44 after A1) |
+| `node checks.js` | 48 / 48 (35 + 9 NL + 4 OPEN) |
+| `node opening-checks.js` | 9 / 9 |
 | `node research-checks.js` | 19 / 19 |
 | `node basis-checks.js` | 12 / 12 |
 | `node clarity-checks.js` | 46 / 46 |
@@ -108,9 +155,9 @@ Call it a **first demo of a research instrument**, not an MVP.
 | Item | Where | Status |
 |---|---|---|
 | Opening-state adapter (real books → `{openingARR, openingCash, openingCohorts[]}`) | `docs/ARCHITECTURE.md` | **Not implemented. Explicitly out of scope for v1.** |
-| Opening ARR / opening cash / vintage mix as v1 controls | README lists them as assumptions; engine accepts them | **Not on the slider rail.** Scenario 6 hard-codes two vintages. Default opening book is one age-0 cohort of €20m. |
-| Age-band editor | Engine has six transition parameters | **Only Scenario 6 sets bands.** No general UI to give age economic meaning. |
-| `K.calibrate()` | `kpi.js` | Closed form exists; **no “paste my GRR/NRR” box**. |
+| Opening ARR / opening cash / vintage mix as v1 controls | v1 rail (B1) | **On the rail.** Default remains one age-0 €20m / €10m cash cohort. Scenario 6 / pair keep their own constructions. |
+| Age-band editor | Engine has six transition parameters | **Only Scenario 6 sets bands.** No general UI to give age economic meaning. (Item 6 in this PR.) |
+| `K.calibrate()` | v1 rail (B2) | **Wired.** Types measured GRR / expansion; writes coefficients. Refused when bands are not flat. |
 | `PRESETS` (`Better retention`, `Growth through spend`, …) | `v1.template.html` | **Defined, never referenced.** Dead code. Canonical scenarios replaced them. |
 | Playwright accept tests | `clarity-accept.js`, `attribution-accept.js` | Real tests, **not portable**. Hard-code `file:///home/user/experiments/saas-physics/…` and `/opt/pw-browsers/chromium`. `playwright` is not in `package.json`. |
 | CI, license, `.gitignore`, deploy | repo root | **Absent.** |

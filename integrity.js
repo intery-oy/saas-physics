@@ -507,6 +507,46 @@
        (satRun.derived.newARRPerMonth / 1e6).toFixed(3) + 'm → €' +
        (satBig.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo');
 
+    /* ================================================================ *
+     * B1 — opening-state identity. Zero new physics: the engine already
+     * accepted {openingARR, openingCash, openingCohorts[]}. These lock
+     * the null default to DEFAULT_START.
+     * ================================================================ */
+    var explStart = E.run(A, { openingARR: 20000000, openingCash: 10000000, openingCohorts: null });
+    var age0Start = E.run(A, { openingARR: 20000000, openingCash: 10000000, openingCohorts: [{ arr: 20000000, age: 0 }] });
+    ok('OPEN · Omitted start / explicit DEFAULT_START / single age-0 cohort are bit-identical',
+       JSON.stringify(BASE.months) === JSON.stringify(explStart.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(age0Start.months),
+       'omit≡explicit: ' + (JSON.stringify(BASE.months) === JSON.stringify(explStart.months)) +
+       '; omit≡age-0: ' + (JSON.stringify(BASE.months) === JSON.stringify(age0Start.months)));
+
+    var cashOnly = E.run(A, { openingARR: 20000000, openingCash: 25000000 });
+    var wOpenA = 0;
+    for (i = 0; i < BASE.horizon; i++) wOpenA = Math.max(wOpenA, Math.abs(BASE.months[i].closingARR - cashOnly.months[i].closingARR));
+    ok('OPEN · Raising opening cash alone leaves the ARR path unchanged',
+       wOpenA < EPS && Math.abs(cashOnly.months[0].cashOpening - 25000000) < EPS,
+       'max ARR delta €' + wOpenA.toExponential(3) + '; M1 cash opening €' +
+       (cashOnly.months[0].cashOpening / 1e6).toFixed(2) + 'm');
+
+    var biggerBook = E.run(A, { openingARR: 30000000, openingCash: 10000000 });
+    ok('OPEN · Raising opening ARR raises month-1 opening ARR one-for-one and does not change New ARR',
+       Math.abs(biggerBook.months[0].openingARR - 30000000) < EPS &&
+       Math.abs(biggerBook.derived.newARRPerMonth - BASE.derived.newARRPerMonth) < EPS,
+       'M1 opening €' + (biggerBook.months[0].openingARR / 1e6).toFixed(2) +
+       'm; New ARR still €' + (biggerBook.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo');
+
+    var mixFlat = E.run(A, { openingARR: 20000000, openingCash: 10000000,
+      openingCohorts: [{ arr: 10000000, age: 0 }, { arr: 10000000, age: 24 }] });
+    var wMixA = 0, wMixC = 0;
+    for (i = 0; i < BASE.horizon; i++) {
+      wMixA = Math.max(wMixA, Math.abs(BASE.months[i].closingARR - mixFlat.months[i].closingARR));
+      wMixC = Math.max(wMixC, Math.abs(BASE.months[i].cashClosing - mixFlat.months[i].cashClosing));
+    }
+    ok('OPEN · Under flat laws a vintage mix at the same total ARR does not change the ARR or cash path',
+       wMixA < EPS && wMixC < EPS,
+       'max ARR €' + wMixA.toExponential(2) + '; max cash €' + wMixC.toExponential(2) +
+       ' — maturity itself creates nothing when laws are flat');
+
     return out;
   }
 

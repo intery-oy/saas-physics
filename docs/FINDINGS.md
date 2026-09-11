@@ -286,11 +286,16 @@ correct its definitions are. Reactivation is zero. There is no customer count at
 ARR paths and identical reported KPIs can conceal completely different logo survival and expansion
 concentration — see §F of `MEASUREMENT.md` for a worked pair.
 
-### 19. The opening base is one cohort by default
+### 19. The opening base is one cohort by default — now settable (B1)
 
 A real €20m installed base is a mixture of vintages retaining far better than a cohort acquired last
 month. One blended cohort systematically overstates decay of the existing book — which is 30% of
 Year-5 ARR.
+
+**v0.4 UI.** Opening ARR, opening cash and a three-share vintage mix (ages 0 / 12 / 24) are on
+the v1 rail. They write the engine's existing `{openingARR, openingCash, openingCohorts[]}`
+start object. The default remains one age-0 €20m / €10m cash cohort, so every prior result
+stays comparable. Scenario 6 still owns its own construction. No adapter.
 
 ### 20. Midpoint revenue is an approximation
 
