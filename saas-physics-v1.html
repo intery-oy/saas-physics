@@ -217,6 +217,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
     <div id="opening"></div>
     <div id="forces"></div>
+    <div id="tenure"></div>
     <div id="calibrate"></div>
     <div class="grp" id="fixedcosts"></div>
     <div class="grp">
@@ -310,7 +311,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           <h5>Major current boundaries</h5>
           <ul>
             <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider. S&amp;M itself is unconstrained in cash unless a cash reserve is set.</li>
-            <li><b>#19</b> The default opening book is still one age-0 €20m cohort. Opening ARR, cash and a three-band vintage mix are now on the rail — they write the engine&rsquo;s existing start object, they do not invent an adapter. Scenario 6 keeps its own construction.</li>
+            <li><b>#12 / #19</b> Age bands default flat. Tenure laws on the rail write the engine&rsquo;s existing three-band array; Scenario 6 keeps its shared construction. The default opening book is still one age-0 €20m cohort.</li>
             <li><b>#14</b> Expansion is free <em>at the default</em> (expansion CAC = 0). Set Expansion CAC / €1 Exp ARR to price expansion without changing the ARR path.</li>
             <li><b>#15</b> FCF = EBITA <em>at the default</em> (prepaid term off). Set a prepaid term so FCF = EBITA + N × ΔMRR — growth is then cash-generative at the WC line. No tax, capex or debt.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
@@ -2007,7 +2008,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) };
       });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
-    syncForces(); syncOpening(); syncCalibrate(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
+    syncForces(); syncOpening(); syncTenure(); syncCalibrate(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
   }
 
   /* ------------------------------------------------------------------ *
@@ -2247,6 +2248,82 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     } else if(out.className.indexOf('warn')>=0 && /Refused/.test(out.textContent)){
       out.className='cal-out'; out.textContent='';
     }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Item 6 — age / vintage editor. Zero new physics: writes the engine's
+   * existing three-band array. Default is flat (no expA.bands), so age
+   * still carries no meaning until someone sets a band apart from the
+   * scalars. Scenario 6 keeps the shared SCEN6_BANDS object — this editor
+   * always copies, never mutates that array.
+   * ------------------------------------------------------------------ */
+  function displayedBands(){
+    if(expA.bands && expA.bands.length===3) return expA.bands;
+    return E.resolveBands(expA);
+  }
+  function copyBand(b){
+    return { name:b.name, maxAgeExclusive:b.maxAgeExclusive,
+             persistenceAnnual:b.persistenceAnnual,
+             expansionCoefficientAnnual:b.expansionCoefficientAnnual };
+  }
+  function bandsMatchScalars(bands){
+    return bands.every(function(b){
+      return b.persistenceAnnual===expA.persistenceAnnual &&
+             b.expansionCoefficientAnnual===expA.expansionCoefficientAnnual;
+    });
+  }
+  function writeBand(i, field, val){
+    if(activeScenario && activeScenario.world) return;
+    var prev=Object.assign({}, expA);
+    clearScenario();
+    var next=displayedBands().map(copyBand);
+    next[i][field]=val;
+    expA=Object.assign({}, expA);
+    if(bandsMatchScalars(next)) delete expA.bands;
+    else expA.bands=next;
+    recompute(prev);
+  }
+  function buildTenure(){
+    var host=document.getElementById('tenure'); host.innerHTML='';
+    var g=document.createElement('div'); g.className='fgrp'; g.id='tenure-grp';
+    g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Tenure laws</span></div>'+
+      '<div class="fgrp-note">Three age bands the engine already has (0–11 / 12–23 / 24+). Default is flat — every band inherits the scalar coefficients, so age creates nothing. Scenario 6 keeps its own shared array. This editor always copies; it never mutates that object.</div>';
+    E.BAND_NAMES.forEach(function(name, i){
+      ['persistenceAnnual','expansionCoefficientAnnual'].forEach(function(field){
+        var id='t-'+field.charAt(0)+i;
+        var label=(field==='persistenceAnnual'?'Persistence':'Expansion')+' · '+name;
+        var d=document.createElement('div'); d.className='force';
+        d.innerHTML='<div class="force-top"><label for="'+id+'">'+esc(label)+'</label>'+
+          '<span class="force-val" id="tv-'+id+'"></span></div>'+
+          '<div class="force-sub">'+(i===0?'ages 0–11':i===1?'ages 12–23':'ages 24+')+
+          ' &middot; <span class="force-base" id="tb-'+id+'"></span></div>'+
+          '<input type="range" id="'+id+'" min="'+(field==='persistenceAnnual'?'0.6':'0')+
+          '" max="'+(field==='persistenceAnnual'?'0.99':'0.4')+'" step="0.005">';
+        d.querySelector('input').addEventListener('input', function(e){
+          writeBand(i, field, parseFloat(e.target.value));
+        });
+        g.appendChild(d);
+      });
+    });
+    host.appendChild(g);
+  }
+  function syncTenure(){
+    var bands=displayedBands();
+    var locked=!!(activeScenario && activeScenario.world);
+    var grp=document.getElementById('tenure-grp');
+    if(grp) grp.classList.toggle('inert', locked);
+    E.BAND_NAMES.forEach(function(name, i){
+      ['persistenceAnnual','expansionCoefficientAnnual'].forEach(function(field){
+        var id='t-'+field.charAt(0)+i;
+        var el=document.getElementById(id); if(!el) return;
+        var val=bands[i][field];
+        el.value=val; el.disabled=locked;
+        var same=val===(field==='persistenceAnnual'?baseA.persistenceAnnual:baseA.expansionCoefficientAnnual) && !expA.bands;
+        var v=document.getElementById('tv-'+id); v.textContent=pct(val,1);
+        v.className='force-val'+(same?' same':'');
+        document.getElementById('tb-'+id).textContent='scalar '+pct(field==='persistenceAnnual'?expA.persistenceAnnual:expA.expansionCoefficientAnnual,1);
+      });
+    });
   }
 
   function buildForces(){
@@ -3773,7 +3850,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      Only assumptions that actually differ; a click expands the full set. */
   function renderExperimentSummary(){
     var host=document.getElementById('experiment-summary');
-    var changed = E.compare(baseRes, expRes).changed;      // [{key, from, to}], real engine diff
+    var cmp = E.compare(baseRes, expRes);
+    var changed = cmp.changed;      // [{key, from, to}], real engine diff
+    var bandsChanged = cmp.bandsChanged;
     if(pairMode){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         '<div class="hint" style="line-height:1.65">Efficiency vs Spend pair — Base buys New ARR with acquisition efficiency, '+
@@ -3790,6 +3869,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         startRows += '<div class="exp-row"><span>Vintage mix</span><b>age 0/12/24 · '+
           expOpen.w0.toFixed(0)+'/'+expOpen.w12.toFixed(0)+'/'+expOpen.w24.toFixed(0)+'%</b></div>';
     }
+    if(bandsChanged)
+      startRows += '<div class="exp-row"><span>Tenure laws</span><b>flat → age-banded</b></div>';
     if(!changed.length && !startRows){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         '<div class="hint">0 assumptions changed &middot; Experiment equals Base</div>';
@@ -3906,7 +3987,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     requestAnimationFrame(frame);
   }
 
-  buildOpening(); buildForces(); buildCalibrate(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  buildOpening(); buildForces(); buildTenure(); buildCalibrate(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
   requestAnimationFrame(frame);
 
   /* Acceptance-test hook only — read-only getters onto the closured state, so
@@ -3925,7 +4006,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     attributionValid: attributionValid,
     startFromOpen: startFromOpen,
     calibrationAllowed: calibrationAllowed,
-    applyCalibrate: applyCalibrate
+    applyCalibrate: applyCalibrate,
+    writeBand: writeBand,
+    displayedBands: displayedBands
   };
 })();
 </script>

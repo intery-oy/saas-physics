@@ -16,7 +16,7 @@ Same branch / PR. Constitution: one mechanism at a time; null default reproduces
 | 3 | Deferred revenue / billings → FCF ≠ EBITA | done — null = FCF=EBITA (prior) |
 | 4 | Expansion cost (`expansionCacPerARR`) | done — 0 = free (prior) |
 | 5 | Logo vs contraction | done — null = no customers (prior) |
-| 6 | Age/vintage editor on screen | queued |
+| 6 | Age/vintage editor on screen | done — default flat; Scenario 6 untouched |
 
 ---
 
@@ -90,6 +90,22 @@ One coefficient: `logoRetentionAnnual`. **Null / 0 = no customer stock** (prior)
 
 ```bash
 node logo-checks.js
+```
+
+---
+
+## Overnight build — Age / vintage editor
+
+Zero new physics. Six sliders write the engine’s existing three-band array (Early / Developing / Mature × persistence / expansion). **Default is flat** — bands are omitted so age still creates nothing. Scenario 6 keeps the shared `SCEN6_BANDS` object; the editor always copies. Inverse calibration still refuses when bands are not flat.
+
+### How to demo
+
+1. Default: every tenure slider matches the scalars. Attribution still valid.
+2. Pull Developing persistence down. ARR path changes; calibration refuses; attribution gates off.
+3. Load Scenario 6: tenure sliders lock and show the shared profile.
+
+```bash
+node age-checks.js
 ```
 
 ---
@@ -205,6 +221,7 @@ Call it a **first demo of a research instrument**, not an MVP.
 |---|---|
 | `node checks.js` | 66 / 66 |
 | `node logo-checks.js` | 4 / 4 |
+| `node age-checks.js` | 5 / 5 |
 | `node expansion-checks.js` | 4 / 4 |
 | `node opening-checks.js` | 9 / 9 |
 | `node cash-checks.js` | 5 / 5 |
@@ -221,7 +238,7 @@ Call it a **first demo of a research instrument**, not an MVP.
 |---|---|---|
 | Opening-state adapter (real books → `{openingARR, openingCash, openingCohorts[]}`) | `docs/ARCHITECTURE.md` | **Not implemented. Explicitly out of scope for v1.** |
 | Opening ARR / opening cash / vintage mix as v1 controls | v1 rail (B1) | **On the rail.** Default remains one age-0 €20m / €10m cash cohort. Scenario 6 / pair keep their own constructions. |
-| Age-band editor | Engine has six transition parameters | **Only Scenario 6 sets bands.** No general UI to give age economic meaning. (Item 6 in this PR.) |
+| Age-band editor | v1 rail (item 6) | **On the rail.** Default flat. Scenario 6 keeps the shared `SCEN6_BANDS` array; the editor copies, never mutates it. |
 | `K.calibrate()` | v1 rail (B2) | **Wired.** Types measured GRR / expansion; writes coefficients. Refused when bands are not flat. |
 | `PRESETS` (`Better retention`, `Growth through spend`, …) | `v1.template.html` | **Defined, never referenced.** Dead code. Canonical scenarios replaced them. |
 | Playwright accept tests | `clarity-accept.js`, `attribution-accept.js` | Real tests, **not portable**. Hard-code `file:///home/user/experiments/saas-physics/…` and `/opt/pw-browsers/chromium`. `playwright` is not in `package.json`. |

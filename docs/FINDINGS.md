@@ -220,10 +220,11 @@ Phase 0/1 research sharpened it further — see finding 22.
 
 Original ID and history preserved.
 
-### 12. Retention age structure exists now, but is coarse
+### 12. Retention age structure exists now, and is editable — but still coarse
 
 v0.3 added three age bands — the minimum structure capable of expressing an age effect — and the
-shipped default stays flat, so nothing is asserted about SaaS. What is still missing is resolution:
+shipped default stays flat, so nothing is asserted about SaaS. The v1 rail now exposes the six
+coefficients (Tenure laws). Scenario 6 keeps its shared array. What is still missing is resolution:
 three step functions cannot represent a smooth survival curve, and the band edges (12 and 24
 months) are themselves assumptions. A fidelity limit rather than a structural gap now, and it
 should not be refined until there is evidence about the shape.

@@ -142,6 +142,7 @@ node cash-checks.js         # S&M cash-reserve null default + bound
 node billings-checks.js     # prepaid term: null = FCF=EBITA; finite N splits them
 node expansion-checks.js    # expansion CAC: 0 = free; finite c is cash-only
 node logo-checks.js         # logo retention: null = no customers; split = leakage
+node age-checks.js          # tenure editor: default flat; Scenario 6 copy rule
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
