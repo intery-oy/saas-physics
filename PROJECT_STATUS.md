@@ -12,7 +12,7 @@ Same branch / PR. Constitution: one mechanism at a time; null default reproduces
 |---|---|---|
 | 0 | **A1** acquisition nonlinearity / diminishing S&M | done (v0.4) |
 | 1 | **B1+B2** opening-state controls + `kpi.calibrate()` UI | done — zero new physics |
-| 2 | Cash constrains S&M | next |
+| 2 | Cash constrains S&M | done — null = unconstrained (prior) |
 | 3 | Deferred revenue / billings → FCF ≠ EBITA | queued |
 | 4 | Expansion cost (`expansionCacPerARR`) | queued |
 | 5 | Logo vs contraction | queued |
@@ -35,11 +35,24 @@ Zero new physics. The engine already accepted `{openingARR, openingCash, opening
 3. Set a 50/50 age-0 / age-24 mix. Under the default flat laws the ARR and cash paths do not move (maturity itself creates nothing). Load Scenario 6 to see why mix matters when laws are not flat.
 4. Inverse calibration: type measured GRR 90% and expansion 10% → Set coefficients. Persistence becomes ~90.45%, expansion coefficient ~10.56%. Load Scenario 6: the button refuses.
 
+---
+
+## Overnight build — Cash constrains S&M
+
+One coefficient: `smCashReserve` (€). **Null / omitted / Infinity = unconstrained** — S&M is spent in full every month, the prior contract, bit-identical. Finite `r` (including 0): this month’s S&M ≤ `max(0, cashOpening − r)`. New ARR is recomputed from the cash-capped spend. R&D and G&A stay unconstrained (not a financing model).
+
+### How to demo
+
+1. Default: reserve reads **off · unconstrained**. Cash can trough below S&M and spend continues.
+2. Set **S&M cash reserve** to €8m, raise S&M. When cash approaches the floor, S&M is cut and New ARR falls with it.
+3. System view: the ⊘ Cash → S&M link becomes a present link labelled with the reserve.
+
 ### Checks to run
 
 ```bash
-node checks.js                 # 48 integrity checks (35 + 9 NL + 4 OPEN)
+node checks.js                 # integrity checks including OPEN + CASHSM
 node opening-checks.js         # B1+B2 UI contract + calibrate identity
+node cash-checks.js            # S&M cash-reserve null default + bound
 node mrr-native-checks.js
 node basis-checks.js
 node clarity-checks.js
@@ -142,8 +155,9 @@ Call it a **first demo of a research instrument**, not an MVP.
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 48 / 48 (35 + 9 NL + 4 OPEN) |
+| `node checks.js` | 53 / 53 (35 + 9 NL + 4 OPEN + 5 CASHSM) |
 | `node opening-checks.js` | 9 / 9 |
+| `node cash-checks.js` | 5 / 5 |
 | `node research-checks.js` | 19 / 19 |
 | `node basis-checks.js` | 12 / 12 |
 | `node clarity-checks.js` | 46 / 46 |

@@ -141,6 +141,12 @@ Still instantaneous — no sales capacity, rep ramp, pipeline, conversion or acq
 Saturation is the one new bound. The interface states both formulae on screen next to the
 controls that drive them.
 
+**Cash may constrain S&M.** `smCashReserve` omitted / null / Infinity is the prior
+unconstrained contract: intended S&M is spent in full every month, even if cash is already
+negative. A finite reserve `r` ≥ 0 (including 0) caps this month's S&M at
+`max(0, cashOpening − r)` and New ARR is recomputed from that capped spend. R&D and G&A
+are not capped — this is not a financing model.
+
 ## Stock to flow
 
 ```

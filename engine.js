@@ -77,7 +77,8 @@
       acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).'
     },
     CONTROL: {
-      sm: 'Monthly S&M investment (management control)',
+      sm: 'Monthly S&M investment (management control) — intended spend; may be cut when smCashReserve is set',
+      smCashReserve: 'Cash floor S&M may not spend through. Null = unconstrained (prior). Finite including 0 = cannot spend below that cash balance.',
       rd: 'Monthly R&D investment (management control)',
       ga: 'Monthly G&A investment (management control)'
     },
@@ -98,6 +99,7 @@
     sm:                         900000,  // CONTROL   €/month
     cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR (small-spend / linear)
     acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
+    smCashReserve:              null,    // CONTROL   €; null = S&M unconstrained (prior). Finite = S&M ≤ max(0, cashOpening − reserve).
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -190,6 +192,25 @@
     return k;
   }
 
+  /* Cash floor on S&M. Null / omitted / Infinity = unconstrained (prior: S&M
+   * is spent in full every month even if cash is already negative). A finite
+   * reserve r ≥ 0 (including 0) means this month's S&M cannot exceed
+   * max(0, cashOpening − r). R&D and G&A stay unconstrained — this is not
+   * a financing model. See FINDINGS / System ⊘ "cash never constrains S&M". */
+  function smCashReserveOf(a) {
+    var r = a && a.smCashReserve;
+    if (r == null || r === Infinity) return null;
+    if (typeof r !== 'number' || isNaN(r) || r < 0) return null;
+    return r;
+  }
+
+  function effectiveSM(intended, cashOpening, reserve) {
+    if (reserve === null) return intended;
+    var room = cashOpening - reserve;
+    if (!(room > 0)) return 0;
+    return intended < room ? intended : room;
+  }
+
   function newARRPerMonth(a) {
     if (!(a.cacPerARR > 0)) return 0;
     var linear = a.sm / a.cacPerARR;
@@ -223,6 +244,7 @@
   function normaliseAssumptions(a) {
     var out = Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
     out.acqSaturationSpend = saturationSpendOf(out);
+    out.smCashReserve = smCashReserveOf(out);
     return out;
   }
 
@@ -236,13 +258,15 @@
 
     var gM = toMonthlyPersistence(a.persistenceAnnual);
     var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
-    /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
-       newARR (still newARRPerMonth(a), unchanged) is kept as the exact
-       12x-derived reporting figure every existing caller reads. */
-    var newARR = newARRPerMonth(a);
-    var newMRR = newARR / 12;
+    /* Intended (unconstrained) acquisition — used for derived.* and as the
+       monthly values whenever smCashReserve is null, so the default world is
+       bit-identical to v0.4. When a reserve is set, each month recomputes
+       New ARR from the cash-capped S&M. */
+    var newARRIntended = newARRPerMonth(a);
+    var newMRRIntended = newARRIntended / 12;
     var kSat = saturationSpendOf(a);
-    var stampCac = kSat === null ? a.cacPerARR : (newARR > 0 ? a.sm / newARR : a.cacPerARR);
+    var stampCacIntended = kSat === null ? a.cacPerARR : (newARRIntended > 0 ? a.sm / newARRIntended : a.cacPerARR);
+    var smReserve = smCashReserveOf(a);
 
     var bands = resolveBands(a);
     var bandRates = bands.map(function (b) {
@@ -289,6 +313,19 @@
       for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0;
+      var cashOpening = cash;
+      var smEff = effectiveSM(a.sm, cashOpening, smReserve);
+      var newARR, newMRR, stampCac;
+      if (smReserve === null) {
+        newARR = newARRIntended;
+        newMRR = newMRRIntended;
+        stampCac = stampCacIntended;
+      } else {
+        var monthA = Object.assign({}, a, { sm: smEff });
+        newARR = newARRPerMonth(monthA);
+        newMRR = newARR / 12;
+        stampCac = kSat === null ? a.cacPerARR : (newARR > 0 ? smEff / newARR : a.cacPerARR);
+      }
 
       /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
          Same transition coefficients, same order, same identities as before —
@@ -333,7 +370,7 @@
         /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
-        acquisitionCost: a.sm,
+        acquisitionCost: smEff,
         /* Stated coefficient when linear (bit-identical to v0.3). Realized
            S&M / New ARR when saturating, so cost = initialARR × stamp. */
         cacPerARRAtCreation: stampCac
@@ -357,11 +394,10 @@
       var grossProfit = revenue * a.grossMargin;
 
       /* --- 9. EBITA --- */
-      var ebita = grossProfit - a.sm - a.rd - a.ga;
+      var ebita = grossProfit - smEff - a.rd - a.ga;
 
       /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed. --- */
       var fcf = ebita;
-      var cashOpening = cash;
       var cashClosing = cashOpening + fcf;
       cash = cashClosing;
 
@@ -379,7 +415,7 @@
 
       cum.newARR += newARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
-      cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga;
+      cum.sm += smEff; cum.rd += a.rd; cum.ga += a.ga;
       cum.ebita += ebita; cum.fcf += fcf;
 
       months.push({
@@ -406,7 +442,8 @@
         revenue: revenue,
         cogs: cogs,
         grossProfit: grossProfit,
-        sm: a.sm, rd: a.rd, ga: a.ga,
+        sm: smEff, smIntended: a.sm, smConstrained: smEff + 1e-12 < a.sm,
+        rd: a.rd, ga: a.ga,
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
         fcf: fcf,
@@ -451,18 +488,20 @@
       derived: {
         monthlyPersistence: gM,
         monthlyExpansion: eM,
-        newMRRPerMonth: newMRR,                       // € of MRR added per month — MRR-NATIVE
-        newARRPerMonth: newARR,                       // € of ARR added per month — DERIVED, = 12 x newMRR
-        newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
+        newMRRPerMonth: newMRRIntended,                       // intended / unconstrained — MRR-NATIVE
+        newARRPerMonth: newARRIntended,                       // intended / unconstrained — = 12 x newMRR
+        newARRAnnualised: newARRIntended * 12,                // € of ARR created per year of intended spend
         annualAcquisitionSpend: a.sm * 12,
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
         impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
-        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0,  // = cacPerARR when linear; rises with spend when saturating
+        impliedCACPerNewARR: newARRIntended > 0 ? a.sm / newARRIntended : 0,
         acqSaturationSpend: kSat,                             // null when linear
         acqIsLinear: kSat === null,
         newARRLinear: a.cacPerARR > 0 ? a.sm / a.cacPerARR : 0,
-        acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR
+        acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR,
+        smCashReserve: smReserve,                             // null when unconstrained
+        smIsUnconstrained: smReserve === null
       },
       months: months,
       cohorts: cohorts
@@ -676,6 +715,8 @@
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
     saturationSpendOf: saturationSpendOf,
+    smCashReserveOf: smCashReserveOf,
+    effectiveSM: effectiveSM,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,

@@ -18,7 +18,7 @@
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -546,6 +546,52 @@
        wMixA < EPS && wMixC < EPS,
        'max ARR €' + wMixA.toExponential(2) + '; max cash €' + wMixC.toExponential(2) +
        ' — maturity itself creates nothing when laws are flat');
+
+    /* ================================================================ *
+     * Cash constrains S&M. One coefficient: smCashReserve.
+     * Null / omitted / Infinity = unconstrained (prior: S&M is spent in
+     * full every month). Finite r ≥ 0: S&M ≤ max(0, cashOpening − r).
+     * ================================================================ */
+    var rResNull = E.run(Object.assign({}, A, { smCashReserve: null }));
+    var rResOmit = E.run(A);
+    var rResInf  = E.run(Object.assign({}, A, { smCashReserve: Infinity }));
+    var rResNeg  = E.run(Object.assign({}, A, { smCashReserve: -1 }));
+    ok('CASHSM · Null / omitted / ∞ / invalid reserve is bit-identical to unconstrained S&M',
+       JSON.stringify(rResOmit.months) === JSON.stringify(rResNull.months) &&
+       JSON.stringify(rResOmit.months) === JSON.stringify(rResInf.months) &&
+       JSON.stringify(rResOmit.months) === JSON.stringify(rResNeg.months) &&
+       rResOmit.derived.smIsUnconstrained === true && rResOmit.derived.smCashReserve === null,
+       'omit≡null≡∞≡neg; smIsUnconstrained=' + rResOmit.derived.smIsUnconstrained);
+
+    var alwaysFull = rResOmit.months.every(function (m) {
+      return Math.abs(m.sm - A.sm) < EPS && m.smConstrained === false;
+    });
+    ok('CASHSM · Unconstrained path spends the intended S&M every month',
+       alwaysFull, 'intended €' + (A.sm / 1e3).toFixed(0) + 'k/mo');
+
+    var tight = E.run(Object.assign({}, A, { smCashReserve: 2000000, sm: 2500000 }),
+      { openingARR: 20000000, openingCash: 3000000 });
+    var boundHeld = tight.months.every(function (m) {
+      var cap = Math.max(0, m.cashOpening - 2000000);
+      return m.sm <= cap + EPS && m.sm <= 2500000 + EPS;
+    });
+    var cutSomewhere = tight.months.some(function (m) { return m.smConstrained; });
+    ok('CASHSM · With a reserve, S&M never exceeds max(0, cashOpening − reserve) and is cut when cash is tight',
+       boundHeld && cutSomewhere && tight.months[0].sm < 2500000 - EPS,
+       'M1 S&M €' + (tight.months[0].sm / 1e3).toFixed(1) + 'k vs intended €2500k; cash opening €' +
+       (tight.months[0].cashOpening / 1e6).toFixed(2) + 'm');
+
+    var starved = E.run(Object.assign({}, A, { smCashReserve: 10000000, sm: 900000 }),
+      { openingARR: 20000000, openingCash: 10000000 });
+    ok('CASHSM · Reserve equal to opening cash forces S&M and New ARR to zero in month 1',
+       starved.months[0].sm < EPS && starved.months[0].newARR < EPS,
+       'M1 S&M €' + starved.months[0].sm.toFixed(2) + '; New ARR €' + starved.months[0].newARR.toFixed(2));
+
+    ok('CASHSM · Cutting S&M does not change month-1 installed-base leakage or expansion (same opening book, same laws)',
+       Math.abs(BASE.months[0].leakage - starved.months[0].leakage) < EPS &&
+       Math.abs(BASE.months[0].expansion - starved.months[0].expansion) < EPS,
+       'M1 leakage €' + (starved.months[0].leakage / 1e6).toFixed(3) + 'm; expansion €' +
+       (starved.months[0].expansion / 1e6).toFixed(3) + 'm');
 
     return out;
   }

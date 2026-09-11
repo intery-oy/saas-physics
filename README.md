@@ -138,6 +138,7 @@ identity, bridge, measurement and integrity check, in numbers.
 ```bash
 node checks.js              # 48 economic, measurement, state, NL and OPEN integrity checks
 node opening-checks.js      # B1+B2 opening-state UI + inverse-calibration contract
+node cash-checks.js         # S&M cash-reserve null default + bound
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -161,6 +162,7 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | Class | Assumption | Default |
 |---|---|---|
 | CONTROL | Monthly S&M investment | €900k |
+| CONTROL | S&M cash reserve | off (null) — finite floor caps S&M at cash |
 | CONTROL | Monthly R&D investment | €700k |
 | CONTROL | Monthly G&A investment | €350k |
 | TRANSITION | CAC / New ARR | 1.20× (small-spend / linear) |

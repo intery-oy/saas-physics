@@ -309,7 +309,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <div>
           <h5>Major current boundaries</h5>
           <ul>
-            <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider.</li>
+            <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider. S&amp;M itself is unconstrained in cash unless a cash reserve is set.</li>
             <li><b>#19</b> The default opening book is still one age-0 €20m cohort. Opening ARR, cash and a three-band vintage mix are now on the rail — they write the engine&rsquo;s existing start object, they do not invent an adapter. Scenario 6 keeps its own construction.</li>
             <li><b>#14</b> Expansion carries no separately modelled marginal cost.</li>
             <li><b>#15</b> FCF = EBITA. No working capital, deferred revenue, tax or capex.</li>
@@ -549,7 +549,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
     capAgg = aggCapital(expRes);
     if(attributionValid()){
-      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR, acqSaturationSpend: expA.acqSaturationSpend });
+      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR, acqSaturationSpend: expA.acqSaturationSpend, smCashReserve: expA.smCashReserve });
       var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual });
       attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
       var changedLevers = E.compare(baseRes, expRes).changed;
@@ -569,8 +569,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      thing it is, because changing a management input and changing a law of the
      installed base are different acts with different standing. */
   var FORCE_GROUPS = [
-    { kind:'Management input', note:'Set externally. Nothing in the engine constrains it.',
-      forces:[ {k:'sm', label:'S&M investment', sub:'commercial investment per month', min:0, max:2500000, step:25000, f:'eur'} ] },
+    { kind:'Management input', note:'S&M is a stated intention. Off by default the engine spends it in full even if cash is already negative. A cash reserve is the bound that stops that.',
+      forces:[ {k:'sm', label:'S&M investment', sub:'intended commercial investment per month', min:0, max:2500000, step:25000, f:'eur'},
+               {k:'smCashReserve', label:'S&M cash reserve', sub:'S&M cannot spend through this cash floor. Off = unconstrained (prior).', min:0, max:20000000, step:250000, f:'offeur'} ] },
     { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
                {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
@@ -590,6 +591,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
   function fmtF(f, v){
     if(f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
+    if(f==='offeur') return (v==null || !(v>0)) ? 'off · unconstrained' : eur(v);
     return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
   }
 
@@ -613,7 +615,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       clearScenario();
       expA = Object.assign({}, expA);
       var raw = parseFloat(e.target.value);
-      expA[F.k] = (F.f==='sat' && !(raw>0)) ? null : raw;
+      expA[F.k] = ((F.f==='sat' || F.f==='offeur') && !(raw>0)) ? null : raw;
       recompute(prev);
     });
     return d;
@@ -813,10 +815,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     FORCES.forEach(function(F){
       var el=document.getElementById('f-'+F.k); if(!el) return;
       var cur = expA[F.k];
-      if(F.f==='sat' && !(cur>0)) cur = 0;
+      if((F.f==='sat' || F.f==='offeur') && !(cur>0)) cur = 0;
       el.value = cur;
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
-      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || (F.f==='sat' && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
+      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || ((F.f==='sat' || F.f==='offeur') && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
     });
   }
@@ -895,6 +897,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     acqSat: 'Acquisition saturates: New ARR = (k / CAC) × S&M / (S&M + k). Marginal productivity falls as spend rises; the model can say stop. (#10)',
     exp: 'Expansion carries no separately modelled marginal cost. (#14)',
     fcf: 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)',
+    cashsm: 'S&M is unconstrained in cash at the default. A cash reserve caps S&M at max(0, cashOpening − reserve). R&D and G&A stay unconstrained — this is not a financing model.',
     rd:  'R&D has no modelled effect on retention or expansion. (#16)'
   };
 
@@ -1531,7 +1534,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     link([[215,178],[215,726],[905,726],[905,352]], 'S&M is also an operating cost');
 
     /* ---------- ABSENT LINKS: the model boundary, drawn ---------- */
-    link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'cash never constrains S&M', true);
+    if(expA.smCashReserve>0)
+      link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'S&M stops at cash reserve '+eur(expA.smCashReserve), false);
+    else
+      link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'cash never constrains S&M', true);
     link([[700,428],[700,616],[652,616]], 'R&D → retention or expansion', true);
 
     /* ---------- header and scales ---------- */
@@ -2079,8 +2085,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
-      '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> S&amp;M is exogenous. Cash can fall to '+
-      eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend. The capital loop is drawn open because it <em>is</em> open.'+
+      (expA.smCashReserve>0
+        ? '<b style="color:var(--ink)">Cash → S&amp;M.</b> S&amp;M cannot spend through a cash reserve of '+eur(expA.smCashReserve)+'. Intended S&amp;M is '+eur(expA.sm)+'/'+(expRes.months[selectedMonth()-1].smConstrained?'cut this month to '+eur(expRes.months[selectedMonth()-1].sm):'still affordable this month')+'. R&amp;D and G&amp;A stay unconstrained.'
+        : '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> S&amp;M is exogenous. Cash can fall to '+
+          eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend. The capital loop is drawn open because it <em>is</em> open. Set a cash reserve on the Forces rail to close it.')+
       '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit, so it '+
       'reaches no valve. The absence is the honest drawing of the model boundary.</div></div>';
 
@@ -2239,9 +2247,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function boundaryDisclosure(changed){
     var keys = changed.map(function(u){ return u.key; });
     var bounds = [];
-    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0 || keys.indexOf('acqSaturationSpend')>=0){
+    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0 || keys.indexOf('acqSaturationSpend')>=0 || keys.indexOf('smCashReserve')>=0){
       var satOn = (expA.acqSaturationSpend>0) || (baseA.acqSaturationSpend>0);
       bounds.push(satOn ? 'acqSat' : 'acq');
+      if(keys.indexOf('smCashReserve')>=0 || expA.smCashReserve>0 || baseA.smCashReserve>0) bounds.push('cashsm');
     }
     if(keys.indexOf('expansionCoefficientAnnual')>=0) bounds.push('exp');
     if(keys.indexOf('rd')>=0) bounds.push('rd');
@@ -2281,10 +2290,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       'in a system with interactions — they are not forced to sum to the total.</div>' : '';
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+t1+t2+'</details></div>';
   }
-  var LABEL={sm:'S&M', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
+  var LABEL={sm:'S&M', smCashReserve:'S&M cash reserve', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
              persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A'};
-  var LABEL_FMT={sm:'eur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur'};
+  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

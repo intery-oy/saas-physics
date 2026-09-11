@@ -191,8 +191,8 @@ S&M. Gross margin still does not appear in the generator. Stated CAC payback is 
 buys vanishing New ARR while still costing full S&M in the P&L. The model can say *stop*.
 
 **What it still does not teach:** a universal empirical `k`. The engine asserts no
-saturation scale until someone sets one. Cash still does not constrain S&M (the capital
-loop remains open). No acquisition lag.
+saturation scale until someone sets one. No acquisition lag. Cash constrains S&M only
+when `smCashReserve` is set (null default = unconstrained, the prior contract).
 
 **Demo:** v1 Forces rail → Saturation spend off by default. Set `k` to €1.5m, then raise
 S&M toward €2.5m and watch New ARR flatten while cash keeps falling. Reset saturation to
