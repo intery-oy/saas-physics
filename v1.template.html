@@ -314,7 +314,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>#14</b> Expansion is free <em>at the default</em> (expansion CAC = 0). Set Expansion CAC / €1 Exp ARR to price expansion without changing the ARR path.</li>
             <li><b>#15</b> FCF = EBITA <em>at the default</em> (prepaid term off). Set a prepaid term so FCF = EBITA + N × ΔMRR — growth is then cash-generative at the WC line. No tax, capex or debt.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
-            <li><b>#18</b> Leakage is one number; there are no customers, so churn and contraction cannot be separated.</li>
+            <li><b>#18</b> Leakage is one number <em>at the default</em> (logo retention off), so churn and contraction cannot be separated. Set logo retention to split leakage into logo churn and contraction — ARR does not move.</li>
             <li><b>#21</b> There is no price.</li>
           </ul>
         </div>
@@ -572,9 +572,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     { kind:'Management input', note:'S&M is a stated intention. Off by default the engine spends it in full even if cash is already negative. A cash reserve is the bound that stops that.',
       forces:[ {k:'sm', label:'S&M investment', sub:'intended commercial investment per month', min:0, max:2500000, step:25000, f:'eur'},
                {k:'smCashReserve', label:'S&M cash reserve', sub:'S&M cannot spend through this cash floor. Off = unconstrained (prior).', min:0, max:20000000, step:250000, f:'offeur'} ] },
-    { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
+    { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it. Logo retention is off by default — leakage stays one number.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
-               {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
+               {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] },
+               {k:'logoRetentionAnnual', label:'Logo retention', sub:'annual customer survival. Off = no customer stock (prior). Splits leakage into logo churn and contraction without moving ARR.', min:0, max:0.99, step:0.005, f:'offpct'} ] },
     { kind:'Acquisition efficiency', note:'How much recurring state spend creates. Saturation is off by default. Expansion CAC is 0 by default — expansion is free (the prior contract).',
       forces:[ {k:'cacPerARR', label:'CAC / €1 New ARR', sub:'small-spend (linear) productivity — spend required per euro of new ARR', min:0.3, max:3, step:0.05, f:'x'},
                {k:'acqSaturationSpend', label:'Saturation spend', sub:'monthly S&M at which average productivity is half the linear prediction. Off = linear, unbounded.', min:0, max:5000000, step:50000, f:'sat'},
@@ -595,6 +596,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
     if(f==='offeur') return (v==null || !(v>0)) ? 'off · unconstrained' : eur(v);
     if(f==='offmo') return (v==null || !(v>0)) ? 'off · FCF=EBITA' : (v|0)+' mo';
+    if(f==='offpct') return (v==null || !(v>0)) ? 'off · no logos' : pct(v,1);
     return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
   }
 
@@ -618,7 +620,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       clearScenario();
       expA = Object.assign({}, expA);
       var raw = parseFloat(e.target.value);
-      expA[F.k] = ((F.f==='sat' || F.f==='offeur' || F.f==='offmo') && !(raw>0)) ? null : raw;
+      expA[F.k] = ((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(raw>0)) ? null : raw;
       recompute(prev);
     });
     return d;
@@ -818,10 +820,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     FORCES.forEach(function(F){
       var el=document.getElementById('f-'+F.k); if(!el) return;
       var cur = expA[F.k];
-      if((F.f==='sat' || F.f==='offeur' || F.f==='offmo') && !(cur>0)) cur = 0;
+      if((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(cur>0)) cur = 0;
       el.value = cur;
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
-      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || ((F.f==='sat' || F.f==='offeur' || F.f==='offmo') && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
+      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || ((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
     });
   }
@@ -1926,7 +1928,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="srow"><span>Expansion − Leakage</span><b class="'+cls3+'">'+reurS(net)+'</b></div>'+
       '<div class="hint" style="margin-top:6px;line-height:1.65">Net installed-base movement of '+reurS(net)+' against opening installed-base '+basis+
       ' of '+reur(em.openingARR)+' = <b style="color:var(--ink-2)">'+pct(Math.abs(ratio),2)+'</b> this month. '+
-      'The installed base is <b style="color:var(--ink-2)">'+word+'</b> (tolerance ±'+pct(NET_TOLERANCE,2)+' of opening).</div></div>';
+      'The installed base is <b style="color:var(--ink-2)">'+word+'</b> (tolerance ±'+pct(NET_TOLERANCE,2)+' of opening).</div>'+
+      (expRes.derived.logoLayerOn
+        ? '<div class="srow" style="margin-top:8px"><span>Customers</span><b>'+em.customersOpening.toFixed(0)+' → '+em.customersClosing.toFixed(0)+'</b></div>'+
+          '<div class="srow"><span>Logo-churn ARR (logo churn and contraction split)</span><b>'+reur(em.logoChurn)+'</b></div>'+
+          '<div class="srow"><span>Contraction ARR (logo churn and contraction split)</span><b>'+reur(em.contraction)+'</b></div>'+
+          '<div class="hint" style="margin-top:6px;line-height:1.65">Leakage splits into logo churn and contraction: '+
+          reur(em.logoChurn)+' + '+reur(em.contraction)+' = '+reur(em.leakage)+
+          '. Persistence still drives the ARR loss; this is the board split, not a second law.</div>'
+        : '') +
+      '</div>';
   }
 
   /* ------------------------------------------------------------------ *
@@ -2305,9 +2316,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var LABEL={sm:'S&M', smCashReserve:'S&M cash reserve', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
              persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', expansionCacPerARR:'Expansion CAC',
+             logoRetentionAnnual:'Logo retention',
              grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              billingAdvanceMonths:'Prepaid term'};
-  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', expansionCacPerARR:'x', grossMargin:'pct', rd:'eur', ga:'eur', billingAdvanceMonths:'offmo'};
+  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', expansionCacPerARR:'x', logoRetentionAnnual:'offpct', grossMargin:'pct', rd:'eur', ga:'eur', billingAdvanceMonths:'offmo'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

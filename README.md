@@ -141,6 +141,7 @@ node opening-checks.js      # B1+B2 opening-state UI + inverse-calibration contr
 node cash-checks.js         # S&M cash-reserve null default + bound
 node billings-checks.js     # prepaid term: null = FCF=EBITA; finite N splits them
 node expansion-checks.js    # expansion CAC: 0 = free; finite c is cash-only
+node logo-checks.js         # logo retention: null = no customers; split = leakage
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -170,6 +171,7 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | TRANSITION | CAC / New ARR | 1.20× (small-spend / linear) |
 | TRANSITION | Saturation spend | off (null) — finite `k` saturates New ARR |
 | TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
+| TRANSITION | Logo retention | off (null) — no customers; finite splits leakage without moving ARR |
 | TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
 | TRANSITION | Expansion CAC / Exp ARR | 0 (free) — finite c prices expansion without moving ARR |
 | TRANSITION | Gross margin | 80% |

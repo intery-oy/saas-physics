@@ -60,7 +60,9 @@
     FLOW: {
       newARR:      'ARR added by acquisition this month',
       expansion:   'ARR added by the installed base this month',
-      leakage:     'ARR lost by the installed base this month (churn + contraction combined in v0.1)',
+      leakage:     'ARR lost by the installed base this month (logo churn + contraction when logoRetentionAnnual is set; otherwise combined)',
+      logoChurn:   'ARR lost with departing customers (only when logoRetentionAnnual is set)',
+      contraction: 'ARR lost on surviving customers (only when logoRetentionAnnual is set)',
       revenue:     'Recognised revenue this month',
       cogs:        'Cost of revenue this month',
       grossProfit: 'Revenue less COGS this month',
@@ -78,7 +80,8 @@
       cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
       acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).',
       billingAdvanceMonths:       'Prepaid billing term in months. Null/0 = FCF aliased to EBITA (prior). Finite N: billings = revenue + N×ΔMRR; FCF = EBITA + Δdeferred.',
-      expansionCacPerARR:         'Cost per €1 of Expansion ARR, symmetric with cacPerARR. Null/0 = free expansion (prior).'
+      expansionCacPerARR:         'Cost per €1 of Expansion ARR, symmetric with cacPerARR. Null/0 = free expansion (prior).',
+      logoRetentionAnnual:        'Annual customer (logo) survival. Null = no customer stock (prior). Persistence still drives ARR leakage; this splits it into logo churn vs contraction.'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control) — intended spend; may be cut when smCashReserve is set',
@@ -106,6 +109,7 @@
     smCashReserve:              null,    // CONTROL   €; null = S&M unconstrained (prior). Finite = S&M ≤ max(0, cashOpening − reserve).
     billingAdvanceMonths:       null,    // TRANSITION prepaid term in months. Null/0 = FCF=EBITA (prior). Finite N: FCF = EBITA + N×ΔMRR.
     expansionCacPerARR:         0,       // TRANSITION € of cost per €1 of Expansion ARR. 0 = free (prior).
+    logoRetentionAnnual:        null,    // TRANSITION 12-month customer survival. Null = no customer layer (prior).
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -149,7 +153,9 @@
     /* v0.3: the opening base may be a portfolio of vintages. Each entry is
        { arr, age } where age is the cohort's age in months at t=0. Omit for the
        v0.2.1 behaviour of one opening cohort at age 0. */
-    openingCohorts: null
+    openingCohorts: null,
+    /* Used only when logoRetentionAnnual is set. Null = derive from €20k ARPA. */
+    openingCustomers: null
   };
 
   /* ------------------------------------------------------------------ *
@@ -224,6 +230,15 @@
    *   FCF       = EBITA + Δdeferred
    * Growing ARR is then cash-generative at the WC line — the opposite sign
    * of the old alias. No tax, capex, debt or other WC. See FINDINGS #15. */
+  var DEFAULT_ARPA = 20000; // € ARR per customer when the logo layer is on and no count is given
+
+  function logoRetentionOf(a) {
+    var p = a && a.logoRetentionAnnual;
+    if (p == null || p === 0 || p === Infinity) return null;
+    if (typeof p !== 'number' || !(p > 0 && p <= 1)) return null;
+    return p;
+  }
+
   function expansionCacOf(a) {
     var c = a && a.expansionCacPerARR;
     if (c == null || c === 0) return 0;
@@ -274,6 +289,7 @@
     out.smCashReserve = smCashReserveOf(out);
     out.billingAdvanceMonths = billingAdvanceOf(out);
     out.expansionCacPerARR = expansionCacOf(out);
+    out.logoRetentionAnnual = logoRetentionOf(out);
     return out;
   }
 
@@ -311,6 +327,10 @@
     var seed = (s.openingCohorts && s.openingCohorts.length)
       ? s.openingCohorts
       : [{ arr: s.openingARR, age: 0 }];
+    var logoP = logoRetentionOf(a);
+    var seedARR = seed.reduce(function (n, c) { return n + c.arr; }, 0);
+    var arpa0 = logoP === null ? 0
+      : (s.openingCustomers > 0 && seedARR > 0 ? seedARR / s.openingCustomers : DEFAULT_ARPA);
     var cohorts = seed.map(function (c, i) {
       return {
         id: seed.length === 1 ? 'base' : 'base' + (i + 1),
@@ -321,6 +341,7 @@
         /* MRR-NATIVE: c.arr is the public, ARR-denominated seed input
            (unchanged API); live is the engine's own state, carried in MRR. */
         live: c.arr / 12,
+        liveCustomers: logoP === null ? 0 : (c.customers != null ? c.customers : (arpa0 > 0 ? c.arr / arpa0 : 0)),
         /* PROVENANCE. The cost of creating the opening base happened before the
            simulation and is genuinely unknown — recorded as null, never as zero. */
         acquisitionCost: null,
@@ -347,6 +368,7 @@
       for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0;
+      var totLogoChurnARR = 0, totContractionARR = 0, totCustOpen = 0, totCustClose = 0;
       var cashOpening = cash;
       var smEff = effectiveSM(a.sm, cashOpening, smReserve);
       var newARR, newMRR, stampCac;
@@ -382,6 +404,23 @@
         var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
         var revenue   = avgMRR;                       // MRR already IS the monthly amount
         var gp        = revenue * a.grossMargin;
+        /* Logo layer. Persistence still drives ARR leakage. When on, that
+           leakage is split into logo-churn ARR (lost customers × opening ARPA)
+           and contraction ARR (the residual). Logo churn is clamped so it
+           cannot exceed ARR leakage — the ARR path never changes. */
+        var custOpen = c.liveCustomers || 0, custClose = custOpen, logoChurnARR = 0, contractionARR = 0;
+        var leakARR = leakageC * 12;
+        if (logoP !== null && custOpen > 0) {
+          var gLogo = toMonthlyPersistence(logoP);
+          var custRet = custOpen * gLogo;
+          var lost = custOpen - custRet;
+          var arpa = (openingC * 12) / custOpen;
+          logoChurnARR = lost * arpa;
+          if (logoChurnARR > leakARR) { logoChurnARR = leakARR; lost = arpa > 0 ? leakARR / arpa : 0; custRet = custOpen - lost; }
+          contractionARR = leakARR - logoChurnARR;
+          custClose = custRet;
+        }
+        c.liveCustomers = custClose;
 
         c.rows.push({
           t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
@@ -389,18 +428,23 @@
           expansionMRR: expansionC, closingMRR: closingC,
           openingARR: openingC * 12, retainedARR: retainedC * 12, leakage: leakageC * 12,
           expansion: expansionC * 12, closingARR: closingC * 12,
+          customersOpening: custOpen, customersClosing: custClose,
+          logoChurn: logoChurnARR, contraction: contractionARR,
           revenue: revenue, grossProfit: gp
         });
         c.live = closingC;
+        totLogoChurnARR += logoChurnARR; totContractionARR += contractionARR;
+        totCustOpen += custOpen; totCustClose += custClose;
 
         totRetainedMRR += retainedC; totLeakageMRR += leakageC;
         totExpansionMRR += expansionC; totRevenue += revenue;
       }
 
       /* --- New acquisition cohort is created AFTER the base has aged --- */
+      var ncCustomers = (logoP === null || !(arpa0 > 0)) ? 0 : (newMRR * 12) / arpa0;
       var nc = {
         id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
-        initialARR: newMRR * 12, live: newMRR, rows: [],
+        initialARR: newMRR * 12, live: newMRR, liveCustomers: ncCustomers, rows: [],
         /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
@@ -414,10 +458,12 @@
         t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
         openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: newMRR,
         openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newMRR * 12,
+        customersOpening: 0, customersClosing: ncCustomers, logoChurn: 0, contraction: 0,
         revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin
       });
       cohorts.push(nc);
       totRevenue += ncRevenue;
+      totCustClose += ncCustomers;
 
       var closingMRR = totRetainedMRR + totExpansionMRR + newMRR;
 
@@ -498,6 +544,10 @@
         burn: fcf < 0 ? -fcf : 0,
         cashOpening: cashOpening,
         cashClosing: cashClosing,
+        customersOpening: totCustOpen,
+        customersClosing: totCustClose,
+        logoChurn: totLogoChurnARR,
+        contraction: totContractionARR,
         nrrMonthly: nrrMonthly,               /* chained transition NRR, not the R12M KPI */
         nrrAnnualised: nrrAnnualised,         /* chained monthly NRR annualised — see kpi.js for the KPI */
         arrGrowthMoM: openingARR > 0 ? closingARR / openingARR - 1 : 0,
@@ -552,7 +602,10 @@
         smIsUnconstrained: smReserve === null,
         billingAdvanceMonths: billN,                          // null when FCF=EBITA
         fcfEqualsEbita: billN === null,
-        expansionCacPerARR: expansionCacOf(a)
+        expansionCacPerARR: expansionCacOf(a),
+        logoRetentionAnnual: logoP,
+        logoLayerOn: logoP !== null,
+        openingARPA: arpa0
       },
       months: months,
       cohorts: cohorts
@@ -770,6 +823,8 @@
     effectiveSM: effectiveSM,
     billingAdvanceOf: billingAdvanceOf,
     expansionCacOf: expansionCacOf,
+    logoRetentionOf: logoRetentionOf,
+    DEFAULT_ARPA: DEFAULT_ARPA,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,

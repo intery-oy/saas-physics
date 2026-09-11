@@ -15,7 +15,7 @@ Same branch / PR. Constitution: one mechanism at a time; null default reproduces
 | 2 | Cash constrains S&M | done — null = unconstrained (prior) |
 | 3 | Deferred revenue / billings → FCF ≠ EBITA | done — null = FCF=EBITA (prior) |
 | 4 | Expansion cost (`expansionCacPerARR`) | done — 0 = free (prior) |
-| 5 | Logo vs contraction | queued |
+| 5 | Logo vs contraction | done — null = no customers (prior) |
 | 6 | Age/vintage editor on screen | queued |
 
 ---
@@ -75,6 +75,21 @@ One coefficient: `expansionCacPerARR`. **0 / null = free expansion** (prior). Fi
 
 ```bash
 node expansion-checks.js
+```
+
+---
+
+## Overnight build — Logo vs contraction
+
+One coefficient: `logoRetentionAnnual`. **Null / 0 = no customer stock** (prior). Finite: persistence still drives ARR leakage (ARR and cash paths bit-identical); leakage splits into logo-churn ARR and contraction ARR. Default ARPA €20k → 1,000 opening customers. R12M reports the split when the layer is on.
+
+### How to demo
+
+1. Default: Logo retention **off · no logos**. Leakage is one number.
+2. Set Logo retention to **90%**. Customers appear (~1,000 opening). Leakage splits; ARR is unchanged. Raise toward 99% — more logos survive, same ARR.
+
+```bash
+node logo-checks.js
 ```
 
 ---
@@ -188,7 +203,8 @@ Call it a **first demo of a research instrument**, not an MVP.
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 61 / 61 (prior + OPEN + CASHSM + DR + EXPCAC) |
+| `node checks.js` | 66 / 66 |
+| `node logo-checks.js` | 4 / 4 |
 | `node expansion-checks.js` | 4 / 4 |
 | `node opening-checks.js` | 9 / 9 |
 | `node cash-checks.js` | 5 / 5 |

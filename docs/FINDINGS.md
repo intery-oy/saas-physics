@@ -277,17 +277,19 @@ management thesis, explicitly owned by the user, not a property of SaaS. Not imp
 S&M spent in month *t* produces ARR in month *t*. Real sales cycles run 3–9 months, and that lag is
 exactly where the cash pain of a growth push lives.
 
-### 18. Leakage is a single number, and there are no customers
+### 18. Leakage is a single number at the default — logo retention is now optional
 
 > **Blocked CFO question:** *how much of the loss is logo churn and how much is
 > contraction within retained customers?*
 
+**Null / 0 (`logoRetentionAnnual`).** No customer stock. Leakage stays one combined number —
+the prior contract, bit-identical. Reactivation is still zero.
 
-Churn and contraction are combined, so the model cannot distinguish losing customers from customers
-shrinking — which is why the measurement layer cannot report them separately either, however
-correct its definitions are. Reactivation is zero. There is no customer count at all, so identical
-ARR paths and identical reported KPIs can conceal completely different logo survival and expansion
-concentration — see §F of `MEASUREMENT.md` for a worked pair.
+**Finite logo retention.** Persistence still drives ARR leakage (the ARR and cash paths do
+not move). That leakage is split into logo-churn ARR (lost customers × opening ARPA,
+clamped so it cannot exceed leakage) and contraction ARR (the residual). Default opening
+ARPA is €20k → 1,000 customers on the €20m book. R12M measurement reports logo retention
+and the two leakage components when the layer is on.
 
 ### 19. The opening base is one cohort by default — now settable (B1)
 

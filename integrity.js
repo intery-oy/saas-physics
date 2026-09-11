@@ -18,7 +18,7 @@
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths; delete A.expansionCacPerARR;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths; delete A.expansionCacPerARR; delete A.logoRetentionAnnual;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -671,6 +671,44 @@
     ok('EXPCAC · On the matched-NRR pair, Δending cash moves linearly with extra expansion × c',
        Math.abs((d1 - d0) + extraExp) < 1 && extraExp > 1e6,
        'extra expansion €' + (extraExp / 1e6).toFixed(2) + 'm; ΔΔcash €' + ((d1 - d0) / 1e6).toFixed(2) + 'm');
+
+    /* ================================================================ *
+     * Logo vs contraction. Null = no customer stock (prior). Finite logo
+     * retention splits ARR leakage without changing the ARR or cash path.
+     * ================================================================ */
+    var rLogoNull = E.run(Object.assign({}, A, { logoRetentionAnnual: null }));
+    var rLogoZero = E.run(Object.assign({}, A, { logoRetentionAnnual: 0 }));
+    ok('LOGO · Null / 0 logo retention is bit-identical to the prior no-customer contract',
+       JSON.stringify(BASE.months) === JSON.stringify(rLogoNull.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rLogoZero.months) &&
+       BASE.derived.logoLayerOn === false &&
+       BASE.months.every(function (m) { return m.customersOpening === 0 && Math.abs(m.logoChurn) < EPS; }),
+       'omit≡null≡0; no customer stock');
+
+    var rLogo = E.run(Object.assign({}, A, { logoRetentionAnnual: 0.90 }));
+    var wLogoA = 0, wLogoC = 0, splitOk = true;
+    for (i = 0; i < BASE.horizon; i++) {
+      wLogoA = Math.max(wLogoA, Math.abs(rLogo.months[i].closingARR - BASE.months[i].closingARR));
+      wLogoC = Math.max(wLogoC, Math.abs(rLogo.months[i].cashClosing - BASE.months[i].cashClosing));
+      if (Math.abs(rLogo.months[i].logoChurn + rLogo.months[i].contraction - rLogo.months[i].leakage) > EPS) splitOk = false;
+    }
+    ok('LOGO · Turning the logo layer on does not change the ARR or cash path',
+       wLogoA < EPS && wLogoC < EPS, 'max ARR €' + wLogoA.toExponential(3) + '; max cash €' + wLogoC.toExponential(3));
+
+    ok('LOGO · When on, logo-churn ARR + contraction ARR = leakage every month',
+       splitOk && rLogo.derived.logoLayerOn === true,
+       'M1 customers ' + rLogo.months[0].customersOpening.toFixed(1) + ' → ' +
+       rLogo.months[0].customersClosing.toFixed(1) + '; ARPA €' + (rLogo.derived.openingARPA / 1e3).toFixed(0) + 'k');
+
+    ok('LOGO · Default ARPA seeds 1,000 customers on the €20m opening book',
+       Math.abs(rLogo.months[0].customersOpening - 1000) < 1e-6, 'M1 opening customers ' + rLogo.months[0].customersOpening);
+
+    var rLogoHi = E.run(Object.assign({}, A, { logoRetentionAnnual: 0.99 }));
+    ok('LOGO · Higher logo retention keeps more customers and does not change ARR',
+       rLogoHi.months[11].customersClosing > rLogo.months[11].customersClosing &&
+       Math.abs(rLogoHi.months[11].closingARR - rLogo.months[11].closingARR) < EPS,
+       'M12 customers ' + rLogo.months[11].customersClosing.toFixed(1) + ' → ' +
+       rLogoHi.months[11].customersClosing.toFixed(1));
 
     return out;
   }

@@ -129,7 +129,7 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
   var allowed = churnMentions.filter(function (m2) {
     var idx = scan.indexOf(m2);
     var ctx = scan.slice(Math.max(0, idx - 100), idx + 100);
-    return /combines churn and contraction|so churn and contraction cannot be separated/.test(ctx);
+    return /combines churn and contraction|churn and contraction cannot be separated|logo churn and contraction/.test(ctx);
   });
   ok('NO-FAKE-MOVEMENTS', '"Churn" appears only inside the disclosed combined-metric sentence(s), never as its own row',
      churnMentions.length === allowed.length,
@@ -138,7 +138,7 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
      !/row\(.Contraction/i.test(noComments) && !/label:.Contraction/i.test(noComments) &&
      (noComments.match(/[Cc]ontraction/g)||[]).every(function(m3){
        var idx=noComments.indexOf(m3); var ctx=noComments.slice(Math.max(0,idx-100),idx+100);
-       return /combines churn and contraction|so churn and contraction cannot be separated/.test(ctx);
+       return /combines churn and contraction|churn and contraction cannot be separated|logo churn and contraction/.test(ctx);
      }), '');
   ok('NO-FAKE-MOVEMENTS', 'no time-varying glide-path / policy-rule / Trajectory surface reintroduced',
      !/glide.?path/i.test(tpl) && !/nav-trajectory/i.test(tpl) && !/Roadmap/i.test(tpl), '');
