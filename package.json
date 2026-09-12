@@ -9,6 +9,6 @@
     "scenarios": "node scenarios.js",
     "build": "node build.js",
     "state": "node state-sufficiency.js",
-    "report": "node checks.js && node opening-checks.js && node cash-checks.js && node billings-checks.js && node expansion-checks.js && node logo-checks.js && node age-checks.js && node basis-checks.js && node state-sufficiency.js && node scenarios.js"
+    "report": "node checks.js && node opening-checks.js && node cash-checks.js && node billings-checks.js && node expansion-checks.js && node logo-checks.js && node age-checks.js && node notebook-checks.js && node basis-checks.js && node state-sufficiency.js && node scenarios.js"
   }
 }

@@ -105,6 +105,7 @@ Four actions: **Observe → Change → Compare → Inspect**.
 |---|---|
 | **Company** | Observe the accumulated recurring economic state and where it came from. |
 | **System** | A model audit: the causal topology the engine actually contains, with ⊘ marking the links it does not. |
+| **Notebook** | Month × KPI table of the current run. Lab-notebook substrate for charts later. Companion to System — does not replace Method, System, or Scenarios 5 & 6. |
 | **Scenarios** | Six canonical scenarios. Change one declared assumption against a frozen Base and read the consequence. |
 | **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
 
@@ -149,6 +150,7 @@ node billings-checks.js     # prepaid term: null = FCF=EBITA; finite N splits th
 node expansion-checks.js    # expansion CAC: 0 = free; finite c is cash-only
 node logo-checks.js         # logo retention: null = no customers; split = leakage
 node age-checks.js          # tenure editor: default flat; Scenario 6 copy rule
+node notebook-checks.js     # Notebook table: month-60 ARR checksum, GRR/NRR pair, logos, Base|Exp
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -206,6 +208,7 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Documents
 
+- [`docs/NOTEBOOK_TABLE_SPEC.md`](docs/NOTEBOOK_TABLE_SPEC.md) — Notebook table (lab notebook): month × KPI substrate for charts later
 - [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) — post-build instrument assessment, philosophy, overclaims, sequenced roadmap
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps; overnight sequence is done)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
