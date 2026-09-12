@@ -8,7 +8,20 @@
  *
  * The 15/15 result reported for this pass was produced by exactly this file.
  */
-const { chromium } = require('playwright');
+/* Playwright is the one devDependency in a repo that otherwise has none, so
+   it is normal for it to be absent. Say so and exit 0 — a missing optional
+   tool is a skipped suite, not a failed one, and a stack trace reads like a
+   broken check. */
+let chromium;
+try {
+  chromium = require('playwright').chromium;
+} catch (e) {
+  console.log('\nSKIP  clarity-accept — playwright is not installed.');
+  console.log('      These are DOM/render checks and need Chromium. Install with:');
+  console.log('        npm install && npx playwright install chromium');
+  console.log('      The pure-Node half of this pass runs without it: node clarity-checks.js\n');
+  process.exit(0);
+}
 const E = require('./engine.js');
 const K = require('./kpi.js');
 
