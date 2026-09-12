@@ -2416,7 +2416,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(i=0;i<buckets.length;i++){
       var x=plotL + i*slot + gap/2;
       var bh=(buckets[i].arr/maxArr)*(plotB-plotT);
-      var col=rampAt(i/Math.max(1,buckets.length-1));
+      var col=rampAt(1 - i/Math.max(1,buckets.length-1)); /* oldest darkest */
       ctx.fillStyle=rgba(col, 0.92);
       ctx.fillRect(x, plotB-bh, bw, bh);
       ctx.textAlign='center'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
