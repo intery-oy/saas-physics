@@ -33,6 +33,12 @@ ok('NOTEBOOK-UI', 'thin header has scenario name + Base|Exp toggle + CSV',
    tpl.indexOf('id="nb-csv"') !== -1, '');
 ok('NOTEBOOK-UI', 'build.js inlines notebook.js into the v1 surface',
    build.indexOf('notebook.js') !== -1 && build.indexOf('/*__NOTEBOOK__*/') !== -1, '');
+ok('NOTEBOOK-UI', 'v1 template declares UTF-8 as the first head child (file:// encoding)',
+   /^<!DOCTYPE html>\s*<html[^>]*>\s*<head>\s*<meta charset="utf-8">/.test(tpl), '');
+ok('NOTEBOOK-UI', 'build.js reads and writes UTF-8 explicitly',
+   build.indexOf("encoding: 'utf8'") !== -1 &&
+   build.indexOf('function readUtf8') !== -1 &&
+   build.indexOf('function writeUtf8') !== -1, '');
 ok('NOTEBOOK-UI', 'Method overlay names Notebook as table substrate',
    /Notebook/.test(tpl) && /substrate for charts later/.test(tpl), '');
 
