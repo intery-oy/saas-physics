@@ -28,3 +28,11 @@ Not a PE disclaimer paragraph. Not a CHANGE card.
 - **Appendix** — selected month auto-scrolls; compact `M(t−1) → flows → M(t)` audit. Empty Logos group hidden while the logo bound is off.
 
 Optional bounds stay on the rail behind **Optional bounds · off at Default**.
+
+## Ordered chips
+
+Thin step chips under the header — not a second mode, not Partner/Lab branding:
+
+`Frame → Sc5 (Capital≠ARR) → Company → Sc6 / Cohorts → System → Appendix → Close`
+
+Deep-links: `#guide/sc5`, `#guide/sc6`, `#guide/appendix`. Close is a short strip of existing-bound sensitivities and data-room asks, not a disclaimer banner. Identity chips stay the world / month / scenario / reading.

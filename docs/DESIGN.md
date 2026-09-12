@@ -57,4 +57,4 @@ Not a generic SaaS dashboard, accounting report, or marketing site. Tokens are f
 
 ## Identity chrome
 
-Nav carries thin chips, not a disclaimer banner: `Default|A|B` · `M##` · scenario · `Base|Exp`. **Default** is the immutable reference world. **A|B** marks a scenario-constructed pair (never rename Default to mean a local scenario base). **Base|Exp** is the reading. View-only controls (Compare, Basis, Leakage shadow) sit in a separate cluster from assumption rails. See `docs/TRUST-SPINE.md`.
+Nav carries thin chips, not a disclaimer banner: `Default|A|B` · `M##` · scenario · `Base|Exp`. **Default** is the immutable reference world. **A|B** marks a scenario-constructed pair (never rename Default to mean a local scenario base). **Base|Exp** is the reading. View-only controls (Compare, Basis, Leakage shadow) sit in a separate cluster from assumption rails. Ordered chips under the header walk Frame → Sc5 → Company → Sc6 / Cohorts → System → Appendix → Close (`#guide/sc5`, `#guide/sc6`) without adding a second product mode. See `docs/TRUST-SPINE.md`.
