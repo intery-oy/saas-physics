@@ -1,4 +1,4 @@
-# SaaS Physics — Prototype 0.3
+# SaaS Physics — Prototype 0.4
 
 A deterministic monthly economic engine for a SaaS business, plus a deliberately simple
 inspection interface. It answers one question:
@@ -9,20 +9,25 @@ This is an economic simulation, not a forecast spreadsheet. Outputs emerge from 
 assumptions: NRR, growth, EBITA margin, burn and cash are all calculated, never entered.
 Company ARR is only ever the sum of a portfolio of cohorts.
 
-Not built yet, by design: enterprise value, multiples, 3D, real company data, customer-level
-modelling, churn/contraction split, pricing, usage, working capital, debt, tax, capex,
-pipeline, headcount, probabilistic simulation, AI commentary. **We are proving the physics first.**
+Not built yet, by design: enterprise value, multiples, 3D, real company data, pricing, usage,
+debt, tax, capex, pipeline, headcount, probabilistic simulation, AI commentary, auth, or
+deploy-as-product. Optional overnight coefficients (saturation, cash reserve, prepaid term,
+expansion CAC, logo vs contraction, opening state, tenure editor) are **off by default** and
+do not change the locked Year-5 ARR. **We are proving the physics first.** See
+[`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) for the post-build review.
 
 ## SaaS Physics v1
 
 | | |
 |---|---|
-| **Engine version** | v0.3 (`kpi.js` / `integrity.js` — 0 diff lines since the last engine change; `engine.js` carries one deliberate, requested exception — the MRR-native unit refactor below) |
+| **Engine version** | v0.4 (`engine.js` — A1 saturation + optional overnight coefficients, all null-default = v0.3 world; `kpi.js` reports logo fields when that layer is on) |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
 `kpi.js` and `integrity.js` are the economic core: they stay untouched by convention, not by
 schedule — a change to either is deliberate and reviewed, never incidental. `engine.js` follows
-the same discipline with one recorded exception below. Four passes have run since v1 shipped:
+the same discipline. `kpi.js` was touched once in the overnight sequence, only to *report*
+logo churn / contraction / customer counts when `logoRetentionAnnual` is on; it does not
+create those flows. Four passes have run since v1 shipped:
 
 **Integrity + Experiment Attribution pass.** Fixed a real trust defect — the Company chart's
 printed Cash and cumulative-leakage figures read a continuously interpolated position while
@@ -77,8 +82,9 @@ labelled *cumulative historical leakage* rather than a second filled mass; a rea
 P&L waterfall stepping from Revenue to modeled FCF; the measured R12M GRR/Expansion/NRR shown
 directly beneath the Persistence/Expansion coefficients that imply them; an Experiment summary
 naming exactly which assumptions changed; an Installed-base net (Expansion − Leakage) regime
-readout; an honest R12M decomposition that never invents a churn/contraction split the engine
-doesn't have; a corrected color ontology (green reserved for genuinely favourable deltas, New/
+readout; an honest R12M decomposition that, at the default, does not invent a churn/contraction
+split the engine does not have (the optional logo layer later *discloses* that split
+without moving ARR); a corrected color ontology (green reserved for genuinely favourable deltas, New/
 Expansion kept in Experiment copper, Leakage in its own muted rose); and quarter-grouped
 cohort-strata display (presentation only — Inspect still resolves to one exact month).
 Regression suites: `node clarity-checks.js` (pure Node — TWO-PLANE-UNITS, INSTALLED-BASE-NET,
@@ -86,7 +92,7 @@ FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright
 DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
 scenario matrix).
 
-All 35 economic integrity checks, 19 research checks, 12 MRR/ARR basis-switch regression
+All economic integrity checks (35 prior + 9 NL / Finding 10), 19 research checks, 12 MRR/ARR basis-switch regression
 checks, 46 clarity regression checks, 20 MRR-native engine-refactor checks and 22 Integrity +
 Experiment Attribution checks pass.
 
@@ -115,9 +121,10 @@ are not equivalent. R&D and G&A are grouped as Financial levers: they move
 modeled FCF and Cash directly, but v1 models no effect from them on
 recurring-state dynamics.
 
-There is deliberately no "buy more growth" scenario: acquisition is linear and
-unbounded here, and canonising "increase S&M" would teach a known model
-limitation as though it were economic truth.
+There is still no "buy more growth" scenario. Acquisition is linear at the
+default (`acqSaturationSpend` off). A saturation spend on the Forces rail is
+the v0.4 bound that lets the model say *stop*; demo it there, not as a seventh
+canonical scenario.
 
 ## Research archive
 
@@ -135,7 +142,13 @@ identity, bridge, measurement and integrity check, in numbers.
 ## Run it
 
 ```bash
-node checks.js              # 35 economic, measurement and state integrity checks
+node checks.js              # 48 economic, measurement, state, NL and OPEN integrity checks
+node opening-checks.js      # B1+B2 opening-state UI + inverse-calibration contract
+node cash-checks.js         # S&M cash-reserve null default + bound
+node billings-checks.js     # prepaid term: null = FCF=EBITA; finite N splits them
+node expansion-checks.js    # expansion CAC: 0 = free; finite c is cash-only
+node logo-checks.js         # logo retention: null = no customers; split = leakage
+node age-checks.js          # tenure editor: default flat; Scenario 6 copy rule
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -159,12 +172,17 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | Class | Assumption | Default |
 |---|---|---|
 | CONTROL | Monthly S&M investment | €900k |
+| CONTROL | S&M cash reserve | off (null) — finite floor caps S&M at cash |
 | CONTROL | Monthly R&D investment | €700k |
 | CONTROL | Monthly G&A investment | €350k |
-| TRANSITION | CAC / New ARR | 1.20× |
+| TRANSITION | CAC / New ARR | 1.20× (small-spend / linear) |
+| TRANSITION | Saturation spend | off (null) — finite `k` saturates New ARR |
 | TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
+| TRANSITION | Logo retention | off (null) — no customers; finite splits leakage without moving ARR |
 | TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
+| TRANSITION | Expansion CAC / Exp ARR | 0 (free) — finite c prices expansion without moving ARR |
 | TRANSITION | Gross margin | 80% |
+| TRANSITION | Prepaid term | off (null) — FCF=EBITA; finite N: FCF = EBITA + N×ΔMRR |
 | STATE | Opening ARR | €20.0m |
 | STATE | Opening cash | €10.0m |
 
@@ -188,7 +206,8 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Documents
 
-- [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps, overnight build pick)
+- [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) — post-build instrument assessment, philosophy, overclaims, sequenced roadmap
+- [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps; overnight sequence is done)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the economic architecture and every equation
 - [`docs/RESULTS.md`](docs/RESULTS.md) — reconciliation, integrity results and Scenarios A–E
 - [`docs/PULSE.md`](docs/PULSE.md) — **Flow as stock and flow**: ARR and Cash as stocks, the
@@ -217,14 +236,18 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Model version
 
-v0.3. The one v0.1 equation that was conceptually wrong — gross margin generating ARR — has been
-corrected by inverting the acquisition primitive. Everything else that looked weak is still built
-as specified and flagged in `FINDINGS.md` rather than quietly patched. The point of the prototype
-is to surface weaknesses, not bury them.
+v0.4. Acquisition may saturate in S&M (`acqSaturationSpend`). Optional overnight coefficients
+(`smCashReserve`, `billingAdvanceMonths`, `expansionCacPerARR`, `logoRetentionAnnual`, plus
+opening-state / tenure UI) are all null or flat at the default, so the shipped world is
+exactly v0.3. The one v0.1 equation that was conceptually wrong — gross margin generating
+ARR — was corrected in v0.2 by inverting the acquisition primitive. Everything else that
+looked weak is still built as specified and flagged in `FINDINGS.md` rather than quietly
+patched. The point of the prototype is to surface weaknesses, not bury them.
 
-Each iteration's default reproduces the previous one exactly — v0.3's flat bands give v0.2.1,
-v0.2.1's rename gives v0.2, and v0.2's inverted primitive reproduces v0.1's baseline — so results
-stay comparable across all four versions.
+Each iteration's default reproduces the previous one exactly — v0.4's null optional
+coefficients give v0.3, v0.3's flat bands give v0.2.1, v0.2.1's rename gives v0.2, and
+v0.2's inverted primitive reproduces v0.1's baseline — so results stay comparable across
+versions.
 
 The built file keeps the name `saas-physics-prototype-0.html` across iterations so the published
 link stays stable; the page header carries the model version.

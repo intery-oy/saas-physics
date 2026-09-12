@@ -46,7 +46,8 @@ var HOMOGENEOUS_CONTROL_WORLD =
  *     l  = 1 − gm                       monthly leakage fraction
  *     em = (1+X)^(1/12) − 1             monthly expansion, applied to RETAINED
  *     g  = gm · (1 + em) = (1 − l)(1 + em)
- *     N  = S&M / cacPerARR
+ *     N  = E.newARRPerMonth(a)     // S&M / cacPerARR at the linear default;
+ *                                  // saturates when acqSaturationSpend is finite
  *
  * ORDER MATTERS and is taken from the engine, not assumed: existing cohorts
  * leak, the survivors expand, and only then is the new cohort created. That is

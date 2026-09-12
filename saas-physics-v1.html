@@ -99,6 +99,12 @@ button,input{font:inherit;color:inherit}
 .force-val.same{color:var(--ink)}
 .force-sub{font-size:10px;color:var(--ink-3);margin-bottom:6px;line-height:1.4}
 .force-base{font-family:var(--mono);font-size:10px;color:var(--ink-4)}
+.cal-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cal-row label{font-size:11.5px;flex-grow:1;color:var(--ink-2)}
+.cal-row input[type=number]{width:72px;background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:4px 6px;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.cal-out{margin-top:8px;font-size:10.5px;color:var(--ink-3);line-height:1.55}
+.cal-out b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.cal-out.warn{color:var(--warn)}
 .measured-kpi{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);font-size:10px;color:var(--ink-3);line-height:1.65}
 .measured-kpi .mk-label{color:var(--ink-3)}
 .measured-kpi b{font-family:var(--mono);font-weight:500;color:var(--base)}
@@ -209,7 +215,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <div class="eyebrow" style="margin-bottom:4px">Change</div>
       <div class="hint">Controls are grouped by <b style="color:var(--ink-2)">what kind of thing</b> they are. They are not equivalent.</div>
     </div>
+    <div id="opening"></div>
     <div id="forces"></div>
+    <div id="tenure"></div>
+    <div id="calibrate"></div>
     <div class="grp" id="fixedcosts"></div>
     <div class="grp">
       <button class="btn btn-wide" id="reset">Reset to Base</button>
@@ -268,7 +277,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <div>
           <h5>Reporting basis — MRR ⇄ ARR</h5>
           <ul>
-            <li>SaaS Physics stores recurring state internally in <b>ARR</b> in v1. <b>MRR is an exact presentation transformation</b> (<span style="font-family:var(--mono);font-size:11px">ARR / 12</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
+            <li>SaaS Physics stores recurring state internally in <b>MRR</b>. <b>ARR is an exact 12× reporting view</b> (<span style="font-family:var(--mono);font-size:11px">ARR = 12 × MRR</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
             <li><b>MRR/ARR are recurring run-rate state measures.</b> Revenue, gross profit and FCF are period financial flows and therefore do not toggle — they stay labelled <span style="font-family:var(--mono);font-size:11px">· this month</span> in both bases.</li>
             <li>The default is <b>MRR</b>: the engine steps monthly, and New/Expansion/Leakage are monthly state movements, so a monthly basis matches the simulation's own resolution.</li>
           </ul>
@@ -301,11 +310,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <div>
           <h5>Major current boundaries</h5>
           <ul>
-            <li><b>#10</b> Acquisition is linear and unbounded in S&amp;M. The model can always buy growth and cannot say <em>stop</em>. This is why no scenario here is "spend more".</li>
-            <li><b>#14</b> Expansion carries no separately modelled marginal cost.</li>
-            <li><b>#15</b> FCF = EBITA. No working capital, deferred revenue, tax or capex.</li>
+            <li><b>#10</b> Acquisition is linear and unbounded <em>at the default</em> (saturation spend off). Set a finite saturation spend on the Forces rail to bound New ARR — that is the mechanism that can say <em>stop</em>. No canonical "spend more" scenario is shipped; demo it on the slider. S&amp;M itself is unconstrained in cash unless a cash reserve is set.</li>
+            <li><b>#12 / #19</b> Age bands default flat. Tenure laws on the rail write the engine&rsquo;s existing three-band array; Scenario 6 keeps its shared construction. The default opening book is still one age-0 €20m cohort.</li>
+            <li><b>#14</b> Expansion is free <em>at the default</em> (expansion CAC = 0). Set Expansion CAC / €1 Exp ARR to price expansion without changing the ARR path.</li>
+            <li><b>#15</b> FCF = EBITA <em>at the default</em> (prepaid term off). Set a prepaid term so FCF = EBITA + N × ΔMRR — growth is then cash-generative at the WC line. No tax, capex or debt.</li>
             <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
-            <li><b>#18</b> Leakage is one number; there are no customers, so churn and contraction cannot be separated.</li>
+            <li><b>#18</b> Leakage is one number <em>at the default</em> (logo retention off), so churn and contraction cannot be separated. Set logo retention to split leakage into logo churn and contraction — ARR does not move.</li>
             <li><b>#21</b> There is no price.</li>
           </ul>
         </div>
@@ -364,7 +374,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
  * and every scenario are unchanged; only which unit is native moved from ARR
  * to MRR. See docs/ARCHITECTURE.md.
  *
- * MODEL VERSION: v0.3
+ * MODEL VERSION: v0.4
+ *   v0.3 → v0.4: ONE new transition coefficient — acquisition saturation.
+ *   New ARR may saturate in S&M. The shipped default is NULL (linear /
+ *   unbounded), so the default world is exactly v0.3 and the model does not
+ *   assert a saturation scale until a user sets one. See FINDINGS.md #10.
  *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
  *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
  *   identical), so the shipped default reproduces v0.2.1 exactly and the model
@@ -395,12 +409,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     FLOW: {
       newARR:      'ARR added by acquisition this month',
       expansion:   'ARR added by the installed base this month',
-      leakage:     'ARR lost by the installed base this month (churn + contraction combined in v0.1)',
+      leakage:     'ARR lost by the installed base this month (logo churn + contraction when logoRetentionAnnual is set; otherwise combined)',
+      logoChurn:   'ARR lost with departing customers (only when logoRetentionAnnual is set)',
+      contraction: 'ARR lost on surviving customers (only when logoRetentionAnnual is set)',
       revenue:     'Recognised revenue this month',
       cogs:        'Cost of revenue this month',
       grossProfit: 'Revenue less COGS this month',
       ebita:       'Gross profit less S&M, R&D, G&A',
-      fcf:         'Free cash flow (= EBITA in v0.1)'
+      fcf:         'Free cash flow. Equals EBITA when billingAdvanceMonths is null; otherwise EBITA + Δdeferred.',
+      billings:    'Cash collected this month (recognised revenue + change in deferred)',
+      deferred:    'Deferred revenue liability (prepaid but unrecognised)'
     },
     /* TRANSITION COEFFICIENTS — they govern the world. They are not measurements,
        and they do not equal the KPIs of similar name. */
@@ -408,10 +426,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       persistenceAnnual:          'Annual persistence coefficient — 12-month multiplicative survival of installed ARR, applied BEFORE expansion. NOT reported GRR.',
       expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
       grossMargin:                'Gross margin coefficient',
-      cacPerARR:                  'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity'
+      cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
+      acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).',
+      billingAdvanceMonths:       'Prepaid billing term in months. Null/0 = FCF aliased to EBITA (prior). Finite N: billings = revenue + N×ΔMRR; FCF = EBITA + Δdeferred.',
+      expansionCacPerARR:         'Cost per €1 of Expansion ARR, symmetric with cacPerARR. Null/0 = free expansion (prior).',
+      logoRetentionAnnual:        'Annual customer (logo) survival. Null = no customer stock (prior). Persistence still drives ARR leakage; this splits it into logo churn vs contraction.'
     },
     CONTROL: {
-      sm: 'Monthly S&M investment (management control)',
+      sm: 'Monthly S&M investment (management control) — intended spend; may be cut when smCashReserve is set',
+      smCashReserve: 'Cash floor S&M may not spend through. Null = unconstrained (prior). Finite including 0 = cannot spend below that cash balance.',
       rd: 'Monthly R&D investment (management control)',
       ga: 'Monthly G&A investment (management control)'
     },
@@ -430,7 +453,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* Illustrative defaults. Not real company data. */
   var DEFAULT_ASSUMPTIONS = {
     sm:                         900000,  // CONTROL   €/month
-    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR
+    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR (small-spend / linear)
+    acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
+    smCashReserve:              null,    // CONTROL   €; null = S&M unconstrained (prior). Finite = S&M ≤ max(0, cashOpening − reserve).
+    billingAdvanceMonths:       null,    // TRANSITION prepaid term in months. Null/0 = FCF=EBITA (prior). Finite N: FCF = EBITA + N×ΔMRR.
+    expansionCacPerARR:         0,       // TRANSITION € of cost per €1 of Expansion ARR. 0 = free (prior).
+    logoRetentionAnnual:        null,    // TRANSITION 12-month customer survival. Null = no customer layer (prior).
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -474,7 +502,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* v0.3: the opening base may be a portfolio of vintages. Each entry is
        { arr, age } where age is the cohort's age in months at t=0. Omit for the
        v0.2.1 behaviour of one opening cohort at age 0. */
-    openingCohorts: null
+    openingCohorts: null,
+    /* Used only when logoRetentionAnnual is set. Null = derive from €20k ARPA. */
+    openingCustomers: null
   };
 
   /* ------------------------------------------------------------------ *
@@ -487,15 +517,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function toMonthlyExpansion(expAnnual) { return Math.pow(1 + expAnnual, 1 / 12) - 1; }
 
   /* ------------------------------------------------------------------ *
-   * v0.2 acquisition physics
+   * v0.4 acquisition physics (v0.2 primitive + optional saturation)
    *
    * PRIMITIVE — acquisition productivity, a dimensionless ratio:
-   *   cacPerARR = acquisition spend / New ARR generated
+   *   cacPerARR = acquisition spend / New ARR generated   (small-spend / linear)
    *
-   * New ARR generated per year of spend:
-   *   annual New ARR = (Monthly S&M x 12) / cacPerARR
-   * so the ARR added to the stock in one month is:
+   * NULL / DEFAULT (k absent, null, 0 or Infinity) — exact v0.2 / v0.3 generator:
    *   monthly New ARR = Monthly S&M / cacPerARR
+   *
+   * SATURATING (finite k = acqSaturationSpend, €/month):
+   *   monthly New ARR = (k / cacPerARR) × S&M / (S&M + k)
+   *                   = linear × k / (S&M + k)
+   *
+   * Equivalent rising-CAC form: average CAC = cacPerARR × (1 + S&M/k).
+   * At S&M = k, average productivity is half the linear prediction.
+   * As S&M → ∞, New ARR → A_max = k / cacPerARR. Marginal New ARR falls
+   * in S&M, which is what lets the model say *stop*.
    *
    * UNITS. sm is €/month. cacPerARR is dimensionless. newARRPerMonth is therefore
    * € of ARR (an annualised-run-rate quantity) added to the ARR stock each month —
@@ -506,12 +543,71 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * productivity determines how much ARR the spend creates; gross margin determines
    * how fast that investment is recovered, and shows up in cacPaybackMonths below.
    *
-   * Still linear, instantaneous and unbounded in S&M — no capacity, ramp, pipeline,
-   * conversion, diminishing returns or acquisition lag. See FINDINGS.md.
+   * Still instantaneous — no capacity, ramp, pipeline, conversion or acquisition
+   * lag. Saturation is the one new bound. See FINDINGS.md #10.
    * ------------------------------------------------------------------ */
+  function saturationSpendOf(a) {
+    var k = a && a.acqSaturationSpend;
+    if (k == null || k === Infinity) return null;
+    if (typeof k !== 'number' || !(k > 0)) return null;
+    return k;
+  }
+
+  /* Cash floor on S&M. Null / omitted / Infinity = unconstrained (prior: S&M
+   * is spent in full every month even if cash is already negative). A finite
+   * reserve r ≥ 0 (including 0) means this month's S&M cannot exceed
+   * max(0, cashOpening − r). R&D and G&A stay unconstrained — this is not
+   * a financing model. See FINDINGS / System ⊘ "cash never constrains S&M". */
+  function smCashReserveOf(a) {
+    var r = a && a.smCashReserve;
+    if (r == null || r === Infinity) return null;
+    if (typeof r !== 'number' || isNaN(r) || r < 0) return null;
+    return r;
+  }
+
+  function effectiveSM(intended, cashOpening, reserve) {
+    if (reserve === null) return intended;
+    var room = cashOpening - reserve;
+    if (!(room > 0)) return 0;
+    return intended < room ? intended : room;
+  }
+
+  /* Prepaid term. Null / omitted / 0 / Infinity = FCF = EBITA (prior alias).
+   * Finite N > 0: the smooth annual-prepaid approximation
+   *   Δdeferred = N × (closingMRR − openingMRR)
+   *   billings  = revenue + Δdeferred
+   *   FCF       = EBITA + Δdeferred
+   * Growing ARR is then cash-generative at the WC line — the opposite sign
+   * of the old alias. No tax, capex, debt or other WC. See FINDINGS #15. */
+  var DEFAULT_ARPA = 20000; // € ARR per customer when the logo layer is on and no count is given
+
+  function logoRetentionOf(a) {
+    var p = a && a.logoRetentionAnnual;
+    if (p == null || p === 0 || p === Infinity) return null;
+    if (typeof p !== 'number' || !(p > 0 && p <= 1)) return null;
+    return p;
+  }
+
+  function expansionCacOf(a) {
+    var c = a && a.expansionCacPerARR;
+    if (c == null || c === 0) return 0;
+    if (typeof c !== 'number' || !(c > 0)) return 0;
+    return c;
+  }
+
+  function billingAdvanceOf(a) {
+    var n = a && a.billingAdvanceMonths;
+    if (n == null || n === Infinity || n === 0) return null;
+    if (typeof n !== 'number' || !(n > 0)) return null;
+    return n;
+  }
+
   function newARRPerMonth(a) {
     if (!(a.cacPerARR > 0)) return 0;
-    return a.sm / a.cacPerARR;
+    var linear = a.sm / a.cacPerARR;
+    var k = saturationSpendOf(a);
+    if (k === null) return linear;
+    return linear * (k / (a.sm + k));
   }
 
   /* MRR-NATIVE. cacPerARR is unchanged as the public assumption — € of S&M
@@ -537,7 +633,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   function normaliseAssumptions(a) {
-    return Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    var out = Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    out.acqSaturationSpend = saturationSpendOf(out);
+    out.smCashReserve = smCashReserveOf(out);
+    out.billingAdvanceMonths = billingAdvanceOf(out);
+    out.expansionCacPerARR = expansionCacOf(out);
+    out.logoRetentionAnnual = logoRetentionOf(out);
+    return out;
   }
 
   /* ------------------------------------------------------------------ *
@@ -550,11 +652,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     var gM = toMonthlyPersistence(a.persistenceAnnual);
     var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
-    /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
-       newARR (still newARRPerMonth(a), unchanged) is kept as the exact
-       12x-derived reporting figure every existing caller reads. */
-    var newARR = newARRPerMonth(a);
-    var newMRR = newARR / 12;
+    /* Intended (unconstrained) acquisition — used for derived.* and as the
+       monthly values whenever smCashReserve is null, so the default world is
+       bit-identical to v0.4. When a reserve is set, each month recomputes
+       New ARR from the cash-capped S&M. */
+    var newARRIntended = newARRPerMonth(a);
+    var newMRRIntended = newARRIntended / 12;
+    var kSat = saturationSpendOf(a);
+    var stampCacIntended = kSat === null ? a.cacPerARR : (newARRIntended > 0 ? a.sm / newARRIntended : a.cacPerARR);
+    var smReserve = smCashReserveOf(a);
 
     var bands = resolveBands(a);
     var bandRates = bands.map(function (b) {
@@ -570,6 +676,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var seed = (s.openingCohorts && s.openingCohorts.length)
       ? s.openingCohorts
       : [{ arr: s.openingARR, age: 0 }];
+    var logoP = logoRetentionOf(a);
+    var seedARR = seed.reduce(function (n, c) { return n + c.arr; }, 0);
+    var arpa0 = logoP === null ? 0
+      : (s.openingCustomers > 0 && seedARR > 0 ? seedARR / s.openingCustomers : DEFAULT_ARPA);
     var cohorts = seed.map(function (c, i) {
       return {
         id: seed.length === 1 ? 'base' : 'base' + (i + 1),
@@ -580,6 +690,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         /* MRR-NATIVE: c.arr is the public, ARR-denominated seed input
            (unchanged API); live is the engine's own state, carried in MRR. */
         live: c.arr / 12,
+        liveCustomers: logoP === null ? 0 : (c.customers != null ? c.customers : (arpa0 > 0 ? c.arr / arpa0 : 0)),
         /* PROVENANCE. The cost of creating the opening base happened before the
            simulation and is genuinely unknown — recorded as null, never as zero. */
         acquisitionCost: null,
@@ -590,9 +701,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     var months = [];
     var cash = s.openingCash;
+    var billN = billingAdvanceOf(a);
+    /* Midpoint remaining prepaid: a stable book billed N months ahead carries
+       about N/2 months of unrecognised cash. Zero when the alias is on. */
+    var deferred = billN === null ? 0 : (s.openingARR / 12) * (billN / 2);
     var nrrMonthlyHistory = [];
     var cum = { newARR: 0, expansion: 0, leakage: 0, revenue: 0, cogs: 0,
-                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0 };
+                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0,
+                billings: 0, deltaDeferred: 0, expansionCost: 0 };
 
     function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
 
@@ -601,6 +717,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0;
+      var totLogoChurnARR = 0, totContractionARR = 0, totCustOpen = 0, totCustClose = 0;
+      var cashOpening = cash;
+      var smEff = effectiveSM(a.sm, cashOpening, smReserve);
+      var newARR, newMRR, stampCac;
+      if (smReserve === null) {
+        newARR = newARRIntended;
+        newMRR = newMRRIntended;
+        stampCac = stampCacIntended;
+      } else {
+        var monthA = Object.assign({}, a, { sm: smEff });
+        newARR = newARRPerMonth(monthA);
+        newMRR = newARR / 12;
+        stampCac = kSat === null ? a.cacPerARR : (newARR > 0 ? smEff / newARR : a.cacPerARR);
+      }
 
       /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
          Same transition coefficients, same order, same identities as before —
@@ -623,6 +753,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
         var revenue   = avgMRR;                       // MRR already IS the monthly amount
         var gp        = revenue * a.grossMargin;
+        /* Logo layer. Persistence still drives ARR leakage. When on, that
+           leakage is split into logo-churn ARR (lost customers × opening ARPA)
+           and contraction ARR (the residual). Logo churn is clamped so it
+           cannot exceed ARR leakage — the ARR path never changes. */
+        var custOpen = c.liveCustomers || 0, custClose = custOpen, logoChurnARR = 0, contractionARR = 0;
+        var leakARR = leakageC * 12;
+        if (logoP !== null && custOpen > 0) {
+          var gLogo = toMonthlyPersistence(logoP);
+          var custRet = custOpen * gLogo;
+          var lost = custOpen - custRet;
+          var arpa = (openingC * 12) / custOpen;
+          logoChurnARR = lost * arpa;
+          if (logoChurnARR > leakARR) { logoChurnARR = leakARR; lost = arpa > 0 ? leakARR / arpa : 0; custRet = custOpen - lost; }
+          contractionARR = leakARR - logoChurnARR;
+          custClose = custRet;
+        }
+        c.liveCustomers = custClose;
 
         c.rows.push({
           t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
@@ -630,33 +777,42 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           expansionMRR: expansionC, closingMRR: closingC,
           openingARR: openingC * 12, retainedARR: retainedC * 12, leakage: leakageC * 12,
           expansion: expansionC * 12, closingARR: closingC * 12,
+          customersOpening: custOpen, customersClosing: custClose,
+          logoChurn: logoChurnARR, contraction: contractionARR,
           revenue: revenue, grossProfit: gp
         });
         c.live = closingC;
+        totLogoChurnARR += logoChurnARR; totContractionARR += contractionARR;
+        totCustOpen += custOpen; totCustClose += custClose;
 
         totRetainedMRR += retainedC; totLeakageMRR += leakageC;
         totExpansionMRR += expansionC; totRevenue += revenue;
       }
 
       /* --- New acquisition cohort is created AFTER the base has aged --- */
+      var ncCustomers = (logoP === null || !(arpa0 > 0)) ? 0 : (newMRR * 12) / arpa0;
       var nc = {
         id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
-        initialARR: newMRR * 12, live: newMRR, rows: [],
+        initialARR: newMRR * 12, live: newMRR, liveCustomers: ncCustomers, rows: [],
         /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
-        acquisitionCost: a.sm,
-        cacPerARRAtCreation: a.cacPerARR
+        acquisitionCost: smEff,
+        /* Stated coefficient when linear (bit-identical to v0.3). Realized
+           S&M / New ARR when saturating, so cost = initialARR × stamp. */
+        cacPerARRAtCreation: stampCac
       };
       var ncRevenue = (0 + newMRR) / 2;    // half a month of MRR, same midpoint rule
       nc.rows.push({
         t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
         openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: newMRR,
         openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newMRR * 12,
+        customersOpening: 0, customersClosing: ncCustomers, logoChurn: 0, contraction: 0,
         revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin
       });
       cohorts.push(nc);
       totRevenue += ncRevenue;
+      totCustClose += ncCustomers;
 
       var closingMRR = totRetainedMRR + totExpansionMRR + newMRR;
 
@@ -667,11 +823,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var grossProfit = revenue * a.grossMargin;
 
       /* --- 9. EBITA --- */
-      var ebita = grossProfit - a.sm - a.rd - a.ga;
+      var expansionCac = expansionCacOf(a);
+      var expansionCost = (totExpansionMRR * 12) * expansionCac;
+      var ebita = grossProfit - smEff - a.rd - a.ga - expansionCost;
 
-      /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed. --- */
-      var fcf = ebita;
-      var cashOpening = cash;
+      /* --- 10. Cash. Null billing term: FCF = EBITA (prior alias).
+         Finite N: FCF = EBITA + N × ΔMRR = EBITA + Δdeferred. --- */
+      var deltaDeferred = billN === null ? 0 : billN * (closingMRR - openingMRR);
+      var billings = revenue + deltaDeferred;
+      var deferredOpening = deferred;
+      var deferredClosing = deferredOpening + deltaDeferred;
+      deferred = deferredClosing;
+      var fcf = ebita + deltaDeferred;
       var cashClosing = cashOpening + fcf;
       cash = cashClosing;
 
@@ -689,8 +852,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
       cum.newARR += newARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
-      cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga;
+      cum.sm += smEff; cum.rd += a.rd; cum.ga += a.ga;
       cum.ebita += ebita; cum.fcf += fcf;
+      cum.billings += billings; cum.deltaDeferred += deltaDeferred;
+      cum.expansionCost += expansionCost;
 
       months.push({
         t: t,
@@ -716,13 +881,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         revenue: revenue,
         cogs: cogs,
         grossProfit: grossProfit,
-        sm: a.sm, rd: a.rd, ga: a.ga,
+        sm: smEff, smIntended: a.sm, smConstrained: smEff + 1e-12 < a.sm,
+        rd: a.rd, ga: a.ga, expansionCost: expansionCost,
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
+        billings: billings,
+        deferredOpening: deferredOpening,
+        deferredClosing: deferredClosing,
+        deltaDeferred: deltaDeferred,
         fcf: fcf,
         burn: fcf < 0 ? -fcf : 0,
         cashOpening: cashOpening,
         cashClosing: cashClosing,
+        customersOpening: totCustOpen,
+        customersClosing: totCustClose,
+        logoChurn: totLogoChurnARR,
+        contraction: totContractionARR,
         nrrMonthly: nrrMonthly,               /* chained transition NRR, not the R12M KPI */
         nrrAnnualised: nrrAnnualised,         /* chained monthly NRR annualised — see kpi.js for the KPI */
         arrGrowthMoM: openingARR > 0 ? closingARR / openingARR - 1 : 0,
@@ -749,7 +923,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
 
     return {
-      modelVersion: '0.3',
+      modelVersion: '0.4',
       assumptions: a,
       start: s,
       horizon: H,
@@ -761,14 +935,26 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       derived: {
         monthlyPersistence: gM,
         monthlyExpansion: eM,
-        newMRRPerMonth: newMRR,                       // € of MRR added per month — MRR-NATIVE
-        newARRPerMonth: newARR,                       // € of ARR added per month — DERIVED, = 12 x newMRR
-        newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
+        newMRRPerMonth: newMRRIntended,                       // intended / unconstrained — MRR-NATIVE
+        newARRPerMonth: newARRIntended,                       // intended / unconstrained — = 12 x newMRR
+        newARRAnnualised: newARRIntended * 12,                // € of ARR created per year of intended spend
         annualAcquisitionSpend: a.sm * 12,
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
         impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
-        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
+        impliedCACPerNewARR: newARRIntended > 0 ? a.sm / newARRIntended : 0,
+        acqSaturationSpend: kSat,                             // null when linear
+        acqIsLinear: kSat === null,
+        newARRLinear: a.cacPerARR > 0 ? a.sm / a.cacPerARR : 0,
+        acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR,
+        smCashReserve: smReserve,                             // null when unconstrained
+        smIsUnconstrained: smReserve === null,
+        billingAdvanceMonths: billN,                          // null when FCF=EBITA
+        fcfEqualsEbita: billN === null,
+        expansionCacPerARR: expansionCacOf(a),
+        logoRetentionAnnual: logoP,
+        logoLayerOn: logoP !== null,
+        openingARPA: arpa0
       },
       months: months,
       cohorts: cohorts
@@ -981,6 +1167,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
+    saturationSpendOf: saturationSpendOf,
+    smCashReserveOf: smCashReserveOf,
+    effectiveSM: effectiveSM,
+    billingAdvanceOf: billingAdvanceOf,
+    expansionCacOf: expansionCacOf,
+    logoRetentionOf: logoRetentionOf,
+    DEFAULT_ARPA: DEFAULT_ARPA,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,
@@ -1053,16 +1246,21 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
 
     var opening = 0, leakage = 0, expansion = 0, closing = 0, contributions = [];
+    var logoChurn = 0, contraction = 0, custOpen = 0, custClose = 0;
     eligible.forEach(function (c) {
       var first = rowAt(c, start);
       if (!first) return;
-      var o = first.openingARR, lk = 0, ex = 0, last = null;
+      var o = first.openingARR, lk = 0, ex = 0, last = null, lc = 0, ct = 0;
       for (var t = start; t <= T; t++) {
         var r = rowAt(c, t);
         if (!r) break;
         lk += r.leakage; ex += r.expansion; last = r;
+        lc += r.logoChurn || 0; ct += r.contraction || 0;
       }
       opening += o; leakage += lk; expansion += ex; closing += last ? last.closingARR : 0;
+      logoChurn += lc; contraction += ct;
+      custOpen += first.customersOpening || 0;
+      custClose += last ? (last.customersClosing || 0) : 0;
       contributions.push({
         id: c.id, acquisitionMonth: c.acquisitionMonth, ageAtOpening: start - 1 - c.acquisitionMonth,
         openingARR: o, leakage: lk, expansion: ex, closingARR: last ? last.closingARR : 0,
@@ -1089,6 +1287,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       grr: grr,
       expansionRate: exr,
       nrr: nrr,
+      logoChurn: logoChurn,
+      contraction: contraction,
+      logoChurnRate: opening > 0 ? logoChurn / opening : 0,
+      contractionRate: opening > 0 ? contraction / opening : 0,
+      logoRetention: custOpen > 0 ? custClose / custOpen : null,
+      customersOpening: custOpen,
+      customersClosing: custClose,
       nrrFromBridge: opening > 0 ? (opening + expansion - leakage) / opening : 1,
       identityResidual: (grr + exr) - nrr,
       newARRExcluded: newARRExcluded,
@@ -1609,6 +1814,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* Base and Experiment may differ in STATE as well as in assumptions. That is
      what Scenario 6 needs: one law set, two opening cohort compositions. */
   var baseStart = undefined, expStart = undefined;
+  var DEFAULT_UI_START = {
+    openingARR: E.DEFAULT_START.openingARR,
+    openingCash: E.DEFAULT_START.openingCash,
+    w0: 100, w12: 0, w24: 0
+  };
+  var expOpen = Object.assign({}, DEFAULT_UI_START);
   var activeScenario = null;
   var baseRes, expRes, baseS, expS;
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
@@ -1748,7 +1959,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * 4A groups the two levers that reach recurring state through the
    * engine's own reduced form, ARR(t+1) = g·ARR(t) + N (verified exactly by
    * research-checks.js's HOMOGENEOUS-REDUCTION, worst rel err ~1e-15):
-   *   ACQUISITION      N = S&M ÷ CAC — changed sm and/or cacPerARR
+   *   ACQUISITION      N = newARRPerMonth(sm, cacPerARR, k) — changed sm, cacPerARR and/or acqSaturationSpend
    *   INSTALLED-BASE   g — changed persistenceAnnual and/or expansionCoefficientAnnual
    * INTERACTION is DEFINED as the residual (Total − Acquisition − InstalledBase),
    * so the three terms sum to the total by construction — ATTRIBUTION-TOTAL
@@ -1787,7 +1998,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
     capAgg = aggCapital(expRes);
     if(attributionValid()){
-      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR });
+      var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR, acqSaturationSpend: expA.acqSaturationSpend, smCashReserve: expA.smCashReserve });
       var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual });
       attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
       var changedLevers = E.compare(baseRes, expRes).changed;
@@ -1797,7 +2008,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) };
       });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
-    syncForces(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
+    syncForces(); syncOpening(); syncTenure(); syncCalibrate(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1807,13 +2018,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      thing it is, because changing a management input and changing a law of the
      installed base are different acts with different standing. */
   var FORCE_GROUPS = [
-    { kind:'Management input', note:'Set externally. Nothing in the engine constrains it.',
-      forces:[ {k:'sm', label:'S&M investment', sub:'commercial investment per month', min:0, max:2500000, step:25000, f:'eur'} ] },
-    { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
+    { kind:'Management input', note:'S&M is a stated intention. Off by default the engine spends it in full even if cash is already negative. A cash reserve is the bound that stops that.',
+      forces:[ {k:'sm', label:'S&M investment', sub:'intended commercial investment per month', min:0, max:2500000, step:25000, f:'eur'},
+               {k:'smCashReserve', label:'S&M cash reserve', sub:'S&M cannot spend through this cash floor. Off = unconstrained (prior).', min:0, max:20000000, step:250000, f:'offeur'} ] },
+    { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it. Logo retention is off by default — leakage stays one number.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
-               {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
-    { kind:'Acquisition efficiency', note:'How much recurring state S&M creates.',
-      forces:[ {k:'cacPerARR', label:'CAC / €1 New ARR', sub:'spend required per euro of new ARR', min:0.3, max:3, step:0.05, f:'x'} ] },
+               {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] },
+               {k:'logoRetentionAnnual', label:'Logo retention', sub:'annual customer survival. Off = no customer stock (prior). Splits leakage into logo churn and contraction without moving ARR.', min:0, max:0.99, step:0.005, f:'offpct'} ] },
+    { kind:'Acquisition efficiency', note:'How much recurring state spend creates. Saturation is off by default. Expansion CAC is 0 by default — expansion is free (the prior contract).',
+      forces:[ {k:'cacPerARR', label:'CAC / €1 New ARR', sub:'small-spend (linear) productivity — spend required per euro of new ARR', min:0.3, max:3, step:0.05, f:'x'},
+               {k:'acqSaturationSpend', label:'Saturation spend', sub:'monthly S&M at which average productivity is half the linear prediction. Off = linear, unbounded.', min:0, max:5000000, step:50000, f:'sat'},
+               {k:'expansionCacPerARR', label:'Expansion CAC / €1 Exp ARR', sub:'cost of a euro of expansion ARR. 0 = free (prior). Does not change the ARR path.', min:0, max:3, step:0.05, f:'x'} ] },
     { kind:'Economic conversion', note:'How revenue becomes gross profit. Creates no ARR.',
       forces:[ {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'} ] }
   ];
@@ -1822,10 +2037,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      interface does not imply a causal theory of R&D or G&A productivity. */
   var FIXED_COSTS = [
     {k:'rd', label:'R&D', sub:'no modelled effect on retention or expansion', min:0, max:2000000, step:25000, f:'eur'},
-    {k:'ga', label:'G&A', sub:'period cost', min:0, max:1500000, step:25000, f:'eur'}
+    {k:'ga', label:'G&A', sub:'period cost', min:0, max:1500000, step:25000, f:'eur'},
+    {k:'billingAdvanceMonths', label:'Prepaid term', sub:'months of MRR collected on a change in the book. Off = FCF=EBITA (prior). 12 = annual prepaid.', min:0, max:24, step:1, f:'offmo'}
   ];
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
-  function fmtF(f, v){ return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×'; }
+  function fmtF(f, v){
+    if(f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
+    if(f==='offeur') return (v==null || !(v>0)) ? 'off · unconstrained' : eur(v);
+    if(f==='offmo') return (v==null || !(v>0)) ? 'off · FCF=EBITA' : (v|0)+' mo';
+    if(f==='offpct') return (v==null || !(v>0)) ? 'off · no logos' : pct(v,1);
+    return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
+  }
 
   /* §6 — "underlying law -> measured KPI." kpi.js's own labels for each. */
   var MEASURED_LABEL = { grr:'measured GRR', expansionRate:'measured Expansion', nrr:'measured NRR' };
@@ -1845,7 +2067,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     d.querySelector('input').addEventListener('input', function(e){
       var prev = Object.assign({}, expA);
       clearScenario();
-      expA = Object.assign({}, expA); expA[F.k] = parseFloat(e.target.value);
+      expA = Object.assign({}, expA);
+      var raw = parseFloat(e.target.value);
+      expA[F.k] = ((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(raw>0)) ? null : raw;
       recompute(prev);
     });
     return d;
@@ -1882,6 +2106,226 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       !!(kpi && baseKpi && changedKeys.indexOf('persistenceAnnual')>=0 && changedKeys.indexOf('expansionCoefficientAnnual')<0 && Math.abs(kpi.expansionRate-baseKpi.expansionRate)>GAP),
       'Why did measured Expansion move? Expansion is unchanged, but Persistence changes the balance expansion subsequently accrues on within the R12M measurement window — the same within-period interaction, from the other side.');
   }
+  /* ------------------------------------------------------------------ *
+   * B1 — opening state. Writes the engine's existing start object.
+   * Default (one age-0 €20m / €10m cash cohort) leaves expStart undefined
+   * so every existing check, attribution gate and scenario stays comparable.
+   * ------------------------------------------------------------------ */
+  function isDefaultOpen(o){
+    return o.openingARR===DEFAULT_UI_START.openingARR &&
+           o.openingCash===DEFAULT_UI_START.openingCash &&
+           o.w12===0 && o.w24===0 && o.w0>0;
+  }
+  function startFromOpen(o){
+    var w0=o.w0||0, w12=o.w12||0, w24=o.w24||0;
+    var sum=w0+w12+w24;
+    if(!(sum>0)){ w0=100; w12=0; w24=0; sum=100; }
+    if(o.openingARR===DEFAULT_UI_START.openingARR &&
+       o.openingCash===DEFAULT_UI_START.openingCash &&
+       w12===0 && w24===0) return undefined;
+    var start = { openingARR: o.openingARR, openingCash: o.openingCash, openingCohorts: null };
+    if(w12>0 || w24>0){
+      start.openingCohorts = [];
+      if(w0>0) start.openingCohorts.push({ arr: o.openingARR*(w0/sum), age: 0 });
+      if(w12>0) start.openingCohorts.push({ arr: o.openingARR*(w12/sum), age: 12 });
+      if(w24>0) start.openingCohorts.push({ arr: o.openingARR*(w24/sum), age: 24 });
+    }
+    return start;
+  }
+  function applyOpeningToRun(){
+    if(activeScenario && (activeScenario.world || activeScenario.pair)) return;
+    expStart = startFromOpen(expOpen);
+  }
+  function openRow(id, label, sub, min, max, step, fmt){
+    var d=document.createElement('div'); d.className='force';
+    d.innerHTML='<div class="force-top"><label for="o-'+id+'">'+esc(label)+'</label>'+
+      '<span class="force-val" id="ov-'+id+'"></span></div>'+
+      '<div class="force-sub">'+esc(sub)+' &middot; <span class="force-base" id="ob-'+id+'"></span></div>'+
+      '<input type="range" id="o-'+id+'" min="'+min+'" max="'+max+'" step="'+step+'">';
+    d.querySelector('input').addEventListener('input', function(e){
+      if(activeScenario && (activeScenario.world || activeScenario.pair)) return;
+      var prev = Object.assign({}, expA);
+      clearScenario();
+      expOpen = Object.assign({}, expOpen);
+      expOpen[id] = parseFloat(e.target.value);
+      applyOpeningToRun();
+      recompute(prev);
+    });
+    return d;
+  }
+  function buildOpening(){
+    var host=document.getElementById('opening'); host.innerHTML='';
+    var g=document.createElement('div'); g.className='fgrp'; g.id='opening-grp';
+    g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Opening state</span></div>'+
+      '<div class="fgrp-note">The engine already accepted this. Default is one age-0 €20m cohort and €10m cash — the v0.4 company. A vintage mix writes <code>{arr, age}</code> cohorts. Not an adapter; no file, no company name.</div>';
+    g.appendChild(openRow('openingARR','Opening ARR','installed-base ARR at t=0',5000000,80000000,500000,'eur'));
+    g.appendChild(openRow('openingCash','Opening cash','cash balance at t=0',0,50000000,250000,'eur'));
+    g.appendChild(openRow('w0','Early vintage (age 0)','share of opening ARR in a brand-new cohort',0,100,5,'pct100'));
+    g.appendChild(openRow('w12','Developing vintage (age 12)','share at the first band edge',0,100,5,'pct100'));
+    g.appendChild(openRow('w24','Mature vintage (age 24)','share in the terminal band',0,100,5,'pct100'));
+    host.appendChild(g);
+  }
+  function fmtOpen(id, v){
+    if(id==='w0'||id==='w12'||id==='w24') return (v||0).toFixed(0)+'%';
+    return eur(v);
+  }
+  function syncOpening(){
+    ['openingARR','openingCash','w0','w12','w24'].forEach(function(id){
+      var el=document.getElementById('o-'+id); if(!el) return;
+      el.value = expOpen[id];
+      var same = expOpen[id]===DEFAULT_UI_START[id];
+      var v=document.getElementById('ov-'+id); v.textContent = fmtOpen(id, expOpen[id]);
+      v.className = 'force-val'+(same?' same':'');
+      document.getElementById('ob-'+id).textContent = 'base '+fmtOpen(id, DEFAULT_UI_START[id]);
+    });
+    var locked = !!(activeScenario && (activeScenario.world || activeScenario.pair));
+    var grp=document.getElementById('opening-grp');
+    if(grp) grp.classList.toggle('inert', locked);
+    ['openingARR','openingCash','w0','w12','w24'].forEach(function(id){
+      var el=document.getElementById('o-'+id); if(el) el.disabled = locked;
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * B2 — inverse calibration. Surfaces K.calibrate() already in kpi.js.
+   * Labels the outputs as transition coefficients, not "your GRR".
+   * Flat-law only; refused when bands are not flat (check 34).
+   * ------------------------------------------------------------------ */
+  function calibrationAllowed(){
+    return !!(baseRes && expRes && baseRes.bandsAreFlat && expRes.bandsAreFlat);
+  }
+  function applyCalibrate(){
+    var out=document.getElementById('cal-out');
+    if(!calibrationAllowed()){
+      out.className='cal-out warn';
+      out.textContent='Refused: bands are not flat. Inverse calibration is a flat-law closed form (check 34). Scenario 6 cannot be inverted this way.';
+      return;
+    }
+    var grr=parseFloat(document.getElementById('cal-grr').value)/100;
+    var ex=parseFloat(document.getElementById('cal-exp').value)/100;
+    if(!(grr>0 && grr<1) || !(ex>=0)){
+      out.className='cal-out warn';
+      out.textContent='Targets must be measured rates: GRR in (0, 1) and expansion ≥ 0.';
+      return;
+    }
+    var cal=K.calibrate(grr, ex);
+    if(!cal){
+      out.className='cal-out warn';
+      out.textContent='Infeasible: those measured targets do not invert to coefficients in (0, 1].';
+      return;
+    }
+    var prev=Object.assign({}, expA);
+    clearScenario();
+    expA=Object.assign({}, expA);
+    expA.persistenceAnnual=cal.persistenceAnnual;
+    expA.expansionCoefficientAnnual=cal.expansionCoefficientAnnual;
+    out.className='cal-out';
+    out.innerHTML='Coefficients, not reported KPIs: persistence <b>'+pct(cal.persistenceAnnual,2)+'</b> · expansion coefficient <b>'+pct(cal.expansionCoefficientAnnual,2)+'</b> · implied NRR* <b>'+pct(cal.targetNRR,2)+'</b>. '+
+      'A 90% measured GRR is not a 90% persistence coefficient — see docs/MEASUREMENT.md.';
+    recompute(prev);
+  }
+  function buildCalibrate(){
+    var host=document.getElementById('calibrate'); host.innerHTML='';
+    var g=document.createElement('div'); g.className='fgrp';
+    g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Inverse calibration</span></div>'+
+      '<div class="fgrp-note">Type measured R12M GRR and expansion. The closed form in <code>kpi.js</code> solves for transition coefficients. Flat-law only. These are not &ldquo;your GRR.&rdquo;</div>'+
+      '<div class="cal-row"><label for="cal-grr">Target measured GRR</label><input type="number" id="cal-grr" min="50" max="99.5" step="0.1" value="90"></div>'+
+      '<div class="cal-row"><label for="cal-exp">Target measured expansion</label><input type="number" id="cal-exp" min="0" max="40" step="0.1" value="10"></div>'+
+      '<button class="btn btn-wide" id="cal-apply" type="button">Set coefficients from measured KPIs</button>'+
+      '<div class="cal-out" id="cal-out"></div>';
+    host.appendChild(g);
+    document.getElementById('cal-apply').addEventListener('click', applyCalibrate);
+  }
+  function syncCalibrate(){
+    var btn=document.getElementById('cal-apply'); if(!btn) return;
+    var ok=calibrationAllowed();
+    btn.disabled=!ok;
+    var out=document.getElementById('cal-out');
+    if(!out) return;
+    if(!ok){
+      out.className='cal-out warn';
+      out.textContent='Refused: bands are not flat. Inverse calibration is a flat-law closed form (check 34).';
+    } else if(out.className.indexOf('warn')>=0 && /Refused/.test(out.textContent)){
+      out.className='cal-out'; out.textContent='';
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Item 6 — age / vintage editor. Zero new physics: writes the engine's
+   * existing three-band array. Default is flat (no expA.bands), so age
+   * still carries no meaning until someone sets a band apart from the
+   * scalars. Scenario 6 keeps the shared SCEN6_BANDS object — this editor
+   * always copies, never mutates that array.
+   * ------------------------------------------------------------------ */
+  function displayedBands(){
+    if(expA.bands && expA.bands.length===3) return expA.bands;
+    return E.resolveBands(expA);
+  }
+  function copyBand(b){
+    return { name:b.name, maxAgeExclusive:b.maxAgeExclusive,
+             persistenceAnnual:b.persistenceAnnual,
+             expansionCoefficientAnnual:b.expansionCoefficientAnnual };
+  }
+  function bandsMatchScalars(bands){
+    return bands.every(function(b){
+      return b.persistenceAnnual===expA.persistenceAnnual &&
+             b.expansionCoefficientAnnual===expA.expansionCoefficientAnnual;
+    });
+  }
+  function writeBand(i, field, val){
+    if(activeScenario && activeScenario.world) return;
+    var prev=Object.assign({}, expA);
+    clearScenario();
+    var next=displayedBands().map(copyBand);
+    next[i][field]=val;
+    expA=Object.assign({}, expA);
+    if(bandsMatchScalars(next)) delete expA.bands;
+    else expA.bands=next;
+    recompute(prev);
+  }
+  function buildTenure(){
+    var host=document.getElementById('tenure'); host.innerHTML='';
+    var g=document.createElement('div'); g.className='fgrp'; g.id='tenure-grp';
+    g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Tenure laws</span></div>'+
+      '<div class="fgrp-note">Three age bands the engine already has (0–11 / 12–23 / 24+). Default is flat — every band inherits the scalar coefficients, so age creates nothing. Scenario 6 keeps its own shared array. This editor always copies; it never mutates that object.</div>';
+    E.BAND_NAMES.forEach(function(name, i){
+      ['persistenceAnnual','expansionCoefficientAnnual'].forEach(function(field){
+        var id='t-'+field.charAt(0)+i;
+        var label=(field==='persistenceAnnual'?'Persistence':'Expansion')+' · '+name;
+        var d=document.createElement('div'); d.className='force';
+        d.innerHTML='<div class="force-top"><label for="'+id+'">'+esc(label)+'</label>'+
+          '<span class="force-val" id="tv-'+id+'"></span></div>'+
+          '<div class="force-sub">'+(i===0?'ages 0–11':i===1?'ages 12–23':'ages 24+')+
+          ' &middot; <span class="force-base" id="tb-'+id+'"></span></div>'+
+          '<input type="range" id="'+id+'" min="'+(field==='persistenceAnnual'?'0.6':'0')+
+          '" max="'+(field==='persistenceAnnual'?'0.99':'0.4')+'" step="0.005">';
+        d.querySelector('input').addEventListener('input', function(e){
+          writeBand(i, field, parseFloat(e.target.value));
+        });
+        g.appendChild(d);
+      });
+    });
+    host.appendChild(g);
+  }
+  function syncTenure(){
+    var bands=displayedBands();
+    var locked=!!(activeScenario && activeScenario.world);
+    var grp=document.getElementById('tenure-grp');
+    if(grp) grp.classList.toggle('inert', locked);
+    E.BAND_NAMES.forEach(function(name, i){
+      ['persistenceAnnual','expansionCoefficientAnnual'].forEach(function(field){
+        var id='t-'+field.charAt(0)+i;
+        var el=document.getElementById(id); if(!el) return;
+        var val=bands[i][field];
+        el.value=val; el.disabled=locked;
+        var same=val===(field==='persistenceAnnual'?baseA.persistenceAnnual:baseA.expansionCoefficientAnnual) && !expA.bands;
+        var v=document.getElementById('tv-'+id); v.textContent=pct(val,1);
+        v.className='force-val'+(same?' same':'');
+        document.getElementById('tb-'+id).textContent='scalar '+pct(field==='persistenceAnnual'?expA.persistenceAnnual:expA.expansionCoefficientAnnual,1);
+      });
+    });
+  }
+
   function buildForces(){
     var host = document.getElementById('forces'); host.innerHTML='';
     FORCE_GROUPS.forEach(function(G){
@@ -1894,15 +2338,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var fx=document.getElementById('fixedcosts');
     fx.className='fgrp';
     fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
-      '<div class="fgrp-note">Affect modeled FCF and Cash directly. v1 models no effect from them on recurring-state dynamics.</div>';
+      '<div class="fgrp-note">Affect modeled FCF and Cash. None of these change recurring-state dynamics. Prepaid term off = FCF aliased to EBITA (the prior contract).</div>';
     FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
   }
   function syncForces(){
     FORCES.forEach(function(F){
       var el=document.getElementById('f-'+F.k); if(!el) return;
-      el.value = expA[F.k];
+      var cur = expA[F.k];
+      if((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(cur>0)) cur = 0;
+      el.value = cur;
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
-      v.className = 'force-val' + (expA[F.k]===baseA[F.k] ? ' same' : '');
+      v.className = 'force-val' + ((expA[F.k]===baseA[F.k] || ((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(expA[F.k]>0) && !(baseA[F.k]>0))) ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
     });
   }
@@ -1910,9 +2356,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* ------------------------------------------------------------------ *
    * §7 — the six canonical scenarios.
    *
-   * There is deliberately NO "buy more growth" scenario. Acquisition is linear
-   * and unbounded in this engine (New ARR = S&M ÷ CAC), so canonising "increase
-   * S&M" would teach a known model limitation as though it were an economic law.
+   * There is still no canonical "buy more growth" scenario. Acquisition is
+   * linear at the default (k = null). A saturation spend on the rail is the
+   * bound that lets the model say *stop*; it is not a seventh scenario.
    *
    * `ch`     assumption changes applied to the Experiment
    * `pair`   both Base and Experiment are set (Scenario 5)
@@ -1977,9 +2423,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   ];
 
   var MODEL_BOUNDS = {
-    acq: 'Acquisition is linear and unbounded in S&M — the model can always buy growth and cannot say stop. (#10)',
-    exp: 'Expansion carries no separately modelled marginal cost. (#14)',
-    fcf: 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)',
+    acq: 'Acquisition is linear and unbounded in S&M — the default cannot say stop. Set a saturation spend to bound it. (#10)',
+    acqSat: 'Acquisition saturates: New ARR = (k / CAC) × S&M / (S&M + k). Marginal productivity falls as spend rises; the model can say stop. (#10)',
+    exp: 'Expansion CAC is 0 at the default — expansion is free. A positive expansionCacPerARR prices expansion ARR without changing the ARR path. (#14)',
+    fcf: 'FCF = EBITA when the prepaid term is off (the prior alias). Set a prepaid term so FCF = EBITA + N×ΔMRR. No tax, capex or debt. (#15)',
+    cashsm: 'S&M is unconstrained in cash at the default. A cash reserve caps S&M at max(0, cashOpening − reserve). R&D and G&A stay unconstrained — this is not a financing model.',
     rd:  'R&D has no modelled effect on retention or expansion. (#16)'
   };
 
@@ -2035,6 +2483,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       expStart  = { openingARR:20000000, openingCash:10000000, openingCohorts:[{arr:20000000, age:0}] };   // young
     } else {
       expA = Object.assign({}, BASE_A, sc.ch);
+      expStart = startFromOpen(expOpen);
     }
     document.getElementById('mode-chip').textContent = sc.name.toLowerCase();
     document.getElementById('mode-chip').classList.add('on');
@@ -2560,6 +3009,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
     ctx.fillText(rn(d.newARR), 408, yNew-18);
     dCaption(408, yNew-46, d.newARR);
+    ctx.font='8.5px "Archivo",sans-serif';
+    ctx.fillStyle = (expA.acqSaturationSpend>0) ? 'rgba(201,151,63,.95)' : '#3d4952';
+    ctx.fillText(expA.acqSaturationSpend>0
+      ? 'saturates · k='+eur(expA.acqSaturationSpend)+' · A_max='+eur(expRes.derived.acqAMax)
+      : 'linear · unbounded (k off)', 282, yNew+58);
 
     cloud(80, yExp, 'existing customer demand / budget');
     pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(247,221,196,.5)','rgba(93,108,117,.5)'));
@@ -2610,7 +3064,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     link([[215,178],[215,726],[905,726],[905,352]], 'S&M is also an operating cost');
 
     /* ---------- ABSENT LINKS: the model boundary, drawn ---------- */
-    link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'cash never constrains S&M', true);
+    if(expA.smCashReserve>0)
+      link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'S&M stops at cash reserve '+eur(expA.smCashReserve), false);
+    else
+      link([[cx+cw/2,cTop],[cx+cw/2,64],[276,64]], 'cash never constrains S&M', true);
     link([[700,428],[700,616],[652,616]], 'R&D → retention or expansion', true);
 
     /* ---------- header and scales ---------- */
@@ -2929,7 +3386,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       steps.push({ label:'− R&D', from:running, to:running+mm.rd, bal:mm.rd, tone:'var(--leak)', op:'−' });
       running -= mm.ga;
       steps.push({ label:'− G&A', from:running, to:running+mm.ga, bal:mm.ga, tone:'var(--leak)', op:'−' });
-      steps.push({ label:'= Modeled FCF (= EBITA)', from:0, to:running, bal:running,
+      running -= mm.expansionCost;
+      steps.push({ label:'− Expansion cost', from:running, to:running+mm.expansionCost, bal:mm.expansionCost, tone:'var(--leak)', op:'−' });
+      steps.push({ label:'= EBITA', from:0, to:running, bal:running,
+                   tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
+      running += mm.deltaDeferred;
+      steps.push({ label:'+ Δ deferred (billings − revenue)', from:running-mm.deltaDeferred, to:running, bal:mm.deltaDeferred,
+                   tone: mm.deltaDeferred>=0?'var(--good)':'var(--warn)', op:'+' });
+      steps.push({ label:'= FCF', from:0, to:running, bal:running,
                    tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
       return steps;
     }
@@ -2967,7 +3431,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     '<div class="crow" style="margin-top:7px"><span class="cl">Cash balance</span>'+
       '<span class="cbar" style="background:transparent"></span>'+
       '<span class="cv" style="color:var(--exp)">'+eur(expRes.months[m-1].cashClosing)+'</span></div>'+
-    '<div class="hint" style="margin-top:8px">v1 assumes modeled FCF = EBITA; no working capital, tax, capex or financing mechanics.</div>';
+    '<div class="hint" style="margin-top:8px">'+(expRes.derived.fcfEqualsEbita
+      ? 'Prepaid term is off: FCF is aliased to EBITA (the prior contract). No tax, capex or debt.'
+      : 'FCF = EBITA + Δdeferred, with Δdeferred = prepaid term × ΔMRR. Growing ARR is cash-generative at the WC line. No tax, capex or debt.')+'</div>';
   }
 
   /* ------------------------------------------------------------------ *
@@ -2987,7 +3453,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="srow"><span>Expansion − Leakage</span><b class="'+cls3+'">'+reurS(net)+'</b></div>'+
       '<div class="hint" style="margin-top:6px;line-height:1.65">Net installed-base movement of '+reurS(net)+' against opening installed-base '+basis+
       ' of '+reur(em.openingARR)+' = <b style="color:var(--ink-2)">'+pct(Math.abs(ratio),2)+'</b> this month. '+
-      'The installed base is <b style="color:var(--ink-2)">'+word+'</b> (tolerance ±'+pct(NET_TOLERANCE,2)+' of opening).</div></div>';
+      'The installed base is <b style="color:var(--ink-2)">'+word+'</b> (tolerance ±'+pct(NET_TOLERANCE,2)+' of opening).</div>'+
+      (expRes.derived.logoLayerOn
+        ? '<div class="srow" style="margin-top:8px"><span>Customers</span><b>'+em.customersOpening.toFixed(0)+' → '+em.customersClosing.toFixed(0)+'</b></div>'+
+          '<div class="srow"><span>Logo-churn ARR (logo churn and contraction split)</span><b>'+reur(em.logoChurn)+'</b></div>'+
+          '<div class="srow"><span>Contraction ARR (logo churn and contraction split)</span><b>'+reur(em.contraction)+'</b></div>'+
+          '<div class="hint" style="margin-top:6px;line-height:1.65">Leakage splits into logo churn and contraction: '+
+          reur(em.logoChurn)+' + '+reur(em.contraction)+' = '+reur(em.leakage)+
+          '. Persistence still drives the ARR loss; this is the board split, not a second law.</div>'
+        : '') +
+      '</div>';
   }
 
   /* ------------------------------------------------------------------ *
@@ -3151,12 +3626,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
       '</b>. Expansion is the retained balance × '+pct(Math.pow(1+expA.expansionCoefficientAnnual,1/12)-1,3)+
       '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
-      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
+      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M'+
+      (expA.acqSaturationSpend>0
+        ? ' — and it saturates: New ARR = (k / CAC) × S&amp;M / (S&amp;M + k) with k = '+eur(expA.acqSaturationSpend)+'.'
+        : ' — linearly at the default (saturation spend off).')+'</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
-      '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> S&amp;M is exogenous. Cash can fall to '+
-      eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend. The capital loop is drawn open because it <em>is</em> open.'+
+      (expA.smCashReserve>0
+        ? '<b style="color:var(--ink)">Cash → S&amp;M.</b> S&amp;M cannot spend through a cash reserve of '+eur(expA.smCashReserve)+'. Intended S&amp;M is '+eur(expA.sm)+'/'+(expRes.months[selectedMonth()-1].smConstrained?'cut this month to '+eur(expRes.months[selectedMonth()-1].sm):'still affordable this month')+'. R&amp;D and G&amp;A stay unconstrained.'
+        : '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> S&amp;M is exogenous. Cash can fall to '+
+          eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend. The capital loop is drawn open because it <em>is</em> open. Set a cash reserve on the Forces rail to close it.')+
       '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit, so it '+
       'reaches no valve. The absence is the honest drawing of the model boundary.</div></div>';
 
@@ -3315,7 +3795,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function boundaryDisclosure(changed){
     var keys = changed.map(function(u){ return u.key; });
     var bounds = [];
-    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0) bounds.push('acq');
+    if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0 || keys.indexOf('acqSaturationSpend')>=0 || keys.indexOf('smCashReserve')>=0){
+      var satOn = (expA.acqSaturationSpend>0) || (baseA.acqSaturationSpend>0);
+      bounds.push(satOn ? 'acqSat' : 'acq');
+      if(keys.indexOf('smCashReserve')>=0 || expA.smCashReserve>0 || baseA.smCashReserve>0) bounds.push('cashsm');
+    }
     if(keys.indexOf('expansionCoefficientAnnual')>=0) bounds.push('exp');
     if(keys.indexOf('rd')>=0) bounds.push('rd');
     bounds.push('fcf');            // relevant whenever a financial consequence is displayed
@@ -3354,22 +3838,40 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       'in a system with interactions — they are not forced to sum to the total.</div>' : '';
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+t1+t2+'</details></div>';
   }
-  var LABEL={sm:'S&M', cacPerARR:'CAC / New ARR', persistenceAnnual:'Persistence',
-             expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A'};
-  var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur'};
+  var LABEL={sm:'S&M', smCashReserve:'S&M cash reserve', cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
+             persistenceAnnual:'Persistence',
+             expansionCoefficientAnnual:'Expansion', expansionCacPerARR:'Expansion CAC',
+             logoRetentionAnnual:'Logo retention',
+             grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
+             billingAdvanceMonths:'Prepaid term'};
+  var LABEL_FMT={sm:'eur', smCashReserve:'offeur', cacPerARR:'x', acqSaturationSpend:'sat', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', expansionCacPerARR:'x', logoRetentionAnnual:'offpct', grossMargin:'pct', rd:'eur', ga:'eur', billingAdvanceMonths:'offmo'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */
   function renderExperimentSummary(){
     var host=document.getElementById('experiment-summary');
-    var changed = E.compare(baseRes, expRes).changed;      // [{key, from, to}], real engine diff
+    var cmp = E.compare(baseRes, expRes);
+    var changed = cmp.changed;      // [{key, from, to}], real engine diff
+    var bandsChanged = cmp.bandsChanged;
     if(pairMode){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         '<div class="hint" style="line-height:1.65">Efficiency vs Spend pair — Base buys New ARR with acquisition efficiency, '+
         'Experiment buys the same New ARR with S&amp;M. See the Scenarios panel for the calibrated values.</div>';
       return;
     }
-    if(!changed.length){
+    var startRows = '';
+    if(expStart){
+      if(expOpen.openingARR!==DEFAULT_UI_START.openingARR)
+        startRows += '<div class="exp-row"><span>Opening ARR</span><b>'+eur(DEFAULT_UI_START.openingARR)+' \u2192 '+eur(expOpen.openingARR)+'</b></div>';
+      if(expOpen.openingCash!==DEFAULT_UI_START.openingCash)
+        startRows += '<div class="exp-row"><span>Opening cash</span><b>'+eur(DEFAULT_UI_START.openingCash)+' \u2192 '+eur(expOpen.openingCash)+'</b></div>';
+      if(expOpen.w12!==0 || expOpen.w24!==0)
+        startRows += '<div class="exp-row"><span>Vintage mix</span><b>age 0/12/24 · '+
+          expOpen.w0.toFixed(0)+'/'+expOpen.w12.toFixed(0)+'/'+expOpen.w24.toFixed(0)+'%</b></div>';
+    }
+    if(bandsChanged)
+      startRows += '<div class="exp-row"><span>Tenure laws</span><b>flat → age-banded</b></div>';
+    if(!changed.length && !startRows){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         '<div class="hint">0 assumptions changed &middot; Experiment equals Base</div>';
       return;
@@ -3379,9 +3881,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return '<div class="exp-row"><span>'+esc(LABEL[c.key]||c.key)+'</span>'+
         '<b>'+fmtF(f,c.from)+' \u2192 '+fmtF(f,c.to)+'</b></div>';
     }).join('');
+    var n = changed.length + (startRows?1:0);
     host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
-      '<div class="hint" style="margin-bottom:7px">'+changed.length+' assumption'+(changed.length>1?'s':'')+' changed</div>'+
-      '<div class="exp-summary">'+rows+'</div>';
+      '<div class="hint" style="margin-bottom:7px">'+n+' change'+(n>1?'s':'')+' vs Base</div>'+
+      '<div class="exp-summary">'+startRows+rows+'</div>';
   }
 
   /* ------------------------------------------------------------------ *
@@ -3460,8 +3963,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function resetAll(){
     exitPair(); clearScenario();
     baseA = BASE_A; expA = Object.assign({}, BASE_A);
+    expOpen = Object.assign({}, DEFAULT_UI_START);
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
+    var calOut=document.getElementById('cal-out');
+    if(calOut){ calOut.className='cal-out'; calOut.textContent=''; }
     resize(); recompute(); render();
   }
   document.getElementById('reset').addEventListener('click', resetAll);
@@ -3481,7 +3987,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     requestAnimationFrame(frame);
   }
 
-  buildForces(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  buildOpening(); buildForces(); buildTenure(); buildCalibrate(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
   requestAnimationFrame(frame);
 
   /* Acceptance-test hook only — read-only getters onto the closured state, so
@@ -3493,10 +3999,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   window.__SP_DEBUG = {
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
+    get expStart(){ return expStart; }, get expOpen(){ return expOpen; },
     selectedMonth: selectedMonth,
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
-    attributionValid: attributionValid
+    attributionValid: attributionValid,
+    startFromOpen: startFromOpen,
+    calibrationAllowed: calibrationAllowed,
+    applyCalibrate: applyCalibrate,
+    writeBand: writeBand,
+    displayedBands: displayedBands
   };
 })();
 </script>

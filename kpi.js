@@ -55,16 +55,21 @@
     var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
 
     var opening = 0, leakage = 0, expansion = 0, closing = 0, contributions = [];
+    var logoChurn = 0, contraction = 0, custOpen = 0, custClose = 0;
     eligible.forEach(function (c) {
       var first = rowAt(c, start);
       if (!first) return;
-      var o = first.openingARR, lk = 0, ex = 0, last = null;
+      var o = first.openingARR, lk = 0, ex = 0, last = null, lc = 0, ct = 0;
       for (var t = start; t <= T; t++) {
         var r = rowAt(c, t);
         if (!r) break;
         lk += r.leakage; ex += r.expansion; last = r;
+        lc += r.logoChurn || 0; ct += r.contraction || 0;
       }
       opening += o; leakage += lk; expansion += ex; closing += last ? last.closingARR : 0;
+      logoChurn += lc; contraction += ct;
+      custOpen += first.customersOpening || 0;
+      custClose += last ? (last.customersClosing || 0) : 0;
       contributions.push({
         id: c.id, acquisitionMonth: c.acquisitionMonth, ageAtOpening: start - 1 - c.acquisitionMonth,
         openingARR: o, leakage: lk, expansion: ex, closingARR: last ? last.closingARR : 0,
@@ -91,6 +96,13 @@
       grr: grr,
       expansionRate: exr,
       nrr: nrr,
+      logoChurn: logoChurn,
+      contraction: contraction,
+      logoChurnRate: opening > 0 ? logoChurn / opening : 0,
+      contractionRate: opening > 0 ? contraction / opening : 0,
+      logoRetention: custOpen > 0 ? custClose / custOpen : null,
+      customersOpening: custOpen,
+      customersClosing: custClose,
       nrrFromBridge: opening > 0 ? (opening + expansion - leakage) / opening : 1,
       identityResidual: (grr + exr) - nrr,
       newARRExcluded: newARRExcluded,

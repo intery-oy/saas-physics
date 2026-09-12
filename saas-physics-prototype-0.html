@@ -225,10 +225,10 @@ tr.hl td{color:var(--ink)}
       <div class="emergent" id="emergent"></div>
       <div class="derived" id="derived"></div>
       <div class="note" style="margin-top:10px">
-        <b style="color:var(--ink-2)">v0.2 acquisition physics.</b> New ARR is generated from spend and acquisition productivity — gross margin does not appear:
-        <div class="formula" style="margin:7px 0">New ARR<sub>month</sub> = S&amp;M ÷ (CAC / New ARR)
-New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
-        Acquisition productivity decides how much ARR the spend creates; gross margin decides how fast that investment comes back, which is why payback is an output. Still no sales capacity, rep ramp, pipeline, conversion, diminishing returns or acquisition delay. NRR is not an input either — it falls out of GRR and expansion.
+        <b style="color:var(--ink-2)">v0.4 acquisition physics.</b> Default is the v0.2 linear generator — gross margin does not appear:
+        <div class="formula" style="margin:7px 0">New ARR<sub>month</sub> = S&amp;M ÷ (CAC / New ARR)          ← k off (null)
+New ARR<sub>month</sub> = (k / CAC) × S&amp;M / (S&amp;M + k)   ← finite saturation spend k</div>
+        <code>cacPerARR</code> is small-spend productivity; <code>k</code> is the monthly S&amp;M at which average productivity is half the linear prediction. Off by default, so every prior result is unchanged. Gross margin still only sets payback. No sales capacity, ramp, pipeline or acquisition delay.
       </div>
     </div>
 
@@ -245,7 +245,7 @@ New ARR<sub>year</sub>  = S&amp;M × 12 ÷ (CAC / New ARR)</div>
       <h1>SaaS&nbsp;Physics</h1>
       <span class="sub">Prototype&nbsp;0 — deterministic economic engine</span>
       <span class="spacer"></span>
-      <span class="pill">model v0.3</span>
+      <span class="pill">model v0.4</span>
       <span class="pill">60 monthly periods</span>
       <span class="pill" id="cohort-pill">61 cohorts</span>
     </header>
@@ -330,8 +330,9 @@ leakage   = opening − retained
 expansion = retained × monthly expansion
 closing   = retained + expansion (+ new cohort)
 
-New ARR   = S&amp;M ÷ (CAC / New ARR)          ← v0.2
-payback   = (CAC / New ARR) × 12 ÷ GM       ← OUTPUT
+New ARR   = S&amp;M ÷ (CAC / New ARR)          ← v0.2 / v0.4 default (k off)
+New ARR   = (k / CAC) × S&amp;M / (S&amp;M + k) ← v0.4 when k is set
+payback   = (CAC / New ARR) × 12 ÷ GM       ← OUTPUT (stated CAC)
 
 revenue = ((opening + closing) / 2) / 12
 EBITA   = GP − S&amp;M − R&amp;D − G&amp;A
@@ -344,7 +345,7 @@ FCF     = EBITA</div>
             <li>Leakage combines churn and contraction, so the KPI layer cannot report them separately however correct its definitions are. Reactivation = 0. There are no customers, so logo retention and concentration do not exist.</li>
             <li>Retention and expansion rates do not vary with cohort age, segment or product.</li>
             <li>The future economic benefit of R&amp;D is <strong>outside the simulation boundary</strong>. v0.2 deliberately encodes no R&amp;D → retention or R&amp;D → expansion law; there is no defensible universal coefficient. A later version may let you state a hypothesised delayed effect as an explicit management thesis.</li>
-            <li>Acquisition is linear and instantaneous in S&amp;M — no saturation, no lag.</li>
+            <li>Acquisition is instantaneous in S&amp;M — no lag. Saturation exists (v0.4) but is <em>off</em> by default, so the shipped world is still linear.</li>
             <li>Revenue uses a midpoint approximation of a stock that actually moves continuously.</li>
           </ul>
         </div>
@@ -353,7 +354,7 @@ FCF     = EBITA</div>
           <ul>
             <li><strong>Fixed.</strong> Gross margin no longer generates ARR. In v0.1, cutting GM 80%→65% wrongly raised New ARR €0.75m→€0.92m/month; now it leaves New ARR untouched and moves CAC payback 18.0→22.2 months instead.</li>
             <li><strong>Still true.</strong> Improving acquisition efficiency and raising S&amp;M by the same factor produce an identical ARR path — only cash separates them (€27m over 60 months at the calibrated settings).</li>
-            <li><strong>Still true.</strong> Acquisition remains linear, instantaneous and unbounded in S&amp;M. There is no spend level at which the next euro buys less.</li>
+            <li><strong>v0.4 — optional bound.</strong> A finite saturation spend k makes New ARR = (k/CAC)×S&amp;M/(S&amp;M+k). The default k is null, so the linear generator is reproduced exactly.</li>
             <li><strong>Discovered (v0.2).</strong> Retention-heavy and expansion-heavy businesses at matched NRR are economically indistinguishable to this model. A boundary, not a bug — see <code>docs/MATCHED-NRR.md</code>.</li>
             <li><strong>v0.2.1 — two layers.</strong> The economic engine holds <em>transition coefficients</em>; the KPI engine holds <em>measurement definitions</em>, and events flow one way between them. A 90% persistence coefficient measures as 89.56% R12M GRR: the whole gap is the within-period interaction of decay and expansion, and it vanishes if either is switched off. See <code>docs/MEASUREMENT.md</code>.</li>
             <li><strong>v0.2.1 — sharper boundary.</strong> Measured R12M NRR is a stock ratio, so pinning it pins the monthly multiplier uniquely. Any two systems reporting the same NRR are identical in this model <em>by construction</em>, not by coincidence.</li>
@@ -391,7 +392,11 @@ FCF     = EBITA</div>
  * and every scenario are unchanged; only which unit is native moved from ARR
  * to MRR. See docs/ARCHITECTURE.md.
  *
- * MODEL VERSION: v0.3
+ * MODEL VERSION: v0.4
+ *   v0.3 → v0.4: ONE new transition coefficient — acquisition saturation.
+ *   New ARR may saturate in S&M. The shipped default is NULL (linear /
+ *   unbounded), so the default world is exactly v0.3 and the model does not
+ *   assert a saturation scale until a user sets one. See FINDINGS.md #10.
  *   v0.2.1 → v0.3: ONE new state dimension — cohort maturity. Transition
  *   coefficients may vary by cohort age band. Defaults are FLAT (all bands
  *   identical), so the shipped default reproduces v0.2.1 exactly and the model
@@ -422,12 +427,16 @@ FCF     = EBITA</div>
     FLOW: {
       newARR:      'ARR added by acquisition this month',
       expansion:   'ARR added by the installed base this month',
-      leakage:     'ARR lost by the installed base this month (churn + contraction combined in v0.1)',
+      leakage:     'ARR lost by the installed base this month (logo churn + contraction when logoRetentionAnnual is set; otherwise combined)',
+      logoChurn:   'ARR lost with departing customers (only when logoRetentionAnnual is set)',
+      contraction: 'ARR lost on surviving customers (only when logoRetentionAnnual is set)',
       revenue:     'Recognised revenue this month',
       cogs:        'Cost of revenue this month',
       grossProfit: 'Revenue less COGS this month',
       ebita:       'Gross profit less S&M, R&D, G&A',
-      fcf:         'Free cash flow (= EBITA in v0.1)'
+      fcf:         'Free cash flow. Equals EBITA when billingAdvanceMonths is null; otherwise EBITA + Δdeferred.',
+      billings:    'Cash collected this month (recognised revenue + change in deferred)',
+      deferred:    'Deferred revenue liability (prepaid but unrecognised)'
     },
     /* TRANSITION COEFFICIENTS — they govern the world. They are not measurements,
        and they do not equal the KPIs of similar name. */
@@ -435,10 +444,15 @@ FCF     = EBITA</div>
       persistenceAnnual:          'Annual persistence coefficient — 12-month multiplicative survival of installed ARR, applied BEFORE expansion. NOT reported GRR.',
       expansionCoefficientAnnual: 'Annual expansion coefficient — 12-month compounded expansion factor applied to RETAINED ARR. NOT reported expansion.',
       grossMargin:                'Gross margin coefficient',
-      cacPerARR:                  'Acquisition spend per €1 of New ARR — dimensionless acquisition productivity'
+      cacPerARR:                  'Acquisition spend per €1 of New ARR — small-spend (linear) acquisition productivity',
+      acqSaturationSpend:         'Monthly S&M at which average acquisition productivity is half the linear prediction. Null = linear / unbounded (v0.3).',
+      billingAdvanceMonths:       'Prepaid billing term in months. Null/0 = FCF aliased to EBITA (prior). Finite N: billings = revenue + N×ΔMRR; FCF = EBITA + Δdeferred.',
+      expansionCacPerARR:         'Cost per €1 of Expansion ARR, symmetric with cacPerARR. Null/0 = free expansion (prior).',
+      logoRetentionAnnual:        'Annual customer (logo) survival. Null = no customer stock (prior). Persistence still drives ARR leakage; this splits it into logo churn vs contraction.'
     },
     CONTROL: {
-      sm: 'Monthly S&M investment (management control)',
+      sm: 'Monthly S&M investment (management control) — intended spend; may be cut when smCashReserve is set',
+      smCashReserve: 'Cash floor S&M may not spend through. Null = unconstrained (prior). Finite including 0 = cannot spend below that cash balance.',
       rd: 'Monthly R&D investment (management control)',
       ga: 'Monthly G&A investment (management control)'
     },
@@ -457,7 +471,12 @@ FCF     = EBITA</div>
   /* Illustrative defaults. Not real company data. */
   var DEFAULT_ASSUMPTIONS = {
     sm:                         900000,  // CONTROL   €/month
-    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR
+    cacPerARR:                  1.20,    // TRANSITION € of S&M per €1 of New ARR (small-spend / linear)
+    acqSaturationSpend:         null,    // TRANSITION €/month; null = linear (v0.3). Finite k saturates New ARR.
+    smCashReserve:              null,    // CONTROL   €; null = S&M unconstrained (prior). Finite = S&M ≤ max(0, cashOpening − reserve).
+    billingAdvanceMonths:       null,    // TRANSITION prepaid term in months. Null/0 = FCF=EBITA (prior). Finite N: FCF = EBITA + N×ΔMRR.
+    expansionCacPerARR:         0,       // TRANSITION € of cost per €1 of Expansion ARR. 0 = free (prior).
+    logoRetentionAnnual:        null,    // TRANSITION 12-month customer survival. Null = no customer layer (prior).
     persistenceAnnual:          0.90,    // TRANSITION 12-month survival factor of installed ARR, before expansion
     expansionCoefficientAnnual: 0.10,    // TRANSITION 12-month compounded expansion factor applied to RETAINED ARR
     grossMargin:                0.80,    // TRANSITION
@@ -501,7 +520,9 @@ FCF     = EBITA</div>
     /* v0.3: the opening base may be a portfolio of vintages. Each entry is
        { arr, age } where age is the cohort's age in months at t=0. Omit for the
        v0.2.1 behaviour of one opening cohort at age 0. */
-    openingCohorts: null
+    openingCohorts: null,
+    /* Used only when logoRetentionAnnual is set. Null = derive from €20k ARPA. */
+    openingCustomers: null
   };
 
   /* ------------------------------------------------------------------ *
@@ -514,15 +535,22 @@ FCF     = EBITA</div>
   function toMonthlyExpansion(expAnnual) { return Math.pow(1 + expAnnual, 1 / 12) - 1; }
 
   /* ------------------------------------------------------------------ *
-   * v0.2 acquisition physics
+   * v0.4 acquisition physics (v0.2 primitive + optional saturation)
    *
    * PRIMITIVE — acquisition productivity, a dimensionless ratio:
-   *   cacPerARR = acquisition spend / New ARR generated
+   *   cacPerARR = acquisition spend / New ARR generated   (small-spend / linear)
    *
-   * New ARR generated per year of spend:
-   *   annual New ARR = (Monthly S&M x 12) / cacPerARR
-   * so the ARR added to the stock in one month is:
+   * NULL / DEFAULT (k absent, null, 0 or Infinity) — exact v0.2 / v0.3 generator:
    *   monthly New ARR = Monthly S&M / cacPerARR
+   *
+   * SATURATING (finite k = acqSaturationSpend, €/month):
+   *   monthly New ARR = (k / cacPerARR) × S&M / (S&M + k)
+   *                   = linear × k / (S&M + k)
+   *
+   * Equivalent rising-CAC form: average CAC = cacPerARR × (1 + S&M/k).
+   * At S&M = k, average productivity is half the linear prediction.
+   * As S&M → ∞, New ARR → A_max = k / cacPerARR. Marginal New ARR falls
+   * in S&M, which is what lets the model say *stop*.
    *
    * UNITS. sm is €/month. cacPerARR is dimensionless. newARRPerMonth is therefore
    * € of ARR (an annualised-run-rate quantity) added to the ARR stock each month —
@@ -533,12 +561,71 @@ FCF     = EBITA</div>
    * productivity determines how much ARR the spend creates; gross margin determines
    * how fast that investment is recovered, and shows up in cacPaybackMonths below.
    *
-   * Still linear, instantaneous and unbounded in S&M — no capacity, ramp, pipeline,
-   * conversion, diminishing returns or acquisition lag. See FINDINGS.md.
+   * Still instantaneous — no capacity, ramp, pipeline, conversion or acquisition
+   * lag. Saturation is the one new bound. See FINDINGS.md #10.
    * ------------------------------------------------------------------ */
+  function saturationSpendOf(a) {
+    var k = a && a.acqSaturationSpend;
+    if (k == null || k === Infinity) return null;
+    if (typeof k !== 'number' || !(k > 0)) return null;
+    return k;
+  }
+
+  /* Cash floor on S&M. Null / omitted / Infinity = unconstrained (prior: S&M
+   * is spent in full every month even if cash is already negative). A finite
+   * reserve r ≥ 0 (including 0) means this month's S&M cannot exceed
+   * max(0, cashOpening − r). R&D and G&A stay unconstrained — this is not
+   * a financing model. See FINDINGS / System ⊘ "cash never constrains S&M". */
+  function smCashReserveOf(a) {
+    var r = a && a.smCashReserve;
+    if (r == null || r === Infinity) return null;
+    if (typeof r !== 'number' || isNaN(r) || r < 0) return null;
+    return r;
+  }
+
+  function effectiveSM(intended, cashOpening, reserve) {
+    if (reserve === null) return intended;
+    var room = cashOpening - reserve;
+    if (!(room > 0)) return 0;
+    return intended < room ? intended : room;
+  }
+
+  /* Prepaid term. Null / omitted / 0 / Infinity = FCF = EBITA (prior alias).
+   * Finite N > 0: the smooth annual-prepaid approximation
+   *   Δdeferred = N × (closingMRR − openingMRR)
+   *   billings  = revenue + Δdeferred
+   *   FCF       = EBITA + Δdeferred
+   * Growing ARR is then cash-generative at the WC line — the opposite sign
+   * of the old alias. No tax, capex, debt or other WC. See FINDINGS #15. */
+  var DEFAULT_ARPA = 20000; // € ARR per customer when the logo layer is on and no count is given
+
+  function logoRetentionOf(a) {
+    var p = a && a.logoRetentionAnnual;
+    if (p == null || p === 0 || p === Infinity) return null;
+    if (typeof p !== 'number' || !(p > 0 && p <= 1)) return null;
+    return p;
+  }
+
+  function expansionCacOf(a) {
+    var c = a && a.expansionCacPerARR;
+    if (c == null || c === 0) return 0;
+    if (typeof c !== 'number' || !(c > 0)) return 0;
+    return c;
+  }
+
+  function billingAdvanceOf(a) {
+    var n = a && a.billingAdvanceMonths;
+    if (n == null || n === Infinity || n === 0) return null;
+    if (typeof n !== 'number' || !(n > 0)) return null;
+    return n;
+  }
+
   function newARRPerMonth(a) {
     if (!(a.cacPerARR > 0)) return 0;
-    return a.sm / a.cacPerARR;
+    var linear = a.sm / a.cacPerARR;
+    var k = saturationSpendOf(a);
+    if (k === null) return linear;
+    return linear * (k / (a.sm + k));
   }
 
   /* MRR-NATIVE. cacPerARR is unchanged as the public assumption — € of S&M
@@ -564,7 +651,13 @@ FCF     = EBITA</div>
   }
 
   function normaliseAssumptions(a) {
-    return Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    var out = Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    out.acqSaturationSpend = saturationSpendOf(out);
+    out.smCashReserve = smCashReserveOf(out);
+    out.billingAdvanceMonths = billingAdvanceOf(out);
+    out.expansionCacPerARR = expansionCacOf(out);
+    out.logoRetentionAnnual = logoRetentionOf(out);
+    return out;
   }
 
   /* ------------------------------------------------------------------ *
@@ -577,11 +670,15 @@ FCF     = EBITA</div>
 
     var gM = toMonthlyPersistence(a.persistenceAnnual);
     var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
-    /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
-       newARR (still newARRPerMonth(a), unchanged) is kept as the exact
-       12x-derived reporting figure every existing caller reads. */
-    var newARR = newARRPerMonth(a);
-    var newMRR = newARR / 12;
+    /* Intended (unconstrained) acquisition — used for derived.* and as the
+       monthly values whenever smCashReserve is null, so the default world is
+       bit-identical to v0.4. When a reserve is set, each month recomputes
+       New ARR from the cash-capped S&M. */
+    var newARRIntended = newARRPerMonth(a);
+    var newMRRIntended = newARRIntended / 12;
+    var kSat = saturationSpendOf(a);
+    var stampCacIntended = kSat === null ? a.cacPerARR : (newARRIntended > 0 ? a.sm / newARRIntended : a.cacPerARR);
+    var smReserve = smCashReserveOf(a);
 
     var bands = resolveBands(a);
     var bandRates = bands.map(function (b) {
@@ -597,6 +694,10 @@ FCF     = EBITA</div>
     var seed = (s.openingCohorts && s.openingCohorts.length)
       ? s.openingCohorts
       : [{ arr: s.openingARR, age: 0 }];
+    var logoP = logoRetentionOf(a);
+    var seedARR = seed.reduce(function (n, c) { return n + c.arr; }, 0);
+    var arpa0 = logoP === null ? 0
+      : (s.openingCustomers > 0 && seedARR > 0 ? seedARR / s.openingCustomers : DEFAULT_ARPA);
     var cohorts = seed.map(function (c, i) {
       return {
         id: seed.length === 1 ? 'base' : 'base' + (i + 1),
@@ -607,6 +708,7 @@ FCF     = EBITA</div>
         /* MRR-NATIVE: c.arr is the public, ARR-denominated seed input
            (unchanged API); live is the engine's own state, carried in MRR. */
         live: c.arr / 12,
+        liveCustomers: logoP === null ? 0 : (c.customers != null ? c.customers : (arpa0 > 0 ? c.arr / arpa0 : 0)),
         /* PROVENANCE. The cost of creating the opening base happened before the
            simulation and is genuinely unknown — recorded as null, never as zero. */
         acquisitionCost: null,
@@ -617,9 +719,14 @@ FCF     = EBITA</div>
 
     var months = [];
     var cash = s.openingCash;
+    var billN = billingAdvanceOf(a);
+    /* Midpoint remaining prepaid: a stable book billed N months ahead carries
+       about N/2 months of unrecognised cash. Zero when the alias is on. */
+    var deferred = billN === null ? 0 : (s.openingARR / 12) * (billN / 2);
     var nrrMonthlyHistory = [];
     var cum = { newARR: 0, expansion: 0, leakage: 0, revenue: 0, cogs: 0,
-                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0 };
+                grossProfit: 0, sm: 0, rd: 0, ga: 0, ebita: 0, fcf: 0,
+                billings: 0, deltaDeferred: 0, expansionCost: 0 };
 
     function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
 
@@ -628,6 +735,20 @@ FCF     = EBITA</div>
       for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0;
+      var totLogoChurnARR = 0, totContractionARR = 0, totCustOpen = 0, totCustClose = 0;
+      var cashOpening = cash;
+      var smEff = effectiveSM(a.sm, cashOpening, smReserve);
+      var newARR, newMRR, stampCac;
+      if (smReserve === null) {
+        newARR = newARRIntended;
+        newMRR = newMRRIntended;
+        stampCac = stampCacIntended;
+      } else {
+        var monthA = Object.assign({}, a, { sm: smEff });
+        newARR = newARRPerMonth(monthA);
+        newMRR = newARR / 12;
+        stampCac = kSat === null ? a.cacPerARR : (newARR > 0 ? smEff / newARR : a.cacPerARR);
+      }
 
       /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
          Same transition coefficients, same order, same identities as before —
@@ -650,6 +771,23 @@ FCF     = EBITA</div>
         var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
         var revenue   = avgMRR;                       // MRR already IS the monthly amount
         var gp        = revenue * a.grossMargin;
+        /* Logo layer. Persistence still drives ARR leakage. When on, that
+           leakage is split into logo-churn ARR (lost customers × opening ARPA)
+           and contraction ARR (the residual). Logo churn is clamped so it
+           cannot exceed ARR leakage — the ARR path never changes. */
+        var custOpen = c.liveCustomers || 0, custClose = custOpen, logoChurnARR = 0, contractionARR = 0;
+        var leakARR = leakageC * 12;
+        if (logoP !== null && custOpen > 0) {
+          var gLogo = toMonthlyPersistence(logoP);
+          var custRet = custOpen * gLogo;
+          var lost = custOpen - custRet;
+          var arpa = (openingC * 12) / custOpen;
+          logoChurnARR = lost * arpa;
+          if (logoChurnARR > leakARR) { logoChurnARR = leakARR; lost = arpa > 0 ? leakARR / arpa : 0; custRet = custOpen - lost; }
+          contractionARR = leakARR - logoChurnARR;
+          custClose = custRet;
+        }
+        c.liveCustomers = custClose;
 
         c.rows.push({
           t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
@@ -657,33 +795,42 @@ FCF     = EBITA</div>
           expansionMRR: expansionC, closingMRR: closingC,
           openingARR: openingC * 12, retainedARR: retainedC * 12, leakage: leakageC * 12,
           expansion: expansionC * 12, closingARR: closingC * 12,
+          customersOpening: custOpen, customersClosing: custClose,
+          logoChurn: logoChurnARR, contraction: contractionARR,
           revenue: revenue, grossProfit: gp
         });
         c.live = closingC;
+        totLogoChurnARR += logoChurnARR; totContractionARR += contractionARR;
+        totCustOpen += custOpen; totCustClose += custClose;
 
         totRetainedMRR += retainedC; totLeakageMRR += leakageC;
         totExpansionMRR += expansionC; totRevenue += revenue;
       }
 
       /* --- New acquisition cohort is created AFTER the base has aged --- */
+      var ncCustomers = (logoP === null || !(arpa0 > 0)) ? 0 : (newMRR * 12) / arpa0;
       var nc = {
         id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
-        initialARR: newMRR * 12, live: newMRR, rows: [],
+        initialARR: newMRR * 12, live: newMRR, liveCustomers: ncCustomers, rows: [],
         /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
            economics in force in that month. Immutable thereafter, and never read
            by any forward transition — it is a sunk cost, not a forward penalty. */
-        acquisitionCost: a.sm,
-        cacPerARRAtCreation: a.cacPerARR
+        acquisitionCost: smEff,
+        /* Stated coefficient when linear (bit-identical to v0.3). Realized
+           S&M / New ARR when saturating, so cost = initialARR × stamp. */
+        cacPerARRAtCreation: stampCac
       };
       var ncRevenue = (0 + newMRR) / 2;    // half a month of MRR, same midpoint rule
       nc.rows.push({
         t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
         openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: newMRR,
         openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: newMRR * 12,
+        customersOpening: 0, customersClosing: ncCustomers, logoChurn: 0, contraction: 0,
         revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin
       });
       cohorts.push(nc);
       totRevenue += ncRevenue;
+      totCustClose += ncCustomers;
 
       var closingMRR = totRetainedMRR + totExpansionMRR + newMRR;
 
@@ -694,11 +841,18 @@ FCF     = EBITA</div>
       var grossProfit = revenue * a.grossMargin;
 
       /* --- 9. EBITA --- */
-      var ebita = grossProfit - a.sm - a.rd - a.ga;
+      var expansionCac = expansionCacOf(a);
+      var expansionCost = (totExpansionMRR * 12) * expansionCac;
+      var ebita = grossProfit - smEff - a.rd - a.ga - expansionCost;
 
-      /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed. --- */
-      var fcf = ebita;
-      var cashOpening = cash;
+      /* --- 10. Cash. Null billing term: FCF = EBITA (prior alias).
+         Finite N: FCF = EBITA + N × ΔMRR = EBITA + Δdeferred. --- */
+      var deltaDeferred = billN === null ? 0 : billN * (closingMRR - openingMRR);
+      var billings = revenue + deltaDeferred;
+      var deferredOpening = deferred;
+      var deferredClosing = deferredOpening + deltaDeferred;
+      deferred = deferredClosing;
+      var fcf = ebita + deltaDeferred;
       var cashClosing = cashOpening + fcf;
       cash = cashClosing;
 
@@ -716,8 +870,10 @@ FCF     = EBITA</div>
 
       cum.newARR += newARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
-      cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga;
+      cum.sm += smEff; cum.rd += a.rd; cum.ga += a.ga;
       cum.ebita += ebita; cum.fcf += fcf;
+      cum.billings += billings; cum.deltaDeferred += deltaDeferred;
+      cum.expansionCost += expansionCost;
 
       months.push({
         t: t,
@@ -743,13 +899,22 @@ FCF     = EBITA</div>
         revenue: revenue,
         cogs: cogs,
         grossProfit: grossProfit,
-        sm: a.sm, rd: a.rd, ga: a.ga,
+        sm: smEff, smIntended: a.sm, smConstrained: smEff + 1e-12 < a.sm,
+        rd: a.rd, ga: a.ga, expansionCost: expansionCost,
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
+        billings: billings,
+        deferredOpening: deferredOpening,
+        deferredClosing: deferredClosing,
+        deltaDeferred: deltaDeferred,
         fcf: fcf,
         burn: fcf < 0 ? -fcf : 0,
         cashOpening: cashOpening,
         cashClosing: cashClosing,
+        customersOpening: totCustOpen,
+        customersClosing: totCustClose,
+        logoChurn: totLogoChurnARR,
+        contraction: totContractionARR,
         nrrMonthly: nrrMonthly,               /* chained transition NRR, not the R12M KPI */
         nrrAnnualised: nrrAnnualised,         /* chained monthly NRR annualised — see kpi.js for the KPI */
         arrGrowthMoM: openingARR > 0 ? closingARR / openingARR - 1 : 0,
@@ -776,7 +941,7 @@ FCF     = EBITA</div>
     }
 
     return {
-      modelVersion: '0.3',
+      modelVersion: '0.4',
       assumptions: a,
       start: s,
       horizon: H,
@@ -788,14 +953,26 @@ FCF     = EBITA</div>
       derived: {
         monthlyPersistence: gM,
         monthlyExpansion: eM,
-        newMRRPerMonth: newMRR,                       // € of MRR added per month — MRR-NATIVE
-        newARRPerMonth: newARR,                       // € of ARR added per month — DERIVED, = 12 x newMRR
-        newARRAnnualised: newARR * 12,                // € of ARR created per year of spend
+        newMRRPerMonth: newMRRIntended,                       // intended / unconstrained — MRR-NATIVE
+        newARRPerMonth: newARRIntended,                       // intended / unconstrained — = 12 x newMRR
+        newARRAnnualised: newARRIntended * 12,                // € of ARR created per year of intended spend
         annualAcquisitionSpend: a.sm * 12,
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — unchanged value
         impliedAnnualNRR: a.persistenceAnnual * (1 + a.expansionCoefficientAnnual),
-        impliedCACPerNewARR: newARR > 0 ? a.sm / newARR : 0   // reconciles to cacPerARR
+        impliedCACPerNewARR: newARRIntended > 0 ? a.sm / newARRIntended : 0,
+        acqSaturationSpend: kSat,                             // null when linear
+        acqIsLinear: kSat === null,
+        newARRLinear: a.cacPerARR > 0 ? a.sm / a.cacPerARR : 0,
+        acqAMax: kSat === null ? Infinity : kSat / a.cacPerARR,
+        smCashReserve: smReserve,                             // null when unconstrained
+        smIsUnconstrained: smReserve === null,
+        billingAdvanceMonths: billN,                          // null when FCF=EBITA
+        fcfEqualsEbita: billN === null,
+        expansionCacPerARR: expansionCacOf(a),
+        logoRetentionAnnual: logoP,
+        logoLayerOn: logoP !== null,
+        openingARPA: arpa0
       },
       months: months,
       cohorts: cohorts
@@ -1008,6 +1185,13 @@ FCF     = EBITA</div>
     toMonthlyPersistence: toMonthlyPersistence,
     toMonthlyExpansion: toMonthlyExpansion,
     newARRPerMonth: newARRPerMonth,
+    saturationSpendOf: saturationSpendOf,
+    smCashReserveOf: smCashReserveOf,
+    effectiveSM: effectiveSM,
+    billingAdvanceOf: billingAdvanceOf,
+    expansionCacOf: expansionCacOf,
+    logoRetentionOf: logoRetentionOf,
+    DEFAULT_ARPA: DEFAULT_ARPA,
     newMRRPerMonth: newMRRPerMonth,
     cacPerMRR: cacPerMRR,
     run: run,
@@ -1080,16 +1264,21 @@ FCF     = EBITA</div>
     var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
 
     var opening = 0, leakage = 0, expansion = 0, closing = 0, contributions = [];
+    var logoChurn = 0, contraction = 0, custOpen = 0, custClose = 0;
     eligible.forEach(function (c) {
       var first = rowAt(c, start);
       if (!first) return;
-      var o = first.openingARR, lk = 0, ex = 0, last = null;
+      var o = first.openingARR, lk = 0, ex = 0, last = null, lc = 0, ct = 0;
       for (var t = start; t <= T; t++) {
         var r = rowAt(c, t);
         if (!r) break;
         lk += r.leakage; ex += r.expansion; last = r;
+        lc += r.logoChurn || 0; ct += r.contraction || 0;
       }
       opening += o; leakage += lk; expansion += ex; closing += last ? last.closingARR : 0;
+      logoChurn += lc; contraction += ct;
+      custOpen += first.customersOpening || 0;
+      custClose += last ? (last.customersClosing || 0) : 0;
       contributions.push({
         id: c.id, acquisitionMonth: c.acquisitionMonth, ageAtOpening: start - 1 - c.acquisitionMonth,
         openingARR: o, leakage: lk, expansion: ex, closingARR: last ? last.closingARR : 0,
@@ -1116,6 +1305,13 @@ FCF     = EBITA</div>
       grr: grr,
       expansionRate: exr,
       nrr: nrr,
+      logoChurn: logoChurn,
+      contraction: contraction,
+      logoChurnRate: opening > 0 ? logoChurn / opening : 0,
+      contractionRate: opening > 0 ? contraction / opening : 0,
+      logoRetention: custOpen > 0 ? custClose / custOpen : null,
+      customersOpening: custOpen,
+      customersClosing: custClose,
       nrrFromBridge: opening > 0 ? (opening + expansion - leakage) / opening : 1,
       identityResidual: (grr + exr) - nrr,
       newARRExcluded: newARRExcluded,
@@ -1360,7 +1556,7 @@ FCF     = EBITA</div>
        properties of age-independent laws and are deliberately band-conditional —
        see the final check — so they are evaluated against the flat projection of
        whatever is configured. The v0.3 checks build their own banded worlds. */
-    var A = Object.assign({}, Aband); delete A.bands;
+    var A = Object.assign({}, Aband); delete A.bands; delete A.acqSaturationSpend; delete A.smCashReserve; delete A.billingAdvanceMonths; delete A.expansionCacPerARR; delete A.logoRetentionAnnual;
     var BASE = E.run(A);
     var out = [];
     function ok(name, pass, detail) { out.push({ name: name, pass: !!pass, detail: detail || '' }); }
@@ -1472,7 +1668,7 @@ FCF     = EBITA</div>
     /* A1. CAC payback is structurally incapable of generating New ARR */
     var src = E.newARRPerMonth.toString();
     var clean = src.indexOf('cacPayback') === -1 && src.indexOf('grossMargin') === -1 && src.indexOf('cacPerARR') !== -1;
-    ok('ACQ · New ARR generator reads only S&M and cacPerARR — CAC payback and GM appear nowhere in it',
+    ok('ACQ · New ARR generator never reads CAC payback or GM — only S&M, cacPerARR, and optional saturation',
        clean, 'newARRPerMonth() source references cacPerARR: ' + (src.indexOf('cacPerARR') !== -1) +
        ', cacPayback: ' + (src.indexOf('cacPayback') !== -1) + ', grossMargin: ' + (src.indexOf('grossMargin') !== -1));
 
@@ -1748,6 +1944,310 @@ FCF     = EBITA</div>
        'New ARR €' + (withAcq.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo = S&M ÷ cacPerARR; payback ' +
        withAcq.derived.cacPaybackMonths.toFixed(2) + ' months = cacPerARR × 12 ÷ GM');
 
+    /* ================================================================ *
+     * v0.4 — acquisition nonlinearity (Finding 10). One bound. Null
+     * default must reproduce the v0.3 linear generator exactly.
+     * ================================================================ */
+    var rOmit = E.run(A);
+    var rNull = E.run(Object.assign({}, A, { acqSaturationSpend: null }));
+    var rZero = E.run(Object.assign({}, A, { acqSaturationSpend: 0 }));
+    var rInf  = E.run(Object.assign({}, A, { acqSaturationSpend: Infinity }));
+    var sameOmitNull = JSON.stringify(rOmit.months) === JSON.stringify(rNull.months) &&
+                       JSON.stringify(rOmit.cohorts) === JSON.stringify(rNull.cohorts);
+    var sameZero = JSON.stringify(rOmit.months) === JSON.stringify(rZero.months);
+    var sameInf  = JSON.stringify(rOmit.months) === JSON.stringify(rInf.months);
+    var sameBase = JSON.stringify(rOmit.months) === JSON.stringify(BASE.months) &&
+                   JSON.stringify(rOmit.cohorts) === JSON.stringify(BASE.cohorts);
+    ok('NL · Null / omitted / 0 / ∞ saturation is bit-identical to the v0.3 linear generator',
+       sameOmitNull && sameZero && sameInf && sameBase,
+       'omit≡null: ' + sameOmitNull + '; omit≡0: ' + sameZero + '; omit≡∞: ' + sameInf +
+       '; omit≡BASE: ' + sameBase + ' over ' + rOmit.horizon + ' months and ' + rOmit.cohorts.length + ' cohorts');
+
+    var wLin = 0;
+    rOmit.months.forEach(function (m) {
+      wLin = Math.max(wLin, Math.abs(m.newARR - A.sm / A.cacPerARR));
+    });
+    ok('NL · Default New ARR equals S&M ÷ cacPerARR on every month (the linear formula, exactly)',
+       wLin < EPS && rOmit.derived.acqIsLinear === true && rOmit.derived.acqSaturationSpend === null,
+       'max monthly deviation €' + wLin.toExponential(3) + '; acqIsLinear=' + rOmit.derived.acqIsLinear);
+
+    var kSat = 1500000;
+    var satA = Object.assign({}, A, { acqSaturationSpend: kSat });
+    var satRun = E.run(satA);
+    var nSatExpected = (kSat / A.cacPerARR) * (A.sm / (A.sm + kSat));
+    ok('NL · Saturating New ARR = (k / cacPerARR) × S&M / (S&M + k) exactly',
+       Math.abs(satRun.derived.newARRPerMonth - nSatExpected) < EPS &&
+       satRun.derived.acqIsLinear === false &&
+       Math.abs(satRun.derived.acqAMax - kSat / A.cacPerARR) < EPS,
+       'New ARR €' + satRun.derived.newARRPerMonth.toFixed(2) + ' vs formula €' + nSatExpected.toFixed(2) +
+       '; A_max €' + (satRun.derived.acqAMax / 1e6).toFixed(3) + 'm');
+
+    var sat2 = E.run(Object.assign({}, A, { acqSaturationSpend: kSat, sm: A.sm * 2 }));
+    var doubled = 2 * satRun.derived.newARRPerMonth;
+    ok('NL · Doubling S&M under saturation does not double New ARR (the model can say stop)',
+       sat2.derived.newARRPerMonth < doubled - 1 &&
+       sat2.derived.newARRPerMonth > satRun.derived.newARRPerMonth &&
+       sat2.months[0].sm === A.sm * 2,
+       'S&M ×2 moves New ARR €' + (satRun.derived.newARRPerMonth / 1e6).toFixed(3) + 'm → €' +
+       (sat2.derived.newARRPerMonth / 1e6).toFixed(3) + 'm (linear would be €' +
+       (doubled / 1e6).toFixed(3) + 'm); spend itself doubles');
+
+    var huge = E.run(Object.assign({}, A, { acqSaturationSpend: kSat, sm: kSat * 1000 }));
+    var aMax = kSat / A.cacPerARR;
+    ok('NL · As S&M grows, New ARR approaches A_max = k / cacPerARR and never exceeds it',
+       huge.derived.newARRPerMonth < aMax &&
+       (aMax - huge.derived.newARRPerMonth) / aMax < 0.002,
+       'S&M = 1000×k → New ARR €' + huge.derived.newARRPerMonth.toFixed(2) +
+       ' vs A_max €' + aMax.toFixed(2) + ' (gap ' +
+       ((aMax - huge.derived.newARRPerMonth) / aMax * 100).toFixed(3) + '%)');
+
+    var spends = [0.25, 0.5, 1, 2, 4].map(function (f) { return A.sm * f; });
+    var Ns = spends.map(function (s) {
+      return E.newARRPerMonth(Object.assign({}, A, { sm: s, acqSaturationSpend: kSat }));
+    });
+    var marg = [];
+    for (i = 1; i < Ns.length; i++) marg.push((Ns[i] - Ns[i - 1]) / (spends[i] - spends[i - 1]));
+    var decreasing = true;
+    for (i = 1; i < marg.length; i++) if (!(marg[i] < marg[i - 1] - 1e-18)) decreasing = false;
+    ok('NL · Marginal acquisition productivity is strictly decreasing in S&M',
+       decreasing && marg[marg.length - 1] < marg[0],
+       'marginal €ARR/€S&M at successive spend steps: ' +
+       marg.map(function (g) { return g.toFixed(4); }).join(' → '));
+
+    var satGM = E.run(Object.assign({}, satA, { grossMargin: A.grossMargin * 0.7 }));
+    var wSatGM = Math.abs(satGM.derived.newARRPerMonth - satRun.derived.newARRPerMonth);
+    ok('NL · Saturation does not reintroduce gross margin into New ARR (GM still changes only payback)',
+       wSatGM < EPS && src.indexOf('cacPayback') === -1 && src.indexOf('grossMargin') === -1 &&
+       satGM.derived.cacPaybackMonths > satRun.derived.cacPaybackMonths + 1e-9,
+       'New ARR delta under GM cut €' + wSatGM.toExponential(3) +
+       '; stated payback ' + satRun.derived.cacPaybackMonths.toFixed(2) + ' → ' +
+       satGM.derived.cacPaybackMonths.toFixed(2) + ' months');
+
+    var satStamp = satRun.cohorts.filter(function (c) { return c.acquisitionMonth > 0; })[0];
+    ok('NL · Under saturation, stamped CAC is realized S&M ÷ New ARR and still equals cost / initialARR',
+       satStamp &&
+       Math.abs(satStamp.cacPerARRAtCreation - A.sm / satRun.derived.newARRPerMonth) < 1e-12 &&
+       Math.abs(satStamp.acquisitionCost - satStamp.initialARR * satStamp.cacPerARRAtCreation) < EPS &&
+       satStamp.cacPerARRAtCreation > A.cacPerARR + 1e-9,
+       'stamp ' + satStamp.cacPerARRAtCreation.toFixed(4) + '× vs stated ' + A.cacPerARR.toFixed(2) +
+       '×; cost reconciles to €' +
+       Math.abs(satStamp.acquisitionCost - satStamp.initialARR * satStamp.cacPerARRAtCreation).toExponential(2));
+
+    var satBig = E.run(Object.assign({}, A, { acqSaturationSpend: kSat, sm: A.sm * 10 }));
+    var wSatK = 0;
+    for (i = 12; i <= BASE.horizon; i++) {
+      var ks = K.measureR12M(satRun, i), kb = K.measureR12M(satBig, i);
+      wSatK = Math.max(wSatK, Math.abs(ks.grr - kb.grr), Math.abs(ks.expansionRate - kb.expansionRate), Math.abs(ks.nrr - kb.nrr));
+    }
+    ok('NL · Saturation does not contaminate retention KPIs (10× S&M leaves R12M GRR / expansion / NRR unchanged)',
+       wSatK < 1e-12,
+       'max KPI delta ' + wSatK.toExponential(3) + ' while New ARR moved €' +
+       (satRun.derived.newARRPerMonth / 1e6).toFixed(3) + 'm → €' +
+       (satBig.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo');
+
+    /* ================================================================ *
+     * B1 — opening-state identity. Zero new physics: the engine already
+     * accepted {openingARR, openingCash, openingCohorts[]}. These lock
+     * the null default to DEFAULT_START.
+     * ================================================================ */
+    var explStart = E.run(A, { openingARR: 20000000, openingCash: 10000000, openingCohorts: null });
+    var age0Start = E.run(A, { openingARR: 20000000, openingCash: 10000000, openingCohorts: [{ arr: 20000000, age: 0 }] });
+    ok('OPEN · Omitted start / explicit DEFAULT_START / single age-0 cohort are bit-identical',
+       JSON.stringify(BASE.months) === JSON.stringify(explStart.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(age0Start.months),
+       'omit≡explicit: ' + (JSON.stringify(BASE.months) === JSON.stringify(explStart.months)) +
+       '; omit≡age-0: ' + (JSON.stringify(BASE.months) === JSON.stringify(age0Start.months)));
+
+    var cashOnly = E.run(A, { openingARR: 20000000, openingCash: 25000000 });
+    var wOpenA = 0;
+    for (i = 0; i < BASE.horizon; i++) wOpenA = Math.max(wOpenA, Math.abs(BASE.months[i].closingARR - cashOnly.months[i].closingARR));
+    ok('OPEN · Raising opening cash alone leaves the ARR path unchanged',
+       wOpenA < EPS && Math.abs(cashOnly.months[0].cashOpening - 25000000) < EPS,
+       'max ARR delta €' + wOpenA.toExponential(3) + '; M1 cash opening €' +
+       (cashOnly.months[0].cashOpening / 1e6).toFixed(2) + 'm');
+
+    var biggerBook = E.run(A, { openingARR: 30000000, openingCash: 10000000 });
+    ok('OPEN · Raising opening ARR raises month-1 opening ARR one-for-one and does not change New ARR',
+       Math.abs(biggerBook.months[0].openingARR - 30000000) < EPS &&
+       Math.abs(biggerBook.derived.newARRPerMonth - BASE.derived.newARRPerMonth) < EPS,
+       'M1 opening €' + (biggerBook.months[0].openingARR / 1e6).toFixed(2) +
+       'm; New ARR still €' + (biggerBook.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo');
+
+    var mixFlat = E.run(A, { openingARR: 20000000, openingCash: 10000000,
+      openingCohorts: [{ arr: 10000000, age: 0 }, { arr: 10000000, age: 24 }] });
+    var wMixA = 0, wMixC = 0;
+    for (i = 0; i < BASE.horizon; i++) {
+      wMixA = Math.max(wMixA, Math.abs(BASE.months[i].closingARR - mixFlat.months[i].closingARR));
+      wMixC = Math.max(wMixC, Math.abs(BASE.months[i].cashClosing - mixFlat.months[i].cashClosing));
+    }
+    ok('OPEN · Under flat laws a vintage mix at the same total ARR does not change the ARR or cash path',
+       wMixA < EPS && wMixC < EPS,
+       'max ARR €' + wMixA.toExponential(2) + '; max cash €' + wMixC.toExponential(2) +
+       ' — maturity itself creates nothing when laws are flat');
+
+    /* ================================================================ *
+     * Cash constrains S&M. One coefficient: smCashReserve.
+     * Null / omitted / Infinity = unconstrained (prior: S&M is spent in
+     * full every month). Finite r ≥ 0: S&M ≤ max(0, cashOpening − r).
+     * ================================================================ */
+    var rResNull = E.run(Object.assign({}, A, { smCashReserve: null }));
+    var rResOmit = E.run(A);
+    var rResInf  = E.run(Object.assign({}, A, { smCashReserve: Infinity }));
+    var rResNeg  = E.run(Object.assign({}, A, { smCashReserve: -1 }));
+    ok('CASHSM · Null / omitted / ∞ / invalid reserve is bit-identical to unconstrained S&M',
+       JSON.stringify(rResOmit.months) === JSON.stringify(rResNull.months) &&
+       JSON.stringify(rResOmit.months) === JSON.stringify(rResInf.months) &&
+       JSON.stringify(rResOmit.months) === JSON.stringify(rResNeg.months) &&
+       rResOmit.derived.smIsUnconstrained === true && rResOmit.derived.smCashReserve === null,
+       'omit≡null≡∞≡neg; smIsUnconstrained=' + rResOmit.derived.smIsUnconstrained);
+
+    var alwaysFull = rResOmit.months.every(function (m) {
+      return Math.abs(m.sm - A.sm) < EPS && m.smConstrained === false;
+    });
+    ok('CASHSM · Unconstrained path spends the intended S&M every month',
+       alwaysFull, 'intended €' + (A.sm / 1e3).toFixed(0) + 'k/mo');
+
+    var tight = E.run(Object.assign({}, A, { smCashReserve: 2000000, sm: 2500000 }),
+      { openingARR: 20000000, openingCash: 3000000 });
+    var boundHeld = tight.months.every(function (m) {
+      var cap = Math.max(0, m.cashOpening - 2000000);
+      return m.sm <= cap + EPS && m.sm <= 2500000 + EPS;
+    });
+    var cutSomewhere = tight.months.some(function (m) { return m.smConstrained; });
+    ok('CASHSM · With a reserve, S&M never exceeds max(0, cashOpening − reserve) and is cut when cash is tight',
+       boundHeld && cutSomewhere && tight.months[0].sm < 2500000 - EPS,
+       'M1 S&M €' + (tight.months[0].sm / 1e3).toFixed(1) + 'k vs intended €2500k; cash opening €' +
+       (tight.months[0].cashOpening / 1e6).toFixed(2) + 'm');
+
+    var starved = E.run(Object.assign({}, A, { smCashReserve: 10000000, sm: 900000 }),
+      { openingARR: 20000000, openingCash: 10000000 });
+    ok('CASHSM · Reserve equal to opening cash forces S&M and New ARR to zero in month 1',
+       starved.months[0].sm < EPS && starved.months[0].newARR < EPS,
+       'M1 S&M €' + starved.months[0].sm.toFixed(2) + '; New ARR €' + starved.months[0].newARR.toFixed(2));
+
+    ok('CASHSM · Cutting S&M does not change month-1 installed-base leakage or expansion (same opening book, same laws)',
+       Math.abs(BASE.months[0].leakage - starved.months[0].leakage) < EPS &&
+       Math.abs(BASE.months[0].expansion - starved.months[0].expansion) < EPS,
+       'M1 leakage €' + (starved.months[0].leakage / 1e6).toFixed(3) + 'm; expansion €' +
+       (starved.months[0].expansion / 1e6).toFixed(3) + 'm');
+
+    /* ================================================================ *
+     * Deferred revenue / billings. Null/0 = FCF aliased to EBITA (prior).
+     * Finite N: FCF = EBITA + N × ΔMRR. ARR path unchanged.
+     * ================================================================ */
+    var rBillNull = E.run(Object.assign({}, A, { billingAdvanceMonths: null }));
+    var rBillZero = E.run(Object.assign({}, A, { billingAdvanceMonths: 0 }));
+    var aliasHeld = BASE.months.every(function (m) { return Math.abs(m.fcf - m.ebita) < EPS && Math.abs(m.deltaDeferred) < EPS; });
+    ok('DR · Null / omitted / 0 billing term keeps FCF aliased to EBITA (the prior contract)',
+       JSON.stringify(BASE.months) === JSON.stringify(rBillNull.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rBillZero.months) &&
+       aliasHeld && BASE.derived.fcfEqualsEbita === true,
+       'FCF=EBITA every month; omit≡null≡0');
+
+    var prepaid = E.run(Object.assign({}, A, { billingAdvanceMonths: 12 }));
+    var wDr = 0, wArr = 0, splitSomewhere = false;
+    for (i = 0; i < BASE.horizon; i++) {
+      var md = prepaid.months[i], mb = BASE.months[i];
+      var expect = mb.ebita + 12 * (md.closingMRR - md.openingMRR);
+      wDr = Math.max(wDr, Math.abs(md.fcf - expect), Math.abs(md.fcf - (md.ebita + md.deltaDeferred)));
+      wArr = Math.max(wArr, Math.abs(md.closingARR - mb.closingARR));
+      if (Math.abs(md.fcf - md.ebita) > 1) splitSomewhere = true;
+    }
+    ok('DR · Annual prepaid: FCF = EBITA + 12 × ΔMRR exactly, and FCF is not aliased to EBITA',
+       wDr < EPS && splitSomewhere && prepaid.derived.fcfEqualsEbita === false,
+       'max formula residual €' + wDr.toExponential(3) + '; M1 FCF €' +
+       (prepaid.months[0].fcf / 1e3).toFixed(1) + 'k vs EBITA €' + (prepaid.months[0].ebita / 1e3).toFixed(1) + 'k');
+
+    ok('DR · Billing term does not change the ARR path (cash definition only)',
+       wArr < EPS, 'max ARR delta €' + wArr.toExponential(3));
+
+    ok('DR · Prepaid growth is cash-generative: N=12 ending cash exceeds the EBITA-alias path',
+       prepaid.months[BASE.horizon - 1].cashClosing > BASE.months[BASE.horizon - 1].cashClosing + 1,
+       'ending cash €' + (prepaid.months[BASE.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm vs alias €' +
+       (BASE.months[BASE.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm');
+
+    var wCashId = 0;
+    prepaid.months.forEach(function (m) {
+      wCashId = Math.max(wCashId, Math.abs(m.cashOpening + m.fcf - m.cashClosing));
+    });
+    ok('DR · Cash still rolls: opening + FCF = closing under prepaid billings',
+       wCashId < EPS, 'max residual €' + wCashId.toExponential(3));
+
+    /* ================================================================ *
+     * Expansion cost. Null/0 = free expansion (prior). Finite c:
+     * expansionCost = Expansion ARR × c, deducted from EBITA. ARR unchanged.
+     * On the matched-NRR pair, Δending cash is linear in c × extra expansion.
+     * ================================================================ */
+    var rExp0 = E.run(Object.assign({}, A, { expansionCacPerARR: 0 }));
+    var rExpNull = E.run(Object.assign({}, A, { expansionCacPerARR: null }));
+    ok('EXPCAC · Null / 0 expansion CAC is bit-identical to free expansion (the prior contract)',
+       JSON.stringify(BASE.months) === JSON.stringify(rExp0.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rExpNull.months) &&
+       BASE.months.every(function (m) { return Math.abs(m.expansionCost) < EPS; }),
+       'omit≡0≡null; expansionCost = 0 every month');
+
+    var rExp1 = E.run(Object.assign({}, A, { expansionCacPerARR: 1 }));
+    var wExpArr = 0, costMatch = true, cashLinear = true;
+    for (i = 0; i < BASE.horizon; i++) {
+      wExpArr = Math.max(wExpArr, Math.abs(rExp1.months[i].closingARR - BASE.months[i].closingARR));
+      if (Math.abs(rExp1.months[i].expansionCost - rExp1.months[i].expansion * 1) > EPS) costMatch = false;
+    }
+    var expectedCash = BASE.months[BASE.horizon - 1].cashClosing - rExp1.months[BASE.horizon - 1].cumulative.expansionCost;
+    ok('EXPCAC · c=1 costs Expansion ARR one-for-one, leaves the ARR path unchanged, and cuts ending cash by cumulative expansion',
+       wExpArr < EPS && costMatch && Math.abs(rExp1.months[BASE.horizon - 1].cashClosing - expectedCash) < EPS,
+       'max ARR delta €' + wExpArr.toExponential(3) + '; ending cash cut €' +
+       (rExp1.months[BASE.horizon - 1].cumulative.expansionCost / 1e6).toFixed(2) + 'm');
+
+    var TARGETN = 0.96 * 1.10;
+    var rRet0 = E.run(Object.assign({}, A, { persistenceAnnual: 0.96, expansionCoefficientAnnual: 0.10, expansionCacPerARR: 0 }));
+    var rX0 = E.run(Object.assign({}, A, { persistenceAnnual: 0.90, expansionCoefficientAnnual: TARGETN / 0.90 - 1, expansionCacPerARR: 0 }));
+    var rRetC = E.run(Object.assign({}, A, { persistenceAnnual: 0.96, expansionCoefficientAnnual: 0.10, expansionCacPerARR: 1 }));
+    var rXC = E.run(Object.assign({}, A, { persistenceAnnual: 0.90, expansionCoefficientAnnual: TARGETN / 0.90 - 1, expansionCacPerARR: 1 }));
+    var extraExp = rX0.months[rX0.horizon - 1].cumulative.expansion - rRet0.months[rRet0.horizon - 1].cumulative.expansion;
+    var d0 = rX0.months[rX0.horizon - 1].cashClosing - rRet0.months[rRet0.horizon - 1].cashClosing;
+    var d1 = rXC.months[rXC.horizon - 1].cashClosing - rRetC.months[rRetC.horizon - 1].cashClosing;
+    ok('EXPCAC · On the matched-NRR pair, Δending cash moves linearly with extra expansion × c',
+       Math.abs((d1 - d0) + extraExp) < 1 && extraExp > 1e6,
+       'extra expansion €' + (extraExp / 1e6).toFixed(2) + 'm; ΔΔcash €' + ((d1 - d0) / 1e6).toFixed(2) + 'm');
+
+    /* ================================================================ *
+     * Logo vs contraction. Null = no customer stock (prior). Finite logo
+     * retention splits ARR leakage without changing the ARR or cash path.
+     * ================================================================ */
+    var rLogoNull = E.run(Object.assign({}, A, { logoRetentionAnnual: null }));
+    var rLogoZero = E.run(Object.assign({}, A, { logoRetentionAnnual: 0 }));
+    ok('LOGO · Null / 0 logo retention is bit-identical to the prior no-customer contract',
+       JSON.stringify(BASE.months) === JSON.stringify(rLogoNull.months) &&
+       JSON.stringify(BASE.months) === JSON.stringify(rLogoZero.months) &&
+       BASE.derived.logoLayerOn === false &&
+       BASE.months.every(function (m) { return m.customersOpening === 0 && Math.abs(m.logoChurn) < EPS; }),
+       'omit≡null≡0; no customer stock');
+
+    var rLogo = E.run(Object.assign({}, A, { logoRetentionAnnual: 0.90 }));
+    var wLogoA = 0, wLogoC = 0, splitOk = true;
+    for (i = 0; i < BASE.horizon; i++) {
+      wLogoA = Math.max(wLogoA, Math.abs(rLogo.months[i].closingARR - BASE.months[i].closingARR));
+      wLogoC = Math.max(wLogoC, Math.abs(rLogo.months[i].cashClosing - BASE.months[i].cashClosing));
+      if (Math.abs(rLogo.months[i].logoChurn + rLogo.months[i].contraction - rLogo.months[i].leakage) > EPS) splitOk = false;
+    }
+    ok('LOGO · Turning the logo layer on does not change the ARR or cash path',
+       wLogoA < EPS && wLogoC < EPS, 'max ARR €' + wLogoA.toExponential(3) + '; max cash €' + wLogoC.toExponential(3));
+
+    ok('LOGO · When on, logo-churn ARR + contraction ARR = leakage every month',
+       splitOk && rLogo.derived.logoLayerOn === true,
+       'M1 customers ' + rLogo.months[0].customersOpening.toFixed(1) + ' → ' +
+       rLogo.months[0].customersClosing.toFixed(1) + '; ARPA €' + (rLogo.derived.openingARPA / 1e3).toFixed(0) + 'k');
+
+    ok('LOGO · Default ARPA seeds 1,000 customers on the €20m opening book',
+       Math.abs(rLogo.months[0].customersOpening - 1000) < 1e-6, 'M1 opening customers ' + rLogo.months[0].customersOpening);
+
+    var rLogoHi = E.run(Object.assign({}, A, { logoRetentionAnnual: 0.99 }));
+    ok('LOGO · Higher logo retention keeps more customers and does not change ARR',
+       rLogoHi.months[11].customersClosing > rLogo.months[11].customersClosing &&
+       Math.abs(rLogoHi.months[11].closingARR - rLogo.months[11].closingARR) < EPS,
+       'M12 customers ' + rLogo.months[11].customersClosing.toFixed(1) + ' → ' +
+       rLogoHi.months[11].customersClosing.toFixed(1));
+
     return out;
   }
 
@@ -1791,15 +2291,22 @@ FCF     = EBITA</div>
     {k:'sm', g:'control', label:'S&M investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'rd', g:'control', label:'R&D investment', unit:'€ thousand / month', min:0, max:3000000, step:25000, f:'eur'},
     {k:'ga', g:'control', label:'G&A investment', unit:'€ thousand / month', min:0, max:2000000, step:25000, f:'eur'},
-    {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR', min:0.30, max:4.00, step:0.05, f:'x'},
+    {k:'cacPerARR', g:'rate', label:'CAC / New ARR', unit:'× spend per €1 of new ARR (small-spend)', min:0.30, max:4.00, step:0.05, f:'x'},
+    {k:'acqSaturationSpend', g:'rate', label:'Saturation spend', unit:'€ thousand / month · 0 = linear', min:0, max:5000000, step:50000, f:'sat'},
     {k:'persistenceAnnual', g:'rate', label:'Persistence coefficient', unit:'annual — NOT reported GRR', min:0.60, max:0.995, step:0.005, f:'pct'},
     {k:'expansionCoefficientAnnual', g:'rate', label:'Expansion coefficient', unit:'annual, on retained ARR', min:0, max:0.50, step:0.005, f:'pct'},
     {k:'grossMargin', g:'rate', label:'Gross margin', unit:'of revenue', min:0.30, max:0.95, step:0.005, f:'pct'}
   ];
-  function fmtCtl(c,v){ return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1); }
-  function inputStep(c){ return c.f==='pct'?0.1:c.f==='eur'?25:c.f==='x'?0.05:0.5; }
-  function inputVal(c,v){ return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):c.f==='x'?v.toFixed(2):v; }
-  function fromInput(c,v){ return c.f==='pct'?v/100:c.f==='eur'?v*1000:v; }
+  function fmtCtl(c,v){
+    if(c.f==='sat') return (v==null || !(v>0)) ? 'off · linear' : eur(v);
+    return c.f==='eur'?eur(v):c.f==='pct'?pct(v,1):c.f==='x'?v.toFixed(2)+'×':v.toFixed(1);
+  }
+  function inputStep(c){ return c.f==='pct'?0.1:(c.f==='eur'||c.f==='sat')?25:c.f==='x'?0.05:0.5; }
+  function inputVal(c,v){
+    if(c.f==='sat') return (v==null || !(v>0)) ? 0 : Math.round(v/1000);
+    return c.f==='pct'?(v*100).toFixed(1):c.f==='eur'?Math.round(v/1000):c.f==='x'?v.toFixed(2):v;
+  }
+  function fromInput(c,v){ return c.f==='pct'?v/100:(c.f==='eur'||c.f==='sat')?v*1000:v; }
 
   var PRESETS = [
     {id:'A', name:'A · Retention', ch:{persistenceAnnual:0.96}},
@@ -1849,13 +2356,20 @@ FCF     = EBITA</div>
       a.appendChild(b);
     });
   }
-  function set(k,v){ expA=Object.assign({},expA); expA[k]=v; recompute(); }
+  function set(k,v){
+    expA=Object.assign({},expA);
+    expA[k]=(k==='acqSaturationSpend' && !(v>0)) ? null : v;
+    recompute();
+  }
 
   function syncControls(){
     CONTROLS.forEach(function(c){
       var num=document.getElementById('i-'+c.k), rng=document.getElementById('r-'+c.k);
-      num.value=inputVal(c,expA[c.k]); rng.value=expA[c.k];
-      num.style.color = expA[c.k]===BASE_A[c.k] ? 'var(--ink)' : 'var(--exp)';
+      var cur=expA[c.k];
+      num.value=inputVal(c,cur);
+      rng.value=(c.f==='sat' && !(cur>0)) ? 0 : cur;
+      var same = expA[c.k]===BASE_A[c.k] || (c.f==='sat' && !(expA[c.k]>0) && !(BASE_A[c.k]>0));
+      num.style.color = same ? 'var(--ink)' : 'var(--exp)';
     });
     var d=expRes.derived;
     var mNow = K.measureR12M(expRes, Math.max(K.WINDOW, month));
@@ -1871,7 +2385,8 @@ FCF     = EBITA</div>
       '<div class="erow out"><span class="tx tx-emergent">OUTPUT</span><span>CAC payback</span><b>'+d.cacPaybackMonths.toFixed(1)+' mo</b></div>'+
       '<div class="ehint">payback = (CAC / New ARR) × 12 ÷ gross margin</div>';
     document.getElementById('derived').innerHTML =
-      row('New ARR / month', eur(d.newARRPerMonth)) +
+      row('New ARR / month', eur(d.newARRPerMonth) + (d.acqIsLinear ? ' · linear' : ' · saturating')) +
+      row('Linear New ARR (unconstrained)', eur(d.newARRLinear)) +
       row('New ARR per year of spend', eur(d.newARRAnnualised)) +
       row('Monthly persistence g', pct(d.monthlyPersistence,3)) +
       row('Monthly expansion e', pct(d.monthlyExpansion,3)) +
@@ -1882,6 +2397,7 @@ FCF     = EBITA</div>
 
   /* ---------------- explainability (§14) ---------------- */
   var LABELS = {sm:'S&M investment', rd:'R&D investment', ga:'G&A investment',
+    cacPerARR:'CAC / New ARR', acqSaturationSpend:'Saturation spend',
     cacPaybackMonths:'CAC payback', persistenceAnnual:'Annual GRR', expansionCoefficientAnnual:'Annual expansion', grossMargin:'Gross margin'};
   function fmtBy(k,v){ var c=CONTROLS.filter(function(x){return x.k===k;})[0]; return fmtCtl(c,v); }
 

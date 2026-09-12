@@ -1,5 +1,12 @@
 # SaaS Physics — Builder's Brief
 
+> **Historical brief.** Written against model v0.3 + Phase 0/1 research (35 integrity /
+> 17 research checks in the text below). Those numbers are of their time. Current
+> instrument state, optional overnight coefficients, overclaim flags, and the sequenced
+> next work are in [`PRODUCT_ASSESSMENT.md`](../PRODUCT_ASSESSMENT.md) and
+> [`PROJECT_STATUS.md`](../PROJECT_STATUS.md). Do not treat the check counts or
+> “not yet built” lists in this file as current.
+
 *Prepared for advisory review. Model v0.3 + Phase 0/1 research · ~3.1k lines of source JS ·
 35/35 integrity checks and 17/17 research checks passing · no dependencies.*
 

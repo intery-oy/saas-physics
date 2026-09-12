@@ -4,8 +4,9 @@ Conceptual weaknesses exposed by running the prototype. Nothing here was silentl
 where an equation looked weak it was implemented as specified, and it stays that way until an
 iteration is explicitly chartered to change it.
 
-Updated for **model v0.3**. Ordered by how badly each distorts a CFO's intuition, not by how hard
-it is to fix.
+Updated for **model v0.4** (optional overnight coefficients; default world still v0.3).
+Ordered by how badly each distorts a CFO's intuition, not by how hard it is to fix.
+Current instrument review: [`PRODUCT_ASSESSMENT.md`](../PRODUCT_ASSESSMENT.md).
 
 ---
 
@@ -168,22 +169,36 @@ invertible in closed form (see §D of `MEASUREMENT.md`).
 
 ## Still broken
 
-### 10. Acquisition is linear and unbounded in S&M — the model can always buy growth
+### 10. ✅ Acquisition nonlinearity — bound exists, default still linear (v0.4)
 
 > **Blocked CFO question:** *when should we stop increasing S&M because marginal
 > acquisition productivity deteriorates?*
 
+**Implemented as a bound, not a new default.** `acqSaturationSpend` (`k`, €/month) is a
+transition coefficient. Null / 0 / Infinity — the shipped default — is the exact v0.3
+linear generator (`New ARR = S&M ÷ cacPerARR`), bit-identical across 60 months and 61
+cohorts. A finite `k` saturates:
 
-`New ARR = S&M ÷ cacPerARR` has no saturation term at any spend level. v0.2 fixed *which* variables
-drive acquisition; it did not touch the *shape*. Doubling S&M still doubles New ARR, at month 1 and
-at month 60, forever.
+```
+New ARR = (k / cacPerARR) × S&M / (S&M + k)
+```
 
-**What it teaches, wrongly:** every growth-investment experiment eventually pays off, and the S&M
-slider has no wrong setting.
+which is also a rising average CAC: `cacPerARR × (1 + S&M/k)`. At `S&M = k`, average
+productivity is half the linear prediction. Marginal New ARR is strictly decreasing in
+S&M. Gross margin still does not appear in the generator. Stated CAC payback is unchanged
+(still `cacPerARR × 12 ÷ GM`); realized CAC is stamped on each cohort.
 
-**Recommended:** a saturating response — `New ARR = A_max × S&M/(S&M+k)`, or a `cacPerARR` that
-rises with spend (marginal worse than average). The single change that would give the model the
-ability to say *stop*.
+**What it teaches, when k is set:** there is a spend level at which the next euro of S&M
+buys vanishing New ARR while still costing full S&M in the P&L. The model can say *stop*.
+
+**What it still does not teach:** a universal empirical `k`. The engine asserts no
+saturation scale until someone sets one. No acquisition lag. Cash constrains S&M only
+when `smCashReserve` is set (null default = unconstrained, the prior contract).
+
+**Demo:** v1 Forces rail → Saturation spend off by default. Set `k` to €1.5m, then raise
+S&M toward €2.5m and watch New ARR flatten while cash keeps falling. Reset saturation to
+off — doubling S&M doubles New ARR again. No new canonical scenario; the six stay as they
+were. See the NL checks in `integrity.js`.
 
 ### 11. ✅ RECLASSIFIED — ARR trajectory alone does not reveal the capital required to produce it
 
@@ -206,10 +221,11 @@ Phase 0/1 research sharpened it further — see finding 22.
 
 Original ID and history preserved.
 
-### 12. Retention age structure exists now, but is coarse
+### 12. Retention age structure exists now, and is editable — but still coarse
 
 v0.3 added three age bands — the minimum structure capable of expressing an age effect — and the
-shipped default stays flat, so nothing is asserted about SaaS. What is still missing is resolution:
+shipped default stays flat, so nothing is asserted about SaaS. The v1 rail now exposes the six
+coefficients (Tenure laws). Scenario 6 keeps its shared array. What is still missing is resolution:
 three step functions cannot represent a smooth survival curve, and the band edges (12 and 24
 months) are themselves assumptions. A fidelity limit rather than a structural gap now, and it
 should not be refined until there is evidence about the shape.
@@ -220,26 +236,29 @@ Expansion may now vary by age band, but nothing caps a cohort at any multiple of
 no seat ceiling, no penetration curve, no product limit. Nothing can ever exhaust an account, so
 expansion headroom stays invisible.
 
-### 14. Expansion is free
+### 14. Expansion is free at the default — `expansionCacPerARR` is now optional
 
 > **Blocked CFO question:** *what incremental economic resources are required to
 > generate Expansion?*
 
+**Null / 0.** Expansion still costs nothing — the prior contract, bit-identical.
 
-There is no cost attached to generating expansion ARR — no CSM capacity, account management,
-implementation or upsell effort. This is now the most consequential single omission, because it is
-the cheapest defensible way to break the matched-NRR tie: one coefficient, no ARR effect, and the
-separation is exactly linear in it (`Δending cash = c × €15.12m`).
+**Finite c.** `expansionCost = Expansion ARR × c`, deducted from EBITA. The ARR path does
+not move. On the matched-NRR pair the cash separation is linear in extra expansion × c
+(the prediction in MATCHED-NRR.md). No saturation of expansion (Finding 13).
 
-### 15. `FCF = EBITA` inverts the cash reality of subscription businesses
+### 15. `FCF = EBITA` at the default — a real cash definition is now optional
 
 > **Blocked CFO question:** *how do billing timing and working-capital mechanics
 > alter liquidity relative to EBITA?*
 
+**Null / 0 (`billingAdvanceMonths`).** FCF is still aliased to EBITA — the prior contract,
+bit-identical. Tax, capex, interest and other WC remain out.
 
-No deferred revenue, billings, working capital, tax, capex or interest. Real SaaS collects ahead of
-recognition, so growth is *cash-generative* at the working-capital line — the opposite sign to what
-this model shows. Every growth scenario looks more cash-expensive than it is.
+**Finite N.** Smooth prepaid approximation: `Δdeferred = N × ΔMRR`, `billings = revenue +
+Δdeferred`, `FCF = EBITA + Δdeferred`. Annual prepaid is N = 12. Growing ARR is then
+cash-generative at the WC line — the sign a CFO expects. The ARR path does not move.
+The opening deferred stock is `openingMRR × N / 2` (midpoint remaining prepaid).
 
 ### 16. R&D is a cost with no modelled benefit — deliberately
 
@@ -260,23 +279,30 @@ management thesis, explicitly owned by the user, not a property of SaaS. Not imp
 S&M spent in month *t* produces ARR in month *t*. Real sales cycles run 3–9 months, and that lag is
 exactly where the cash pain of a growth push lives.
 
-### 18. Leakage is a single number, and there are no customers
+### 18. Leakage is a single number at the default — logo retention is now optional
 
 > **Blocked CFO question:** *how much of the loss is logo churn and how much is
 > contraction within retained customers?*
 
+**Null / 0 (`logoRetentionAnnual`).** No customer stock. Leakage stays one combined number —
+the prior contract, bit-identical. Reactivation is still zero.
 
-Churn and contraction are combined, so the model cannot distinguish losing customers from customers
-shrinking — which is why the measurement layer cannot report them separately either, however
-correct its definitions are. Reactivation is zero. There is no customer count at all, so identical
-ARR paths and identical reported KPIs can conceal completely different logo survival and expansion
-concentration — see §F of `MEASUREMENT.md` for a worked pair.
+**Finite logo retention.** Persistence still drives ARR leakage (the ARR and cash paths do
+not move). That leakage is split into logo-churn ARR (lost customers × opening ARPA,
+clamped so it cannot exceed leakage) and contraction ARR (the residual). Default opening
+ARPA is €20k → 1,000 customers on the €20m book. R12M measurement reports logo retention
+and the two leakage components when the layer is on.
 
-### 19. The opening base is one cohort by default
+### 19. The opening base is one cohort by default — now settable (B1)
 
 A real €20m installed base is a mixture of vintages retaining far better than a cohort acquired last
 month. One blended cohort systematically overstates decay of the existing book — which is 30% of
 Year-5 ARR.
+
+**v0.4 UI.** Opening ARR, opening cash and a three-share vintage mix (ages 0 / 12 / 24) are on
+the v1 rail. They write the engine's existing `{openingARR, openingCash, openingCohorts[]}`
+start object. The default remains one age-0 €20m / €10m cash cohort, so every prior result
+stays comparable. Scenario 6 still owns its own construction. No adapter.
 
 ### 20. Midpoint revenue is an approximation
 
@@ -359,9 +385,9 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
   testable prediction rather than an assertion.
 - **Invertibility.** Target measured KPIs can be reproduced by calibrated coefficients in closed
   form, to nine decimals, without touching acquisition physics.
-- **Backward compatibility across four model versions.** v0.3's flat default reproduces v0.2.1
-  exactly; v0.2.1's rename reproduced v0.2 exactly; v0.2's inverted primitive reproduced v0.1's
-  baseline exactly. Every earlier result remains comparable.
+- **Backward compatibility across five model versions.** v0.4's null saturation reproduces v0.3
+  exactly; v0.3's flat default reproduces v0.2.1 exactly; v0.2.1's rename reproduced v0.2 exactly;
+  v0.2's inverted primitive reproduced v0.1's baseline exactly. Every earlier result remains comparable.
 - **Sunk cost stays sunk.** Doubling historical acquisition cost per cohort at identical New ARR
   leaves forward ARR, gross profit and retention unchanged to €0.0.
 - **Lever separation, now complete.** Retention changes leakage and nothing else. S&M and
@@ -374,20 +400,19 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 ## Suggested order from here
 
-1. **The observability experiment** — can a 24- or 36-month KPI *history* identify the Time-0
-   state, or is cohort vintage disclosure strictly necessary? No new physics; reuses everything
-   v0.3 built; determines whether forward economic content is knowable from outside a company.
-   **Recommended next.**
-2. **Expansion cost** (`expansionCacPerARR`) — one coefficient, breaks the v0.2 matched-NRR tie
-   without touching ARR, structurally symmetric with `cacPerARR`.
-3. **Customer count and logo retention** — makes matched portfolios observably different with no
-   judgment coefficient, and unlocks ARPA and concentration later.
-3. **Diminishing returns on S&M** — gives the model the ability to say *stop*.
-4. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*.
-5. **Deferred revenue and billings** → a real FCF line.
-6. Age-dependent retention (with the normalisation constraint in `MATCHED-NRR.md`), split leakage,
-   acquisition lag, efficiency metrics on screen.
-7. R&D as a user-stated intervention with an explicit lag — never as a universal coefficient.
+The Phase 0/1 observability experiment, **A1 acquisition nonlinearity** (Finding 10), and the
+overnight optional bounds (opening state, cash-constrains-S&M, prepaid billings, expansion
+cost, logo vs contraction, tenure editor) have all landed. Remaining *physics*, one at a
+time, null-default:
 
-Valuation, enterprise value and any 3D or final product design stay out until at least items 1–5
-are done.
+1. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*
+   of an existing cohort (A1 changed only the *acquisition* path). Finding 13 is still open.
+2. **Acquisition lag** — hire → capacity, not spend → ARR in the same month.
+3. **Price as a first-class lever** (Finding 21). ARPA is currently a logo *unit*, not a
+   price law. Do not invent a form.
+4. **R&D as a user-stated intervention with an explicit lag** — never as a universal
+   coefficient (Finding 16). Higher evidence bar: this is a claimed benefit.
+
+The binding constraint on the *demo* is no longer a missing coefficient. It is grouping and
+language on a crowded rail — see [`PRODUCT_ASSESSMENT.md`](../PRODUCT_ASSESSMENT.md).
+Do not start valuation, auth, adapter, or deploy-as-product.

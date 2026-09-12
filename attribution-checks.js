@@ -38,7 +38,7 @@ var A = E.DEFAULT_ASSUMPTIONS;
  * ------------------------------------------------------------------ */
 function recurringAttribution(baseA, expA, m) {
   var baseRes = E.run(baseA), expRes = E.run(expA);
-  var acqRes = E.run(Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR }));
+  var acqRes = E.run(Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR, acqSaturationSpend: expA.acqSaturationSpend }));
   var ibRes = E.run(Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual }));
   var b = baseRes.months[m - 1].closingARR, x = expRes.months[m - 1].closingARR;
   var acq = acqRes.months[m - 1].closingARR - b, ib = ibRes.months[m - 1].closingARR - b;
