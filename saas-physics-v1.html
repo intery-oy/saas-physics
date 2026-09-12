@@ -96,7 +96,12 @@ button,input{font:inherit;color:inherit}
 .gstep.on{background:var(--indigo-50);color:var(--indigo-800)}
 .gstep .n{color:var(--ink-4);margin-right:4px}
 .gstep.on .n{color:var(--indigo-500)}
-.guide-note{font-size:10.5px;color:var(--ink-3);line-height:1.4;max-width:72ch}
+.guide-note{font-size:10.5px;color:var(--ink-3);line-height:1.4;max-width:52ch}
+.packstrip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+.packstrip[hidden]{display:none!important}
+.pack-status{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);max-width:48ch;line-height:1.4}
+.packdiff{grid-column:1/-1;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--sunk);font-family:var(--mono);font-size:11px;color:var(--ink-2);white-space:pre-wrap;line-height:1.5}
+.packdiff[hidden]{display:none!important}
 .closestrip{grid-column:1/-1;display:flex;gap:28px;padding:8px 16px 10px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap;align-items:flex-start}
 .closestrip[hidden]{display:none!important}
 .closestrip .col{min-width:200px;flex:1 1 240px}
@@ -356,7 +361,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   <nav class="guidebar" id="guidebar" aria-label="Session path">
     <div class="guidesteps" id="guidesteps"></div>
     <span class="guide-note" id="guide-note"></span>
+    <div class="packstrip" id="packstrip" hidden>
+      <span class="eyebrow">Pack</span>
+      <span class="idchip" id="pack-label">Default</span>
+      <button type="button" class="btn" id="pack-save">Save pack</button>
+      <button type="button" class="btn" id="pack-load">Load</button>
+      <button type="button" class="btn" id="pack-diff">Diff</button>
+      <button type="button" class="btn" id="kit-export">Export kit</button>
+      <input type="file" id="pack-file" hidden accept=".json,.yaml,.yml,application/json,text/yaml,text/x-yaml">
+      <input type="file" id="pack-diff-files" hidden multiple accept=".json,.yaml,.yml,application/json,text/yaml,text/x-yaml">
+      <span class="pack-status" id="pack-status"></span>
+    </div>
   </nav>
+  <div class="packdiff" id="packdiff" hidden></div>
 
   <aside class="rail">
     <div class="grp" id="experiment-summary"></div>
@@ -513,7 +530,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
             <li><b>Cohorts</b> \u2014 lands on age (null-check when tenure is flat; mechanism when live). Vintage reading is the carry·leak strip. Composition is provenance, not the hero. Not a triangle and not a blended retention number.</li>
             <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run, with a compact M(t−1) → flows → M(t) month audit. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
-            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company (GP by origin + capital still out) → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit + GP/capital). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
+            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company (GP by origin + capital still out) → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit + GP/capital). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp. Frame and Close carry a thin assumption-pack load / save / diff and a leave-behind export — residue of this run, not a real-book QoE.</li>
           </ul>
         </div>
       </div>
@@ -2801,10 +2818,826 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   };
 });
 </script>
+<script>/*
+ * SaaS Physics — assumption pack (Horizon C1).
+ *
+ * Versioned driver pack. Maps 1:1 onto the engine's existing assumption
+ * object (DEFAULT_ASSUMPTIONS + known bounds) and start object
+ * (DEFAULT_START). One-way into those objects — never writes engine.js.
+ *
+ * Diff is driver-level only. Not a second analytics GRR. Load of the
+ * Default pack reproduces the Default world; Year-5 ARR checksum holds.
+ *
+ * JSON is canonical. YAML is a restricted sibling of the same object.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsPack = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
+  'use strict';
+
+  var SCHEMA = 'saas-physics.assumption-pack';
+  var SCHEMA_VERSION = 1;
+  var DIFF_SCHEMA = 'saas-physics.assumption-pack-diff';
+  var MODEL_VERSION = '0.4';
+  var DEFAULT_Y5_ARR = 62926223.19;
+
+  var ASSUMPTION_KEYS = [
+    'sm', 'cacPerARR', 'acqSaturationSpend', 'smCashReserve',
+    'billingAdvanceMonths', 'expansionCacPerARR', 'logoRetentionAnnual',
+    'persistenceAnnual', 'expansionCoefficientAnnual', 'grossMargin',
+    'rd', 'ga'
+  ];
+  var START_KEYS = ['openingARR', 'openingCash', 'openingCohorts', 'openingCustomers'];
+  var BAND_KEYS = ['name', 'maxAgeExclusive', 'persistenceAnnual', 'expansionCoefficientAnnual'];
+  var COHORT_KEYS = ['arr', 'age'];
+
+  function clone(v) {
+    return v == null ? v : JSON.parse(JSON.stringify(v));
+  }
+
+  function same(a, b) {
+    if (a === b) return true;
+    if (a == null && b == null) return true;
+    if (typeof a === 'number' && typeof b === 'number' && isFinite(a) && isFinite(b)) {
+      return a === b;
+    }
+    return JSON.stringify(canonicalValue(a)) === JSON.stringify(canonicalValue(b));
+  }
+
+  function canonicalValue(v) {
+    if (v === undefined) return null;
+    return v;
+  }
+
+  function pickAssumptions(a) {
+    var src = Object.assign({}, E.DEFAULT_ASSUMPTIONS, a || {});
+    var out = {};
+    var i, k;
+    for (i = 0; i < ASSUMPTION_KEYS.length; i++) {
+      k = ASSUMPTION_KEYS[i];
+      out[k] = src[k] === undefined ? null : src[k];
+    }
+    var bands = bandsOrNull(a && a.bands, src);
+    out.bands = bands;
+    return out;
+  }
+
+  function bandsOrNull(bands, scalars) {
+    if (!bands || bands.length !== 3) return null;
+    var mapped = bands.map(function (b, i) {
+      return {
+        name: b.name || E.BAND_NAMES[i],
+        maxAgeExclusive: b.maxAgeExclusive == null ? E.BAND_EDGES[i] : b.maxAgeExclusive,
+        persistenceAnnual: b.persistenceAnnual,
+        expansionCoefficientAnnual: b.expansionCoefficientAnnual
+      };
+    });
+    var flat = mapped.every(function (b) {
+      return b.persistenceAnnual === scalars.persistenceAnnual &&
+             b.expansionCoefficientAnnual === scalars.expansionCoefficientAnnual;
+    });
+    return flat ? null : mapped;
+  }
+
+  function pickStart(s) {
+    var src = Object.assign({}, E.DEFAULT_START, s || {});
+    var cohorts = src.openingCohorts;
+    if (cohorts && !cohorts.length) cohorts = null;
+    return {
+      openingARR: src.openingARR,
+      openingCash: src.openingCash,
+      openingCohorts: cohorts ? cohorts.map(function (c) {
+        return { arr: c.arr, age: c.age };
+      }) : null,
+      openingCustomers: src.openingCustomers == null ? null : src.openingCustomers
+    };
+  }
+
+  function isDefaultStart(s) {
+    var n = pickStart(s);
+    var d = pickStart(E.DEFAULT_START);
+    return same(n, d);
+  }
+
+  function emptyPack() {
+    return {
+      schema: SCHEMA,
+      schemaVersion: SCHEMA_VERSION,
+      modelVersion: MODEL_VERSION,
+      kind: 'assumption-pack',
+      label: 'Default',
+      assumptions: pickAssumptions(E.DEFAULT_ASSUMPTIONS),
+      start: pickStart(E.DEFAULT_START)
+    };
+  }
+
+  function fromWorld(assumptions, start, meta) {
+    meta = meta || {};
+    var pack = {
+      schema: SCHEMA,
+      schemaVersion: SCHEMA_VERSION,
+      modelVersion: (assumptions && assumptions.modelVersion) || MODEL_VERSION,
+      kind: 'assumption-pack',
+      label: meta.label || null,
+      assumptions: pickAssumptions(assumptions),
+      start: pickStart(start)
+    };
+    if (!pack.label) {
+      pack.label = same(pack.assumptions, pickAssumptions(E.DEFAULT_ASSUMPTIONS)) &&
+                   same(pack.start, pickStart(E.DEFAULT_START)) ? 'Default' : 'Custom';
+    }
+    return pack;
+  }
+
+  function defaultPack() { return fromWorld(E.DEFAULT_ASSUMPTIONS, E.DEFAULT_START, { label: 'Default' }); }
+
+  function unknownKeys(obj, allowed) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
+    return Object.keys(obj).filter(function (k) { return allowed.indexOf(k) === -1; });
+  }
+
+  function err(msg) {
+    var e = new Error(msg);
+    e.name = 'AssumptionPackError';
+    return e;
+  }
+
+  function normalize(raw) {
+    if (!raw || typeof raw !== 'object') throw err('Pack is not an object.');
+    if (raw.schema !== SCHEMA) throw err('Unknown pack schema (expected ' + SCHEMA + ').');
+    if (raw.schemaVersion !== SCHEMA_VERSION) throw err('Unsupported pack schemaVersion ' + raw.schemaVersion + '.');
+    if (raw.kind && raw.kind !== 'assumption-pack') throw err('Pack kind must be assumption-pack.');
+    var topUnknown = unknownKeys(raw, [
+      'schema', 'schemaVersion', 'modelVersion', 'kind', 'label', 'assumptions', 'start'
+    ]);
+    if (topUnknown.length) throw err('Unknown pack fields: ' + topUnknown.join(', ') + '.');
+    var aIn = raw.assumptions || {};
+    var aUnknown = unknownKeys(aIn, ASSUMPTION_KEYS.concat(['bands']));
+    if (aUnknown.length) throw err('Unknown assumption drivers: ' + aUnknown.join(', ') + '.');
+    if (aIn.bands != null) {
+      if (!Array.isArray(aIn.bands) || aIn.bands.length !== 3) throw err('assumptions.bands must be three bands or null.');
+      aIn.bands.forEach(function (b, i) {
+        var u = unknownKeys(b, BAND_KEYS);
+        if (u.length) throw err('Unknown band field on bands[' + i + ']: ' + u.join(', ') + '.');
+      });
+    }
+    var sIn = raw.start || {};
+    var sUnknown = unknownKeys(sIn, START_KEYS);
+    if (sUnknown.length) throw err('Unknown start drivers: ' + sUnknown.join(', ') + '.');
+    if (sIn.openingCohorts != null) {
+      if (!Array.isArray(sIn.openingCohorts)) throw err('start.openingCohorts must be an array or null.');
+      sIn.openingCohorts.forEach(function (c, i) {
+        var u = unknownKeys(c, COHORT_KEYS);
+        if (u.length) throw err('Unknown openingCohorts[' + i + '] field: ' + u.join(', ') + '.');
+      });
+    }
+    return fromWorld(aIn, sIn, { label: raw.label || null });
+  }
+
+  function toEngine(pack) {
+    var n = normalize(pack);
+    var assumptions = {};
+    var i, k;
+    for (i = 0; i < ASSUMPTION_KEYS.length; i++) {
+      k = ASSUMPTION_KEYS[i];
+      assumptions[k] = n.assumptions[k];
+    }
+    if (n.assumptions.bands) assumptions.bands = clone(n.assumptions.bands);
+    var start = pickStart(n.start);
+    return { assumptions: assumptions, start: start };
+  }
+
+  function runPack(pack) {
+    var w = toEngine(pack);
+    return E.run(w.assumptions, w.start);
+  }
+
+  function year5ARR(pack) {
+    return E.summarise(runPack(pack)).finalARR;
+  }
+
+  function isDefault(pack) {
+    var n = normalize(pack);
+    var d = defaultPack();
+    return same(n.assumptions, d.assumptions) && same(n.start, d.start);
+  }
+
+  function pathPush(out, path, from, to) {
+    if (same(from, to)) return;
+    out.push({ path: path, from: canonicalValue(from), to: canonicalValue(to) });
+  }
+
+  function diffBands(a, b, out) {
+    if (a == null && b == null) return;
+    if (a == null || b == null || a.length !== b.length) {
+      pathPush(out, 'assumptions.bands', a, b);
+      return;
+    }
+    var i, k;
+    for (i = 0; i < a.length; i++) {
+      for (k = 0; k < BAND_KEYS.length; k++) {
+        pathPush(out, 'assumptions.bands.' + (a[i].name || i) + '.' + BAND_KEYS[k],
+          a[i][BAND_KEYS[k]], b[i][BAND_KEYS[k]]);
+      }
+    }
+  }
+
+  function diffCohorts(a, b, out) {
+    if (a == null && b == null) return;
+    if (a == null || b == null || a.length !== b.length) {
+      pathPush(out, 'start.openingCohorts', a, b);
+      return;
+    }
+    var i;
+    for (i = 0; i < a.length; i++) {
+      pathPush(out, 'start.openingCohorts[' + i + '].arr', a[i].arr, b[i].arr);
+      pathPush(out, 'start.openingCohorts[' + i + '].age', a[i].age, b[i].age);
+    }
+  }
+
+  function diff(packA, packB) {
+    var a = normalize(packA);
+    var b = normalize(packB);
+    var changed = [];
+    var i, k;
+    for (i = 0; i < ASSUMPTION_KEYS.length; i++) {
+      k = ASSUMPTION_KEYS[i];
+      pathPush(changed, 'assumptions.' + k, a.assumptions[k], b.assumptions[k]);
+    }
+    diffBands(a.assumptions.bands, b.assumptions.bands, changed);
+    for (i = 0; i < START_KEYS.length; i++) {
+      k = START_KEYS[i];
+      if (k === 'openingCohorts') continue;
+      pathPush(changed, 'start.' + k, a.start[k], b.start[k]);
+    }
+    diffCohorts(a.start.openingCohorts, b.start.openingCohorts, changed);
+    return {
+      schema: DIFF_SCHEMA,
+      schemaVersion: SCHEMA_VERSION,
+      changed: changed
+    };
+  }
+
+  function stringifyJSON(pack) {
+    return JSON.stringify(normalize(pack), null, 2) + '\n';
+  }
+
+  function isPlainObject(v) {
+    return v && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function yamlScalar(v) {
+    if (v === null || v === undefined) return 'null';
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    if (typeof v === 'number' && isFinite(v)) return String(v);
+    var s = String(v);
+    if (/^[-]?(\d+\.?\d*|\.\d+)$/.test(s) || /[:#{}[\],&*?|<>=!%@`]/.test(s) || /[\s]/.test(s) || s === '' ||
+        s === 'true' || s === 'false' || s === 'null' || s === 'yes' || s === 'no') {
+      return JSON.stringify(s);
+    }
+    return s;
+  }
+
+  function yamlWrite(value, indent) {
+    indent = indent || 0;
+    var pad = new Array(indent + 1).join('  ');
+    var i, k, keys, lines;
+    if (Array.isArray(value)) {
+      if (!value.length) return '[]';
+      lines = [];
+      for (i = 0; i < value.length; i++) {
+        if (isPlainObject(value[i])) {
+          keys = Object.keys(value[i]);
+          lines.push(pad + '- ' + keys[0] + ': ' + yamlScalar(value[i][keys[0]]));
+          for (k = 1; k < keys.length; k++) {
+            lines.push(pad + '  ' + keys[k] + ': ' + yamlScalar(value[i][keys[k]]));
+          }
+        } else {
+          lines.push(pad + '- ' + yamlScalar(value[i]));
+        }
+      }
+      return lines.join('\n');
+    }
+    if (isPlainObject(value)) {
+      keys = Object.keys(value);
+      lines = [];
+      for (i = 0; i < keys.length; i++) {
+        k = keys[i];
+        if (isPlainObject(value[k]) || (Array.isArray(value[k]) && value[k].length && isPlainObject(value[k][0]))) {
+          lines.push(pad + k + ':');
+          lines.push(yamlWrite(value[k], indent + 1));
+        } else if (Array.isArray(value[k]) && !value[k].length) {
+          lines.push(pad + k + ': []');
+        } else {
+          lines.push(pad + k + ': ' + yamlScalar(value[k]));
+        }
+      }
+      return lines.join('\n');
+    }
+    return pad + yamlScalar(value);
+  }
+
+  function stringifyYAML(pack) {
+    return yamlWrite(normalize(pack), 0) + '\n';
+  }
+
+  function parseScalar(raw) {
+    var s = raw.replace(/\s+#.*$/, '').trim();
+    if (s === 'null' || s === '~' || s === '') return null;
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
+        (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")) {
+      return JSON.parse(s.charAt(0) === '"' ? s : '"' + s.slice(1, -1).replace(/"/g, '\\"') + '"');
+    }
+    if (/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/.test(s)) return Number(s);
+    return s;
+  }
+
+  function parseYAML(text) {
+    var lines = String(text).replace(/\r\n/g, '\n').split('\n');
+    var i = 0;
+    function indentOf(line) {
+      var n = 0;
+      while (n < line.length && line.charAt(n) === ' ') n++;
+      return n;
+    }
+    function peek() {
+      while (i < lines.length) {
+        var t = lines[i];
+        if (!t.trim() || t.trim().charAt(0) === '#') { i++; continue; }
+        return t;
+      }
+      return null;
+    }
+    function parseBlock(minIndent) {
+      var line = peek();
+      if (line == null) return {};
+      if (line.trim().charAt(0) === '-') return parseSeq(minIndent);
+      return parseMap(minIndent);
+    }
+    function parseMap(minIndent) {
+      var obj = {};
+      var line, ind, m, key, rest;
+      while ((line = peek()) != null) {
+        ind = indentOf(line);
+        if (ind < minIndent) break;
+        if (line.trim().charAt(0) === '-') break;
+        i++;
+        m = line.trim().match(/^([^:]+):(.*)$/);
+        if (!m) throw err('YAML: cannot parse ' + line.trim());
+        key = m[1].trim();
+        rest = m[2].replace(/\s+#.*$/, '').trim();
+        if (rest === '' || rest === '|') {
+          var next = peek();
+          if (next == null || indentOf(next) <= ind) obj[key] = null;
+          else obj[key] = parseBlock(indentOf(next));
+        } else if (rest === '[]') {
+          obj[key] = [];
+        } else {
+          obj[key] = parseScalar(rest);
+        }
+      }
+      return obj;
+    }
+    function parseSeq(minIndent) {
+      var arr = [];
+      var line, ind, rest, item, next;
+      while ((line = peek()) != null) {
+        ind = indentOf(line);
+        if (ind < minIndent) break;
+        if (line.trim().charAt(0) !== '-') break;
+        i++;
+        rest = line.trim().slice(1).trim();
+        if (!rest) {
+          next = peek();
+          arr.push(next ? parseBlock(indentOf(next)) : null);
+        } else if (rest.indexOf(':') !== -1) {
+          item = parseMapFromInline(rest);
+          next = peek();
+          if (next && indentOf(next) > ind && next.trim().charAt(0) !== '-') {
+            Object.assign(item, parseMap(indentOf(next)));
+          }
+          arr.push(item);
+        } else {
+          arr.push(parseScalar(rest));
+        }
+      }
+      return arr;
+    }
+    function parseMapFromInline(rest) {
+      var m = rest.match(/^([^:]+):(.*)$/);
+      if (!m) return parseScalar(rest);
+      var obj = {};
+      var val = m[2].replace(/\s+#.*$/, '').trim();
+      obj[m[1].trim()] = val === '' ? null : parseScalar(val);
+      return obj;
+    }
+    var parsed = parseBlock(0);
+    return normalize(parsed);
+  }
+
+  function looksLikeYAML(text) {
+    var t = String(text).replace(/^\uFEFF/, '').trim();
+    if (!t) return false;
+    if (t.charAt(0) === '{') return false;
+    return /^schema:\s/.test(t);
+  }
+
+  function parse(text) {
+    if (text && typeof text === 'object') return normalize(text);
+    var s = String(text).replace(/^\uFEFF/, '');
+    if (!s.trim()) throw err('Empty pack.');
+    if (looksLikeYAML(s)) return parseYAML(s);
+    try {
+      return normalize(JSON.parse(s));
+    } catch (e) {
+      if (e.name === 'AssumptionPackError') throw e;
+      return parseYAML(s);
+    }
+  }
+
+  function formatDiff(d) {
+    if (!d.changed.length) return 'No drivers differ.';
+    return d.changed.map(function (c) {
+      return c.path + ': ' + fmtDriver(c.from) + ' → ' + fmtDriver(c.to);
+    }).join('\n');
+  }
+
+  function fmtDriver(v) {
+    if (v === null || v === undefined) return 'null';
+    if (typeof v === 'number') return String(v);
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  }
+
+  return {
+    SCHEMA: SCHEMA,
+    SCHEMA_VERSION: SCHEMA_VERSION,
+    DIFF_SCHEMA: DIFF_SCHEMA,
+    MODEL_VERSION: MODEL_VERSION,
+    DEFAULT_Y5_ARR: DEFAULT_Y5_ARR,
+    ASSUMPTION_KEYS: ASSUMPTION_KEYS,
+    START_KEYS: START_KEYS,
+    defaultPack: defaultPack,
+    emptyPack: emptyPack,
+    fromWorld: fromWorld,
+    normalize: normalize,
+    parse: parse,
+    toEngine: toEngine,
+    runPack: runPack,
+    year5ARR: year5ARR,
+    isDefault: isDefault,
+    isDefaultStart: isDefaultStart,
+    diff: diff,
+    formatDiff: formatDiff,
+    stringifyJSON: stringifyJSON,
+    stringifyYAML: stringifyYAML,
+    parseYAML: parseYAML
+  };
+});
+</script>
+<script>/*
+ * SaaS Physics — leave-behind kit (Horizon C2).
+ *
+ * Deterministic residue of the current world stamp: assumption pack,
+ * appendix CSV, selected-month audit, bind snapshot, short index.
+ * Offline-friendly. Not a QoE, not a valuation, not packaging.
+ *
+ * Adds no physics. Reads engine / notebook / capital objects the glass
+ * already shows.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory(
+      require('./engine.js'),
+      require('./pack.js'),
+      require('./notebook.js'),
+      require('./capital.js')
+    );
+  } else {
+    root.SaaSPhysicsKit = factory(
+      root.SaaSPhysics, root.SaaSPhysicsPack, root.SaaSPhysicsNotebook, root.SaaSPhysicsCapital
+    );
+  }
+})(typeof self !== 'undefined' ? self : globalThis, function (E, PACK, NB, CAP) {
+  'use strict';
+
+  function eur(v) {
+    if (v == null || !isFinite(v)) return '—';
+    var n = Math.round(v);
+    var s = n < 0 ? '−' : '';
+    return s + '€' + Math.abs(n).toLocaleString('en-US');
+  }
+  function xfmt(v) { return (v).toFixed(2) + '×'; }
+
+  function defaultStamp(res, month) {
+    month = month == null ? E.HORIZON : month;
+    return {
+      world: 'Default',
+      month: 'M' + String(month).padStart(2, '0'),
+      scenario: 'Default',
+      reading: 'Base|Exp',
+      bind: bindChip(res, month),
+      year5ARR: E.summarise(res).finalARR,
+      selectedMonth: month
+    };
+  }
+
+  function bindChip(res, month) {
+    if (!res || res.derived.smCashReserve == null) return 'no operating constraint binding';
+    var mm = month >= 1 ? res.months[month - 1] : null;
+    var lab = 'reserve ' + eur(res.derived.smCashReserve);
+    return lab + (mm && mm.smConstrained ? ' · binding' : ' · not binding');
+  }
+
+  function saturationLabel(res) {
+    var k = res.derived.acqSaturationSpend;
+    if (k == null) return 'linear · unbounded (k off)';
+    return 'saturates · k=' + eur(k) +
+      ' · linear would be ' + eur(res.derived.newARRLinear) +
+      ' · applied ' + eur(res.derived.newARRPerMonth);
+  }
+
+  function bindSnapshot(res, month) {
+    month = month == null ? E.HORIZON : month;
+    var d = res.derived;
+    var mm = month >= 1 ? res.months[month - 1] : null;
+    var k = d.acqSaturationSpend;
+    return {
+      month: month,
+      reserve: {
+        on: d.smCashReserve != null,
+        value: d.smCashReserve,
+        binding: !!(mm && mm.smConstrained),
+        chip: bindChip(res, month)
+      },
+      saturation: {
+        on: k != null,
+        k: k,
+        linearNewARR: d.newARRLinear,
+        appliedNewARR: d.newARRPerMonth,
+        aMax: k == null ? null : d.acqAMax,
+        label: saturationLabel(res)
+      },
+      linear: {
+        acquisition: k == null ? 'linear · unbounded' : 'saturates',
+        cash: d.smCashReserve == null ? 'no operating constraint binding' : bindChip(res, month)
+      }
+    };
+  }
+
+  function auditText(res, month) {
+    month = month == null ? E.HORIZON : month;
+    var au = NB.monthAudit(res, month);
+    var lines = [];
+    lines.push('Selected-month audit · M' + (month < 1 ? '0' : ((month - 1) + ' → flows → M' + month)));
+    lines.push(au.formula);
+    lines.push('');
+    if (month < 1) {
+      lines.push('Opening ARR  ' + eur(au.openingARR));
+      lines.push('Opening cash ' + eur(au.cashOpening));
+    } else {
+      lines.push('M' + (month - 1) + ' closing ARR  ' + eur(au.openingARR));
+      lines.push('+ New ARR             ' + eur(au.newARR));
+      lines.push('+ Expansion           ' + eur(au.expansion));
+      lines.push('− Leakage             ' + eur(au.leakage));
+      lines.push('= M' + month + ' closing ARR  ' + eur(au.closingARR));
+      if (Math.abs(au.residual) > 1e-6) lines.push('Engine residual       ' + au.residual);
+      lines.push('');
+      lines.push('Model cash M' + (month - 1) + '     ' + eur(au.cashOpening));
+      lines.push('+ FCF                 ' + eur(au.fcf));
+      lines.push('= Model cash M' + month + '     ' + eur(au.cashClosing));
+      lines.push('');
+      lines.push('Revenue this month    ' + eur(au.revenue));
+      lines.push('GP this month         ' + eur(au.grossProfit));
+      lines.push('S&M / R&D / G&A       ' + eur(au.sm) + ' / ' + eur(au.rd) + ' / ' + eur(au.ga));
+    }
+    lines.push('');
+    lines.push('Money is engine euros. Appendix glass rounds to €000.');
+    return lines.join('\n') + '\n';
+  }
+
+  function sc5Ledger(baseRes, expRes, baseA, expA) {
+    if (!baseRes || !expRes) return null;
+    var b = E.summarise(baseRes);
+    var x = E.summarise(expRes);
+    return {
+      cacPerARR: { A: baseA.cacPerARR, B: expA.cacPerARR },
+      sm: { A: baseA.sm, B: expA.sm },
+      newARRPerMonth: { A: baseRes.derived.newARRPerMonth, B: expRes.derived.newARRPerMonth },
+      endingCash: { A: b.endingCash, B: x.endingCash }
+    };
+  }
+
+  function formatSc5(ledger) {
+    if (!ledger) return '';
+    return [
+      '## Sc5 ledger (Capital ≠ ARR)',
+      '',
+      'A = efficiency · B = spend. Same New ARR, different capital.',
+      '',
+      '- CAC / €1 New ARR  A ' + xfmt(ledger.cacPerARR.A) + ' · B ' + xfmt(ledger.cacPerARR.B),
+      '- S&M / month       A ' + eur(ledger.sm.A) + ' · B ' + eur(ledger.sm.B),
+      '- New ARR / month   A ' + eur(ledger.newARRPerMonth.A) + ' · B ' + eur(ledger.newARRPerMonth.B) + ' · invariant',
+      '- Ending Model cash A ' + eur(ledger.endingCash.A) + ' → B ' + eur(ledger.endingCash.B),
+      ''
+    ].join('\n');
+  }
+
+  function indexMarkdown(stamp, pack, bind, ledger) {
+    var chips = [stamp.world, stamp.month, stamp.scenario, stamp.reading].join(' · ');
+    var lines = [
+      '# SaaS Physics leave-behind',
+      '',
+      'Residue of one run. Same engine as the instrument. Offline.',
+      'Not a real-book quality-of-earnings, not a valuation, not a product seat.',
+      '',
+      '## World stamp',
+      '',
+      '- Chips: `' + chips + '`',
+      '- Bind: ' + stamp.bind,
+      '- Year-5 ARR: ' + eur(stamp.year5ARR),
+      '- Pack label: ' + (pack.label || '—'),
+      '- Selected month: M' + String(stamp.selectedMonth).padStart(2, '0'),
+      '',
+      '## Files',
+      '',
+      '- `pack.json` / `pack.yaml` — assumption pack (schema v' + PACK.SCHEMA_VERSION + ')',
+      '- `appendix.csv` — month × KPI of this run (engine euros)',
+      '- `audit.txt` — selected-month M(t−1) → flows → M(t)',
+      '- `bind.json` — reserve / saturation / linear as shown',
+      '',
+      '## Bind snapshot',
+      '',
+      '- Reserve: ' + bind.reserve.chip,
+      '- Saturation: ' + bind.saturation.label,
+      '- Acquisition: ' + bind.linear.acquisition,
+      '- Cash: ' + bind.linear.cash,
+      ''
+    ];
+    if (ledger) lines.push(formatSc5(ledger));
+    lines.push('C3 multi-pack shelf is not in this kit.');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  function appendixCSV(res) {
+    var open = {
+      revenue: true, retention: true, unit: true, capital: true,
+      logos: !!(res.derived && res.derived.logoLayerOn)
+    };
+    return NB.toCSV(NB.tableModel(res, open));
+  }
+
+  function assemble(opts) {
+    opts = opts || {};
+    var assumptions = opts.assumptions || E.DEFAULT_ASSUMPTIONS;
+    var start = opts.start;
+    var res = opts.res || E.run(assumptions, start);
+    var month = opts.selectedMonth == null ? E.HORIZON : opts.selectedMonth;
+    var pack = opts.pack || PACK.fromWorld(assumptions, start || res.start, { label: opts.label });
+    var stamp = Object.assign(defaultStamp(res, month), opts.stamp || {});
+    stamp.selectedMonth = month;
+    stamp.year5ARR = stamp.year5ARR != null ? stamp.year5ARR : E.summarise(res).finalARR;
+    stamp.bind = stamp.bind || bindChip(res, month);
+    var bind = bindSnapshot(res, month);
+    var ledger = opts.sc5Ledger || null;
+    var files = {
+      'INDEX.md': indexMarkdown(stamp, pack, bind, ledger),
+      'pack.json': PACK.stringifyJSON(pack),
+      'pack.yaml': PACK.stringifyYAML(pack),
+      'appendix.csv': appendixCSV(res),
+      'audit.txt': auditText(res, month),
+      'bind.json': JSON.stringify(bind, null, 2) + '\n'
+    };
+    return { files: files, pack: pack, stamp: stamp, bind: bind, res: res };
+  }
+
+  /* Store-only ZIP (no compression). Deterministic timestamps = 0. */
+  var CRC_TABLE = (function () {
+    var t = new Array(256), n, c, k;
+    for (n = 0; n < 256; n++) {
+      c = n;
+      for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    var crc = 0xFFFFFFFF, i;
+    for (i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function utf8Bytes(str) {
+    if (typeof Buffer === 'function') {
+      var buf = Buffer.from(String(str), 'utf8');
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    }
+    return new TextEncoder().encode(String(str));
+  }
+
+  function u16(n) { return [n & 0xFF, (n >>> 8) & 0xFF]; }
+  function u32(n) {
+    return [n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF];
+  }
+
+  function zipStore(files) {
+    var names = Object.keys(files).sort();
+    var locals = [];
+    var centrals = [];
+    var offset = 0;
+    var i, name, data, nameB, crc, local, central;
+    function concat(parts) {
+      var len = 0, j, out, p, o = 0;
+      for (j = 0; j < parts.length; j++) len += parts[j].length;
+      out = new Uint8Array(len);
+      for (j = 0; j < parts.length; j++) {
+        p = parts[j];
+        out.set(p, o);
+        o += p.length;
+      }
+      return out;
+    }
+    for (i = 0; i < names.length; i++) {
+      name = names[i];
+      data = utf8Bytes(files[name]);
+      nameB = utf8Bytes(name);
+      crc = crc32(data);
+      local = concat([
+        new Uint8Array([0x50, 0x4B, 0x03, 0x04]),
+        new Uint8Array(u16(20)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u32(crc)),
+        new Uint8Array(u32(data.length)),
+        new Uint8Array(u32(data.length)),
+        new Uint8Array(u16(nameB.length)),
+        new Uint8Array(u16(0)),
+        nameB,
+        data
+      ]);
+      central = concat([
+        new Uint8Array([0x50, 0x4B, 0x01, 0x02]),
+        new Uint8Array(u16(20)),
+        new Uint8Array(u16(20)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u32(crc)),
+        new Uint8Array(u32(data.length)),
+        new Uint8Array(u32(data.length)),
+        new Uint8Array(u16(nameB.length)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u16(0)),
+        new Uint8Array(u32(0)),
+        new Uint8Array(u32(offset)),
+        nameB
+      ]);
+      locals.push(local);
+      centrals.push(central);
+      offset += local.length;
+    }
+    var centralOff = offset;
+    var centralSize = 0;
+    for (i = 0; i < centrals.length; i++) centralSize += centrals[i].length;
+    var eocd = concat([
+      new Uint8Array([0x50, 0x4B, 0x05, 0x06]),
+      new Uint8Array(u16(0)),
+      new Uint8Array(u16(0)),
+      new Uint8Array(u16(names.length)),
+      new Uint8Array(u16(names.length)),
+      new Uint8Array(u32(centralSize)),
+      new Uint8Array(u32(centralOff)),
+      new Uint8Array(u16(0))
+    ]);
+    return concat(locals.concat(centrals).concat([eocd]));
+  }
+
+  return {
+    assemble: assemble,
+    bindSnapshot: bindSnapshot,
+    bindChip: bindChip,
+    auditText: auditText,
+    sc5Ledger: sc5Ledger,
+    defaultStamp: defaultStamp,
+    zipStore: zipStore,
+    appendixCSV: appendixCSV
+  };
+});
+</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook, CO = window.SaaSPhysicsCohorts;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook, CO = window.SaaSPhysicsCohorts, PACK = window.SaaSPhysicsPack, KIT = window.SaaSPhysicsKit;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -2821,6 +3654,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     w0: 100, w12: 0, w24: 0
   };
   var expOpen = Object.assign({}, DEFAULT_UI_START);
+  var loadedPackLabel = 'Default';
   var activeScenario = null;
   var baseRes, expRes, baseS, expS;
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
@@ -3220,6 +4054,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(!cohortsUserPicked) cohortsWorld = CO.defaultWorld(baseRes, expRes);
     renderNotebook();
     renderCohorts();
+    syncPackChrome();
   }
 
   /* ------------------------------------------------------------------ *
@@ -3349,6 +4184,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function applyOpeningToRun(){
     if(activeScenario && (activeScenario.world || activeScenario.pair)) return;
     expStart = startFromOpen(expOpen);
+  }
+  function openFromStart(start){
+    var s = start || E.DEFAULT_START;
+    var o = { openingARR: s.openingARR, openingCash: s.openingCash, w0: 100, w12: 0, w24: 0 };
+    var cohorts = s.openingCohorts;
+    if(cohorts && cohorts.length){
+      var w0=0, w12=0, w24=0, i;
+      for(i=0;i<cohorts.length;i++){
+        if(cohorts[i].age < 12) w0 += cohorts[i].arr;
+        else if(cohorts[i].age < 24) w12 += cohorts[i].arr;
+        else w24 += cohorts[i].arr;
+      }
+      var sum = w0+w12+w24;
+      if(sum>0){ o.w0 = 100*w0/sum; o.w12 = 100*w12/sum; o.w24 = 100*w24/sum; }
+    }
+    return o;
   }
   function openRow(id, label, sub, min, max, step, fmt){
     var d=document.createElement('div'); d.className='force';
@@ -4965,18 +5816,133 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
+   * C1 / C2 — assumption pack + leave-behind. One-way into expA / start.
+   * Thin chrome on Frame and Close. Not a shelf, not a CRM.
+   * ------------------------------------------------------------------ */
+  function currentPack(){
+    return PACK.fromWorld(expA, expStart, { label: loadedPackLabel });
+  }
+  function worldStampFromUI(){
+    return {
+      world: worldChip(),
+      month: 'M'+String(Math.round(tau)).padStart(2,'0'),
+      scenario: scenarioChip(),
+      reading: readChip(),
+      bind: bindChip(),
+      year5ARR: expRes ? E.summarise(expRes).finalARR : null,
+      selectedMonth: selectedMonth()
+    };
+  }
+  function setPackStatus(text){
+    var el = document.getElementById('pack-status');
+    if(el) el.textContent = text || '';
+  }
+  function showPackDiff(text){
+    var el = document.getElementById('packdiff');
+    if(!el) return;
+    if(!text){ el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = text;
+  }
+  function syncPackChrome(){
+    if(!PACK || !expA) return;
+    var p = PACK.fromWorld(expA, expStart);
+    if(PACK.isDefault(p)) loadedPackLabel = 'Default';
+    var lab = PACK.isDefault(p) ? 'Default' : (loadedPackLabel || 'Custom');
+    var chip = document.getElementById('pack-label');
+    if(chip){
+      chip.textContent = lab;
+      chip.classList.toggle('on', !PACK.isDefault(p));
+    }
+    var strip = document.getElementById('packstrip');
+    if(strip) strip.hidden = !(guideStep==='frame' || guideStep==='close');
+  }
+  function applyPack(pack){
+    var n = PACK.normalize(pack);
+    var w = PACK.toEngine(n);
+    var prev = Object.assign({}, expA);
+    exitPair(); clearScenario();
+    baseA = BASE_A; baseStart = undefined;
+    expA = Object.assign({}, BASE_A, w.assumptions);
+    if(w.assumptions.bands) expA.bands = w.assumptions.bands.map(function(b){ return Object.assign({}, b); });
+    else delete expA.bands;
+    if(PACK.isDefaultStart(w.start)){
+      expStart = undefined;
+      expOpen = Object.assign({}, DEFAULT_UI_START);
+    } else {
+      expStart = {
+        openingARR: w.start.openingARR,
+        openingCash: w.start.openingCash,
+        openingCohorts: w.start.openingCohorts,
+        openingCustomers: w.start.openingCustomers
+      };
+      expOpen = openFromStart(w.start);
+    }
+    loadedPackLabel = n.label || (PACK.isDefault(n) ? 'Default' : 'Custom');
+    lastMsg = null; pinned = null; capitalMode = false;
+    notebookUserPicked = false; cohortsUserPicked = false;
+    recompute(prev);
+    var y5 = E.summarise(expRes).finalARR;
+    setPackStatus((PACK.isDefault(n)?'Default':'Loaded')+' · Y5 ARR '+eur(y5));
+    return n;
+  }
+  function downloadText(name, text, mime){
+    var blob = new Blob([text], { type: mime||'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function downloadBytes(name, bytes, mime){
+    var blob = new Blob([bytes], { type: mime||'application/octet-stream' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function readPickedFile(input, done){
+    var f = input.files && input.files[0];
+    input.value = '';
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ done(String(r.result||''), f.name); };
+    r.readAsText(f);
+  }
+  function exportLeaveBehind(){
+    var stamp = worldStampFromUI();
+    var pack = currentPack();
+    var sc5 = (activeScenario && activeScenario.pair)
+      ? KIT.sc5Ledger(baseRes, expRes, baseA, expA)
+      : null;
+    var kit = KIT.assemble({
+      assumptions: expA,
+      start: expStart,
+      res: expRes,
+      selectedMonth: selectedMonth(),
+      pack: pack,
+      stamp: stamp,
+      sc5Ledger: sc5,
+      label: pack.label
+    });
+    downloadBytes('saas-physics-leave-behind.zip', KIT.zipStore(kit.files), 'application/zip');
+    setPackStatus('Exported kit · '+stamp.world+' · '+stamp.month+' · Y5 ARR '+eur(stamp.year5ARR));
+  }
+
+  /* ------------------------------------------------------------------ *
    * Ordered chips — Frame → Sc5 → Company → Sc6/Cohorts → System →
    * Appendix → Close. Surface/IA only. Identity chips stay the source
    * of world / month / scenario / reading.
    * ------------------------------------------------------------------ */
   var GUIDE = [
-    { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history.' },
+    { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history. Pack load / save / diff here.' },
     { id:'sc5',      n:2, label:'Sc5 · Capital≠ARR', note:'A/B ledger + ending cash + pinned bounds (linear; cash does not constrain).' },
     { id:'company',  n:3, label:'Company',          note:'State at selected month. GP by origin and capital still out — stock-flow, not a tile wall.' },
     { id:'sc6',      n:4, label:'Sc6 / Cohorts',     note:'Age mechanism when tenure is live; Default flat is the null-check. Carry·leak is the reading.' },
     { id:'system',   n:5, label:'System',           note:'Valves: annual → monthly → measured. GP origin and capital outstanding on the side.' },
     { id:'appendix', n:6, label:'Appendix',         note:'Selected-month audit · M(t−1) → flows → M(t).' },
-    { id:'close',    n:7, label:'Close',            note:'Binding drivers plus GP origin / capital outstanding. Bind chip and Company trajectory update live.' }
+    { id:'close',    n:7, label:'Close',            note:'Binding drivers plus GP origin / capital outstanding. Leave-behind kit is the residue of this stamp.' }
   ];
   var GUIDE_ALIAS = { pair:'sc5', 5:'sc5', history:'sc6', cohorts:'sc6', 6:'sc6', notebook:'appendix' };
   function guideIdFromHash(){
@@ -5005,6 +5971,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var i=0;i<GUIDE.length;i++) if(GUIDE[i].id===guideStep) step = GUIDE[i];
     var note = document.getElementById('guide-note');
     if(note) note.textContent = step ? step.note : '';
+    syncPackChrome();
     var strip = document.getElementById('closestrip');
     if(strip){
       var show = guideStep==='close';
@@ -5056,6 +6023,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     renderCockpit();
     syncSc5Proof();
     if(!fromHash) writeGuideHash(resolved);
+    syncPackChrome();
   }
   function buildGuide(){
     var host = document.getElementById('guidesteps');
@@ -5836,6 +6804,56 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   document.getElementById('co-mode-age').addEventListener('click', function(){
     cohortsMode = 'age'; renderCohorts(); renderSide();
   });
+  document.getElementById('pack-save').addEventListener('click', function(){
+    var p = currentPack();
+    var name = (PACK.isDefault(p)?'default':(p.label||'custom').toLowerCase().replace(/[^a-z0-9]+/g,'-'))+'-pack.json';
+    downloadText(name, PACK.stringifyJSON(p), 'application/json;charset=utf-8');
+    setPackStatus('Saved '+name);
+  });
+  document.getElementById('pack-load').addEventListener('click', function(){
+    document.getElementById('pack-file').click();
+  });
+  document.getElementById('pack-file').addEventListener('change', function(){
+    readPickedFile(this, function(text){
+      try{
+        applyPack(PACK.parse(text));
+        showPackDiff('');
+      } catch(e){ setPackStatus(e.message || 'Pack refused'); }
+    });
+  });
+  document.getElementById('pack-diff').addEventListener('click', function(){
+    document.getElementById('pack-diff-files').click();
+  });
+  document.getElementById('pack-diff-files').addEventListener('change', function(){
+    var files = this.files;
+    this.value = '';
+    if(!files || !files.length) return;
+    function readOne(file, done){
+      var r = new FileReader();
+      r.onload = function(){ done(String(r.result||''), file.name); };
+      r.readAsText(file);
+    }
+    function show(d, title){
+      showPackDiff(title+'\n'+PACK.formatDiff(d)+'\n'+d.changed.length+' driver(s)');
+      setPackStatus(d.changed.length+' driver(s) differ');
+    }
+    try{
+      if(files.length===1){
+        readOne(files[0], function(text, name){
+          try{ show(PACK.diff(currentPack(), PACK.parse(text)), 'Current → '+name); }
+          catch(e){ setPackStatus(e.message || 'Diff refused'); }
+        });
+      } else {
+        readOne(files[0], function(textA, nameA){
+          readOne(files[1], function(textB, nameB){
+            try{ show(PACK.diff(PACK.parse(textA), PACK.parse(textB)), nameA+' → '+nameB); }
+            catch(e){ setPackStatus(e.message || 'Diff refused'); }
+          });
+        });
+      }
+    } catch(e){ setPackStatus(e.message || 'Diff refused'); }
+  });
+  document.getElementById('kit-export').addEventListener('click', function(){ exportLeaveBehind(); });
   document.getElementById('nb-csv').addEventListener('click', function(){
     var model = NB.tableModel(notebookRes(), notebookOpen);
     var blob = new Blob([NB.toCSV(model)], { type:'text/csv;charset=utf-8' });
@@ -5880,6 +6898,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     exitPair(); clearScenario();
     baseA = BASE_A; expA = Object.assign({}, BASE_A);
     expOpen = Object.assign({}, DEFAULT_UI_START);
+    loadedPackLabel = 'Default';
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     notebookUserPicked = false; notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
@@ -5942,6 +6961,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     get cohortsMode(){ return cohortsMode; },
     cockpitBinderKeys: cockpitBinderKeys,
     reserveState: reserveState,
+    applyPack: applyPack,
+    currentPack: currentPack,
+    worldStampFromUI: worldStampFromUI,
+    exportLeaveBehind: exportLeaveBehind,
+    PACK: PACK,
+    KIT: KIT,
     syncSc5Proof: syncSc5Proof,
     gpByOriginAt: function(t){ return CAP.gpByVintage(expRes, t==null?selectedMonth():t); },
     portfolioAt: function(t){ return CAP.portfolioCapital(expRes, t==null?selectedMonth():t); }

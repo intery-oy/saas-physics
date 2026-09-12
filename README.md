@@ -110,7 +110,7 @@ Four actions: **Observe → Change → Compare → Inspect**.
 | **Appendix** | Month × KPI table of the current run (the former Notebook), with a compact M(t−1) → flows → M(t) month audit. Companion to System — does not replace Method, System, or Scenarios 5 & 6. |
 | **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
 
-Ordered chips under the header walk **Frame → Sc 5 (capital ≠ ARR) → Company → Sc 6 / Cohorts → System → Appendix → Close**. Deep-links `#guide/sc5` and `#guide/sc6`. Identity chips stay `Default|A|B` · `M##` · scenario · `Base|Exp`. Close is a short list of existing-bound sensitivities and data-room asks.
+Ordered chips under the header walk **Frame → Sc 5 (capital ≠ ARR) → Company → Sc 6 / Cohorts → System → Appendix → Close**. Deep-links `#guide/sc5` and `#guide/sc6`. Identity chips stay `Default|A|B` · `M##` · scenario · `Base|Exp`. Close is a short list of existing-bound sensitivities and data-room asks. Frame and Close also load / save / diff a versioned **assumption pack** and export a leave-behind kit (pack + appendix CSV + month audit + bind snapshot). Schema: [`docs/PACK.md`](docs/PACK.md). Not a real-book QoE.
 
 A global **MRR ⇄ ARR** switch (default MRR) sets the reporting basis for every recurring-revenue
 stock and movement — the stock itself, New/Expansion/Leakage, cohort original/current values —
@@ -167,6 +167,10 @@ node scenarios.js         # Scenarios A–E and the 0.2 / 0.2.1 experiments
 node state-sufficiency.js # the v0.3 State Sufficiency Experiment
 node capital-study.js     # Capital Loop concept study: payback calibration and experiments
 node pulse-study.js       # Flow / Pulse concept study: intra-month law and reconciliation
+node pack-cli.js save     # write Default assumption pack (json + yaml)
+node pack-cli.js load packs/default.json
+node pack-cli.js export   # leave-behind folder + zip of the Default world
+node pack-checks.js       # C1/C2 pack + kit (lean)
 node build.js             # build all three single-file surfaces
 open saas-physics-v1.html
 ```
@@ -214,6 +218,7 @@ creates; gross margin decides how fast that investment is recovered.
 
 - [`docs/DESIGN.md`](docs/DESIGN.md) — indigo instrument tokens (v1 chrome and charts)
 - [`docs/TRUST-SPINE.md`](docs/TRUST-SPINE.md) — identity chips, Default vs A/B, voice
+- [`docs/PACK.md`](docs/PACK.md) — assumption-pack schema v1 + leave-behind kit (craft C1/C2)
 - [`docs/NOTEBOOK_TABLE_SPEC.md`](docs/NOTEBOOK_TABLE_SPEC.md) — Appendix table (lab notebook): month × KPI substrate + month audit
 - [`docs/COHORTS.md`](docs/COHORTS.md) — Cohorts v1: composition + vintage reading + age toggle
 - [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) — post-build instrument assessment, philosophy, overclaims, sequenced roadmap

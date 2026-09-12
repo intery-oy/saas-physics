@@ -36,4 +36,4 @@ Thin step chips under the header — not a second mode, not Partner/Lab branding
 
 `Frame → Sc5 (Capital≠ARR) → Company → Sc6 / Cohorts → System → Appendix → Close`
 
-Deep-links: `#guide/sc5`, `#guide/sc6`, `#guide/appendix`. Close is a binding-driver cockpit plus GP/capital stock-flow and data-room asks, not a disclaimer banner. Identity chips stay the world / month / scenario / reading. Reserve chip and System Cash→S&M callout share one `reserveState()`.
+Deep-links: `#guide/sc5`, `#guide/sc6`, `#guide/appendix`. Close is a binding-driver cockpit plus GP/capital stock-flow and data-room asks, not a disclaimer banner. Identity chips stay the world / month / scenario / reading. Reserve chip and System Cash→S&M callout share one `reserveState()`. Frame and Close carry a thin assumption-pack load / save / diff and a leave-behind export (`docs/PACK.md`) — residue of this run, not a shelf.
