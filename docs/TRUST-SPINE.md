@@ -23,9 +23,10 @@ Not a PE disclaimer paragraph. Not a CHANGE card.
 
 - **Company** — state at selected model month; stock-flow identity + composition + derived measures. Closing ARR/MRR stock ≠ annualized midpoint revenue.
 - **System** — valves show annual input → monthly applied → measured. Unmodeled links named as such. Saturation contrast uses `derived.newARRLinear` when k is on.
-- **Scenario 5** — A/B input ledger + one consequence (ending Model cash) + pinned existing bounds (linear acquisition; cash does not constrain spend).
-- **Cohorts** — Default/flat is a null-check. Age profile under flat laws is a null state first. Seeded opening ≠ comparable births. Labels Born M# / age #.
+- **Scenario 5** — A/B input ledger + one consequence (ending Model cash) + pinned existing bounds (linear acquisition; cash does not constrain spend). Guided Sc5 and the Scenarios stage pin that proof on the glass so it cannot be a side-panel footnote.
+- **Cohorts** — Lands on age. Default/flat is a null-check. Age-mechanism / flagship reading when tenure is live (Scenario 6 at M12). Seeded opening ≠ comparable births. Logo vs contraction when the logo bound is on. Composition remains a provenance toggle, not the hero.
 - **Appendix** — selected month auto-scrolls; compact `M(t−1) → flows → M(t)` audit. Empty Logos group hidden while the logo bound is off.
+- **Close** — Sensitivity cockpit: 2–3 sliders on binding drivers only (S&M, persistence, plus expansion or the active System constraint). Bind chip and Company / System views update live. Non-binders are not offered.
 
 Optional bounds stay on the rail behind **Optional bounds · off at Default**.
 
@@ -35,4 +36,4 @@ Thin step chips under the header — not a second mode, not Partner/Lab branding
 
 `Frame → Sc5 (Capital≠ARR) → Company → Sc6 / Cohorts → System → Appendix → Close`
 
-Deep-links: `#guide/sc5`, `#guide/sc6`, `#guide/appendix`. Close is a short strip of existing-bound sensitivities and data-room asks, not a disclaimer banner. Identity chips stay the world / month / scenario / reading.
+Deep-links: `#guide/sc5`, `#guide/sc6`, `#guide/appendix`. Close is a binding-driver cockpit plus data-room asks, not a disclaimer banner. Identity chips stay the world / month / scenario / reading. Reserve chip and System Cash→S&M callout share one `reserveState()`.

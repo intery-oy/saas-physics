@@ -10,9 +10,9 @@ A companion surface to Company / System. Not a KPI tile wall, not a retention tr
 
 | Mode | What you see | Source |
 |---|---|---|
-| **Composition (K2, default)** | Yearly vintage stocks stacked over 60 months. Birth stems = New ARR (one vintage born each month). | `cohort.rows[].closingARR` grouped like `engine.arrMix` (opening + Y1–Y5). Births = `months[].newARR`. |
-| **Vintage reading (K1, always on)** | Which of m0 / m12 / m24 / m36 / m48 carries vs leaks. Blended R12M NRR as a **warning**, not a hero. GRR vs expansion vs NRR. Contraction only when logos are on. | Vintage GRR/NRR = that acquisition month's `measureR12M.contributions` at T (current window, so age-dependent laws can disagree). First-year window is the fallback if the vintage is not yet eligible. Carry/leak = `currentARR / initialARR`. Blended = `K.measureR12M(res, T)`. |
-| **Age profile (K3)** | Horizon ARR by 12-month age. GRR solid / NRR dashed; the gap is measured expansion (`NRR − GRR`). Affordance to Scenario 6 / Tenure when age is a no-op. | Bars: existing cohort ages at T (display buckets). Engine bands via `K.ageComposition`. Rates: weighted `measureR12M.contributions` by `ageAtOpening`. |
+| **Age profile (K3, landing)** | Null-check when tenure is flat. Age-mechanism / flagship reading when laws differ (Scenario 6 lands at M12). GRR solid / NRR dashed; gap is measured expansion. | Bars: existing cohort ages at T (display buckets). Engine bands via `K.ageComposition`. Rates: weighted `measureR12M.contributions` by `ageAtOpening`. |
+| **Vintage reading (K1, always on)** | Carry·leak strip. Seeded opening ≠ comparable births. Blended R12M NRR as a **warning**, not a hero. Contraction / logo churn when logos are on; `—` when off. | Vintage GRR/NRR = that acquisition month's `measureR12M.contributions` at T. Carry/leak = `currentARR / initialARR`. Blended = `K.measureR12M(res, T)`. |
+| **Composition (K2, toggle)** | Yearly vintage stocks stacked over 60 months. Provenance, not the hero. Birth stems = New ARR. | `cohort.rows[].closingARR` grouped like `engine.arrMix` (opening + Y1–Y5). Births = `months[].newARR`. |
 
 Money is **€000**. Base | Experiment is a whole-page toggle, same rule as Appendix.
 

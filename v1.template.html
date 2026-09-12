@@ -97,12 +97,30 @@ button,input{font:inherit;color:inherit}
 .gstep .n{color:var(--ink-4);margin-right:4px}
 .gstep.on .n{color:var(--indigo-500)}
 .guide-note{font-size:10.5px;color:var(--ink-3);line-height:1.4;max-width:72ch}
-.closestrip{grid-column:1/-1;display:flex;gap:32px;padding:8px 16px 10px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.closestrip{grid-column:1/-1;display:flex;gap:28px;padding:8px 16px 10px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap;align-items:flex-start}
 .closestrip[hidden]{display:none!important}
-.closestrip .col{min-width:220px;flex:1 1 280px}
+.closestrip .col{min-width:200px;flex:1 1 240px}
 .closestrip ul{margin:5px 0 0;padding-left:16px;font-size:11px;color:var(--ink-2);line-height:1.55}
 .closestrip li{margin-bottom:2px}
 .closestrip b{color:var(--ink);font-weight:500}
+.cockpit{flex:1 1 420px;min-width:280px}
+.ck-row{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:2px 10px;align-items:baseline;margin-top:8px}
+.ck-row label{font-size:11.5px;font-weight:500;color:var(--ink)}
+.ck-val{font-family:var(--mono);font-size:12px;color:var(--exp);text-align:right}
+.ck-row input[type=range]{grid-column:1/-1;margin-top:2px}
+.ck-why{grid-column:1/-1;font-size:10px;color:var(--ink-4);line-height:1.4}
+.cockpit-live{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.cockpit-live b{color:var(--ink);font-weight:500}
+.cockpit-links{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.sc5proof{border-bottom:1px solid var(--line);background:var(--panel);padding:10px 18px 12px}
+.sc5proof[hidden]{display:none!important}
+.sc5proof-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.sc5proof-teach{font-size:12px;color:var(--ink-2);line-height:1.45}
+.sc5proof .ledger{max-width:520px}
+.sc5proof-cons{margin-top:8px;font-size:12px;color:var(--ink)}
+.sc5proof .pin{display:inline-block;margin-right:22px;margin-top:8px;vertical-align:top;max-width:42ch}
+.scenbar .btn.sig{border-color:var(--indigo-200);color:var(--indigo-800)}
+.scencard.sig{border-color:var(--indigo-200);background:var(--indigo-50)}
 .head h1{margin:0;font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.01em;color:var(--indigo-800)}
 .head h1::before{content:"";display:inline-block;width:7px;height:7px;background:var(--indigo-700);border-radius:1px;margin-right:8px;vertical-align:middle}
 .head .sub{font-size:11px;color:var(--ink-3);font-style:normal;font-family:var(--ui)}
@@ -113,6 +131,7 @@ button,input{font:inherit;color:inherit}
 .idchip{font-family:var(--mono);font-size:10px;padding:3px 7px;border:1px solid var(--line);border-radius:var(--radius);color:var(--ink-3);background:var(--sunk);letter-spacing:.02em;white-space:nowrap}
 .idchip.on{border-color:var(--indigo-200);color:var(--indigo-800);background:var(--indigo-50)}
 .idchip.pair{color:var(--indigo-800);background:var(--indigo-50);border-color:var(--indigo-200)}
+.idchip.binding{border-color:var(--indigo-400);color:var(--indigo-800);background:var(--indigo-50);font-weight:600}
 .view-cluster{display:flex;align-items:center;gap:8px;padding:2px 0 2px 10px;margin-left:4px;border-left:1px solid var(--line)}
 .view-cluster .eyebrow{color:var(--ink-4)}
 .view-cluster.inert,.view-cluster .inert{opacity:.45}
@@ -225,7 +244,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .co-card .rates{font-family:var(--mono);font-size:12px;color:var(--ink);letter-spacing:-.01em}
 .co-card .rates span{color:var(--ink-3);font-size:10.5px}
 .co-card .verdict{font-size:11px;color:var(--ink-2);margin-top:4px}
+.co-card .verdict.carries,.co-card .verdict.leaks{font-weight:600;color:var(--ink)}
 .co-card .delta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.co-card.seeded{box-shadow:inset 2px 0 0 var(--indigo-600)}
+.co-reading.live .co-reading-top .eyebrow{color:var(--indigo-800)}
 .co-foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:10.5px;color:var(--ink-4);line-height:1.5}
 .co-jump{background:transparent;border:0;padding:0;color:var(--indigo-700);font:inherit;font-size:11px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .co-jump:hover{color:var(--indigo-900)}
@@ -345,6 +367,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   </aside>
 
   <main class="stage">
+    <div class="sc5proof" id="sc5proof" hidden></div>
     <canvas id="scene"></canvas>
     <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
     <div class="scenbar" id="scenbar" hidden>
@@ -483,9 +506,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Cohort strata</b> \u2014 the historical composition and provenance of today\u2019s recurring state.</li>
             <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
-            <li><b>Cohorts</b> \u2014 composition + vintage reading + age toggle. Which vintage carries or leaks the book, and whether blended NRR conceals variation. Not a triangle and not a hero retention number.</li>
+            <li><b>Cohorts</b> \u2014 lands on age (null-check when tenure is flat; mechanism when live). Vintage reading is the carry·leak strip. Composition is provenance, not the hero. Not a triangle and not a blended retention number.</li>
             <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run, with a compact M(t−1) → flows → M(t) month audit. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
-            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (capital ≠ ARR) → Company → Sc 6 / Cohorts → System → Appendix → Close. Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
+            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
           </ul>
         </div>
       </div>
@@ -496,15 +519,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   <aside class="side" id="side"></aside>
 
   <div class="closestrip" id="closestrip" hidden>
-    <div class="col">
-      <span class="eyebrow">Sensitivities</span>
-      <ul>
-        <li><b>Saturation spend</b> — New ARR is linear in S&amp;M at Default.</li>
-        <li><b>Expansion CAC</b> — expansion ARR is unpriced at Default.</li>
-        <li><b>Cash reserve</b> — S&amp;M is unconstrained at Default.</li>
-        <li><b>Prepaid term</b> — FCF is the EBITA-based cash proxy at Default.</li>
-        <li><b>Tenure mix</b> — age is a no-op under flat laws; Vintage reading is the null-check.</li>
-      </ul>
+    <div class="col cockpit">
+      <span class="eyebrow">Sensitivity · binding drivers</span>
+      <div id="cockpit-knobs"></div>
+      <div class="cockpit-live" id="cockpit-live"></div>
+      <div class="cockpit-links">
+        <button type="button" class="btn" id="cockpit-company">Company trajectory</button>
+        <button type="button" class="btn" id="cockpit-system">System bind</button>
+      </div>
     </div>
     <div class="col">
       <span class="eyebrow">Data-room</span>
@@ -571,7 +593,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
   var cohortsWorld = 'base';
   var cohortsUserPicked = false;
-  var cohortsMode = 'composition';          /* composition | age */
+  var cohortsMode = 'age';                  /* age first: null-check when flat; mechanism when live */
   var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
   var lastMsg = null;
   var guideStep = 'frame';                 /* ordered chips — not a second product mode */
@@ -701,13 +723,28 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(side==='both') return 'Base|Exp';
     return side==='experiment' ? 'Exp' : 'Base';
   }
-  function bindChip(){
-    if(!expRes || expRes.derived.smCashReserve==null)
-      return 'no operating constraint binding';
+  function reserveState(){
+    var trough = expRes ? E.summarise(expRes).cashTrough : 0;
+    if(!expRes || expRes.derived.smCashReserve==null){
+      return {
+        on:false, binding:false,
+        chip:'no operating constraint binding',
+        system:'<b style="color:var(--warn)">\u2298 Cash \u2192 S&amp;M.</b> No operating constraint binding. Model cash can fall to '+
+          eur(trough)+' and nothing throttles spend.'
+      };
+    }
     var mm = expRes.months[selectedMonth()-1];
+    var binding = !!(mm && mm.smConstrained);
     var lab = 'reserve '+eur(expRes.derived.smCashReserve);
-    return mm.smConstrained ? lab+' · binding' : lab+' · not binding';
+    return {
+      on:true, binding:binding,
+      chip: lab+(binding?' \u00b7 binding':' \u00b7 not binding'),
+      system:'<b style="color:var(--ink)">Cash \u2192 S&amp;M.</b> Loop closed at reserve '+eur(expA.smCashReserve)+
+        '. Intended S&amp;M is '+eur(expA.sm)+'; this month '+(binding?'cut to '+eur(mm.sm):'not binding')+
+        '. R&amp;D and G&amp;A stay unconstrained.'
+    };
   }
+  function bindChip(){ return reserveState().chip; }
   function syncIdentityChips(){
     var w=document.getElementById('id-world'); if(!w) return;
     var world=worldChip();
@@ -718,9 +755,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     sc.textContent=scenarioChip();
     sc.classList.toggle('on', !!activeScenario);
     document.getElementById('id-read').textContent=readChip();
+    var rs=reserveState();
     var bd=document.getElementById('id-bind');
-    bd.textContent=bindChip();
-    bd.classList.toggle('on', !!(expRes && expRes.derived.smCashReserve!=null));
+    bd.textContent=rs.chip;
+    bd.classList.toggle('on', rs.on);
+    bd.classList.toggle('binding', rs.binding);
     var hideBasis = layer==='cohorts' || layer==='notebook';
     document.getElementById('basis-row').classList.toggle('inert', hideBasis);
     document.getElementById('basis-label').classList.toggle('inert', hideBasis);
@@ -820,7 +859,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) };
       });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
-    syncForces(); syncOpening(); syncTenure(); syncCalibrate(); syncMeasuredKPI(); syncIdentityChips(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
+    syncForces(); syncOpening(); syncTenure(); syncCalibrate(); syncMeasuredKPI(); syncIdentityChips(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade(); syncSc5Proof(); renderCockpit();
     if(!notebookUserPicked) notebookWorld = NB.defaultWorld(baseRes, expRes);
     if(!cohortsUserPicked) cohortsWorld = CO.defaultWorld(baseRes, expRes);
     renderNotebook();
@@ -1278,6 +1317,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        the scenario itself is cleared, unless a cohort is pinned separately. */
     if(pinned===null && capitalMode){ capitalMode = false; resize(); }
     syncScenButtons();
+    syncSc5Proof();
   }
   function applyScenario(sc){
     exitPair();
@@ -1323,7 +1363,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function buildScenarios(){
     var host=document.getElementById('scenlist'); host.innerHTML='';
     SCENARIOS.forEach(function(sc){
-      var b2=document.createElement('button'); b2.className='btn'; b2.dataset.id=sc.id;
+      var b2=document.createElement('button'); b2.className='btn'+(sc.pair?' sig':''); b2.dataset.id=sc.id;
       b2.textContent = sc.n + ' · ' + sc.name;
       b2.addEventListener('click', function(){
         if(activeScenario && activeScenario.id===sc.id){ resetAll(); return; }
@@ -2387,19 +2427,27 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   function renderVintageReading(){
     var reading = CO.vintageReading(cohortsRes(), Math.max(1, Math.round(tau)));
+    var q = document.getElementById('co-question');
+    if(q){
+      q.textContent = reading.bandsAreFlat
+        ? 'Null-check: tenure is flat — vintage mix does not change forward rates.'
+        : 'Which vintage is carrying/leaking the book — and does blended NRR conceal variation?';
+    }
     function cardHTML(v, extra){
       var grr = v.first ? CO.formatPct(v.first.grr) : CO.MISSING;
       var nrr = v.first ? CO.formatPct(v.first.nrr) : CO.MISSING;
       var gap = (v.first && v.first.expansionRate!=null) ? CO.formatPct(v.first.expansionRate) : CO.MISSING;
       var con = (v.first && v.first.contractionRate!=null) ? CO.formatPct(v.first.contractionRate) : CO.MISSING;
+      var logo = (v.first && v.first.logoChurnRate!=null) ? CO.formatPct(v.first.logoChurnRate) : null;
       var verdict = v.verdict===null ? CO.MISSING
         : (v.verdict==='carries' ? 'carries the book' : 'leaks the book');
       var age = v.age!=null ? ' · age '+v.age : '';
-      return '<div class="co-card">'+
+      var kind = v.seeded ? ' · not a comparable birth' : ' · comparable birth';
+      return '<div class="co-card'+(v.seeded?' seeded':'')+'">'+
         '<div class="m">'+esc(v.label)+esc(age)+'</div>'+
         '<div class="rates">GRR '+esc(grr)+'  <span>NRR '+esc(nrr)+'</span></div>'+
-        '<div class="verdict">'+esc(verdict)+(extra?esc(extra):'')+'</div>'+
-        '<div class="delta">expansion '+esc(gap)+' · contraction '+esc(con)+'</div>'+
+        '<div class="verdict'+(v.verdict?' '+v.verdict:'')+'">'+esc(verdict)+esc(kind)+(extra?esc(extra):'')+'</div>'+
+        '<div class="delta">expansion '+esc(gap)+' · contraction '+esc(con)+(logo?' · logo churn '+esc(logo):'')+'</div>'+
         '</div>';
     }
     var present = reading.vintages.filter(function(v){ return v.present; });
@@ -2408,16 +2456,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var seeded = present.filter(function(v){ return v.seeded; })[0] || present[0];
       var born = present.filter(function(v){ return !v.seeded; })[0];
       cards = cardHTML(seeded, ' · all vintages share this rate') +
-        (born ? cardHTML(born, ' · comparable birth; same flat rate') : '');
+        (born ? cardHTML(born, ' · same flat rate') : '');
     } else {
       cards = present.map(function(v){ return cardHTML(v, ''); }).join('');
     }
     var jump = reading.bandsAreFlat
       ? '<button type="button" class="co-jump" id="co-scen6">No age effect in this world \u2014 open Scenario 6</button>'
       : '<button type="button" class="co-jump" id="co-scen6">Tenure is live \u2014 Scenario 6 owns the historical mix</button>';
-    document.getElementById('co-reading').innerHTML =
+    var host = document.getElementById('co-reading');
+    host.classList.toggle('live', !reading.bandsAreFlat);
+    host.innerHTML =
       '<div class="co-reading-top">'+
-        '<span class="eyebrow">Vintage reading \u00b7 which vintage carries / leaks</span>'+
+        '<span class="eyebrow">'+(reading.bandsAreFlat
+          ? 'Null-check \u00b7 flat tenure \u00b7 vintage mix is a no-op'
+          : 'Carry \u00b7 leak \u00b7 vintage reading')+'</span>'+
         '<span class="spacer"></span>'+
         '<div class="co-warn"><span class="mark">\u25b3 blended NRR</span> '+esc(reading.warning)+'</div>'+
       '</div>'+
@@ -2437,7 +2489,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var sc = scenarioById('pair');
     if(!sc) return;
     applyScenario(sc);
+    playing = false; playBtn.classList.remove('play'); playIcon();
+    tau = H; scrub.value = H;
     setLayer('scen');
+    syncSc5Proof();
   }
   function jumpScenario6(){
     var sc = scenarioById('history');
@@ -2448,6 +2503,96 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     cohortsMode = 'age';
     setLayer('cohorts');
   }
+  function sc5LedgerBody(){
+    var b = E.summarise(baseRes), x = E.summarise(expRes);
+    return '<div class="eyebrow">A/B input ledger</div>'+
+      '<table class="ledger"><thead><tr><th>Field</th><th>A</th><th>B</th><th></th></tr></thead><tbody>'+
+      '<tr><td>CAC / \u20ac1 New ARR</td><td>'+fmtF('x', baseA.cacPerARR)+'</td><td>'+fmtF('x', expA.cacPerARR)+'</td><td>\u00d7</td></tr>'+
+      '<tr><td>S&amp;M / month</td><td>'+eur(baseA.sm)+'</td><td>'+eur(expA.sm)+'</td><td>\u20ac</td></tr>'+
+      '<tr><td>New ARR / month</td><td>'+reur(baseRes.derived.newARRPerMonth)+'</td><td>'+reur(expRes.derived.newARRPerMonth)+'</td><td>invariant</td></tr>'+
+      '</tbody></table>'+
+      '<div class="hint" style="margin-top:7px">A buys the same New ARR with efficiency; B buys it with spend. Neither side is Default.</div>'+
+      '<div class="sc5proof-cons"><b>Consequence</b> \u00b7 Ending Model cash '+eur(b.endingCash)+' \u2192 '+eur(x.endingCash)+'</div>'+
+      '<div class="pin"><b>Acquisition linear / unbounded.</b> Saturation spend is off \u2014 New ARR = S&amp;M \u00f7 CAC on both sides.</div>'+
+      '<div class="pin"><b>Cash does not constrain spend.</b> Reserve is off \u2014 S&amp;M is spent in full even if Model cash would not cover it.</div>';
+  }
+  function syncSc5Proof(){
+    var el = document.getElementById('sc5proof');
+    if(!el) return;
+    var show = !!(activeScenario && activeScenario.pair && layer==='scen');
+    el.hidden = !show;
+    if(show) el.innerHTML = '<div class="sc5proof-head">'+
+      '<span class="eyebrow">Sc5 \u00b7 Capital \u2260 ARR</span>'+
+      '<span class="sc5proof-teach">Same New ARR \u00b7 different capital. A = efficiency \u00b7 B = spend.</span>'+
+      '</div>'+sc5LedgerBody();
+  }
+  function cockpitBinderKeys(){
+    /* Stock→rate binders plus the active System constraint. Cap at 3.
+       Non-binders (GM, R&D, billing, logos, expansion CAC, CAC) stay off this strip. */
+    var keys = ['sm', 'persistenceAnnual'];
+    if(expA.smCashReserve>0) keys.push('smCashReserve');
+    else if(expA.acqSaturationSpend>0) keys.push('acqSaturationSpend');
+    else keys.push('expansionCoefficientAnnual');
+    return keys;
+  }
+  function binderWhy(k){
+    if(k==='sm') return 'External ARR valve — only New ARR is set from outside.';
+    if(k==='persistenceAnnual') return 'Stock → leakage. The book sets this rate.';
+    if(k==='expansionCoefficientAnnual') return 'Stock → expansion. The retained book sets this rate.';
+    if(k==='smCashReserve') return 'Operating constraint. Binding this month if S&M is cut.';
+    if(k==='acqSaturationSpend') return 'Acquisition bound. Linear counterfactual vs applied New ARR.';
+    return '';
+  }
+  function forceByKey(k){
+    for(var i=0;i<FORCES.length;i++) if(FORCES[i].k===k) return FORCES[i];
+    return null;
+  }
+  function renderCockpit(){
+    var host = document.getElementById('cockpit-knobs');
+    if(!host || !expA) return;
+    var keys = cockpitBinderKeys();
+    var sig = keys.join('|');
+    if(host.dataset.sig !== sig){
+      host.dataset.sig = sig;
+      host.innerHTML = '';
+      keys.forEach(function(k){
+        var F = forceByKey(k); if(!F) return;
+        var row = document.createElement('div');
+        row.className = 'ck-row';
+        row.innerHTML = '<label for="ck-'+F.k+'">'+esc(F.label)+'</label>'+
+          '<span class="ck-val" id="ckv-'+F.k+'"></span>'+
+          '<input type="range" id="ck-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">'+
+          '<span class="ck-why">'+esc(binderWhy(F.k))+'</span>';
+        row.querySelector('input').addEventListener('input', function(e){
+          var prev = Object.assign({}, expA);
+          if(activeScenario) clearScenario();
+          expA = Object.assign({}, expA);
+          var raw = parseFloat(e.target.value);
+          expA[F.k] = ((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(raw>0)) ? null : raw;
+          recompute(prev);
+        });
+        host.appendChild(row);
+      });
+    }
+    keys.forEach(function(k){
+      var F = forceByKey(k); if(!F) return;
+      var cur = expA[F.k];
+      if((F.f==='sat' || F.f==='offeur' || F.f==='offmo' || F.f==='offpct') && !(cur>0)) cur = 0;
+      var inp = document.getElementById('ck-'+F.k);
+      var val = document.getElementById('ckv-'+F.k);
+      if(inp && document.activeElement !== inp) inp.value = cur;
+      if(val) val.textContent = fmtF(F.f, expA[F.k]);
+    });
+    var live = document.getElementById('cockpit-live');
+    if(live && expRes && baseRes){
+      var rs = reserveState();
+      var x = E.summarise(expRes), b = E.summarise(baseRes);
+      live.innerHTML = '<span><b>'+esc(rs.chip)+'</b></span>'+
+        '<span>M60 ARR <b>'+reur(x.finalARR)+'</b></span>'+
+        '<span>Ending cash <b>'+eur(x.endingCash)+'</b></span>'+
+        '<span>vs Base cash <b>'+(x.endingCash-b.endingCash>=0?'+':'−')+eur(Math.abs(x.endingCash-b.endingCash))+'</b></span>';
+    }
+  }
 
   /* ------------------------------------------------------------------ *
    * Ordered chips — Frame → Sc5 → Company → Sc6/Cohorts → System →
@@ -2456,12 +2601,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * ------------------------------------------------------------------ */
   var GUIDE = [
     { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history.' },
-    { id:'sc5',      n:2, label:'Sc5 · Capital≠ARR', note:'Same New ARR · different capital. A = efficiency, B = spend.' },
+    { id:'sc5',      n:2, label:'Sc5 · Capital≠ARR', note:'A/B ledger + ending cash + pinned bounds (linear; cash does not constrain).' },
     { id:'company',  n:3, label:'Company',          note:'State at selected month. Closing stock ≠ annualized midpoint revenue.' },
-    { id:'sc6',      n:4, label:'Sc6 / Cohorts',     note:'Same headline KPIs · different vintage mix. Age profile when tenure is live; null-check when flat.' },
+    { id:'sc6',      n:4, label:'Sc6 / Cohorts',     note:'Age mechanism when tenure is live; Default flat is the null-check. Carry·leak is the reading.' },
     { id:'system',   n:5, label:'System',           note:'Valves: annual input → monthly applied → measured. Unmodeled links named.' },
     { id:'appendix', n:6, label:'Appendix',         note:'Selected-month audit · M(t−1) → flows → M(t).' },
-    { id:'close',    n:7, label:'Close',            note:'Sensitivities and data-room asks from existing bounds — no new coefficient.' }
+    { id:'close',    n:7, label:'Close',            note:'Sensitivity cockpit: 2–3 binding drivers only. Bind chip and Company trajectory update live.' }
   ];
   var GUIDE_ALIAS = { pair:'sc5', 5:'sc5', history:'sc6', cohorts:'sc6', 6:'sc6', notebook:'appendix' };
   function guideIdFromHash(){
@@ -2519,11 +2664,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     } else if(resolved==='system'){
       if(!activeScenario || activeScenario.id!=='history') applyScenario(scenarioById('history'));
       setLayer('flow');
-    } else if(resolved==='appendix' || resolved==='close'){
+    } else if(resolved==='appendix'){
       if(!activeScenario) applyScenario(scenarioById('history'));
       setLayer('notebook');
+    } else if(resolved==='close'){
+      if(!activeScenario) applyScenario(scenarioById('history'));
+      setLayer('stock');
     }
     syncGuide();
+    renderCockpit();
+    syncSc5Proof();
     if(!fromHash) writeGuideHash(resolved);
   }
   function buildGuide(){
@@ -2769,7 +2919,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="hint" style="margin-top:7px;line-height:1.7">'+esc(CO.QUESTION)+' Composition is yearly vintage stock. Age is a cross-section. Blended NRR is a warning if it conceals variation.</div></div>'+
       '<div class="sgrp"><div class="eyebrow">This world</div>'+
       row('Reading', cohortsWorld==='experiment'?'Experiment':'Base')+
-      row('Mode', cohortsMode==='age'?'Age profile':'Composition')+
+      row('Mode', cohortsMode==='age'
+        ? (res.bandsAreFlat ? 'Age · null-check' : 'Age · mechanism')
+        : 'Composition · provenance')+
       row('Month '+t+' ARR · €000', CO.formatEur000(t===0?res.start.openingARR:res.months[t-1].closingARR))+
       row('R12M GRR', CO.formatPct(reading.blendedGRR))+
       row('R12M NRR', CO.formatPct(reading.blendedNRR))+
@@ -2796,10 +2948,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var host=document.getElementById('side');
       if(!activeScenario){
         host.innerHTML='<div class="sgrp"><div class="eyebrow">Scenarios</div>'+
-          '<div class="hint" style="margin-top:7px;line-height:1.7">Six canonical scenarios. Each changes one declared '+
-          'assumption against a frozen Base and reports only the consequences that scenario actually bears on.</div></div>'+
-          SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard">'+
-            '<h4>'+sc.n+' · '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
+          '<div class="hint" style="margin-top:7px;line-height:1.7">Six canonical scenarios. Scenario 5 is the signature: same New ARR, different capital \u2014 the A/B ledger, one cash consequence, and the pinned bounds sit on the stage when you open it.</div></div>'+
+          SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard'+(sc.pair?' sig':'')+'">'+
+            (sc.pair?'<div class="eyebrow" style="margin-bottom:4px">Signature \u00b7 Capital \u2260 ARR</div>':'')+
+            '<h4>'+sc.n+' \u00b7 '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
         return;
       }
       host.innerHTML = consequencePanel(activeScenario);
@@ -2951,11 +3103,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     h+='<div class="sgrp"><div class="eyebrow">Two unmodeled links</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
-      (expA.smCashReserve>0
-        ? '<b style="color:var(--ink)">Cash → S&amp;M.</b> Loop closed at reserve '+eur(expA.smCashReserve)+'. Intended S&amp;M is '+eur(expA.sm)+'; this month '+(expRes.months[selectedMonth()-1].smConstrained?'cut to '+eur(expRes.months[selectedMonth()-1].sm):'not binding')+'. R&amp;D and G&amp;A stay unconstrained.'
-        : '<b style="color:var(--warn)">⊘ Cash → S&amp;M.</b> No operating constraint binding. Model cash can fall to '+
-          eur(E.summarise(expRes).cashTrough)+' and nothing throttles spend.')+
-      '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit — an unmodeled link, not a missing drawing.</div></div>';
+      reserveState().system+
+      '<br><br><b style="color:var(--warn)">\u2298 R&amp;D \u2192 retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit \u2014 an unmodeled link, not a missing drawing.</div></div>';
     document.getElementById('side').innerHTML=h;
   }
 
@@ -2990,9 +3139,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       (typeof v==='string'?v:(recurring?rd(v):d(v)))+'</b>'; }
 
     var rows = [], has = function(t){ return sc.shows.indexOf(t)>=0; };
-    if(sc.pair){
-      rows.push(row('Ending Model cash', x.endingCash - b.endingCash));
-    } else {
+    if(!sc.pair){
       if(has('arr'))     rows.push(row('M60 '+basis, x.finalARR - b.finalARR, undefined, true));
       if(has('new'))     rows.push(row('New '+basis+' per month', expRes.derived.newARRPerMonth - baseRes.derived.newARRPerMonth, undefined, true));
       if(has('exp'))     rows.push(row('Cumulative Expansion '+basis, x.cumExpansion - b.cumExpansion, undefined, true));
@@ -3011,15 +3158,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="msg" style="font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--ink-2);line-height:1.6">'+
       esc(sc.teach)+'</div></div>';
     if(sc.pair){
-      h += '<div class="sgrp"><div class="eyebrow">A/B input ledger</div>'+
-        '<table class="ledger"><thead><tr><th>Field</th><th>A</th><th>B</th><th></th></tr></thead><tbody>'+
-        '<tr><td>CAC / €1 New ARR</td><td>'+fmtF('x', baseA.cacPerARR)+'</td><td>'+fmtF('x', expA.cacPerARR)+'</td><td>×</td></tr>'+
-        '<tr><td>S&amp;M / month</td><td>'+eur(baseA.sm)+'</td><td>'+eur(expA.sm)+'</td><td>€</td></tr>'+
-        '<tr><td>New ARR / month</td><td>'+reur(baseRes.derived.newARRPerMonth)+'</td><td>'+reur(expRes.derived.newARRPerMonth)+'</td><td>invariant</td></tr>'+
-        '</tbody></table>'+
-        '<div class="hint" style="margin-top:7px">A buys the same New ARR with efficiency; B buys it with spend. Neither side is Default.</div>'+
-        '<div class="pin"><b>Acquisition linear / unbounded.</b> Saturation spend is off — New ARR = S&amp;M ÷ CAC on both sides.</div>'+
-        '<div class="pin"><b>Cash does not constrain spend.</b> Reserve is off — S&amp;M is spent in full even if Model cash would not cover it.</div></div>';
+      h += '<div class="sgrp">'+sc5LedgerBody()+'</div>';
     }
 
     if(sc.illustrative){
@@ -3251,6 +3390,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
     syncMeasuredKPI(); syncIdentityChips(); renderSide(); renderCascade(); highlightNotebookMonth();
     if(layer==='cohorts') renderCohorts();
+    renderCockpit();
   }
 
   function setLayer(l){
@@ -3272,12 +3412,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(l==='notebook'){ renderNotebook(); highlightNotebookMonth(); }
     if(l==='cohorts'){
       playing=false; playBtn.classList.remove('play'); playIcon();
-      tau=H; scrub.value=H;
-      if(expRes && !expRes.bandsAreFlat) cohortsMode = 'age';
-      else cohortsMode = 'composition';
+      cohortsMode = 'age';
+      if(expRes && !expRes.bandsAreFlat && activeScenario && activeScenario.id==='history'){
+        tau=12; scrub.value=12;
+      } else {
+        tau=H; scrub.value=H;
+      }
       syncTime();
       renderCohorts();
     }
+    syncSc5Proof();
     /* The system view is a time-varying stock-and-flow diagram: the transport
        drives it in every mode. */
     setTimeout(function(){ resize(); if(l==='cohorts') resizeCohorts(); positionLawChips(); render(); }, 220);
@@ -3316,6 +3460,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     URL.revokeObjectURL(a.href);
   });
   document.getElementById('scen-clear').addEventListener('click', function(){ resetAll(); });
+  document.getElementById('cockpit-company').addEventListener('click', function(){
+    guideStep = 'close';
+    setLayer('stock');
+    syncGuide();
+    renderCockpit();
+  });
+  document.getElementById('cockpit-system').addEventListener('click', function(){
+    guideStep = 'close';
+    setLayer('flow');
+    syncGuide();
+    renderCockpit();
+  });
   ['abs','delta'].forEach(function(c){
     document.getElementById('cmp-'+c).addEventListener('click', function(){
       compare = c==='abs'?'absolute':'delta';
@@ -3333,7 +3489,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     notebookUserPicked = false; notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
-    cohortsUserPicked = false; cohortsMode = 'composition';
+    cohortsUserPicked = false; cohortsMode = 'age';
     var calOut=document.getElementById('cal-out');
     if(calOut){ calOut.className='cal-out'; calOut.textContent=''; }
     resize(); recompute(); render();
@@ -3388,7 +3544,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     NB: NB,
     get notebookWorld(){ return notebookWorld; },
     get guideStep(){ return guideStep; },
-    goGuide: goGuide
+    goGuide: goGuide,
+    get cohortsMode(){ return cohortsMode; },
+    cockpitBinderKeys: cockpitBinderKeys,
+    reserveState: reserveState,
+    syncSc5Proof: syncSc5Proof
   };
 })();
 </script>
