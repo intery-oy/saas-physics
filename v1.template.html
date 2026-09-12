@@ -178,7 +178,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .nb-table thead .nb-month{z-index:4;top:0}
 .nb-table thead tr.nb-cols .nb-month{top:28px}
 .nb-table tbody th.nb-month{z-index:3}
-.nb-table tbody tr.on td,.nb-table tbody tr.on th{background:var(--indigo-50)}
+.nb-table tbody tr.on td,.nb-table tbody tr.on th{background:var(--indigo-50);box-shadow:inset 2px 0 0 var(--indigo-600)}
 .nb-table tbody tr:hover td,.nb-table tbody tr:hover th{background:var(--sunk)}
 .nb-table tbody tr.on .nb-month,.nb-table tbody tr:hover .nb-month{background:inherit}
 .nb-table .nb-collapsed{padding:4px 8px}
@@ -2916,7 +2916,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
 
     /* §9 — regime statement. Explanatory text only; no new visualisation. */
-    if(!sc.world){
+    if(!sc.world && !sc.pair){
       var rb2 = regimeOf(baseRes.assumptions), rx2 = regimeOf(expRes.assumptions);
       var txt;
       if(rb2.band === rx2.band){
@@ -3119,7 +3119,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('cohorts').hidden = l!=='cohorts';
     document.getElementById('leak-toggle').style.display = l==='stock' ? '' : 'none';
     document.querySelector('.cascade').hidden = l==='flow' || l==='notebook' || l==='cohorts';
-    if(l==='notebook') renderNotebook();
+    if(l==='notebook'){ renderNotebook(); highlightNotebookMonth(); }
     if(l==='cohorts'){
       playing=false; playBtn.classList.remove('play'); playIcon();
       tau=H; scrub.value=H;
