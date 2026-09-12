@@ -96,7 +96,12 @@ button,input{font:inherit;color:inherit}
 .gstep.on{background:var(--indigo-50);color:var(--indigo-800)}
 .gstep .n{color:var(--ink-4);margin-right:4px}
 .gstep.on .n{color:var(--indigo-500)}
-.guide-note{font-size:10.5px;color:var(--ink-3);line-height:1.4;max-width:72ch}
+.guide-note{font-size:10.5px;color:var(--ink-3);line-height:1.4;max-width:52ch}
+.packstrip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+.packstrip[hidden]{display:none!important}
+.pack-status{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);max-width:48ch;line-height:1.4}
+.packdiff{grid-column:1/-1;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--sunk);font-family:var(--mono);font-size:11px;color:var(--ink-2);white-space:pre-wrap;line-height:1.5}
+.packdiff[hidden]{display:none!important}
 .closestrip{grid-column:1/-1;display:flex;gap:28px;padding:8px 16px 10px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap;align-items:flex-start}
 .closestrip[hidden]{display:none!important}
 .closestrip .col{min-width:200px;flex:1 1 240px}
@@ -356,7 +361,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   <nav class="guidebar" id="guidebar" aria-label="Session path">
     <div class="guidesteps" id="guidesteps"></div>
     <span class="guide-note" id="guide-note"></span>
+    <div class="packstrip" id="packstrip" hidden>
+      <span class="eyebrow">Pack</span>
+      <span class="idchip" id="pack-label">Default</span>
+      <button type="button" class="btn" id="pack-save">Save pack</button>
+      <button type="button" class="btn" id="pack-load">Load</button>
+      <button type="button" class="btn" id="pack-diff">Diff</button>
+      <button type="button" class="btn" id="kit-export">Export kit</button>
+      <input type="file" id="pack-file" hidden accept=".json,.yaml,.yml,application/json,text/yaml,text/x-yaml">
+      <input type="file" id="pack-diff-files" hidden multiple accept=".json,.yaml,.yml,application/json,text/yaml,text/x-yaml">
+      <span class="pack-status" id="pack-status"></span>
+    </div>
   </nav>
+  <div class="packdiff" id="packdiff" hidden></div>
 
   <aside class="rail">
     <div class="grp" id="experiment-summary"></div>
@@ -513,7 +530,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
             <li><b>Cohorts</b> \u2014 lands on age (null-check when tenure is flat; mechanism when live). Vintage reading is the carry·leak strip. Composition is provenance, not the hero. Not a triangle and not a blended retention number.</li>
             <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run, with a compact M(t−1) → flows → M(t) month audit. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
-            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company (GP by origin + capital still out) → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit + GP/capital). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
+            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company (GP by origin + capital still out) → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit + GP/capital). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp. Frame and Close carry a thin assumption-pack load / save / diff and a leave-behind export — residue of this run, not a real-book QoE.</li>
           </ul>
         </div>
       </div>
@@ -567,10 +584,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 <script>/*__BASIS__*/</script>
 <script>/*__NOTEBOOK__*/</script>
 <script>/*__COHORTS__*/</script>
+<script>/*__PACK__*/</script>
+<script>/*__KIT__*/</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook, CO = window.SaaSPhysicsCohorts;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook, CO = window.SaaSPhysicsCohorts, PACK = window.SaaSPhysicsPack, KIT = window.SaaSPhysicsKit;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -587,6 +606,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     w0: 100, w12: 0, w24: 0
   };
   var expOpen = Object.assign({}, DEFAULT_UI_START);
+  var loadedPackLabel = 'Default';
   var activeScenario = null;
   var baseRes, expRes, baseS, expS;
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
@@ -986,6 +1006,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(!cohortsUserPicked) cohortsWorld = CO.defaultWorld(baseRes, expRes);
     renderNotebook();
     renderCohorts();
+    syncPackChrome();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1115,6 +1136,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function applyOpeningToRun(){
     if(activeScenario && (activeScenario.world || activeScenario.pair)) return;
     expStart = startFromOpen(expOpen);
+  }
+  function openFromStart(start){
+    var s = start || E.DEFAULT_START;
+    var o = { openingARR: s.openingARR, openingCash: s.openingCash, w0: 100, w12: 0, w24: 0 };
+    var cohorts = s.openingCohorts;
+    if(cohorts && cohorts.length){
+      var w0=0, w12=0, w24=0, i;
+      for(i=0;i<cohorts.length;i++){
+        if(cohorts[i].age < 12) w0 += cohorts[i].arr;
+        else if(cohorts[i].age < 24) w12 += cohorts[i].arr;
+        else w24 += cohorts[i].arr;
+      }
+      var sum = w0+w12+w24;
+      if(sum>0){ o.w0 = 100*w0/sum; o.w12 = 100*w12/sum; o.w24 = 100*w24/sum; }
+    }
+    return o;
   }
   function openRow(id, label, sub, min, max, step, fmt){
     var d=document.createElement('div'); d.className='force';
@@ -2731,18 +2768,137 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
+   * C1 / C2 — assumption pack + leave-behind. One-way into expA / start.
+   * Thin chrome on Frame and Close. Not a shelf, not a CRM.
+   * ------------------------------------------------------------------ */
+  function currentPack(){
+    var probe = PACK.fromWorld(expA, expStart);
+    var label = PACK.isDefault(probe) ? 'Default'
+      : (loadedPackLabel && loadedPackLabel !== 'Default' ? loadedPackLabel : 'Custom');
+    return PACK.fromWorld(expA, expStart, { label: label });
+  }
+  function worldStampFromUI(){
+    return {
+      world: worldChip(),
+      month: 'M'+String(Math.round(tau)).padStart(2,'0'),
+      scenario: scenarioChip(),
+      reading: readChip(),
+      bind: bindChip(),
+      year5ARR: expRes ? E.summarise(expRes).finalARR : null,
+      selectedMonth: selectedMonth()
+    };
+  }
+  function setPackStatus(text){
+    var el = document.getElementById('pack-status');
+    if(el) el.textContent = text || '';
+  }
+  function showPackDiff(text){
+    var el = document.getElementById('packdiff');
+    if(!el) return;
+    if(!text){ el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = text;
+  }
+  function syncPackChrome(){
+    if(!PACK || !expA) return;
+    var p = PACK.fromWorld(expA, expStart);
+    if(PACK.isDefault(p)) loadedPackLabel = 'Default';
+    else if(loadedPackLabel === 'Default' || !loadedPackLabel) loadedPackLabel = 'Custom';
+    var lab = PACK.isDefault(p) ? 'Default' : loadedPackLabel;
+    var chip = document.getElementById('pack-label');
+    if(chip){
+      chip.textContent = lab;
+      chip.classList.toggle('on', !PACK.isDefault(p));
+    }
+    var strip = document.getElementById('packstrip');
+    if(strip) strip.hidden = !(guideStep==='frame' || guideStep==='close');
+  }
+  function applyPack(pack){
+    var n = PACK.normalize(pack);
+    var w = PACK.toEngine(n);
+    var prev = Object.assign({}, expA);
+    exitPair(); clearScenario();
+    baseA = BASE_A; baseStart = undefined;
+    expA = Object.assign({}, BASE_A, w.assumptions);
+    if(w.assumptions.bands) expA.bands = w.assumptions.bands.map(function(b){ return Object.assign({}, b); });
+    else delete expA.bands;
+    if(PACK.isDefaultStart(w.start)){
+      expStart = undefined;
+      expOpen = Object.assign({}, DEFAULT_UI_START);
+    } else {
+      expStart = {
+        openingARR: w.start.openingARR,
+        openingCash: w.start.openingCash,
+        openingCohorts: w.start.openingCohorts,
+        openingCustomers: w.start.openingCustomers
+      };
+      expOpen = openFromStart(w.start);
+    }
+    loadedPackLabel = n.label || (PACK.isDefault(n) ? 'Default' : 'Custom');
+    lastMsg = null; pinned = null; capitalMode = false;
+    notebookUserPicked = false; cohortsUserPicked = false;
+    recompute(prev);
+    var y5 = E.summarise(expRes).finalARR;
+    setPackStatus((PACK.isDefault(n)?'Default':'Loaded')+' · Y5 ARR '+eur(y5));
+    return n;
+  }
+  function downloadText(name, text, mime){
+    var blob = new Blob([text], { type: mime||'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function downloadBytes(name, bytes, mime){
+    var blob = new Blob([bytes], { type: mime||'application/octet-stream' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function readPickedFile(input, done){
+    var f = input.files && input.files[0];
+    input.value = '';
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ done(String(r.result||''), f.name); };
+    r.readAsText(f);
+  }
+  function exportLeaveBehind(){
+    var stamp = worldStampFromUI();
+    var pack = currentPack();
+    var sc5 = (activeScenario && activeScenario.pair)
+      ? KIT.sc5Ledger(baseRes, expRes, baseA, expA)
+      : null;
+    var kit = KIT.assemble({
+      assumptions: expA,
+      start: expStart,
+      res: expRes,
+      selectedMonth: selectedMonth(),
+      pack: pack,
+      stamp: stamp,
+      sc5Ledger: sc5,
+      label: pack.label
+    });
+    downloadBytes('saas-physics-leave-behind.zip', KIT.zipStore(kit.files), 'application/zip');
+    setPackStatus('Exported kit · '+stamp.world+' · '+stamp.month+' · Y5 ARR '+eur(stamp.year5ARR));
+  }
+
+  /* ------------------------------------------------------------------ *
    * Ordered chips — Frame → Sc5 → Company → Sc6/Cohorts → System →
    * Appendix → Close. Surface/IA only. Identity chips stay the source
    * of world / month / scenario / reading.
    * ------------------------------------------------------------------ */
   var GUIDE = [
-    { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history.' },
+    { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history. Pack load / save / diff here.' },
     { id:'sc5',      n:2, label:'Sc5 · Capital≠ARR', note:'A/B ledger + ending cash + pinned bounds (linear; cash does not constrain).' },
     { id:'company',  n:3, label:'Company',          note:'State at selected month. GP by origin and capital still out — stock-flow, not a tile wall.' },
     { id:'sc6',      n:4, label:'Sc6 / Cohorts',     note:'Age mechanism when tenure is live; Default flat is the null-check. Carry·leak is the reading.' },
     { id:'system',   n:5, label:'System',           note:'Valves: annual → monthly → measured. GP origin and capital outstanding on the side.' },
     { id:'appendix', n:6, label:'Appendix',         note:'Selected-month audit · M(t−1) → flows → M(t).' },
-    { id:'close',    n:7, label:'Close',            note:'Binding drivers plus GP origin / capital outstanding. Bind chip and Company trajectory update live.' }
+    { id:'close',    n:7, label:'Close',            note:'Binding drivers plus GP origin / capital outstanding. Leave-behind kit is the residue of this stamp.' }
   ];
   var GUIDE_ALIAS = { pair:'sc5', 5:'sc5', history:'sc6', cohorts:'sc6', 6:'sc6', notebook:'appendix' };
   function guideIdFromHash(){
@@ -2771,6 +2927,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var i=0;i<GUIDE.length;i++) if(GUIDE[i].id===guideStep) step = GUIDE[i];
     var note = document.getElementById('guide-note');
     if(note) note.textContent = step ? step.note : '';
+    syncPackChrome();
     var strip = document.getElementById('closestrip');
     if(strip){
       var show = guideStep==='close';
@@ -2822,6 +2979,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     renderCockpit();
     syncSc5Proof();
     if(!fromHash) writeGuideHash(resolved);
+    syncPackChrome();
   }
   function buildGuide(){
     var host = document.getElementById('guidesteps');
@@ -3602,6 +3760,56 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   document.getElementById('co-mode-age').addEventListener('click', function(){
     cohortsMode = 'age'; renderCohorts(); renderSide();
   });
+  document.getElementById('pack-save').addEventListener('click', function(){
+    var p = currentPack();
+    var name = (PACK.isDefault(p)?'default':(p.label||'custom').toLowerCase().replace(/[^a-z0-9]+/g,'-'))+'-pack.json';
+    downloadText(name, PACK.stringifyJSON(p), 'application/json;charset=utf-8');
+    setPackStatus('Saved '+name);
+  });
+  document.getElementById('pack-load').addEventListener('click', function(){
+    document.getElementById('pack-file').click();
+  });
+  document.getElementById('pack-file').addEventListener('change', function(){
+    readPickedFile(this, function(text){
+      try{
+        applyPack(PACK.parse(text));
+        showPackDiff('');
+      } catch(e){ setPackStatus(e.message || 'Pack refused'); }
+    });
+  });
+  document.getElementById('pack-diff').addEventListener('click', function(){
+    document.getElementById('pack-diff-files').click();
+  });
+  document.getElementById('pack-diff-files').addEventListener('change', function(){
+    var files = this.files;
+    this.value = '';
+    if(!files || !files.length) return;
+    function readOne(file, done){
+      var r = new FileReader();
+      r.onload = function(){ done(String(r.result||''), file.name); };
+      r.readAsText(file);
+    }
+    function show(d, title){
+      showPackDiff(title+'\n'+PACK.formatDiff(d)+'\n'+d.changed.length+' driver(s)');
+      setPackStatus(d.changed.length+' driver(s) differ');
+    }
+    try{
+      if(files.length===1){
+        readOne(files[0], function(text, name){
+          try{ show(PACK.diff(currentPack(), PACK.parse(text)), 'Current → '+name); }
+          catch(e){ setPackStatus(e.message || 'Diff refused'); }
+        });
+      } else {
+        readOne(files[0], function(textA, nameA){
+          readOne(files[1], function(textB, nameB){
+            try{ show(PACK.diff(PACK.parse(textA), PACK.parse(textB)), nameA+' → '+nameB); }
+            catch(e){ setPackStatus(e.message || 'Diff refused'); }
+          });
+        });
+      }
+    } catch(e){ setPackStatus(e.message || 'Diff refused'); }
+  });
+  document.getElementById('kit-export').addEventListener('click', function(){ exportLeaveBehind(); });
   document.getElementById('nb-csv').addEventListener('click', function(){
     var model = NB.tableModel(notebookRes(), notebookOpen);
     var blob = new Blob([NB.toCSV(model)], { type:'text/csv;charset=utf-8' });
@@ -3646,6 +3854,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     exitPair(); clearScenario();
     baseA = BASE_A; expA = Object.assign({}, BASE_A);
     expOpen = Object.assign({}, DEFAULT_UI_START);
+    loadedPackLabel = 'Default';
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     notebookUserPicked = false; notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
@@ -3708,6 +3917,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     get cohortsMode(){ return cohortsMode; },
     cockpitBinderKeys: cockpitBinderKeys,
     reserveState: reserveState,
+    applyPack: applyPack,
+    currentPack: currentPack,
+    worldStampFromUI: worldStampFromUI,
+    exportLeaveBehind: exportLeaveBehind,
+    PACK: PACK,
+    KIT: KIT,
     syncSc5Proof: syncSc5Proof,
     gpByOriginAt: function(t){ return CAP.gpByVintage(expRes, t==null?selectedMonth():t); },
     portfolioAt: function(t){ return CAP.portfolioCapital(expRes, t==null?selectedMonth():t); }

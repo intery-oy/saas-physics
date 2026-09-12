@@ -1,0 +1,28 @@
+{
+  "schema": "saas-physics.assumption-pack",
+  "schemaVersion": 1,
+  "modelVersion": "0.4",
+  "kind": "assumption-pack",
+  "label": "Default",
+  "assumptions": {
+    "sm": 900000,
+    "cacPerARR": 1.2,
+    "acqSaturationSpend": null,
+    "smCashReserve": null,
+    "billingAdvanceMonths": null,
+    "expansionCacPerARR": 0,
+    "logoRetentionAnnual": null,
+    "persistenceAnnual": 0.9,
+    "expansionCoefficientAnnual": 0.1,
+    "grossMargin": 0.8,
+    "rd": 700000,
+    "ga": 350000,
+    "bands": null
+  },
+  "start": {
+    "openingARR": 20000000,
+    "openingCash": 10000000,
+    "openingCohorts": null,
+    "openingCustomers": null
+  }
+}

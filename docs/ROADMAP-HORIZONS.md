@@ -225,6 +225,8 @@ Admission for C:
 
 **CFO reaction this horizon is for:** “I can put *my* price or product thesis on the book and see the path — and I can turn it off.”
 
+**Craft residue (not this physics C).** After Horizon B craft on the glass, C1/C2 is a versioned assumption pack and a leave-behind kit — one-way into existing assumptions, no new coefficients. Schema and checklist: [`PACK.md`](PACK.md). C3 multi-pack shelf is deferred. Physics C above is unchanged.
+
 ### Horizon D — Any-company methodology (still not a product)
 
 **Blocked question:** can the same Layer A / Layer B / instruments 1–10 be pointed at a *real* opening state without contaminating the engine?
