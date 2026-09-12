@@ -122,6 +122,29 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
 /* ---------- stage ---------- */
 #scene{flex-grow:1;width:100%;display:block;min-height:0}
+.app.notebook .cmp-block{display:none}
+.app.notebook #scene,.app.notebook #lawhost{display:none}
+#notebook{flex-grow:1;min-height:0;display:flex;flex-direction:column;background:var(--scene)}
+#notebook[hidden]{display:none!important}
+.nb-head{display:flex;align-items:baseline;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.nb-head .nb-name{font-family:var(--display);font-size:15px;font-weight:400}
+.nb-head .hint{max-width:42ch}
+.nb-scroll{flex-grow:1;overflow:auto;min-height:0}
+.nb-table{border-collapse:separate;border-spacing:0;font-size:11px;width:max-content;min-width:100%}
+.nb-table th,.nb-table td{padding:4px 10px;border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);white-space:nowrap;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:400}
+.nb-table thead th{position:sticky;top:0;background:var(--panel);z-index:1;color:var(--ink-3);font-size:10px;letter-spacing:.04em;text-transform:uppercase;font-weight:500}
+.nb-table thead tr.nb-groups th{top:0;z-index:2;text-align:center;text-transform:none;letter-spacing:0;font-size:11px;border-bottom:1px solid var(--line)}
+.nb-table thead tr.nb-cols th{top:28px}
+.nb-table .nb-month{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;color:var(--ink-2);font-weight:500}
+.nb-table thead .nb-month{z-index:4;top:0}
+.nb-table thead tr.nb-cols .nb-month{top:28px}
+.nb-table tbody th.nb-month{z-index:3}
+.nb-table tbody tr.on td,.nb-table tbody tr.on th{background:rgba(201,114,47,.10)}
+.nb-table tbody tr:hover td,.nb-table tbody tr:hover th{background:rgba(255,255,255,.03)}
+.nb-table .nb-collapsed{color:var(--ink-4);font-style:italic;text-transform:none;letter-spacing:0;font-weight:400}
+.nb-gbtn{background:transparent;border:0;color:var(--ink-2);cursor:pointer;font:inherit;padding:0}
+.nb-gbtn.open{color:var(--ink)}
+.nb-gbtn:hover{color:var(--exp)}
 .cascade{border-top:1px solid var(--line);padding:11px 20px 12px;background:var(--sunk)}
 .cascade-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
 .crow{display:grid;grid-template-columns:104px minmax(0,1fr) 88px;gap:11px;align-items:center;margin-bottom:5px}
@@ -200,9 +223,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <span class="sub">an economic system, observed</span>
     <span class="spacer"></span>
     <span class="chip" id="mode-chip">base vs experiment</span>
-    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-scen">Scenarios</button></div>
-    <span class="eyebrow">Compare</span>
-    <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
+    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-notebook">Notebook</button><button class="btn" id="nav-scen">Scenarios</button></div>
+    <span class="cmp-block eyebrow">Compare</span>
+    <div class="cmp-block btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
     <span class="eyebrow">Basis</span>
     <div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div>
     <button class="btn" id="leak-toggle" title="Cumulative historical leakage — off by default">Leakage shadow: Off</button>
@@ -235,6 +258,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
     <div class="pulsebar" id="pulsebar" hidden>
       <span class="lawnote" id="pulse-law"></span>
+    </div>
+    <div id="notebook" hidden>
+      <div class="nb-head">
+        <span class="nb-name" id="nb-scenario">Default world</span>
+        <div class="btn-row">
+          <button class="btn on" id="nb-base">Base</button>
+          <button class="btn" id="nb-exp">Experiment</button>
+        </div>
+        <button class="btn" id="nb-csv">CSV</button>
+        <span class="spacer"></span>
+        <span class="hint">Same run as System. One world at a time.</span>
+      </div>
+      <div class="nb-scroll"><table class="nb-table" id="nb-table"></table></div>
     </div>
     <div class="cascade">
       <div class="cascade-head">
@@ -325,6 +361,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Cohort strata</b> \u2014 the historical composition and provenance of today\u2019s recurring state.</li>
             <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
+            <li><b>Notebook</b> \u2014 a month \u00d7 KPI table of the current run. Lab-notebook substrate for charts later. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
             <li>A fourth candidate, an intra-month bridge animation, established no unique percept and was rejected. It is preserved in the research archive, not shipped.</li>
           </ul>
         </div>
@@ -352,10 +389,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 <script>/*__CAPITAL__*/</script>
 <script>/*__SYSTEMSTATE__*/</script>
 <script>/*__BASIS__*/</script>
+<script>/*__NOTEBOOK__*/</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -380,6 +418,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* §14 — two layers, two lenses, one comparator. Inspect subsumes the old
      Anatomy and Capital-loop toggles; nothing new is navigable. */
   var layer = 'stock', compare = 'absolute';
+  var notebookWorld = 'base';               /* whole-table Base | Experiment */
+  var notebookUserPicked = false;           /* false → apply defaultWorld() */
+  var notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
   var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
   var lastMsg = null;
 
@@ -561,6 +602,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
     syncForces(); syncOpening(); syncTenure(); syncCalibrate(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
+    if(!notebookUserPicked) notebookWorld = NB.defaultWorld(baseRes, expRes);
+    renderNotebook();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1011,6 +1054,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     exitPair();
     var prev = Object.assign({}, expA);
     activeScenario = sc; lastMsg = null; pinned = null;
+    notebookUserPicked = false;
     baseA = BASE_A; baseStart = undefined; expStart = undefined;
     /* §9 — the capital-recovery track expands automatically for the two
        scenarios that are actually about acquisition/payback, without
@@ -1106,6 +1150,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   function render(){
+    if(layer==='notebook') return;                     /* NOTEBOOK — the table, not the canvas */
     if(!geo) resize();
     if(layer==='flow'){ drawSystem(); return; }        /* SYSTEM — the causal map */
     var S = scales(), t = tau, mi = Math.floor(t);
@@ -2018,9 +2063,66 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
+   * Notebook — month × KPI table of the current run. Same series System
+   * already reads. One world at a time; never an unlabeled merge.
+   * ------------------------------------------------------------------ */
+  function notebookRes(){ return notebookWorld==='experiment' ? expRes : baseRes; }
+  function notebookTitle(){
+    if(activeScenario) return 'Scenario '+activeScenario.n+' · '+activeScenario.name;
+    if(NB.experimentDiffers(baseRes, expRes)) return 'Custom experiment';
+    return 'Default world';
+  }
+  function renderNotebook(){
+    if(!baseRes) return;
+    if(!notebookUserPicked) notebookWorld = NB.defaultWorld(baseRes, expRes);
+    var res = notebookRes();
+    var model = NB.tableModel(res, notebookOpen);
+    document.getElementById('nb-scenario').textContent = notebookTitle();
+    document.getElementById('nb-base').classList.toggle('on', notebookWorld==='base');
+    document.getElementById('nb-exp').classList.toggle('on', notebookWorld==='experiment');
+    document.getElementById('nb-table').innerHTML = NB.renderTable(model, { selectedMonth: Math.round(tau) });
+    [].forEach.call(document.querySelectorAll('#nb-table .nb-gbtn'), function(btn){
+      btn.addEventListener('click', function(){
+        var g = btn.getAttribute('data-group');
+        notebookOpen[g] = !notebookOpen[g];
+        renderNotebook();
+      });
+    });
+  }
+  function highlightNotebookMonth(){
+    if(layer!=='notebook') return;
+    var m = Math.round(tau);
+    [].forEach.call(document.querySelectorAll('#nb-table tbody tr'), function(tr){
+      tr.classList.toggle('on', Number(tr.getAttribute('data-month'))===m);
+    });
+  }
+  function renderNotebookSide(){
+    var res = notebookRes();
+    var t = Math.round(tau);
+    var cells = NB.cellsAt(res, t);
+    var host = document.getElementById('side');
+    host.innerHTML =
+      '<div class="sgrp"><div class="eyebrow">Notebook</div>'+
+      '<div class="hint" style="margin-top:7px;line-height:1.7">The table is the same series System already uses — one world, months 0–60. Charts later. Not a second engine.</div></div>'+
+      '<div class="sgrp"><div class="eyebrow">This world</div>'+
+      row('Reading', notebookWorld==='experiment'?'Experiment':'Base')+
+      row('Run', notebookTitle())+
+      row('Month 60 ARR', NB.formatValue('eur', NB.cellsAt(res, 60).arr))+
+      '</div>'+
+      '<div class="sgrp"><div class="eyebrow">Selected month '+t+'</div>'+
+      row('ARR', NB.formatValue('eur', cells.arr))+
+      row('Cash', NB.formatValue('eur', cells.cash))+
+      row('R12M GRR', NB.formatValue('pct', cells.grr))+
+      row('R12M NRR', NB.formatValue('pct', cells.nrr))+
+      '<div class="hint" style="margin-top:7px">GRR and NRR are a pair. Scrub to move the highlighted row.</div></div>';
+    function row(a,b){ return '<div class="srow"><span>'+esc(a)+'</span><b>'+b+'</b></div>'; }
+  }
+
+  /* ------------------------------------------------------------------ *
    * Side column — pause and inspect
    * ------------------------------------------------------------------ */
   function renderSide(){
+    if(layer==='notebook'){ return renderNotebookSide(); }
     if(layer==='flow'){ return renderFlowSide(); }
     if(layer==='scen'){
       var host=document.getElementById('side');
@@ -2480,19 +2582,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function syncTime(){
     var m=Math.round(tau);
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
-    syncMeasuredKPI(); renderSide(); renderCascade();
+    syncMeasuredKPI(); renderSide(); renderCascade(); highlightNotebookMonth();
   }
 
   function setLayer(l){
     layer=l;
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
     document.getElementById('nav-system').classList.toggle('on', l==='flow');
+    document.getElementById('nav-notebook').classList.toggle('on', l==='notebook');
     document.getElementById('nav-scen').classList.toggle('on', l==='scen');
     document.querySelector('.app').classList.toggle('flow', l==='flow');
+    document.querySelector('.app').classList.toggle('notebook', l==='notebook');
     document.getElementById('pulsebar').hidden = l!=='flow';
     document.getElementById('scenbar').hidden = l!=='scen';
+    document.getElementById('notebook').hidden = l!=='notebook';
     document.getElementById('leak-toggle').style.display = l==='stock' ? '' : 'none';
-    document.querySelector('.cascade').hidden = l==='flow';
+    document.querySelector('.cascade').hidden = l==='flow' || l==='notebook';
+    if(l==='notebook') renderNotebook();
     /* The system view is a time-varying stock-and-flow diagram: the transport
        drives it in every mode. */
     setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
@@ -2500,7 +2606,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   document.getElementById('nav-company').addEventListener('click', function(){ setLayer('stock'); });
   document.getElementById('nav-system').addEventListener('click', function(){ setLayer('flow'); });
+  document.getElementById('nav-notebook').addEventListener('click', function(){ setLayer('notebook'); });
   document.getElementById('nav-scen').addEventListener('click', function(){ setLayer('scen'); });
+  document.getElementById('nb-base').addEventListener('click', function(){
+    notebookUserPicked = true; notebookWorld = 'base'; renderNotebook(); renderSide();
+  });
+  document.getElementById('nb-exp').addEventListener('click', function(){
+    notebookUserPicked = true; notebookWorld = 'experiment'; renderNotebook(); renderSide();
+  });
+  document.getElementById('nb-csv').addEventListener('click', function(){
+    var model = NB.tableModel(notebookRes(), notebookOpen);
+    var blob = new Blob([NB.toCSV(model)], { type:'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'saas-physics-notebook.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
   document.getElementById('scen-clear').addEventListener('click', function(){ resetAll(); });
   ['abs','delta'].forEach(function(c){
     document.getElementById('cmp-'+c).addEventListener('click', function(){
@@ -2518,6 +2640,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     expOpen = Object.assign({}, DEFAULT_UI_START);
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
+    notebookUserPicked = false; notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
     var calOut=document.getElementById('cal-out');
     if(calOut){ calOut.className='cal-out'; calOut.textContent=''; }
     resize(); recompute(); render();
@@ -2560,7 +2683,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     calibrationAllowed: calibrationAllowed,
     applyCalibrate: applyCalibrate,
     writeBand: writeBand,
-    displayedBands: displayedBands
+    displayedBands: displayedBands,
+    NB: NB,
+    get notebookWorld(){ return notebookWorld; }
   };
 })();
 </script>

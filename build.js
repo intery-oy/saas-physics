@@ -32,6 +32,7 @@ var v1 = fs.readFileSync('v1.template.html', 'utf8')
   .replace('/*__KPI__*/', function () { return kpi; })
   .replace('/*__CAPITAL__*/', function () { return capital; })
   .replace('/*__SYSTEMSTATE__*/', function () { return fs.readFileSync('systemstate.js', 'utf8'); })
-  .replace('/*__BASIS__*/', function () { return fs.readFileSync('basis.js', 'utf8'); });
+  .replace('/*__BASIS__*/', function () { return fs.readFileSync('basis.js', 'utf8'); })
+  .replace('/*__NOTEBOOK__*/', function () { return fs.readFileSync('notebook.js', 'utf8'); });
 fs.writeFileSync('saas-physics-v1.html', v1);
 console.log('built saas-physics-v1.html — ' + (v1.length / 1024).toFixed(1) + ' KB');

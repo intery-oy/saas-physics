@@ -121,6 +121,8 @@ Two tracks. Do not interleave them in the same sitting if you can help it. Do no
 
 ### (a) Instrument / product craft
 
+**Landed 12 Sep 2026.** Notebook is a companion month × KPI lab notebook for the current run — grouped, Base|Experiment-honest, **table substrate for charts later**. No new physics. Charts, sparklines, and a full right-rail IA stay later; this is the table those would read. Spec: `docs/NOTEBOOK_TABLE_SPEC.md`.
+
 **Next, in this order:**
 
 1. **Language and grouping on the existing rail.** Separate "the company" (opening, tenure, mix) from "bounds that are off by default" (saturation, cash reserve, billing, expansion CAC, logos). One sentence per bound stating the null. This is craft, not a new coefficient. Highest leverage for not overclaiming.
