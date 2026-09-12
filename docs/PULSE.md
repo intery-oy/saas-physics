@@ -204,7 +204,7 @@ business has, and this engine does not:
 Both are marked with ⊘ on the canvas. An absent feedback is a finding, not an omission in the
 drawing — and no chart or bridge can express an absence, because a chart only plots what exists.
 
-### Scale honesty, restated
+### Scale, restated
 
 Net change in the ARR stock at month 30 is **€716k against €41.73m — 1.7%**. That ratio is why one
 month of flow could never be drawn at the stock's own scale, and it is the same fact that killed the

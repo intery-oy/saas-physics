@@ -1,5 +1,5 @@
 /*
- * SaaS Physics v1 — Cohorts surface (composition + honesty + age toggle).
+ * SaaS Physics v1 — Cohorts surface (composition + vintage reading + age toggle).
  *
  * Presentation only. Reads the same engine cohort rows, yearly mix buckets
  * and kpi.js R12M / ageComposition series Company and System already use.
@@ -26,8 +26,8 @@
     { id: 'y5',   label: 'm49–60',       acqFrom: 49, acqTo: 60 }
   ];
 
-  /* Honesty strip vintages: opening + a cohort born every 12 months. */
-  var HONESTY_VINTAGES = [0, 12, 24, 36, 48];
+  /* Vintage-reading checkpoints: opening + a cohort born every 12 months. */
+  var READING_VINTAGES = [0, 12, 24, 36, 48];
 
   /* 12-month display buckets of existing cohort ages — not a fourth engine band.
      Engine transition bands stay Early / Developing / Mature (0–11 / 12–23 / 24+). */
@@ -256,11 +256,11 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Honesty (K1) — always on. Blended NRR is a warning, not a hero.
+   * Vintage reading (K1) — always on. Blended NRR is a warning, not a hero.
    * Carry / leak is retainedShare of that vintage at the horizon (or t).
    * Contraction is the logo-split field; — when the logo bound is off.
    * ------------------------------------------------------------------ */
-  function honesty(res, t) {
+  function vintageReading(res, t) {
     var T = t == null ? res.horizon : t;
     if (T < 1) T = 1;
     if (T > res.horizon) T = res.horizon;
@@ -268,7 +268,7 @@
     var flat = !!res.bandsAreFlat;
     var logos = logoOn(res);
     var book = T === 0 ? res.start.openingARR : res.months[T - 1].closingARR;
-    var vintages = HONESTY_VINTAGES.map(function (m) {
+    var vintages = READING_VINTAGES.map(function (m) {
       var first = vintageWindowRates(res, m, T);
       var now = vintageAt(res, m, T);
       if (!now && !first) {
@@ -409,7 +409,7 @@
       question: QUESTION,
       unit: MONEY_UNIT,
       composition: compositionSeries(res),
-      honesty: honesty(res, t),
+      vintageReading: vintageReading(res, t),
       age: ageProfile(res, t)
     };
   }
@@ -419,7 +419,7 @@
     MONEY_UNIT: MONEY_UNIT,
     QUESTION: QUESTION,
     YEAR_LAYERS: YEAR_LAYERS,
-    HONESTY_VINTAGES: HONESTY_VINTAGES,
+    READING_VINTAGES: READING_VINTAGES,
     AGE_BUCKETS: AGE_BUCKETS,
     experimentDiffers: experimentDiffers,
     defaultWorld: defaultWorld,
@@ -427,7 +427,7 @@
     vintageFirstWindow: vintageFirstWindow,
     vintageWindowRates: vintageWindowRates,
     vintageAt: vintageAt,
-    honesty: honesty,
+    vintageReading: vintageReading,
     ageProfile: ageProfile,
     model: model,
     formatEur000: formatEur000,

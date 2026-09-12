@@ -3,7 +3,7 @@
  *
  *   COHORTS-UI         nav + Composition | Age profile + Base|Exp chrome
  *   COHORTS-ARR        composition total = engine closingARR; €000 display
- *   COHORTS-HONESTY    blended NRR is a warning; contraction — when logos off
+ *   COHORTS-READING    blended NRR is a warning; contraction — when logos off
  *   COHORTS-AGE        age bars + rates come from kpi.js, not new math
  *   COHORTS-FLAT       flat-law footnote when bandsAreFlat
  *   COHORTS-SOURCE     no E.run / no invented coefficient in cohorts.js
@@ -38,7 +38,7 @@ ok('COHORTS-UI', 'Cohorts chrome has Composition | Age profile and Base|Exp',
    tpl.indexOf('id="co-base"') !== -1 &&
    tpl.indexOf('id="co-exp"') !== -1 &&
    tpl.indexOf('id="co-scene"') !== -1 &&
-   tpl.indexOf('id="co-honesty"') !== -1, '');
+   tpl.indexOf('id="co-reading"') !== -1, '');
 
 ok('COHORTS-UI', 'build.js inlines cohorts.js into the v1 surface',
    build.indexOf('cohorts.js') !== -1 && build.indexOf('/*__COHORTS__*/') !== -1, '');
@@ -53,7 +53,7 @@ ok('COHORTS-UI', 'question is the locked Cohorts v1 question',
 ok('COHORTS-UI', 'Method overlay names Cohorts and Appendix',
    /<b>Cohorts<\/b>/.test(tpl) &&
    /<b>Appendix<\/b>/.test(tpl) &&
-   /composition \+ honesty \+ age toggle/.test(tpl), '');
+   /composition \+ vintage reading \+ age toggle/.test(tpl), '');
 
 var base = E.run(A);
 var comp = CO.compositionSeries(base);
@@ -84,22 +84,22 @@ ok('COHORTS-ARR', 'money displays as €000 (month-60 ARR → 62,926)',
    CO.MONEY_UNIT === '€000' && CO.formatEur000(comp.total[60]) === '62,926',
    CO.formatEur000(comp.total[60]));
 
-var hon = CO.honesty(base, 60);
-ok('COHORTS-HONESTY', 'blended NRR/GRR are kpi.measureR12M at the horizon',
-   hon.blendedNRR !== null && hon.blendedGRR !== null &&
-   Math.abs(hon.blendedNRR - K.measureR12M(base, 60).nrr) < 1e-12 &&
-   Math.abs(hon.blendedGRR - K.measureR12M(base, 60).grr) < 1e-12, '');
+var reading = CO.vintageReading(base, 60);
+ok('COHORTS-READING', 'blended NRR/GRR are kpi.measureR12M at the horizon',
+   reading.blendedNRR !== null && reading.blendedGRR !== null &&
+   Math.abs(reading.blendedNRR - K.measureR12M(base, 60).nrr) < 1e-12 &&
+   Math.abs(reading.blendedGRR - K.measureR12M(base, 60).grr) < 1e-12, '');
 
-ok('COHORTS-HONESTY', 'blended NRR is framed as a warning, not a hero',
-   /not the hero|no-op|mixes vintages/.test(hon.warning) &&
-   hon.warning.indexOf(CO.formatPct(hon.blendedNRR)) !== -1, hon.warning);
+ok('COHORTS-READING', 'blended NRR is framed as a warning, not a hero',
+   /not the hero|no-op|mixes vintages/.test(reading.warning) &&
+   reading.warning.indexOf(CO.formatPct(reading.blendedNRR)) !== -1, reading.warning);
 
-ok('COHORTS-HONESTY', 'logo bound off → contraction is — not 0.00',
-   hon.logoOn === false && hon.contractionRate === null &&
-   hon.vintages.every(function (v) { return !v.first || v.first.contractionRate === null; }) &&
-   /Contraction is —/.test(hon.contractionNote), '');
+ok('COHORTS-READING', 'logo bound off → contraction is — not 0.00',
+   reading.logoOn === false && reading.contractionRate === null &&
+   reading.vintages.every(function (v) { return !v.first || v.first.contractionRate === null; }) &&
+   /Contraction is —/.test(reading.contractionNote), '');
 
-ok('COHORTS-HONESTY', 'opening vintage first-year NRR matches rateDiagnostics',
+ok('COHORTS-READING', 'opening vintage first-year NRR matches rateDiagnostics',
    (function () {
      var d = E.rateDiagnostics(base);
      var w = CO.vintageFirstWindow(base, 0);
@@ -108,7 +108,7 @@ ok('COHORTS-HONESTY', 'opening vintage first-year NRR matches rateDiagnostics',
        Math.abs(w.grr - d.realisedGrossRetention) < 1e-12;
    })(), '');
 
-ok('COHORTS-HONESTY', 'honesty vintage rates at m60 are measureR12M contributions',
+ok('COHORTS-READING', 'vintage-reading rates at m60 are measureR12M contributions',
    (function () {
      var kpi = K.measureR12M(base, 60);
      var w = CO.vintageWindowRates(base, 0, 60);
@@ -119,8 +119,8 @@ ok('COHORTS-HONESTY', 'honesty vintage rates at m60 are measureR12M contribution
    })(), '');
 
 ok('COHORTS-FLAT', 'default world is flat → mix-is-a-no-op footnote',
-   base.bandsAreFlat === true && hon.bandsAreFlat === true &&
-   hon.flatNote !== null && /no-op/.test(hon.flatNote), hon.flatNote);
+   base.bandsAreFlat === true && reading.bandsAreFlat === true &&
+   reading.flatNote !== null && /no-op/.test(reading.flatNote), reading.flatNote);
 
 var STABLE = { p: 0.94, x: 0.14 }, RISKY = { p: 0.78, x: 0.06 };
 function band(n, maxAge, r) {
@@ -128,10 +128,10 @@ function band(n, maxAge, r) {
 }
 var PROFILE = [band('Early', 12, STABLE), band('Developing', 24, RISKY), band('Mature', Infinity, STABLE)];
 var banded = E.run(Object.assign({}, A, { bands: PROFILE }));
-var honB = CO.honesty(banded, 60);
+var readingB = CO.vintageReading(banded, 60);
 ok('COHORTS-FLAT', 'non-flat tenure drops the no-op footnote and can mark blended as a mix',
-   banded.bandsAreFlat === false && honB.flatNote === null &&
-   honB.mixHides === true && /mixes vintages/.test(honB.warning), honB.warning);
+   banded.bandsAreFlat === false && readingB.flatNote === null &&
+   readingB.mixHides === true && /mixes vintages/.test(readingB.warning), readingB.warning);
 
 var age = CO.ageProfile(base, 60);
 var ageC = K.ageComposition(base, 60);
@@ -163,12 +163,12 @@ ok('COHORTS-AGE', 'logo counts are — when the logo bound is off',
 ok('COHORTS-AGE', 'R12M rates are — before month 12',
    CO.ageProfile(base, 11).ratesAvailable === false &&
    CO.ageProfile(base, 11).rates.every(function (r) { return r.grr === null && r.nrr === null; }) &&
-   CO.honesty(base, 11).blendedNRR === null, '');
+   CO.vintageReading(base, 11).blendedNRR === null, '');
 
 var logo = E.run(Object.assign({}, A, { logoRetentionAnnual: 0.90 }));
-ok('COHORTS-HONESTY', 'logo bound on → contraction is the KPI field, not invented churn',
+ok('COHORTS-READING', 'logo bound on → contraction is the KPI field, not invented churn',
    logo.derived.logoLayerOn === true &&
-   Math.abs(CO.honesty(logo, 60).contractionRate - K.measureR12M(logo, 60).contractionRate) < 1e-12, '');
+   Math.abs(CO.vintageReading(logo, 60).contractionRate - K.measureR12M(logo, 60).contractionRate) < 1e-12, '');
 
 ok('COHORTS-SOURCE', 'cohorts.js does not call E.run or invent a coefficient',
    src.indexOf('E.run') === -1 &&
@@ -180,6 +180,12 @@ ok('COHORTS-SOURCE', 'identical Base/Experiment defaults to Base',
    CO.defaultWorld(base, base) === 'base' && CO.experimentDiffers(base, base) === false, '');
 ok('COHORTS-SOURCE', 'a changed force defaults to Experiment',
    CO.defaultWorld(base, E.run(Object.assign({}, A, { persistenceAnnual: 0.96 }))) === 'experiment', '');
+
+var banned = new RegExp(['hon', 'esty'].join(''), 'i');
+ok('COHORTS-UI', 'Cohorts product language matches owner framing (vintage reading)',
+   !banned.test(src) &&
+   !banned.test(tpl) &&
+   !banned.test(fs.readFileSync('docs/COHORTS.md', 'utf8')), '');
 
 console.log('\nSaaS Physics v1 — Cohorts\n' + '='.repeat(80));
 var pass = 0;

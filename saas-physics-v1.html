@@ -179,8 +179,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .co-chip b{font-weight:500;color:var(--ink-2)}
 .co-stage{flex-grow:1;min-height:220px;position:relative;background:var(--scene)}
 #co-scene{position:absolute;inset:0;width:100%;height:100%;display:block}
-.co-honesty{border-top:1px solid var(--line);background:var(--panel);padding:10px 18px 12px}
-.co-honesty-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.co-reading{border-top:1px solid var(--line);background:var(--panel);padding:10px 18px 12px}
+.co-reading-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
 .co-warn{font-size:11px;color:var(--ink-2);line-height:1.5;max-width:72ch}
 .co-warn b{color:var(--ink);font-weight:600}
 .co-warn .mark{color:var(--indigo-800);background:var(--indigo-50);border:1px solid var(--indigo-100);border-radius:var(--radius);padding:1px 6px;font-family:var(--mono);font-weight:500}
@@ -335,7 +335,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <div class="co-legend">
           <span class="co-chip"><b>Vintage stock</b> layers</span>
           <span class="co-chip"><b>Birth flow</b> · new vintage each month</span>
-          <span class="co-chip">Honesty strip always on</span>
+          <span class="co-chip">Vintage reading always on</span>
           <span class="co-chip">€000</span>
         </div>
         <div class="co-tools">
@@ -350,7 +350,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         </div>
       </div>
       <div class="co-stage"><canvas id="co-scene"></canvas></div>
-      <div class="co-honesty" id="co-honesty"></div>
+      <div class="co-reading" id="co-reading"></div>
     </div>
     <div class="cascade">
       <div class="cascade-head">
@@ -441,7 +441,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Cohort strata</b> \u2014 the historical composition and provenance of today\u2019s recurring state.</li>
             <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
-            <li><b>Cohorts</b> \u2014 composition + honesty + age toggle. Which vintage carries or leaks the book, and whether blended NRR is lying. Not a triangle and not a hero retention number.</li>
+            <li><b>Cohorts</b> \u2014 composition + vintage reading + age toggle. Which vintage carries or leaks the book, and whether blended NRR is lying. Not a triangle and not a hero retention number.</li>
             <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run. Lab-notebook substrate for charts later. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
             <li>A fourth candidate, an intra-month bridge animation, established no unique percept and was rejected. It is preserved in the research archive, not shipped.</li>
           </ul>
@@ -2217,7 +2217,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 });
 </script>
 <script>/*
- * SaaS Physics v1 — Cohorts surface (composition + honesty + age toggle).
+ * SaaS Physics v1 — Cohorts surface (composition + vintage reading + age toggle).
  *
  * Presentation only. Reads the same engine cohort rows, yearly mix buckets
  * and kpi.js R12M / ageComposition series Company and System already use.
@@ -2244,8 +2244,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     { id: 'y5',   label: 'm49–60',       acqFrom: 49, acqTo: 60 }
   ];
 
-  /* Honesty strip vintages: opening + a cohort born every 12 months. */
-  var HONESTY_VINTAGES = [0, 12, 24, 36, 48];
+  /* Vintage-reading checkpoints: opening + a cohort born every 12 months. */
+  var READING_VINTAGES = [0, 12, 24, 36, 48];
 
   /* 12-month display buckets of existing cohort ages — not a fourth engine band.
      Engine transition bands stay Early / Developing / Mature (0–11 / 12–23 / 24+). */
@@ -2474,11 +2474,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
-   * Honesty (K1) — always on. Blended NRR is a warning, not a hero.
+   * Vintage reading (K1) — always on. Blended NRR is a warning, not a hero.
    * Carry / leak is retainedShare of that vintage at the horizon (or t).
    * Contraction is the logo-split field; — when the logo bound is off.
    * ------------------------------------------------------------------ */
-  function honesty(res, t) {
+  function vintageReading(res, t) {
     var T = t == null ? res.horizon : t;
     if (T < 1) T = 1;
     if (T > res.horizon) T = res.horizon;
@@ -2486,7 +2486,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var flat = !!res.bandsAreFlat;
     var logos = logoOn(res);
     var book = T === 0 ? res.start.openingARR : res.months[T - 1].closingARR;
-    var vintages = HONESTY_VINTAGES.map(function (m) {
+    var vintages = READING_VINTAGES.map(function (m) {
       var first = vintageWindowRates(res, m, T);
       var now = vintageAt(res, m, T);
       if (!now && !first) {
@@ -2627,7 +2627,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       question: QUESTION,
       unit: MONEY_UNIT,
       composition: compositionSeries(res),
-      honesty: honesty(res, t),
+      vintageReading: vintageReading(res, t),
       age: ageProfile(res, t)
     };
   }
@@ -2637,7 +2637,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     MONEY_UNIT: MONEY_UNIT,
     QUESTION: QUESTION,
     YEAR_LAYERS: YEAR_LAYERS,
-    HONESTY_VINTAGES: HONESTY_VINTAGES,
+    READING_VINTAGES: READING_VINTAGES,
     AGE_BUCKETS: AGE_BUCKETS,
     experimentDiffers: experimentDiffers,
     defaultWorld: defaultWorld,
@@ -2645,7 +2645,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     vintageFirstWindow: vintageFirstWindow,
     vintageWindowRates: vintageWindowRates,
     vintageAt: vintageAt,
-    honesty: honesty,
+    vintageReading: vintageReading,
     ageProfile: ageProfile,
     model: model,
     formatEur000: formatEur000,
@@ -4400,7 +4400,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
-   * Cohorts — composition + honesty + age toggle. Same run as Company.
+   * Cohorts — composition + vintage reading + age toggle. Same run as Company.
    * Charts read CO.model(); no second engine.
    * ------------------------------------------------------------------ */
   var coCv = document.getElementById('co-scene'), coCtx = coCv.getContext('2d');
@@ -4419,12 +4419,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('co-exp').classList.toggle('on', cohortsWorld==='experiment');
     document.getElementById('co-mode-comp').classList.toggle('on', cohortsMode==='composition');
     document.getElementById('co-mode-age').classList.toggle('on', cohortsMode==='age');
-    renderHonestyStrip();
+    renderVintageReading();
     if(layer==='cohorts'){ resizeCohorts(); drawCohorts(); }
   }
-  function renderHonestyStrip(){
-    var hon = CO.honesty(cohortsRes(), Math.max(1, Math.round(tau)));
-    var cards = hon.vintages.filter(function(v){ return v.present; }).map(function(v){
+  function renderVintageReading(){
+    var reading = CO.vintageReading(cohortsRes(), Math.max(1, Math.round(tau)));
+    var cards = reading.vintages.filter(function(v){ return v.present; }).map(function(v){
       var grr = v.first ? CO.formatPct(v.first.grr) : CO.MISSING;
       var nrr = v.first ? CO.formatPct(v.first.nrr) : CO.MISSING;
       var gap = (v.first && v.first.expansionRate!=null) ? CO.formatPct(v.first.expansionRate) : CO.MISSING;
@@ -4438,19 +4438,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<div class="delta">expansion '+esc(gap)+' · contraction '+esc(con)+'</div>'+
         '</div>';
     }).join('');
-    var jump = hon.bandsAreFlat
+    var jump = reading.bandsAreFlat
       ? '<button type="button" class="co-jump" id="co-scen6">Tenure is flat \u2014 open Scenario 6 / Tenure</button>'
       : '<button type="button" class="co-jump" id="co-scen6">Tenure is live \u2014 Scenario 6 owns the historical mix</button>';
-    document.getElementById('co-honesty').innerHTML =
-      '<div class="co-honesty-top">'+
-        '<span class="eyebrow">Honesty \u00b7 which vintage carries / leaks</span>'+
+    document.getElementById('co-reading').innerHTML =
+      '<div class="co-reading-top">'+
+        '<span class="eyebrow">Vintage reading \u00b7 which vintage carries / leaks</span>'+
         '<span class="spacer"></span>'+
-        '<div class="co-warn"><span class="mark">\u25b3 blended NRR</span> '+esc(hon.warning)+'</div>'+
+        '<div class="co-warn"><span class="mark">\u25b3 blended NRR</span> '+esc(reading.warning)+'</div>'+
       '</div>'+
       '<div class="co-cards">'+cards+'</div>'+
       '<div class="co-foot">'+
-        '<span>'+esc(hon.logosNote)+' \u00b7 '+esc(hon.contractionNote)+'</span>'+
-        '<span>'+(hon.flatNote ? esc(hon.flatNote)+' \u00b7 ' : '')+jump+'</span>'+
+        '<span>'+esc(reading.logosNote)+' \u00b7 '+esc(reading.contractionNote)+'</span>'+
+        '<span>'+(reading.flatNote ? esc(reading.flatNote)+' \u00b7 ' : '')+jump+'</span>'+
       '</div>';
     var j = document.getElementById('co-scen6');
     if(j) j.addEventListener('click', function(){ jumpScenario6(); });
@@ -4663,10 +4663,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function renderCohortsSide(){
     var res = cohortsRes();
     var t = Math.max(1, Math.round(tau));
-    var hon = CO.honesty(res, t);
+    var reading = CO.vintageReading(res, t);
     var age = CO.ageProfile(res, t);
     var host = document.getElementById('side');
-    var mixRows = hon.vintages.filter(function(v){ return v.present && v.shareOfBook!=null; }).map(function(v){
+    var mixRows = reading.vintages.filter(function(v){ return v.present && v.shareOfBook!=null; }).map(function(v){
       return row(v.label+' share of book', CO.formatPct(v.shareOfBook));
     }).join('');
     var bandRows = age.engineBands.bands.map(function(b){
@@ -4679,9 +4679,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       row('Reading', cohortsWorld==='experiment'?'Experiment':'Base')+
       row('Mode', cohortsMode==='age'?'Age profile':'Composition')+
       row('Month '+t+' ARR · €000', CO.formatEur000(t===0?res.start.openingARR:res.months[t-1].closingARR))+
-      row('R12M GRR', CO.formatPct(hon.blendedGRR))+
-      row('R12M NRR', CO.formatPct(hon.blendedNRR))+
-      '<div class="hint" style="margin-top:7px;line-height:1.65">'+esc(hon.warning)+'</div></div>'+
+      row('R12M GRR', CO.formatPct(reading.blendedGRR))+
+      row('R12M NRR', CO.formatPct(reading.blendedNRR))+
+      '<div class="hint" style="margin-top:7px;line-height:1.65">'+esc(reading.warning)+'</div></div>'+
       '<div class="sgrp"><div class="eyebrow">Vintage share of the book</div>'+mixRows+
       '<div class="hint" style="margin-top:7px">Share of closing ARR at the selected month. Carry / leak is retained vs that vintage\u2019s own initial ARR.</div></div>'+
       '<div class="sgrp"><div class="eyebrow">Engine age bands</div>'+bandRows+
