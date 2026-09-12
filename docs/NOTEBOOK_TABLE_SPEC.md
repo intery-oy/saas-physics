@@ -8,7 +8,7 @@ Add a Notebook surface: coherently grouped month × KPI data table for the curre
 
 ## 2. Placement
 
-New view/tab Notebook. Companion — does not replace Method/System/Scenarios 5&6. Same run as Base/Experiment.
+New view/tab **Appendix** (landed as Notebook; nav/label renamed 12 Sep 2026). Companion — does not replace Method/System/Scenarios 5&6. Same run as Base/Experiment. Same table surface.
 
 ## 3. Layout
 

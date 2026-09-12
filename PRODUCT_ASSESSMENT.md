@@ -121,7 +121,9 @@ Two tracks. Do not interleave them in the same sitting if you can help it. Do no
 
 ### (a) Instrument / product craft
 
-**Landed 12 Sep 2026.** Notebook is a companion month × KPI lab notebook for the current run — grouped, Base|Experiment-honest, **table substrate for charts later**. No new physics. Charts, sparklines, and a full right-rail IA stay later; this is the table those would read. Spec: `docs/NOTEBOOK_TABLE_SPEC.md`.
+**Landed 12 Sep 2026.** Notebook is a companion month × KPI lab notebook for the current run — grouped, Base|Experiment-honest, **table substrate for charts later**. No new physics. Charts, sparklines, and a full right-rail IA stay later; this is the table those would read. Spec: `docs/NOTEBOOK_TABLE_SPEC.md`. Nav label is now **Appendix**; the table surface is unchanged.
+
+**Landed 12 Sep 2026.** Cohorts v1 = **composition + honesty + age toggle**. Question: *which vintage is carrying/leaking the book — and is blended NRR lying?* Yearly vintage stocks and birth stems from existing cohort rows / `arrMix`; always-on honesty strip (blended NRR as warning; contraction `—` until logos are on; flat-law no-op footnote); age profile from `kpi.ageComposition` + weighted `measureR12M.contributions`. No new coefficient. Spec: `docs/COHORTS.md`.
 
 **Next, in this order:**
 
