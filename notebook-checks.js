@@ -24,8 +24,8 @@ var build = fs.readFileSync('build.js', 'utf8');
 var nbSrc = fs.readFileSync('notebook.js', 'utf8');
 var A = E.DEFAULT_ASSUMPTIONS;
 
-ok('NOTEBOOK-UI', 'v1 nav has a Notebook companion tab',
-   tpl.indexOf('id="nav-notebook"') !== -1 && tpl.indexOf('Notebook') !== -1, '');
+ok('NOTEBOOK-UI', 'v1 nav has an Appendix companion tab (same table surface)',
+   tpl.indexOf('id="nav-notebook"') !== -1 && /id="nav-notebook">Appendix</.test(tpl), '');
 ok('NOTEBOOK-UI', 'thin header has scenario name + Base|Exp toggle + CSV',
    tpl.indexOf('id="nb-scenario"') !== -1 &&
    tpl.indexOf('id="nb-base"') !== -1 &&
@@ -39,8 +39,8 @@ ok('NOTEBOOK-UI', 'build.js reads and writes UTF-8 explicitly',
    build.indexOf("encoding: 'utf8'") !== -1 &&
    build.indexOf('function readUtf8') !== -1 &&
    build.indexOf('function writeUtf8') !== -1, '');
-ok('NOTEBOOK-UI', 'Method overlay names Notebook as table substrate',
-   /Notebook/.test(tpl) && /substrate for charts later/.test(tpl), '');
+ok('NOTEBOOK-UI', 'Method overlay names Appendix as table substrate',
+   /<b>Appendix<\/b>/.test(tpl) && /substrate for charts later/.test(tpl), '');
 
 var base = E.run(A);
 var m60 = NB.cellsAt(base, 60);

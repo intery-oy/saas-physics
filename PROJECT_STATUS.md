@@ -342,7 +342,7 @@ These are true **at the default** (null / off). Several have an optional bound; 
 
 Do **not** pick another physics fork until the rail is grouped. Full sequence: `PRODUCT_ASSESSMENT.md` §5.
 
-**(a) Instrument craft.** (1) Group “the company” vs “bounds off by default.” (2) Attribution honesty when opening/tenure is non-default. (3) `systemstate.js` / `pulse.js` stay default-only or move together. (4) Portable accept tests. (5) Then, one at a time: expansion saturation → acquisition lag → price → R&D-as-intervention.
+**(a) Instrument craft.** (1) Group “the company” vs “bounds off by default.” (2) Attribution when opening/tenure is non-default. (3) `systemstate.js` / `pulse.js` stay default-only or move together. (4) Portable accept tests. (5) Then, one at a time: expansion saturation → acquisition lag → price → R&D-as-intervention.
 
 **(b) Visual / UX.** Information architecture first (collapse optional laws), then one claim per chart, then space/type, then off-states that read “off” not “0.00,” then a 60-second guest path. Not a landing page.
 

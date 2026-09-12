@@ -81,7 +81,7 @@
       gpResidual: m.revenue - m.cogs - m.grossProfit,
       fcfResidual: m.grossProfit - m.sm - otherOpex - m.fcf,
       cashResidual: m.cashOpening + m.fcf - m.cashClosing,
-      /* §6 honesty: how much of this month's GP the new cohort actually produced */
+      /* §6 stated amount: how much of this month's GP the new cohort actually produced */
       newCohortRevenueThisMonth: newC ? newC.revenue : 0,
       newCohortGPThisMonth: newC ? newC.grossProfit : 0,
       sameMonthReturnOnSM: (newC && m.sm > 0) ? newC.grossProfit / m.sm : 0

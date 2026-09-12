@@ -57,7 +57,7 @@ button,input{font:inherit;color:inherit}
 .lawchip.open{border-color:var(--indigo-400)}
 .nav{display:flex;gap:2px;padding:2px;background:var(--sunk);border:1px solid var(--line);border-radius:var(--radius)}
 .btn-row.nav{gap:2px;flex-wrap:nowrap}
-.nav .btn{padding:5px 11px;border:0;background:transparent;border-radius:3px}
+.nav .btn{padding:5px 8px;border:0;background:transparent;border-radius:3px}
 .nav .btn:hover{color:var(--ink);background:transparent;border-color:transparent}
 .nav .btn.on{background:var(--indigo-50);color:var(--indigo-800);border-color:transparent}
 .scenbar{display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
@@ -141,10 +141,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
 /* ---------- stage ---------- */
 #scene{flex-grow:1;width:100%;display:block;min-height:0}
-.app.notebook .cmp-block{display:none}
-.app.notebook #scene,.app.notebook #lawhost{display:none}
-#notebook{flex-grow:1;min-height:0;display:flex;flex-direction:column;background:var(--scene)}
-#notebook[hidden]{display:none!important}
+.app.notebook .cmp-block,.app.cohorts .cmp-block{display:none}
+.app.notebook #scene,.app.notebook #lawhost,.app.cohorts #scene,.app.cohorts #lawhost{display:none}
+#notebook,#cohorts{flex-grow:1;min-height:0;display:flex;flex-direction:column;background:var(--scene)}
+#notebook[hidden],#cohorts[hidden]{display:none!important}
 .nb-head{display:flex;align-items:baseline;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
 .nb-head .nb-name{font-family:var(--display);font-size:14px;font-weight:600;color:var(--indigo-800)}
 .nb-head .hint{max-width:56ch}
@@ -167,6 +167,37 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .nb-gbtn:hover{color:var(--exp)}
 .nb-unit{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--ink-3);font-weight:500}
 .nb-table caption{caption-side:top;text-align:left;padding:6px 10px 8px;font-size:11px;color:var(--ink-3);font-family:var(--ui)}
+
+/* ---------- cohorts ---------- */
+.co-head{display:flex;align-items:flex-start;gap:14px;padding:10px 18px 12px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.co-head .co-meta{flex:1 1 280px;min-width:0}
+.co-kicker{font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);margin-bottom:5px}
+.co-q{margin:0;font-size:15px;font-weight:600;color:var(--indigo-800);letter-spacing:-.01em;line-height:1.35;max-width:52ch}
+.co-tools{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.co-legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.co-chip{font-size:10.5px;color:var(--ink-3);padding:3px 7px;border:1px solid var(--line);border-radius:var(--radius);background:var(--sunk)}
+.co-chip b{font-weight:500;color:var(--ink-2)}
+.co-stage{flex-grow:1;min-height:220px;position:relative;background:var(--scene)}
+#co-scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+.co-reading{border-top:1px solid var(--line);background:var(--panel);padding:10px 18px 12px}
+.co-reading-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.co-warn{font-size:11px;color:var(--ink-2);line-height:1.5;max-width:72ch}
+.co-warn b{color:var(--ink);font-weight:600}
+.co-warn .mark{color:var(--indigo-800);background:var(--indigo-50);border:1px solid var(--indigo-100);border-radius:var(--radius);padding:1px 6px;font-family:var(--mono);font-weight:500}
+.co-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.co-card{border-right:1px solid var(--line-soft);padding:0 10px 0 0}
+.co-card:last-child{border-right:0;padding-right:0}
+.co-card .m{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--indigo-800);margin-bottom:2px}
+.co-card .rates{font-family:var(--mono);font-size:12px;color:var(--ink);letter-spacing:-.01em}
+.co-card .rates span{color:var(--ink-3);font-size:10.5px}
+.co-card .verdict{font-size:11px;color:var(--ink-2);margin-top:4px}
+.co-card .delta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.co-foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:10.5px;color:var(--ink-4);line-height:1.5}
+.co-jump{background:transparent;border:0;padding:0;color:var(--indigo-700);font:inherit;font-size:11px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.co-jump:hover{color:var(--indigo-900)}
+@media (max-width:980px){
+  .co-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 .cascade{border-top:1px solid var(--line);padding:11px 20px 12px;background:var(--sunk)}
 .cascade-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
 .crow{display:grid;grid-template-columns:104px minmax(0,1fr) 88px;gap:11px;align-items:center;margin-bottom:5px}
@@ -246,7 +277,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <span class="sub">an economic system, observed</span>
     <span class="spacer"></span>
     <span class="chip" id="mode-chip">base vs experiment</span>
-    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-notebook">Notebook</button><button class="btn" id="nav-scen">Scenarios</button></div>
+    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-scen">Scenarios</button><button class="btn" id="nav-cohorts">Cohorts</button><button class="btn" id="nav-notebook">Appendix</button></div>
     <span class="cmp-block eyebrow">Compare</span>
     <div class="cmp-block btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
     <span class="eyebrow">Basis</span>
@@ -294,6 +325,32 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <span class="hint">Same run as System. Money in <b>€000</b>. One world at a time.</span>
       </div>
       <div class="nb-scroll"><table class="nb-table" id="nb-table"></table></div>
+    </div>
+    <div id="cohorts" hidden>
+      <div class="co-head">
+        <div class="co-meta">
+          <div class="co-kicker">Cohorts · vintages / stocks / rates · vs company (whole-firm) · vs appendix (month grid)</div>
+          <p class="co-q" id="co-question">Which vintage is carrying/leaking the book — and is blended NRR lying?</p>
+        </div>
+        <div class="co-legend">
+          <span class="co-chip"><b>Vintage stock</b> layers</span>
+          <span class="co-chip"><b>Birth flow</b> · new vintage each month</span>
+          <span class="co-chip">Vintage reading always on</span>
+          <span class="co-chip">€000</span>
+        </div>
+        <div class="co-tools">
+          <div class="btn-row">
+            <button class="btn on" id="co-base">Base</button>
+            <button class="btn" id="co-exp">Experiment</button>
+          </div>
+          <div class="btn-row nav">
+            <button class="btn on" id="co-mode-comp">Composition</button>
+            <button class="btn" id="co-mode-age">Age profile</button>
+          </div>
+        </div>
+      </div>
+      <div class="co-stage"><canvas id="co-scene"></canvas></div>
+      <div class="co-reading" id="co-reading"></div>
     </div>
     <div class="cascade">
       <div class="cascade-head">
@@ -384,7 +441,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Cohort strata</b> \u2014 the historical composition and provenance of today\u2019s recurring state.</li>
             <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
-            <li><b>Notebook</b> \u2014 a month \u00d7 KPI table of the current run. Lab-notebook substrate for charts later. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
+            <li><b>Cohorts</b> \u2014 composition + vintage reading + age toggle. Which vintage carries or leaks the book, and whether blended NRR is lying. Not a triangle and not a hero retention number.</li>
+            <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run. Lab-notebook substrate for charts later. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
             <li>A fourth candidate, an intra-month bridge animation, established no unique percept and was rejected. It is preserved in the research archive, not shipped.</li>
           </ul>
         </div>
@@ -413,10 +471,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 <script>/*__SYSTEMSTATE__*/</script>
 <script>/*__BASIS__*/</script>
 <script>/*__NOTEBOOK__*/</script>
+<script>/*__COHORTS__*/</script>
 <script>
 (function () {
   'use strict';
-  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook;
+  var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis, NB = window.SaaSPhysicsNotebook, CO = window.SaaSPhysicsCohorts;
   var H = E.HORIZON;                               // 60 months
 
   /* Base is frozen. The Experiment is always a copy. */
@@ -444,6 +503,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var notebookWorld = 'base';               /* whole-table Base | Experiment */
   var notebookUserPicked = false;           /* false → apply defaultWorld() */
   var notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
+  var cohortsWorld = 'base';
+  var cohortsUserPicked = false;
+  var cohortsMode = 'composition';          /* composition | age */
   var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
   var lastMsg = null;
 
@@ -637,7 +699,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     } else { attrAcqRes = attrIbRes = attrCash = null; }
     syncForces(); syncOpening(); syncTenure(); syncCalibrate(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
     if(!notebookUserPicked) notebookWorld = NB.defaultWorld(baseRes, expRes);
+    if(!cohortsUserPicked) cohortsWorld = CO.defaultWorld(baseRes, expRes);
     renderNotebook();
+    renderCohorts();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1087,8 +1151,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function applyScenario(sc){
     exitPair();
     var prev = Object.assign({}, expA);
-    activeScenario = sc; lastMsg = null; pinned = null;
+    activeScenario = sc;     lastMsg = null; pinned = null;
     notebookUserPicked = false;
+    cohortsUserPicked = false;
     baseA = BASE_A; baseStart = undefined; expStart = undefined;
     /* §9 — the capital-recovery track expands automatically for the two
        scenarios that are actually about acquisition/payback, without
@@ -1184,7 +1249,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   function render(){
-    if(layer==='notebook') return;                     /* NOTEBOOK — the table, not the canvas */
+    if(layer==='notebook') return;                     /* APPENDIX — the table, not the canvas */
+    if(layer==='cohorts'){ drawCohorts(); return; }    /* COHORTS — own canvas */
     if(!geo) resize();
     if(layer==='flow'){ drawSystem(); return; }        /* SYSTEM — the causal map */
     var S = scales(), t = tau, mi = Math.floor(t);
@@ -2136,7 +2202,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var cells = NB.cellsAt(res, t);
     var host = document.getElementById('side');
     host.innerHTML =
-      '<div class="sgrp"><div class="eyebrow">Notebook</div>'+
+      '<div class="sgrp"><div class="eyebrow">Appendix</div>'+
       '<div class="hint" style="margin-top:7px;line-height:1.7">The table is the same series System already uses — one world, months 0–60. Charts later. Not a second engine.</div></div>'+
       '<div class="sgrp"><div class="eyebrow">This world</div>'+
       row('Reading', notebookWorld==='experiment'?'Experiment':'Base')+
@@ -2153,10 +2219,305 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
+   * Cohorts — composition + vintage reading + age toggle. Same run as Company.
+   * Charts read CO.model(); no second engine.
+   * ------------------------------------------------------------------ */
+  var coCv = document.getElementById('co-scene'), coCtx = coCv.getContext('2d');
+  var coW = 0, coH = 0;
+  function cohortsRes(){ return cohortsWorld==='experiment' ? expRes : baseRes; }
+  function resizeCohorts(){
+    var r = coCv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio||1);
+    coW = Math.max(320, r.width); coH = Math.max(180, r.height);
+    coCv.width = coW*dpr; coCv.height = coH*dpr;
+    coCtx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function renderCohorts(){
+    if(!baseRes || !CO) return;
+    if(!cohortsUserPicked) cohortsWorld = CO.defaultWorld(baseRes, expRes);
+    document.getElementById('co-base').classList.toggle('on', cohortsWorld==='base');
+    document.getElementById('co-exp').classList.toggle('on', cohortsWorld==='experiment');
+    document.getElementById('co-mode-comp').classList.toggle('on', cohortsMode==='composition');
+    document.getElementById('co-mode-age').classList.toggle('on', cohortsMode==='age');
+    renderVintageReading();
+    if(layer==='cohorts'){ resizeCohorts(); drawCohorts(); }
+  }
+  function renderVintageReading(){
+    var reading = CO.vintageReading(cohortsRes(), Math.max(1, Math.round(tau)));
+    var cards = reading.vintages.filter(function(v){ return v.present; }).map(function(v){
+      var grr = v.first ? CO.formatPct(v.first.grr) : CO.MISSING;
+      var nrr = v.first ? CO.formatPct(v.first.nrr) : CO.MISSING;
+      var gap = (v.first && v.first.expansionRate!=null) ? CO.formatPct(v.first.expansionRate) : CO.MISSING;
+      var con = (v.first && v.first.contractionRate!=null) ? CO.formatPct(v.first.contractionRate) : CO.MISSING;
+      var verdict = v.verdict===null ? CO.MISSING
+        : (v.verdict==='carries' ? 'carries the book' : 'leaks the book');
+      return '<div class="co-card">'+
+        '<div class="m">'+esc(v.label)+'</div>'+
+        '<div class="rates">GRR '+esc(grr)+'  <span>NRR '+esc(nrr)+'</span></div>'+
+        '<div class="verdict">'+esc(verdict)+'</div>'+
+        '<div class="delta">expansion '+esc(gap)+' · contraction '+esc(con)+'</div>'+
+        '</div>';
+    }).join('');
+    var jump = reading.bandsAreFlat
+      ? '<button type="button" class="co-jump" id="co-scen6">Tenure is flat \u2014 open Scenario 6 / Tenure</button>'
+      : '<button type="button" class="co-jump" id="co-scen6">Tenure is live \u2014 Scenario 6 owns the historical mix</button>';
+    document.getElementById('co-reading').innerHTML =
+      '<div class="co-reading-top">'+
+        '<span class="eyebrow">Vintage reading \u00b7 which vintage carries / leaks</span>'+
+        '<span class="spacer"></span>'+
+        '<div class="co-warn"><span class="mark">\u25b3 blended NRR</span> '+esc(reading.warning)+'</div>'+
+      '</div>'+
+      '<div class="co-cards">'+cards+'</div>'+
+      '<div class="co-foot">'+
+        '<span>'+esc(reading.logosNote)+' \u00b7 '+esc(reading.contractionNote)+'</span>'+
+        '<span>'+(reading.flatNote ? esc(reading.flatNote)+' \u00b7 ' : '')+jump+'</span>'+
+      '</div>';
+    var j = document.getElementById('co-scen6');
+    if(j) j.addEventListener('click', function(){ jumpScenario6(); });
+  }
+  function jumpScenario6(){
+    var sc = null;
+    for(var i=0;i<SCENARIOS.length;i++) if(SCENARIOS[i].id==='history') sc = SCENARIOS[i];
+    if(!sc) return;
+    applyScenario(sc);
+    cohortsUserPicked = true;
+    cohortsWorld = 'experiment';
+    cohortsMode = 'age';
+    setLayer('cohorts');
+  }
+  function drawCohorts(){
+    if(!coW) resizeCohorts();
+    var res = cohortsRes();
+    var m = CO.model(res, Math.max(1, Math.round(tau)));
+    if(cohortsMode==='age') drawAgeProfile(m);
+    else drawComposition(m);
+  }
+  function drawComposition(m){
+    var ctx=coCtx, W=coW, H=coH, padL=58, padR=16, padT=36, stemH=72, padB=28;
+    var plotB = H - padB - stemH - 20;
+    var plotT = padT;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle=THEME.scene; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
+    ctx.fillText('COMPOSITION  ·  K2  ·  VINTAGE STOCKS OVER TIME', padL, 14);
+    ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    ctx.fillText('Stacked cohort stocks · '+m.unit+' ARR  —  a new vintage is born each month  ·  not a retention triangle', padL, 26);
+
+    var layers=m.composition.layers, total=m.composition.total, births=m.composition.births, hor=m.composition.horizon;
+    var arrMax=0, i, t, birthMax=0;
+    for(i=0;i<total.length;i++) if(total[i]>arrMax) arrMax=total[i];
+    arrMax = arrMax*1.08 || 1;
+    for(i=0;i<births.length;i++) if(births[i].arr>birthMax) birthMax=births[i].arr;
+    birthMax = birthMax*1.35 || 1;
+    function xOf(mo){ return padL + (mo/hor)*(W-padL-padR); }
+    function yA(v){ return plotB - (v/arrMax)*(plotB-plotT); }
+    function yB(v){ return (H-padB) - (v/birthMax)*stemH; }
+
+    ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink4; ctx.textAlign='right';
+    ctx.strokeStyle=THEME.grid; ctx.lineWidth=1;
+    for(i=0;i<=3;i++){
+      var v=arrMax*i/3, yy=Math.round(yA(v))+0.5;
+      ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(W-padR,yy); ctx.stroke();
+      ctx.fillText(CO.formatEur000(v), padL-8, yy+3);
+    }
+    for(t=0;t<=hor;t+=12){
+      var xx=Math.round(xOf(t))+0.5;
+      ctx.beginPath(); ctx.moveTo(xx,plotT); ctx.lineTo(xx,plotB); ctx.stroke();
+    }
+
+    /* stacked layers, oldest (opening) darkest at the bottom */
+    var accLo=new Float64Array(hor+1);
+    for(i=0;i<layers.length;i++){
+      var top=[], bot=[], k;
+      for(t=0;t<=hor;t++){
+        var lo=accLo[t], hi=lo+layers[i].arr[t];
+        top.push([xOf(t), yA(hi)]); bot.push([xOf(t), yA(lo)]);
+        accLo[t]=hi;
+      }
+      ctx.beginPath(); ctx.moveTo(top[0][0], top[0][1]);
+      for(k=1;k<top.length;k++) ctx.lineTo(top[k][0], top[k][1]);
+      for(k=bot.length-1;k>=0;k--) ctx.lineTo(bot[k][0], bot[k][1]);
+      ctx.closePath();
+      var col=rampAt(i/Math.max(1,layers.length-1));
+      ctx.fillStyle=rgba(col, 0.92); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=1; ctx.stroke();
+    }
+
+    ctx.beginPath();
+    for(t=0;t<=hor;t++){ var px=xOf(t), py=yA(total[t]); t?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.strokeStyle=tRgba('exp',.8); ctx.lineWidth=1.4; ctx.stroke();
+
+    var play=Math.max(0, Math.min(hor, tau));
+    ctx.strokeStyle=tRgba('exp',.35); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(xOf(play)+0.5, plotT); ctx.lineTo(xOf(play)+0.5, H-padB); ctx.stroke();
+
+    /* layer key */
+    var lx = W-padR, ly = padT+2;
+    ctx.textAlign='right'; ctx.font='9px '+THEME.font;
+    for(i=layers.length-1;i>=0;i--){
+      if(layers[i].arr[hor]<=0 && layers[i].arr.every(function(v){ return v<=0; })) continue;
+      ctx.fillStyle=rgba(rampAt(i/Math.max(1,layers.length-1)), 0.92);
+      ctx.fillRect(lx-88, ly-6, 9, 9);
+      ctx.fillStyle=THEME.ink3; ctx.fillText(layers[i].label, lx-12, ly+2);
+      ly += 13;
+    }
+
+    /* birth stems */
+    var stemTop = plotB + 16;
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
+    ctx.fillText('BIRTH FLOW  ·  New ARR / vintage born each month', padL, stemTop);
+    var baseY=H-padB;
+    ctx.strokeStyle=THEME.zero; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(padL, baseY+0.5); ctx.lineTo(W-padR, baseY+0.5); ctx.stroke();
+    for(t=1;t<=hor;t++){
+      var bx=xOf(t), by=yB(births[t].arr);
+      ctx.beginPath(); ctx.moveTo(bx, baseY); ctx.lineTo(bx, by);
+      ctx.strokeStyle=tRgba('exp', t%12===0 ? .85 : .28); ctx.lineWidth=t%12===0?1.6:1; ctx.stroke();
+      if(t%12===0){
+        ctx.beginPath(); ctx.arc(bx, by, 2.4, 0, Math.PI*2);
+        ctx.fillStyle=tRgba('exp',1); ctx.fill();
+        ctx.textAlign='center'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink3;
+        ctx.fillText(CO.formatEur000(births[t].arr), bx, by-6);
+      }
+    }
+    ctx.textAlign='center'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    for(t=0;t<=hor;t+=12) ctx.fillText('m'+t, xOf(t), H-8);
+    ctx.textAlign='left';
+    ctx.fillText('layers = stock   ·   stems = New ARR', padL, H-8);
+  }
+  function drawAgeProfile(m){
+    var ctx=coCtx, W=coW, H=coH, pad=18;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle=THEME.scene; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
+    ctx.fillText('AGE PROFILE  ·  K3  ·  TENURE CROSS-SECTION', pad, 14);
+    ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    ctx.fillText('m'+m.age.t+' ARR by age  ·  12-month display buckets of existing ages  ·  logos \u2260 ARR', pad, 26);
+
+    var split = Math.round(W*0.50);
+    var plotT=58, plotB=H-44;
+    var plotL=pad+44, plotR=split-20;
+    var rL=split+48, rR=W-pad-6;
+    var buckets=m.age.buckets, rates=m.age.rates;
+    var maxArr=0, i;
+    for(i=0;i<buckets.length;i++) if(buckets[i].arr>maxArr) maxArr=buckets[i].arr;
+    maxArr=maxArr*1.18 || 1;
+    var slot=(plotR-plotL)/buckets.length, gap=Math.max(8, slot*0.22);
+    var bw=Math.max(10, slot-gap);
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(plotL-2, plotT-18, (plotR-plotL)+4, (plotB-plotT)+40); ctx.clip();
+    ctx.strokeStyle=THEME.grid; ctx.lineWidth=1;
+    ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink4; ctx.textAlign='right';
+    for(i=0;i<=3;i++){
+      var v=maxArr*i/3, yy=Math.round(plotB - (v/maxArr)*(plotB-plotT))+0.5;
+      ctx.beginPath(); ctx.moveTo(plotL,yy); ctx.lineTo(plotR,yy); ctx.stroke();
+      ctx.fillText(CO.formatEur000(v), plotL-8, yy+3);
+    }
+    for(i=0;i<buckets.length;i++){
+      var x=plotL + i*slot + gap/2;
+      var bh=(buckets[i].arr/maxArr)*(plotB-plotT);
+      var col=rampAt(1 - i/Math.max(1,buckets.length-1)); /* oldest darkest */
+      ctx.fillStyle=rgba(col, 0.92);
+      ctx.fillRect(x, plotB-bh, bw, bh);
+      ctx.textAlign='center'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
+      ctx.fillText(buckets[i].label, x+bw/2, plotB+13);
+      ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink2;
+      ctx.fillText(CO.formatEur000(buckets[i].arr), x+bw/2, plotB-bh-5);
+      ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
+      ctx.fillText(buckets[i].logos==null ? CO.MISSING+' logos' : Math.round(buckets[i].logos)+' logos', x+bw/2, plotB+24);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle=THEME.line; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(split+0.5, 34); ctx.lineTo(split+0.5, plotB+8); ctx.stroke();
+
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
+    ctx.fillText('RATES BY AGE  ·  EDGE OF WINDOW', rL, 42);
+    ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    ctx.fillText('GRR solid  ·  NRR dashed  ·  gap = expansion (measured)', rL, 54);
+    var yMin=0.70, yMax=1.08;
+    function yR(v){ return plotB - ((v-yMin)/(yMax-yMin))*(plotB-plotT); }
+    ctx.strokeStyle=THEME.grid; ctx.lineWidth=1; ctx.textAlign='right'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    [0.70,0.80,0.90,1.00].forEach(function(p){
+      var yy=Math.round(yR(p))+0.5;
+      ctx.beginPath(); ctx.moveTo(rL,yy); ctx.lineTo(rR,yy); ctx.stroke();
+      ctx.fillText((p*100).toFixed(0)+'%', rL-8, yy+3);
+    });
+    function xR(i){ return rL + (rates.length<=1 ? 0 : (i/(rates.length-1))*(rR-rL)); }
+    ctx.save();
+    ctx.beginPath(); ctx.rect(rL-4, plotT-4, (rR-rL)+8, (plotB-plotT)+8); ctx.clip();
+    ctx.beginPath();
+    var started=false;
+    for(i=0;i<rates.length;i++){
+      if(rates[i].grr==null) continue;
+      var gx=xR(i), gy=yR(rates[i].grr);
+      started?ctx.lineTo(gx,gy):(ctx.moveTo(gx,gy),started=true);
+    }
+    ctx.strokeStyle=tRgba('exp',1); ctx.lineWidth=2; ctx.stroke();
+    ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath(); started=false;
+    for(i=0;i<rates.length;i++){
+      if(rates[i].nrr==null) continue;
+      var nx=xR(i), ny=yR(rates[i].nrr);
+      started?ctx.lineTo(nx,ny):(ctx.moveTo(nx,ny),started=true);
+    }
+    ctx.strokeStyle=tRgba('base',1); ctx.lineWidth=1.8; ctx.stroke(); ctx.restore();
+    for(i=0;i<rates.length;i++){
+      var cx=xR(i);
+      if(rates[i].grr!=null){
+        ctx.beginPath(); ctx.arc(cx, yR(rates[i].grr), 3, 0, Math.PI*2);
+        ctx.fillStyle=tRgba('exp',1); ctx.fill(); ctx.strokeStyle=THEME.panel; ctx.lineWidth=1.4; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, yR(rates[i].nrr), 3, 0, Math.PI*2);
+        ctx.fillStyle=THEME.panel; ctx.strokeStyle=tRgba('base',1); ctx.lineWidth=1.5; ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.textAlign='center'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    for(i=0;i<rates.length;i++) ctx.fillText(rates[i].label, xR(i), plotB+14);
+
+    ctx.textAlign='left'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
+    ctx.fillText(m.age.bandsAreFlat
+      ? '48–60 includes the opening vintage. Tenure is flat — Scenario 6 / Tenure give age a rate.'
+      : 'Tenure is live — age bands do not share a rate. Scenario 6 owns the historical mix.', pad, H-10);
+  }
+  function renderCohortsSide(){
+    var res = cohortsRes();
+    var t = Math.max(1, Math.round(tau));
+    var reading = CO.vintageReading(res, t);
+    var age = CO.ageProfile(res, t);
+    var host = document.getElementById('side');
+    var mixRows = reading.vintages.filter(function(v){ return v.present && v.shareOfBook!=null; }).map(function(v){
+      return row(v.label+' share of book', CO.formatPct(v.shareOfBook));
+    }).join('');
+    var bandRows = age.engineBands.bands.map(function(b){
+      return row(b.name+' · engine band', CO.formatEur000(b.arr)+' · '+CO.formatPct(b.share));
+    }).join('');
+    host.innerHTML =
+      '<div class="sgrp"><div class="eyebrow">Cohorts</div>'+
+      '<div class="hint" style="margin-top:7px;line-height:1.7">'+esc(CO.QUESTION)+' Composition is yearly vintage stock. Age is a cross-section. Blended NRR is a warning, not a tile.</div></div>'+
+      '<div class="sgrp"><div class="eyebrow">This world</div>'+
+      row('Reading', cohortsWorld==='experiment'?'Experiment':'Base')+
+      row('Mode', cohortsMode==='age'?'Age profile':'Composition')+
+      row('Month '+t+' ARR · €000', CO.formatEur000(t===0?res.start.openingARR:res.months[t-1].closingARR))+
+      row('R12M GRR', CO.formatPct(reading.blendedGRR))+
+      row('R12M NRR', CO.formatPct(reading.blendedNRR))+
+      '<div class="hint" style="margin-top:7px;line-height:1.65">'+esc(reading.warning)+'</div></div>'+
+      '<div class="sgrp"><div class="eyebrow">Vintage share of the book</div>'+mixRows+
+      '<div class="hint" style="margin-top:7px">Share of closing ARR at the selected month. Carry / leak is retained vs that vintage\u2019s own initial ARR.</div></div>'+
+      '<div class="sgrp"><div class="eyebrow">Engine age bands</div>'+bandRows+
+      '<div class="hint" style="margin-top:7px">'+esc(age.logosNote)+' Display bars on the stage are 12-month buckets of the same ages; the engine still has three laws.</div></div>'+
+      '<div class="sgrp"><button type="button" class="btn btn-wide" id="co-side-scen6">Scenario 6 · same KPIs, different history</button>'+
+      '<div class="hint" style="margin-top:7px">Tenure laws on the rail write the same three-band array. No new coefficient.</div></div>';
+    var b=document.getElementById('co-side-scen6');
+    if(b) b.addEventListener('click', function(){ jumpScenario6(); });
+    function row(a,b){ return '<div class="srow"><span>'+esc(a)+'</span><b>'+b+'</b></div>'; }
+  }
+
+  /* ------------------------------------------------------------------ *
    * Side column — pause and inspect
    * ------------------------------------------------------------------ */
   function renderSide(){
     if(layer==='notebook'){ return renderNotebookSide(); }
+    if(layer==='cohorts'){ return renderCohortsSide(); }
     if(layer==='flow'){ return renderFlowSide(); }
     if(layer==='scen'){
       var host=document.getElementById('side');
@@ -2617,6 +2978,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var m=Math.round(tau);
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
     syncMeasuredKPI(); renderSide(); renderCascade(); highlightNotebookMonth();
+    if(layer==='cohorts') renderCohorts();
   }
 
   function setLayer(l){
@@ -2624,29 +2986,50 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
     document.getElementById('nav-system').classList.toggle('on', l==='flow');
     document.getElementById('nav-notebook').classList.toggle('on', l==='notebook');
+    document.getElementById('nav-cohorts').classList.toggle('on', l==='cohorts');
     document.getElementById('nav-scen').classList.toggle('on', l==='scen');
     document.querySelector('.app').classList.toggle('flow', l==='flow');
     document.querySelector('.app').classList.toggle('notebook', l==='notebook');
+    document.querySelector('.app').classList.toggle('cohorts', l==='cohorts');
     document.getElementById('pulsebar').hidden = l!=='flow';
     document.getElementById('scenbar').hidden = l!=='scen';
     document.getElementById('notebook').hidden = l!=='notebook';
+    document.getElementById('cohorts').hidden = l!=='cohorts';
     document.getElementById('leak-toggle').style.display = l==='stock' ? '' : 'none';
-    document.querySelector('.cascade').hidden = l==='flow' || l==='notebook';
+    document.querySelector('.cascade').hidden = l==='flow' || l==='notebook' || l==='cohorts';
     if(l==='notebook') renderNotebook();
+    if(l==='cohorts'){
+      playing=false; playBtn.classList.remove('play'); playIcon();
+      tau=H; scrub.value=H; syncTime();
+      renderCohorts();
+    }
     /* The system view is a time-varying stock-and-flow diagram: the transport
        drives it in every mode. */
-    setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
+    setTimeout(function(){ resize(); if(l==='cohorts') resizeCohorts(); positionLawChips(); render(); }, 220);
     syncPulse(); renderSide();
   }
   document.getElementById('nav-company').addEventListener('click', function(){ setLayer('stock'); });
   document.getElementById('nav-system').addEventListener('click', function(){ setLayer('flow'); });
   document.getElementById('nav-notebook').addEventListener('click', function(){ setLayer('notebook'); });
+  document.getElementById('nav-cohorts').addEventListener('click', function(){ setLayer('cohorts'); });
   document.getElementById('nav-scen').addEventListener('click', function(){ setLayer('scen'); });
   document.getElementById('nb-base').addEventListener('click', function(){
     notebookUserPicked = true; notebookWorld = 'base'; renderNotebook(); renderSide();
   });
   document.getElementById('nb-exp').addEventListener('click', function(){
     notebookUserPicked = true; notebookWorld = 'experiment'; renderNotebook(); renderSide();
+  });
+  document.getElementById('co-base').addEventListener('click', function(){
+    cohortsUserPicked = true; cohortsWorld = 'base'; renderCohorts(); renderSide();
+  });
+  document.getElementById('co-exp').addEventListener('click', function(){
+    cohortsUserPicked = true; cohortsWorld = 'experiment'; renderCohorts(); renderSide();
+  });
+  document.getElementById('co-mode-comp').addEventListener('click', function(){
+    cohortsMode = 'composition'; renderCohorts(); renderSide();
+  });
+  document.getElementById('co-mode-age').addEventListener('click', function(){
+    cohortsMode = 'age'; renderCohorts(); renderSide();
   });
   document.getElementById('nb-csv').addEventListener('click', function(){
     var model = NB.tableModel(notebookRes(), notebookOpen);
@@ -2675,18 +3058,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     notebookUserPicked = false; notebookOpen = Object.assign({}, NB.DEFAULT_OPEN);
+    cohortsUserPicked = false; cohortsMode = 'composition';
     var calOut=document.getElementById('cal-out');
     if(calOut){ calOut.className='cal-out'; calOut.textContent=''; }
     resize(); recompute(); render();
   }
   document.getElementById('reset').addEventListener('click', resetAll);
-  window.addEventListener('resize', function(){ resize(); });
+  window.addEventListener('resize', function(){ resize(); if(layer==='cohorts') resizeCohorts(); });
 
   /* ---------- loop ---------- */
   var last=performance.now(), acc=0;
   function frame(now){
     var dt=Math.min(100, now-last); last=now;
-    if(playing && (layer==='stock' || layer==='flow')){
+    if(playing && (layer==='stock' || layer==='flow' || layer==='cohorts')){
       tau += dt/1000 * 2.2 * speed;                 // ~2.2 simulated months per second at 1×
       if(tau>=H){ tau=H; playing=false; playBtn.classList.remove('play'); playIcon(); }
       scrub.value=tau;

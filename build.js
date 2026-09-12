@@ -37,7 +37,8 @@ var v1 = readUtf8('v1.template.html')
   .replace('/*__CAPITAL__*/', function () { return capital; })
   .replace('/*__SYSTEMSTATE__*/', function () { return readUtf8('systemstate.js'); })
   .replace('/*__BASIS__*/', function () { return readUtf8('basis.js'); })
-  .replace('/*__NOTEBOOK__*/', function () { return readUtf8('notebook.js'); });
+  .replace('/*__NOTEBOOK__*/', function () { return readUtf8('notebook.js'); })
+  .replace('/*__COHORTS__*/', function () { return readUtf8('cohorts.js'); });
 if (!/^<!DOCTYPE html>\s*<html[^>]*>\s*<head>\s*<meta charset="utf-8">/.test(v1)) {
   throw new Error('saas-physics-v1.html must declare UTF-8 as the first head child (file:// encoding)');
 }

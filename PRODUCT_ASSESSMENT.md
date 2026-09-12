@@ -121,13 +121,15 @@ Two tracks. Do not interleave them in the same sitting if you can help it. Do no
 
 ### (a) Instrument / product craft
 
-**Landed 12 Sep 2026.** Notebook is a companion month × KPI lab notebook for the current run — grouped, Base|Experiment-honest, **table substrate for charts later**. No new physics. Charts, sparklines, and a full right-rail IA stay later; this is the table those would read. Spec: `docs/NOTEBOOK_TABLE_SPEC.md`.
+**Landed 12 Sep 2026.** Notebook is a companion month × KPI lab notebook for the current run — grouped, Base|Experiment-honest, **table substrate for charts later**. No new physics. Charts, sparklines, and a full right-rail IA stay later; this is the table those would read. Spec: `docs/NOTEBOOK_TABLE_SPEC.md`. Nav label is now **Appendix**; the table surface is unchanged.
+
+**Landed 12 Sep 2026.** Cohorts v1 = **composition + vintage reading + age toggle**. Question: *which vintage is carrying/leaking the book — and is blended NRR lying?* Yearly vintage stocks and birth stems from existing cohort rows / `arrMix`; always-on vintage reading (blended NRR as warning; contraction `—` until logos are on; flat-law no-op footnote); age profile from `kpi.ageComposition` + weighted `measureR12M.contributions`. No new coefficient. Spec: `docs/COHORTS.md`. The owner word is *vintage reading*, not a moral label.
 
 **Next, in this order:**
 
 1. **Language and grouping on the existing rail.** Separate "the company" (opening, tenure, mix) from "bounds that are off by default" (saturation, cash reserve, billing, expansion CAC, logos). One sentence per bound stating the null. This is craft, not a new coefficient. Highest leverage for not overclaiming.
 
-2. **Attribution honesty.** When `expStart` is set or bands are non-flat, disable or clearly mark N / g / waterfall-as-attribution. The numbers are still computed; they are no longer *the* story.
+2. **Attribution when opening/tenure is non-default.** When `expStart` is set or bands are non-flat, disable or clearly mark N / g / waterfall-as-attribution. The numbers are still computed; they are no longer *the* story.
 
 3. **`systemstate.js` / `pulse.js` contract.** Either keep them default-only and say so on the pulse strip, or extend both together so FCF ≠ EBITA when billing / expansion CAC is on. Do not patch one file.
 
