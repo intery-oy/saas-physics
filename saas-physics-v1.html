@@ -4725,7 +4725,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var note = document.getElementById('guide-note');
     if(note) note.textContent = step ? step.note : '';
     var strip = document.getElementById('closestrip');
-    if(strip) strip.hidden = guideStep!=='close';
+    if(strip){
+      var show = guideStep==='close';
+      var changed = strip.hidden === show;
+      strip.hidden = !show;
+      if(changed && layer==='notebook'){
+        setTimeout(function(){ highlightNotebookMonth(); }, 0);
+      }
+    }
   }
   function goGuide(id, fromHash){
     var resolved = GUIDE_ALIAS[id] || id;
