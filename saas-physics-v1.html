@@ -4728,6 +4728,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     playing = false; playBtn.classList.remove('play'); playIcon();
     tau = H; scrub.value = H;
     setLayer('scen');
+    syncTime();
     syncSc5Proof();
   }
   function jumpScenario6(){
@@ -4919,6 +4920,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       playing = false; playBtn.classList.remove('play'); playIcon();
       tau = H; scrub.value = H;
       setLayer('stock');
+      syncTime();
     }
     syncGuide();
     renderCockpit();
