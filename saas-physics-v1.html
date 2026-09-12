@@ -141,7 +141,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .nb-table tbody th.nb-month{z-index:3}
 .nb-table tbody tr.on td,.nb-table tbody tr.on th{background:rgba(201,114,47,.10)}
 .nb-table tbody tr:hover td,.nb-table tbody tr:hover th{background:rgba(255,255,255,.03)}
-.nb-table .nb-collapsed{color:var(--ink-4);font-style:italic;text-transform:none;letter-spacing:0;font-weight:400}
+.nb-table .nb-collapsed{padding:4px 8px}
 .nb-gbtn{background:transparent;border:0;color:var(--ink-2);cursor:pointer;font:inherit;padding:0}
 .nb-gbtn.open{color:var(--ink)}
 .nb-gbtn:hover{color:var(--exp)}
@@ -2077,7 +2077,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       g = model.groups[i];
       cols = model.columns.filter(function (col) { return col.group === g.id; });
       if (!open[g.id]) {
-        h += '<th class="nb-collapsed" data-group="' + g.id + '">hidden</th>';
+        h += '<th class="nb-collapsed" data-group="' + g.id + '"></th>';
         continue;
       }
       cols.forEach(function (col) {
@@ -2093,7 +2093,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       for (g = 0; g < model.groups.length; g++) {
         cols = model.columns.filter(function (col) { return col.group === model.groups[g].id; });
         if (!open[model.groups[g].id]) {
-          h += '<td class="nb-collapsed" data-group="' + model.groups[g].id + '">' + MISSING + '</td>';
+          h += '<td class="nb-collapsed" data-group="' + model.groups[g].id + '"></td>';
           continue;
         }
         cols.forEach(function (col) {

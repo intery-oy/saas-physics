@@ -238,7 +238,7 @@
       g = model.groups[i];
       cols = model.columns.filter(function (col) { return col.group === g.id; });
       if (!open[g.id]) {
-        h += '<th class="nb-collapsed" data-group="' + g.id + '">hidden</th>';
+        h += '<th class="nb-collapsed" data-group="' + g.id + '"></th>';
         continue;
       }
       cols.forEach(function (col) {
@@ -254,7 +254,7 @@
       for (g = 0; g < model.groups.length; g++) {
         cols = model.columns.filter(function (col) { return col.group === model.groups[g].id; });
         if (!open[model.groups[g].id]) {
-          h += '<td class="nb-collapsed" data-group="' + model.groups[g].id + '">' + MISSING + '</td>';
+          h += '<td class="nb-collapsed" data-group="' + model.groups[g].id + '"></td>';
           continue;
         }
         cols.forEach(function (col) {
