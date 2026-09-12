@@ -14,16 +14,16 @@
 
   var MISSING = '—';
   var MONEY_UNIT = '€000';
-  var QUESTION = 'Which vintage is carrying/leaking the book — and is blended NRR lying?';
+  var QUESTION = 'Which vintage is carrying/leaking the book — and does blended NRR conceal variation?';
 
-  /* Yearly display layers — same buckets as engine.arrMix (base + Y1–Y5). */
+  /* Yearly display layers — same buckets as engine.arrMix (seeded opening + Y1–Y5 births). */
   var YEAR_LAYERS = [
-    { id: 'base', label: 'm0 · opening', acqFrom: 0, acqTo: 0 },
-    { id: 'y1',   label: 'm1–12',        acqFrom: 1, acqTo: 12 },
-    { id: 'y2',   label: 'm13–24',       acqFrom: 13, acqTo: 24 },
-    { id: 'y3',   label: 'm25–36',       acqFrom: 25, acqTo: 36 },
-    { id: 'y4',   label: 'm37–48',       acqFrom: 37, acqTo: 48 },
-    { id: 'y5',   label: 'm49–60',       acqFrom: 49, acqTo: 60 }
+    { id: 'base', label: 'Seeded opening', acqFrom: 0, acqTo: 0 },
+    { id: 'y1',   label: 'Born M1–12',     acqFrom: 1, acqTo: 12 },
+    { id: 'y2',   label: 'Born M13–24',    acqFrom: 13, acqTo: 24 },
+    { id: 'y3',   label: 'Born M25–36',    acqFrom: 25, acqTo: 36 },
+    { id: 'y4',   label: 'Born M37–48',    acqFrom: 37, acqTo: 48 },
+    { id: 'y5',   label: 'Born M49–60',    acqFrom: 49, acqTo: 60 }
   ];
 
   /* Vintage-reading checkpoints: opening + a cohort born every 12 months. */
@@ -271,15 +271,19 @@
     var vintages = READING_VINTAGES.map(function (m) {
       var first = vintageWindowRates(res, m, T);
       var now = vintageAt(res, m, T);
+      var age = T - m;
+      var label = m === 0 ? 'Seeded opening' : ('Born M' + m);
       if (!now && !first) {
         return {
-          month: m, label: 'm' + m, present: false,
+          month: m, label: label, age: age, seeded: m === 0, present: false,
           first: null, now: null, verdict: null, shareOfBook: null
         };
       }
       return {
         month: m,
-        label: 'm' + m,
+        label: label,
+        age: age,
+        seeded: m === 0,
         present: true,
         first: first,
         now: now,
@@ -302,11 +306,11 @@
     if (!kpi) {
       warning = 'R12M NRR needs 12 months — blended is ' + MISSING + ' until then.';
     } else if (mixHides) {
-      warning = 'Blended NRR ' + formatPct(kpi.nrr) + ' mixes vintages that do not share a rate \u2014 not the hero number.';
+      warning = 'Blended NRR ' + formatPct(kpi.nrr) + ' mixes vintages that do not share a rate \u2014 conceal variation; not the hero number.';
     } else if (flat) {
-      warning = 'Blended NRR ' + formatPct(kpi.nrr) + ' is the vintage NRR. Tenure is flat \u2014 mix is a no-op, not a cohort story.';
+      warning = 'No age effect in this world. Blended NRR ' + formatPct(kpi.nrr) + ' is the vintage NRR. Flat tenure rates \u2014 mix is a no-op.';
     } else {
-      warning = 'Blended NRR ' + formatPct(kpi.nrr) + ' \u2014 vintage NRRs agree; blended is not hiding a mix.';
+      warning = 'Blended NRR ' + formatPct(kpi.nrr) + ' \u2014 vintage NRRs agree; blended does not conceal variation.';
     }
 
     return {
@@ -323,7 +327,7 @@
       warning: warning,
       logosNote: 'Logos \u2260 ARR. Logo count is a customer stock; ARR is the recurring-state stock.',
       flatNote: flat
-        ? 'Flat-law vintage mix is a no-op \u2014 do not claim the stack. Tenure / Scenario 6 give age a rate.'
+        ? 'No age effect in this world. Flat tenure rates \u2014 vintage mix is a no-op. Scenario 6 / Tenure give age a rate.'
         : null,
       contractionNote: logos
         ? 'NRR \u2212 GRR = expansion (measured). Contraction is the residual of leakage after logo churn.'

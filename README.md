@@ -106,8 +106,8 @@ Four actions: **Observe → Change → Compare → Inspect**.
 | **Company** | Observe the accumulated recurring economic state and where it came from. |
 | **System** | A model audit: the causal topology the engine actually contains, with ⊘ marking the links it does not. |
 | **Scenarios** | Six canonical scenarios. Change one declared assumption against a frozen Base and read the consequence. |
-| **Cohorts** | Which vintage is carrying/leaking the book — and is blended NRR lying? Composition + vintage reading + age-profile toggle. |
-| **Appendix** | Month × KPI table of the current run (the former Notebook). Lab-notebook substrate for charts later. Companion to System — does not replace Method, System, or Scenarios 5 & 6. |
+| **Cohorts** | Which vintage is carrying/leaking the book — and does blended NRR conceal variation? Composition + vintage reading + age-profile toggle. |
+| **Appendix** | Month × KPI table of the current run (the former Notebook), with a compact M(t−1) → flows → M(t) month audit. Companion to System — does not replace Method, System, or Scenarios 5 & 6. |
 | **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
 
 A global **MRR ⇄ ARR** switch (default MRR) sets the reporting basis for every recurring-revenue
@@ -124,8 +124,8 @@ modeled FCF and Cash directly, but v1 models no effect from them on
 recurring-state dynamics.
 
 There is still no "buy more growth" scenario. Acquisition is linear at the
-default (`acqSaturationSpend` off). A saturation spend on the Forces rail is
-the v0.4 bound that lets the model say *stop*; demo it there, not as a seventh
+default (`acqSaturationSpend` off). A saturation spend on the rail is
+the optional bound that lets the model say *stop*; demo it there, not as a seventh
 canonical scenario.
 
 ## Research archive
@@ -211,7 +211,8 @@ creates; gross margin decides how fast that investment is recovered.
 ## Documents
 
 - [`docs/DESIGN.md`](docs/DESIGN.md) — indigo instrument tokens (v1 chrome and charts)
-- [`docs/NOTEBOOK_TABLE_SPEC.md`](docs/NOTEBOOK_TABLE_SPEC.md) — Appendix table (lab notebook): month × KPI substrate for charts later
+- [`docs/TRUST-SPINE.md`](docs/TRUST-SPINE.md) — identity chips, Default vs A/B, voice
+- [`docs/NOTEBOOK_TABLE_SPEC.md`](docs/NOTEBOOK_TABLE_SPEC.md) — Appendix table (lab notebook): month × KPI substrate + month audit
 - [`docs/COHORTS.md`](docs/COHORTS.md) — Cohorts v1: composition + vintage reading + age toggle
 - [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) — post-build instrument assessment, philosophy, overclaims, sequenced roadmap
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps; overnight sequence is done)

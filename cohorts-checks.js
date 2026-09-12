@@ -48,7 +48,9 @@ ok('COHORTS-UI', 'v1 template still declares UTF-8 as the first head child',
 
 ok('COHORTS-UI', 'question is the locked Cohorts v1 question',
    tpl.indexOf(CO.QUESTION) !== -1 &&
-   /Which vintage is carrying\/leaking the book/.test(tpl), '');
+   /Which vintage is carrying\/leaking the book/.test(tpl) &&
+   /conceal variation/.test(tpl) &&
+   !/is blended NRR lying/.test(tpl), '');
 
 ok('COHORTS-UI', 'Method overlay names Cohorts and Appendix',
    /<b>Cohorts<\/b>/.test(tpl) &&

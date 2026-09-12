@@ -39,8 +39,8 @@ ok('NOTEBOOK-UI', 'build.js reads and writes UTF-8 explicitly',
    build.indexOf("encoding: 'utf8'") !== -1 &&
    build.indexOf('function readUtf8') !== -1 &&
    build.indexOf('function writeUtf8') !== -1, '');
-ok('NOTEBOOK-UI', 'Method overlay names Appendix as table substrate',
-   /<b>Appendix<\/b>/.test(tpl) && /substrate for charts later/.test(tpl), '');
+ok('NOTEBOOK-UI', 'Method overlay names Appendix as the month-audit companion',
+   /<b>Appendix<\/b>/.test(tpl) && /month audit/.test(tpl), '');
 
 var base = E.run(A);
 var m60 = NB.cellsAt(base, 60);
