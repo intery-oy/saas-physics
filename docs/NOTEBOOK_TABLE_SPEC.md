@@ -12,7 +12,7 @@ New view/tab Notebook. Companion — does not replace Method/System/Scenarios 5&
 
 ## 3. Layout
 
-Thin header: scenario name + Base|Exp toggle. Rows 0–60 sticky month. Collapsible sections; default open Revenue/Retention/Capital; default collapsed Unit economics/Logos.
+Thin header: scenario name + Base|Exp toggle. Rows 0–60 sticky month. Collapsible sections; default open Revenue/Retention/Capital; default collapsed Unit economics/Logos. Money cells display as **€000** (engine euros ÷ 1000). Rates, payback months and logo counts are unscaled.
 
 ## 4. Base | Experiment
 

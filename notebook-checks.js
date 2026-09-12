@@ -38,16 +38,25 @@ ok('NOTEBOOK-UI', 'Method overlay names Notebook as table substrate',
 
 var base = E.run(A);
 var m60 = NB.cellsAt(base, 60);
-ok('NOTEBOOK-ARR', 'default world bounds-off: month-60 ARR = €62,926,223.19',
+ok('NOTEBOOK-ARR', 'default world bounds-off: month-60 ARR = €62,926,223.19 (engine euros)',
    Math.abs(m60.arr - 62926223.19) < 0.005,
+   String(m60.arr));
+ok('NOTEBOOK-ARR', 'Notebook displays money in €000 (month-60 ARR → 62,926)',
+   NB.MONEY_UNIT === '€000' && NB.formatValue('eur', m60.arr) === '62,926',
    NB.formatValue('eur', m60.arr));
-ok('NOTEBOOK-ARR', 'formatted month-60 ARR is the locked checksum',
-   NB.formatValue('eur', m60.arr) === '€62,926,223.19',
-   NB.formatValue('eur', m60.arr));
-ok('NOTEBOOK-ARR', 'month-0 ARR is opening stock, not a fake flow',
+ok('NOTEBOOK-ARR', '€000 label is on the table and in the v1 header',
+   /Money in €000/.test(NB.renderTable(NB.tableModel(base))) &&
+   tpl.indexOf('Money in <b>€000</b>') !== -1, '');
+ok('NOTEBOOK-ARR', 'month-0 ARR is opening stock, not a fake flow; — unchanged',
    NB.cellsAt(base, 0).arr === base.start.openingARR &&
    NB.cellsAt(base, 0).newARR === null &&
    NB.formatValue('eur', null) === '—', '');
+ok('NOTEBOOK-ARR', 'rates, payback months and logo counts are not ÷1000',
+   NB.formatValue('pct', 0.8955823296048089) === '89.56%' &&
+   NB.formatValue('nrr', null) === '—' &&
+   NB.formatValue('months', 18) === '18.0' &&
+   NB.formatValue('x', 1.2) === '1.20\u00d7' &&
+   NB.formatValue('count', 2347.2) === '2347.2', '');
 
 var cols = NB.columnsFor(base);
 var ids = cols.map(function (c) { return c.id; });

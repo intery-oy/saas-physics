@@ -12,6 +12,7 @@
   'use strict';
 
   var MISSING = '—';
+  var MONEY_UNIT = '€000';   /* display only — engine cells stay in full euros */
   var DEFAULT_OPEN = {
     revenue: true,
     retention: true,
@@ -23,10 +24,10 @@
   /* Groups that are always in the table. Logos is always present even when
      the logo bound is off (cells then read "—"). */
   var GROUPS = [
-    { id: 'revenue',   title: 'Revenue' },
+    { id: 'revenue',   title: 'Revenue',         unit: MONEY_UNIT },
     { id: 'retention', title: 'Retention' },
     { id: 'unit',      title: 'Unit economics' },
-    { id: 'capital',   title: 'Capital' },
+    { id: 'capital',   title: 'Capital',         unit: MONEY_UNIT },
     { id: 'logos',     title: 'Logos' }
   ];
 
@@ -177,17 +178,17 @@
     return { groups: GROUPS, groupsOpen: open, columns: cols, rows: rows, horizon: res.horizon };
   }
 
-  function thousands(n) {
+  function groupThousands(n) {
     var s = n < 0 ? '-' : '';
-    var abs = Math.abs(n);
-    var parts = abs.toFixed(2).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return s + parts.join('.');
+    var abs = String(Math.abs(n));
+    return s + abs.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
+  /* Money cells are engine euros ÷ 1000, rounded. Rates, payback months and
+     logo counts are not scaled. Missing stays "—". */
   function formatValue(kind, v) {
     if (v === null || v === undefined || (typeof v === 'number' && !isFinite(v))) return MISSING;
-    if (kind === 'eur') return '€' + thousands(v);
+    if (kind === 'eur') return groupThousands(Math.round(v / 1000));
     if (kind === 'pct') return (v * 100).toFixed(2) + '%';
     if (kind === 'x') return (v).toFixed(2) + '\u00d7';
     if (kind === 'months') return (v).toFixed(1);
@@ -224,14 +225,17 @@
     var selected = opts.selectedMonth;
     var open = model.groupsOpen;
     var i, g, cols, span, row, c, v, cls, lab;
-    var h = '<thead><tr class="nb-groups"><th class="nb-month" rowspan="2">Month</th>';
+    var h = '<caption>Money in ' + esc(MONEY_UNIT) + ' · rates and logo counts unscaled</caption>';
+    h += '<thead><tr class="nb-groups"><th class="nb-month" rowspan="2">Month</th>';
     for (i = 0; i < model.groups.length; i++) {
       g = model.groups[i];
       cols = model.columns.filter(function (col) { return col.group === g.id; });
       span = open[g.id] ? cols.length : 1;
       h += '<th class="nb-g" data-group="' + g.id + '" colspan="' + span + '">' +
         '<button type="button" class="nb-gbtn' + (open[g.id] ? ' open' : '') + '" data-group="' + g.id + '">' +
-        (open[g.id] ? '\u25be ' : '\u25b8 ') + esc(g.title) + '</button></th>';
+        (open[g.id] ? '\u25be ' : '\u25b8 ') + esc(g.title) +
+        (g.unit ? ' <span class="nb-unit">' + esc(g.unit) + '</span>' : '') +
+        '</button></th>';
     }
     h += '</tr><tr class="nb-cols">';
     for (i = 0; i < model.groups.length; i++) {
@@ -275,6 +279,7 @@
 
   return {
     MISSING: MISSING,
+    MONEY_UNIT: MONEY_UNIT,
     DEFAULT_OPEN: DEFAULT_OPEN,
     GROUPS: GROUPS,
     OMITTED: OMITTED,
