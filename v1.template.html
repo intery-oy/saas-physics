@@ -2772,7 +2772,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * Thin chrome on Frame and Close. Not a shelf, not a CRM.
    * ------------------------------------------------------------------ */
   function currentPack(){
-    return PACK.fromWorld(expA, expStart, { label: loadedPackLabel });
+    var probe = PACK.fromWorld(expA, expStart);
+    var label = PACK.isDefault(probe) ? 'Default'
+      : (loadedPackLabel && loadedPackLabel !== 'Default' ? loadedPackLabel : 'Custom');
+    return PACK.fromWorld(expA, expStart, { label: label });
   }
   function worldStampFromUI(){
     return {
@@ -2800,7 +2803,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(!PACK || !expA) return;
     var p = PACK.fromWorld(expA, expStart);
     if(PACK.isDefault(p)) loadedPackLabel = 'Default';
-    var lab = PACK.isDefault(p) ? 'Default' : (loadedPackLabel || 'Custom');
+    else if(loadedPackLabel === 'Default' || !loadedPackLabel) loadedPackLabel = 'Custom';
+    var lab = PACK.isDefault(p) ? 'Default' : loadedPackLabel;
     var chip = document.getElementById('pack-label');
     if(chip){
       chip.textContent = lab;

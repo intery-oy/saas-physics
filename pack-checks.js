@@ -150,7 +150,8 @@ ok('PACK-UI', 'v1 Frame/Close expose load · save · diff · export kit',
    tpl.indexOf('id="pack-load"') !== -1 &&
    tpl.indexOf('id="pack-diff"') !== -1 &&
    tpl.indexOf('id="kit-export"') !== -1 &&
-   tpl.indexOf('function applyPack') !== -1, '');
+   tpl.indexOf('function applyPack') !== -1 &&
+   tpl.indexOf("loadedPackLabel !== 'Default'") !== -1, '');
 
 ok('PACK-UI', 'build.js inlines pack.js and kit.js into v1',
    build.indexOf('pack.js') !== -1 && build.indexOf('/*__PACK__*/') !== -1 &&
