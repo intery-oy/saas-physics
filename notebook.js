@@ -24,10 +24,10 @@
   /* Groups that are always in the table. Logos is always present even when
      the logo bound is off (cells then read "—"). */
   var GROUPS = [
-    { id: 'revenue',   title: 'Revenue',         unit: MONEY_UNIT },
+    { id: 'revenue',   title: 'Recurring stock', unit: MONEY_UNIT },
     { id: 'retention', title: 'Retention' },
     { id: 'unit',      title: 'Unit economics' },
-    { id: 'capital',   title: 'Capital',         unit: MONEY_UNIT },
+    { id: 'capital',   title: 'Model cash',      unit: MONEY_UNIT },
     { id: 'logos',     title: 'Logos' }
   ];
 
@@ -66,8 +66,7 @@
      | measure (R12M, null before month 12) | const (assumption-level). */
   function columnsFor(res) {
     var cols = [
-      { id: 'arr',       group: 'revenue',   label: 'ARR',              kind: 'eur',     src: 'stock' },
-      { id: 'mrr',       group: 'revenue',   label: 'MRR (native)',     kind: 'eur',     src: 'stock' },
+      { id: 'arr',       group: 'revenue',   label: 'Closing ARR',      kind: 'eur',     src: 'stock' },
       { id: 'newARR',    group: 'revenue',   label: 'New ARR',          kind: 'eur',     src: 'flow' },
       { id: 'expansion', group: 'revenue',   label: 'Expansion ARR',    kind: 'eur',     src: 'flow' },
       { id: 'leakage',   group: 'revenue',   label: 'Leakage',          kind: 'eur',     src: 'flow' }
@@ -91,9 +90,8 @@
     cols.push(
       { id: 'cac',      group: 'unit',    label: 'CAC / New ARR',      kind: 'x',      src: 'const' },
       { id: 'payback',  group: 'unit',    label: 'CAC payback months', kind: 'months', src: 'const' },
-      { id: 'cash',     group: 'capital', label: 'Cash',               kind: 'eur',    src: 'stock' },
-      { id: 'burn',     group: 'capital', label: 'Burn',               kind: 'eur',    src: 'flow' },
-      { id: 'fcf',      group: 'capital', label: 'FCF',                kind: 'eur',    src: 'flow' },
+      { id: 'cash',     group: 'capital', label: 'Model cash',         kind: 'eur',    src: 'stock' },
+      { id: 'fcf',      group: 'capital', label: 'FCF (EBITA proxy)',  kind: 'eur',    src: 'flow' },
       { id: 'ebita',    group: 'capital', label: 'EBITA',              kind: 'eur',    src: 'flow' },
       { id: 'logos',    group: 'logos',   label: 'Logo count',         kind: 'count',  src: 'logos' },
       { id: 'logoRet',  group: 'logos',   label: 'Logo retention',     kind: 'pct',    src: 'logos-r12m' }
@@ -175,7 +173,49 @@
     var rows = [];
     var t;
     for (t = 0; t <= res.horizon; t++) rows.push({ month: t, cells: cellsAt(res, t) });
-    return { groups: GROUPS, groupsOpen: open, columns: cols, rows: rows, horizon: res.horizon };
+    var empty = { logos: !logoOn(res), unit: true };
+    return { groups: GROUPS, groupsOpen: open, columns: cols, rows: rows, horizon: res.horizon, empty: empty };
+  }
+
+  /* M(t−1) → flows → M(t) identity. Engine euros; display layer rounds to €000. */
+  function monthAudit(res, t) {
+    if (t == null || t < 1) {
+      return {
+        t: 0,
+        openingARR: res.start.openingARR,
+        newARR: null, expansion: null, leakage: null,
+        closingARR: res.start.openingARR,
+        residual: 0,
+        cashOpening: res.start.openingCash,
+        fcf: null,
+        cashClosing: res.start.openingCash,
+        cashResidual: 0,
+        revenue: null, grossProfit: null, sm: null, rd: null, ga: null,
+        formula: 'M0 is the opening snapshot — no period flows yet.'
+      };
+    }
+    var m = res.months[t - 1];
+    var residual = m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR;
+    var cashResidual = m.cashOpening + m.fcf - m.cashClosing;
+    return {
+      t: t,
+      openingARR: m.openingARR,
+      newARR: m.newARR,
+      expansion: m.expansion,
+      leakage: m.leakage,
+      closingARR: m.closingARR,
+      residual: residual,
+      cashOpening: m.cashOpening,
+      fcf: m.fcf,
+      cashClosing: m.cashClosing,
+      cashResidual: cashResidual,
+      revenue: m.revenue,
+      grossProfit: m.grossProfit,
+      sm: m.sm,
+      rd: m.rd,
+      ga: m.ga,
+      formula: 'closing ARR = opening ARR + New + Expansion − Leakage'
+    };
   }
 
   function groupThousands(n) {
@@ -220,15 +260,21 @@
     });
   }
 
+  function groupVisible(model, g) {
+    if (model.empty && model.empty[g.id]) return false;
+    return true;
+  }
+
   function renderTable(model, opts) {
     opts = opts || {};
     var selected = opts.selectedMonth;
     var open = model.groupsOpen;
     var i, g, cols, span, row, c, v, cls, lab;
-    var h = '<caption>Money in ' + esc(MONEY_UNIT) + ' · rates and logo counts unscaled</caption>';
+    var h = '<caption>Money in ' + esc(MONEY_UNIT) + ' · rates unscaled · one precision</caption>';
     h += '<thead><tr class="nb-groups"><th class="nb-month" rowspan="2">Month</th>';
     for (i = 0; i < model.groups.length; i++) {
       g = model.groups[i];
+      if (!groupVisible(model, g)) continue;
       cols = model.columns.filter(function (col) { return col.group === g.id; });
       span = open[g.id] ? cols.length : 1;
       h += '<th class="nb-g" data-group="' + g.id + '" colspan="' + span + '">' +
@@ -240,6 +286,7 @@
     h += '</tr><tr class="nb-cols">';
     for (i = 0; i < model.groups.length; i++) {
       g = model.groups[i];
+      if (!groupVisible(model, g)) continue;
       cols = model.columns.filter(function (col) { return col.group === g.id; });
       if (!open[g.id]) {
         h += '<th class="nb-collapsed" data-group="' + g.id + '"></th>';
@@ -256,6 +303,7 @@
       cls = (selected !== undefined && selected !== null && Number(selected) === row.month) ? ' class="on"' : '';
       h += '<tr data-month="' + row.month + '"' + cls + '><th class="nb-month" scope="row">' + row.month + '</th>';
       for (g = 0; g < model.groups.length; g++) {
+        if (!groupVisible(model, model.groups[g])) continue;
         cols = model.columns.filter(function (col) { return col.group === model.groups[g].id; });
         if (!open[model.groups[g].id]) {
           h += '<td class="nb-collapsed" data-group="' + model.groups[g].id + '"></td>';
@@ -288,6 +336,7 @@
     columnsFor: columnsFor,
     cellsAt: cellsAt,
     tableModel: tableModel,
+    monthAudit: monthAudit,
     visibleColumns: visibleColumns,
     formatValue: formatValue,
     toCSV: toCSV,

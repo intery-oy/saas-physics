@@ -54,3 +54,7 @@ Inter throughout. Hierarchy is scale, weight, and spacing. Financial figures use
 ## What this is not
 
 Not a generic SaaS dashboard, accounting report, or marketing site. Tokens are for this instrument only — they do not import Frends portal IA (LAND/RAMP/RETAIN, dual engines, portal cards, Signals, board-report theses).
+
+## Identity chrome
+
+Nav carries thin chips, not a disclaimer banner: `Default|A|B` · `M##` · scenario · `Base|Exp`. **Default** is the immutable reference world. **A|B** marks a scenario-constructed pair (never rename Default to mean a local scenario base). **Base|Exp** is the reading. View-only controls (Compare, Basis, Leakage shadow) sit in a separate cluster from assumption rails. See `docs/TRUST-SPINE.md`.

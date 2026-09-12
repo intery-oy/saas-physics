@@ -2,7 +2,7 @@
 
 Status: locked 12 Sep 2026 by Harri. Composition + vintage reading + age toggle.
 
-**Question.** Which vintage is carrying/leaking the book — and is blended NRR lying?
+**Question.** Which vintage is carrying/leaking the book — and does blended NRR conceal variation?
 
 A companion surface to Company / System. Not a KPI tile wall, not a retention triangle, not a second engine.
 
