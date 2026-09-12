@@ -208,6 +208,7 @@ creates; gross margin decides how fast that investment is recovered.
 
 ## Documents
 
+- [`docs/DESIGN.md`](docs/DESIGN.md) — indigo instrument tokens (v1 chrome and charts)
 - [`docs/NOTEBOOK_TABLE_SPEC.md`](docs/NOTEBOOK_TABLE_SPEC.md) — Notebook table (lab notebook): month × KPI substrate for charts later
 - [`PRODUCT_ASSESSMENT.md`](PRODUCT_ASSESSMENT.md) — post-build instrument assessment, philosophy, overclaims, sequenced roadmap
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — owner-facing demo review (maturity, gaps; overnight sequence is done)
