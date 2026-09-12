@@ -143,6 +143,135 @@
     return e;
   }
 
+  /* ------------------------------------------------------------------ *
+   * Value validation.
+   *
+   * Structural validation (unknown keys, shape) already refuses a pack that
+   * is not a pack. This refuses a pack that IS a pack but carries a value the
+   * engine cannot mean anything by. Two failure modes it closes:
+   *
+   *   - a non-number, null or NaN on a REQUIRED driver. E.run merges over
+   *     DEFAULT_ASSUMPTIONS with Object.assign, which does not restore a
+   *     default for an explicit null — so `"sm": null` propagates straight
+   *     into the arithmetic and the whole 60-month world silently becomes
+   *     NaN. No check downstream would name the cause.
+   *   - an out-of-domain number on an OPTIONAL driver. The engine's
+   *     saturationSpendOf / logoRetentionOf / ... coerce garbage to "off",
+   *     so a typo reads as a deliberate choice and the loaded world is
+   *     quietly not the one in the file.
+   *
+   * Bounds are the MODEL domain, not the UI slider range: a pack is allowed
+   * to carry a world the sliders cannot reach, but not one the equations
+   * cannot evaluate. Throws AssumptionPackError, which the Frame/Close pack
+   * UI already catches and displays.
+   * ------------------------------------------------------------------ */
+  var DRIVER_RULES = {
+    /* required — no null; these reach the arithmetic unguarded */
+    sm:                         { min: 0 },
+    cacPerARR:                  { min: 0, exclusiveMin: true },
+    persistenceAnnual:          { min: 0, max: 1 },
+    expansionCoefficientAnnual: { min: 0 },
+    grossMargin:                { min: 0, max: 1 },
+    rd:                         { min: 0 },
+    ga:                         { min: 0 },
+    /* optional — null (or 0, where the engine reads 0 as off) means off */
+    acqSaturationSpend:         { nullable: true, min: 0 },
+    smCashReserve:              { nullable: true, min: 0 },
+    billingAdvanceMonths:       { nullable: true, min: 0 },
+    expansionCacPerARR:         { nullable: true, min: 0 },
+    logoRetentionAnnual:        { nullable: true, min: 0, max: 1 }
+  };
+
+  var START_RULES = {
+    openingARR:       { min: 0 },
+    openingCash:      {},                                  // may legitimately be negative
+    openingCustomers: { nullable: true, min: 0, exclusiveMin: true }
+  };
+
+  /* Names the offending value unambiguously — "900000" (a string) must not
+     read like 900000 (a number) in the message a user is shown. */
+  function fmtBadValue(v) {
+    if (v === null) return 'null';
+    if (v === undefined) return 'undefined';
+    if (typeof v === 'number') return String(v);
+    if (typeof v === 'string') return 'the string ' + JSON.stringify(v);
+    if (Array.isArray(v)) return 'an array';
+    if (typeof v === 'object') return 'an object';
+    return typeof v + ' ' + String(v);
+  }
+
+  function describeRange(rule) {
+    var lo = rule.min === undefined ? null : (rule.exclusiveMin ? '> ' + rule.min : '>= ' + rule.min);
+    var hi = rule.max === undefined ? null : '<= ' + rule.max;
+    if (lo && hi) return lo + ' and ' + hi;
+    return lo || hi || 'a finite number';
+  }
+
+  /* One value against one rule. `path` is only used to name the failure. */
+  function checkValue(path, v, rule) {
+    if (v === null || v === undefined) {
+      if (rule.nullable) return;
+      throw err(path + ' must be a finite number (' + describeRange(rule) + '), not ' + fmtBadValue(v) + '.');
+    }
+    if (typeof v !== 'number' || !isFinite(v)) {
+      throw err(path + ' must be a finite number (' + describeRange(rule) + '), not ' + fmtBadValue(v) + '.');
+    }
+    if (rule.min !== undefined) {
+      if (rule.exclusiveMin ? !(v > rule.min) : !(v >= rule.min)) {
+        throw err(path + ' must be ' + describeRange(rule) + '; got ' + v + '.');
+      }
+    }
+    if (rule.max !== undefined && !(v <= rule.max)) {
+      throw err(path + ' must be ' + describeRange(rule) + '; got ' + v + '.');
+    }
+  }
+
+  /* A key absent from the pack takes the engine default, which is valid by
+     construction — so only keys the pack actually states are checked. An
+     explicit `undefined` is not absence: pickAssumptions turns it into null,
+     so it is checked like one. */
+  function stated(obj, k) {
+    return obj && Object.prototype.hasOwnProperty.call(obj, k);
+  }
+
+  function validateValues(aIn, sIn) {
+    var i, k;
+    for (i = 0; i < ASSUMPTION_KEYS.length; i++) {
+      k = ASSUMPTION_KEYS[i];
+      if (stated(aIn, k)) checkValue('assumptions.' + k, aIn[k], DRIVER_RULES[k]);
+    }
+    if (aIn && aIn.bands != null) {
+      aIn.bands.forEach(function (b, bi) {
+        var p = 'assumptions.bands[' + bi + ']';
+        if (!b || typeof b !== 'object' || Array.isArray(b)) throw err(p + ' must be an object.');
+        if (stated(b, 'name') && b.name != null && typeof b.name !== 'string') throw err(p + '.name must be a string or null.');
+        /* maxAgeExclusive: null takes the standard band edge; the top band's
+           edge is Infinity, which JSON cannot carry and reads back as null. */
+        if (stated(b, 'maxAgeExclusive') && b.maxAgeExclusive != null) {
+          var mx = b.maxAgeExclusive;
+          if (typeof mx !== 'number' || isNaN(mx) || !(mx > 0)) {
+            throw err(p + '.maxAgeExclusive must be a number > 0 (or null for the standard edge); got ' + fmtBadValue(mx) + '.');
+          }
+        }
+        checkValue(p + '.persistenceAnnual', b.persistenceAnnual, DRIVER_RULES.persistenceAnnual);
+        checkValue(p + '.expansionCoefficientAnnual', b.expansionCoefficientAnnual, DRIVER_RULES.expansionCoefficientAnnual);
+      });
+    }
+    for (i = 0; i < START_KEYS.length; i++) {
+      k = START_KEYS[i];
+      if (k === 'openingCohorts') continue;
+      if (stated(sIn, k)) checkValue('start.' + k, sIn[k], START_RULES[k]);
+    }
+    if (sIn && sIn.openingCohorts != null) {
+      sIn.openingCohorts.forEach(function (c, ci) {
+        var p = 'start.openingCohorts[' + ci + ']';
+        if (!c || typeof c !== 'object' || Array.isArray(c)) throw err(p + ' must be an object.');
+        checkValue(p + '.arr', c.arr, { min: 0 });
+        checkValue(p + '.age', c.age, { min: 0 });
+      });
+    }
+  }
+
   function normalize(raw) {
     if (!raw || typeof raw !== 'object') throw err('Pack is not an object.');
     if (raw.schema !== SCHEMA) throw err('Unknown pack schema (expected ' + SCHEMA + ').');
@@ -172,6 +301,7 @@
         if (u.length) throw err('Unknown openingCohorts[' + i + '] field: ' + u.join(', ') + '.');
       });
     }
+    validateValues(aIn, sIn);
     return fromWorld(aIn, sIn, { label: raw.label || null });
   }
 

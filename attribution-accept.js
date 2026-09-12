@@ -4,7 +4,17 @@
  * real Chromium render, so like clarity-accept.js this is NOT dependency-free:
  * requires `playwright` and a Chromium binary. Run: node attribution-accept.js
  */
-const { chromium } = require('playwright');
+/* See clarity-accept.js — playwright is optional; absent means skipped. */
+let chromium;
+try {
+  chromium = require('playwright').chromium;
+} catch (e) {
+  console.log('\nSKIP  attribution-accept — playwright is not installed.');
+  console.log('      These are DOM/render checks and need Chromium. Install with:');
+  console.log('        npm install && npx playwright install chromium');
+  console.log('      The pure-Node half of this pass runs without it: node attribution-checks.js\n');
+  process.exit(0);
+}
 
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }

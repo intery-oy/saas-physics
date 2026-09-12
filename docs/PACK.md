@@ -26,6 +26,26 @@ JSON is canonical. YAML is a restricted sibling of the same object (`pack.js` `s
 
 Diff lists **changed drivers only**. It is not a second GRR / FIBC / analytics pass.
 
+### Driver values
+
+`normalize()` type- and range-checks every driver the pack actually states, and throws `AssumptionPackError` naming the driver and the bound it broke. An **omitted** driver takes the engine default and is not checked; an **explicitly stated** one is.
+
+| Driver | Domain |
+|---|---|
+| `sm`, `rd`, `ga` | finite, `>= 0` |
+| `cacPerARR` | finite, `> 0` |
+| `persistenceAnnual`, `grossMargin` | finite, `0 … 1` |
+| `expansionCoefficientAnnual` | finite, `>= 0` |
+| `acqSaturationSpend`, `smCashReserve`, `billingAdvanceMonths`, `expansionCacPerARR` | `null` (off) or finite `>= 0` |
+| `logoRetentionAnnual` | `null` (off) or finite `0 … 1` |
+| `bands[i]` | `persistenceAnnual` / `expansionCoefficientAnnual` as above; `maxAgeExclusive` `> 0` or `null` for the standard edge |
+| `start.openingARR` | finite, `>= 0` |
+| `start.openingCash` | finite (may be negative — that is a world, not an error) |
+| `start.openingCustomers` | `null` (derive from ARPA) or finite `> 0` |
+| `start.openingCohorts[i]` | `arr` and `age` finite, `>= 0` |
+
+These are the **model** domain, not the UI slider range: a pack may carry a world the sliders cannot reach, but not one the equations cannot evaluate. Two silent failures this closes — `E.run` merges with `Object.assign`, so an explicit `"sm": null` reaches the arithmetic and turns the whole 60-month world into `NaN`; and the engine's optional-coefficient readers coerce out-of-domain values to *off*, so a typo would have read as a deliberate choice. Regression: `PACK-VALUES` in `pack-checks.js`.
+
 ---
 
 ## Leave-behind kit

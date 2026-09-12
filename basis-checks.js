@@ -192,16 +192,22 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
   var tpl = fs.readFileSync('v1.template.html', 'utf8');
 
   /* exempt call sites: financial flows, cash, capital recovery, acquisition
-     cost — each must still read as a PLAIN eur()/d()/n() call, never the
-     basis-aware reur()/rd()/rn()/reurS() family. */
+     cost — each must still read as a PLAIN eur()/eurK()/d()/n()/NB.formatValue()
+     call, never the basis-aware reur()/rd()/rn()/reurS() family.
+
+     These are anchored to literal call sites, so they go stale when the
+     template is refactored. A FAIL here means one of two things: the site
+     moved (repoint the pattern at where it lives now, or at the equivalent
+     current site if it was removed) or the site was switched to a
+     basis-aware formatter (a real defect). */
   var exemptPatterns = [
     /n\(d\.cashClosing\)/,
     /n\(d\.revenue\)/,
     /n\(d\.grossProfit\)/,
     /n\(d\.otherOpex\)/,
     /n\(d\.fcf\)/,
-    /eur\(em\.grossProfit\)/,
-    /eur\(em\.ebita\)/,
+    /eurK\(em\.grossProfit\)/,              // GP-by-origin display residual vs engine GP
+    /eur\(Math\.abs\(r\.bal\)\)/,           // P&L waterfall figures — Revenue/COGS/GP/S&M/R&D/G&A/EBITA/FCF
     /eur\(em\.cashClosing\)/,
     /eur\(em\.revenue\*12\)/,
     /eur\(snap\.cumGrossProfit\)/,
@@ -216,10 +222,10 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /row\('Acquisition capital deployed', x\.cumSM - b\.cumSM, -\(x\.cumSM - b\.cumSM\)\)/,
     /row\('Cumulative gross profit', x\.cumGrossProfit - b\.cumGrossProfit\)/,
     /row\('Cumulative FCF', x\.cumEbita - b\.cumEbita\)/,
-    /row\('Ending cash', x\.endingCash - b\.endingCash\)/,
-    /eur\(b\.cumGrossProfit\)\+' → '\+eur\(x\.cumGrossProfit\)/,
-    /eur\(b\.finalYearFCF\)\+' → '\+eur\(x\.finalYearFCF\)/,
-    /eur\(b\.cumSM\)\+' → '\+eur\(x\.cumSM\)/,
+    /row\('Ending Model cash', x\.endingCash - b\.endingCash\)/,
+    /NB\.formatValue\('eur', au\.grossProfit\)/,   // Appendix month audit — GP
+    /NB\.formatValue\('eur', au\.fcf\)/,           // Appendix month audit — FCF
+    /NB\.formatValue\('eur', au\.sm\)/,            // Appendix month audit — S&M
     /eur\(b\.endingCash\)\+' → '\+eur\(x\.endingCash\)/
   ];
   var missing = exemptPatterns.filter(function (re) { return !re.test(tpl); });

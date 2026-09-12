@@ -10,6 +10,10 @@
     "build": "node build.js",
     "pack": "node pack-checks.js",
     "state": "node state-sufficiency.js",
-    "report": "node checks.js && node opening-checks.js && node cash-checks.js && node billings-checks.js && node expansion-checks.js && node logo-checks.js && node age-checks.js && node notebook-checks.js && node cohorts-checks.js && node basis-checks.js && node state-sufficiency.js && node scenarios.js"
+    "report": "node run-checks.js",
+    "report:quiet": "node run-checks.js --quiet"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
   }
 }

@@ -146,6 +146,9 @@ identity, bridge, measurement and integrity check, in numbers.
 ## Run it
 
 ```bash
+npm run report              # every suite, to the end: 15 checks + 2 accept + 2 studies, one total
+npm run report -- --quiet   # totals only; a failing suite still prints its output
+
 node checks.js              # 48 economic, measurement, state, NL and OPEN integrity checks
 node opening-checks.js      # B1+B2 opening-state UI + inverse-calibration contract
 node cash-checks.js         # S&M cash-reserve null default + bound
@@ -170,12 +173,16 @@ node pulse-study.js       # Flow / Pulse concept study: intra-month law and reco
 node pack-cli.js save     # write Default assumption pack (json + yaml)
 node pack-cli.js load packs/default.json
 node pack-cli.js export   # leave-behind folder + zip of the Default world
-node pack-checks.js       # C1/C2 pack + kit (lean)
+node pack-checks.js       # C1/C2 pack + kit (lean), incl. driver value validation
 node build.js             # build all three single-file surfaces
 open saas-physics-v1.html
 ```
 
-No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` the CLI uses.
+No runtime dependencies. The browser UI inlines the same `engine.js` and `integrity.js` the CLI
+uses. The only devDependency is `playwright`, used by the two `*-accept.js` DOM/render suites;
+without it those two suites print a `SKIP` line and exit 0, and every other suite runs unaffected.
+`npm run report` runs **all** of them — it never halts at the first failure, and reports skips as
+skips rather than passes.
 
 ## Controls
 

@@ -2,6 +2,7 @@
  * SaaS Physics — C1 assumption pack + C2 leave-behind (lean).
  *
  *   PACK-SCHEMA      versioned schema maps to DEFAULT_ASSUMPTIONS + start
+ *   PACK-VALUES      driver values are type- and range-checked, by name
  *   PACK-DEFAULT     Default pack → Year-5 ARR €62,926,223.19
  *   PACK-ROUNDTRIP   JSON / YAML load reproduces the world
  *   PACK-DIFF        driver-level; only changed drivers
@@ -44,6 +45,83 @@ ok('PACK-SCHEMA', 'unknown drivers are refused',
    (function () {
      try { PACK.parse({ schema: PACK.SCHEMA, schemaVersion: 1, assumptions: { sm: 1, sneaky: 2 } }); return false; }
      catch (e) { return /Unknown assumption/.test(e.message); }
+   })(), '');
+
+/* ---------------------------------------------------------------- *
+ * PACK-VALUES — a pack that is structurally a pack but carries a value
+ * the engine cannot mean anything by is refused by name, not loaded and
+ * silently turned into a NaN world (required drivers) or quietly
+ * coerced to "off" (optional drivers).
+ * ---------------------------------------------------------------- */
+function refusal(mutate) {
+  var p = PACK.defaultPack();
+  mutate(p);
+  try { PACK.normalize(p); return null; }
+  catch (e) { return e.name === 'AssumptionPackError' ? e.message : 'WRONG ERROR TYPE: ' + e.name; }
+}
+function accepts(mutate) {
+  var p = PACK.defaultPack();
+  mutate(p);
+  try { PACK.normalize(p); return true; }
+  catch (e) { return false; }
+}
+
+var REFUSED = [
+  ['null on a required driver',        function (p) { p.assumptions.sm = null; }, /assumptions\.sm/],
+  ['a numeric string',                 function (p) { p.assumptions.rd = '700000'; }, /assumptions\.rd/],
+  ['NaN',                              function (p) { p.assumptions.persistenceAnnual = NaN; }, /persistenceAnnual/],
+  ['Infinity on a required driver',    function (p) { p.assumptions.ga = Infinity; }, /assumptions\.ga/],
+  ['negative spend',                   function (p) { p.assumptions.sm = -1; }, /assumptions\.sm/],
+  ['cacPerARR = 0 (divides)',          function (p) { p.assumptions.cacPerARR = 0; }, /cacPerARR/],
+  ['persistence above 1',              function (p) { p.assumptions.persistenceAnnual = 1.4; }, /persistenceAnnual/],
+  ['gross margin as a percent',        function (p) { p.assumptions.grossMargin = 80; }, /grossMargin/],
+  ['negative expansion coefficient',   function (p) { p.assumptions.expansionCoefficientAnnual = -0.1; }, /expansionCoefficientAnnual/],
+  ['logo retention above 1',           function (p) { p.assumptions.logoRetentionAnnual = 1.2; }, /logoRetentionAnnual/],
+  ['negative cash reserve',            function (p) { p.assumptions.smCashReserve = -5; }, /smCashReserve/],
+  ['negative opening ARR',             function (p) { p.start.openingARR = -1; }, /openingARR/],
+  ['zero opening customers',           function (p) { p.start.openingCustomers = 0; }, /openingCustomers/],
+  ['a non-numeric opening cohort',     function (p) { p.start.openingCohorts = [{ arr: '20m', age: 0 }]; }, /openingCohorts\[0\]\.arr/],
+  ['a band with a null coefficient',   function (p) {
+    p.assumptions.bands = [
+      { name: 'Early', maxAgeExclusive: 12, persistenceAnnual: null, expansionCoefficientAnnual: 0.10 },
+      { name: 'Developing', maxAgeExclusive: 24, persistenceAnnual: 0.80, expansionCoefficientAnnual: 0.10 },
+      { name: 'Mature', maxAgeExclusive: null, persistenceAnnual: 0.90, expansionCoefficientAnnual: 0.10 }
+    ];
+  }, /bands\[0\]\.persistenceAnnual/]
+];
+REFUSED.forEach(function (c) {
+  var msg = refusal(c[1]);
+  ok('PACK-VALUES', 'refuses ' + c[0] + ' as AssumptionPackError, naming the driver',
+     typeof msg === 'string' && c[2].test(msg), msg || 'ACCEPTED (no error thrown)');
+});
+
+ok('PACK-VALUES', 'the off/null settings the engine really supports are still accepted',
+   accepts(function (p) {
+     p.assumptions.logoRetentionAnnual = null;
+     p.assumptions.acqSaturationSpend = null;
+     p.assumptions.smCashReserve = null;
+     p.assumptions.billingAdvanceMonths = null;
+     p.assumptions.expansionCacPerARR = 0;
+   }), '');
+
+ok('PACK-VALUES', 'a negative opening cash balance is a world, not an error',
+   accepts(function (p) { p.start.openingCash = -500000; }), '');
+
+ok('PACK-VALUES', 'a valid three-band pack still loads',
+   accepts(function (p) {
+     p.assumptions.bands = [
+       { name: 'Early', maxAgeExclusive: 12, persistenceAnnual: 0.94, expansionCoefficientAnnual: 0.14 },
+       { name: 'Developing', maxAgeExclusive: 24, persistenceAnnual: 0.78, expansionCoefficientAnnual: 0.06 },
+       { name: 'Mature', maxAgeExclusive: null, persistenceAnnual: 0.94, expansionCoefficientAnnual: 0.14 }
+     ];
+   }), '');
+
+ok('PACK-VALUES', 'a driver the pack omits still takes the engine default',
+   (function () {
+     var p = PACK.defaultPack();
+     delete p.assumptions.rd;
+     try { return PACK.normalize(p).assumptions.rd === E.DEFAULT_ASSUMPTIONS.rd; }
+     catch (e) { return false; }
    })(), '');
 
 ok('PACK-DEFAULT', 'Default pack isDefault + Year-5 ARR checksum',
