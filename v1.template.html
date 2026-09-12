@@ -5,47 +5,61 @@
 <title>SaaS Physics v1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Spectral:wght@300;400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <style>
 /* ------------------------------------------------------------------ *
- * SaaS Physics — Visual Prototype 1
- * A committed single dark environment. Every colour painted from a token.
- * The economic engine (engine.js) and KPI layer (kpi.js) are inlined
- * VERBATIM and unmodified — this file only looks at them.
+ * SaaS Physics v1 — light indigo instrument.
+ * Tokens are the single visual source of truth (see docs/DESIGN.md).
+ * Engine (engine.js) and KPI layer (kpi.js) are inlined VERBATIM.
  * ------------------------------------------------------------------ */
 :root{
-  --ground:#080b0d; --scene:#0b1013; --panel:#0e1418; --raised:#131b20; --sunk:#070a0c;
-  --line:#1c272e; --line-soft:#141d22;
-  --ink:#e2e9ec; --ink-2:#8fa0aa; --ink-3:#5d6c75; --ink-4:#3d4952;
-  --base:#5a8fd6;       /* BASE — the frozen reference future */
-  --exp:#c9722f;        /* EXPERIMENT — the scenario you steer */
-  --leak:#3b4a55;       /* structural / operating-cost context — neutral slate, never a loss signal */
-  --churn:#b25a5e;      /* customer loss: Leakage. Muted rose, not alarm-red — physics, not a warning */
-  --good:#4f9e77; --warn:#c9973f;
-  --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --display:"Spectral",Georgia,"Times New Roman",serif;
+  /* Surfaces — cool-grey canvas, white instrument panels */
+  --ground:#eef1f5; --scene:#f4f6f9; --panel:#ffffff; --raised:#ffffff; --sunk:#f1f3f7;
+  --line:#d4dae4; --line-soft:#e4e8ef;
+  --radius:4px;
+  /* Charcoal text */
+  --ink:#1c2430; --ink-2:#3d4756; --ink-3:#5c6675; --ink-4:#8b93a0;
+  /* One colour: indigo. Darker = primary / hierarchy; muted = context. */
+  --indigo-900:#1e2a4a; --indigo-800:#26345c; --indigo-700:#31407a;
+  --indigo-600:#3d4f94; --indigo-500:#4f63ad; --indigo-400:#6b7cbf;
+  --indigo-300:#8d9ad0; --indigo-200:#b8c0e0; --indigo-100:#dce0ef; --indigo-50:#eef0f7;
+  --base:var(--indigo-300); /* BASE — frozen reference */
+  --exp:var(--indigo-700);  /* EXPERIMENT — the steered series / key data */
+  --leak:var(--indigo-200); /* operating-cost / structural context */
+  --churn:var(--indigo-400); /* leakage as muted indigo, never a loss alarm */
+  /* Semantic colour — TEXT DELTAS ONLY. Never fills, bars, areas, or chrome. */
+  --good:#1f7a4d; --bad:#b42318; --warn:var(--ink-2);
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --display:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}   /* .pulsebar/.scenbar set display:flex and would otherwise outrank it */
 html,body{height:100%}
-body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums}
 button,input{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--exp);outline-offset:2px}
+:focus-visible{outline:2px solid var(--indigo-600);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums lining-nums}
+.eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:2px solid var(--panel)}
+::-webkit-scrollbar-track{background:transparent}
 
 /* ---------- shell ---------- */
 .app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;transition:grid-template-columns .2s}
 .app.flow{grid-template-columns:0 minmax(0,1fr) 320px}
 .app.flow .rail{opacity:0;pointer-events:none;overflow:hidden}
-.lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
-.lawchip:hover{border-color:var(--exp);color:var(--ink)}
+.lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
+.lawchip:hover{border-color:var(--indigo-300);color:var(--ink)}
 .lawchip b{font-family:var(--mono);color:var(--exp);font-weight:500}
 .lawchip input[type=range]{width:118px;margin-top:5px;display:block}
-.lawchip.open{border-color:var(--exp)}
-.nav .btn{padding:6px 13px}
+.lawchip.open{border-color:var(--indigo-400)}
+.nav{display:flex;gap:2px;padding:2px;background:var(--sunk);border:1px solid var(--line);border-radius:var(--radius)}
+.btn-row.nav{gap:2px;flex-wrap:nowrap}
+.nav .btn{padding:5px 11px;border:0;background:transparent;border-radius:3px}
+.nav .btn:hover{color:var(--ink);background:transparent;border-color:transparent}
+.nav .btn.on{background:var(--indigo-50);color:var(--indigo-800);border-color:transparent}
 .scenbar{display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
 .scenbar .btn{font-size:11px}
 .fgrp{padding:12px 18px;border-bottom:1px solid var(--line-soft)}
@@ -63,9 +77,9 @@ button,input{font:inherit;color:inherit}
 .bnd li{margin-bottom:4px}
 .regime{border-left:2px solid var(--base);padding:8px 0 8px 11px;margin-top:9px;font-size:11.5px;color:var(--ink-2);line-height:1.6;font-family:var(--display);font-style:italic}
 .regime b{font-family:var(--ui);font-style:normal;color:var(--ink);font-weight:600}
-.illus{background:rgba(201,151,63,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
-.illus b{color:var(--warn);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
-.scencard{border:1px solid var(--line);border-radius:3px;background:var(--sunk);padding:11px 13px;margin-bottom:9px}
+.illus{background:var(--indigo-50);border:1px solid var(--indigo-100);border-radius:var(--radius);padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
+.illus b{color:var(--indigo-700);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
+.scencard{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:11px 13px;margin-bottom:9px}
 .scencard h4{margin:0 0 3px;font-size:12.5px}
 .scencard .teach{font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--ink-2);line-height:1.55;margin:0}
 .pulsebar{display:flex;align-items:center;gap:10px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
@@ -74,12 +88,13 @@ button,input{font:inherit;color:inherit}
 .recon{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:11px;margin-top:5px}
 .recon span{color:var(--ink-3)} .recon b{font-family:var(--mono);font-weight:500}
 .recon .tot{color:var(--ink);border-top:1px solid var(--line);padding-top:3px}
-.head{grid-column:1/-1;display:flex;align-items:baseline;gap:16px;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
-.head h1{margin:0;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.005em}
-.head .sub{font-size:11.5px;color:var(--ink-3);font-style:italic;font-family:var(--display)}
+.head{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.head h1{margin:0;font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.01em;color:var(--indigo-800)}
+.head h1::before{content:"";display:inline-block;width:7px;height:7px;background:var(--indigo-700);border-radius:1px;margin-right:8px;vertical-align:middle}
+.head .sub{font-size:11px;color:var(--ink-3);font-style:normal;font-family:var(--ui)}
 .spacer{flex-grow:1}
-.chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--line);border-radius:2px;color:var(--ink-3)}
-.chip.on{border-color:var(--exp);color:var(--exp)}
+.chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--line);border-radius:var(--radius);color:var(--ink-3);background:var(--sunk)}
+.chip.on{border-color:var(--indigo-200);color:var(--indigo-800);background:var(--indigo-50)}
 
 .rail{border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:0 0 16px}
 .stage{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--scene)}
@@ -105,7 +120,7 @@ button,input{font:inherit;color:inherit}
 .force-base{font-family:var(--mono);font-size:10px;color:var(--ink-4)}
 .cal-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .cal-row label{font-size:11.5px;flex-grow:1;color:var(--ink-2)}
-.cal-row input[type=number]{width:72px;background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:4px 6px;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.cal-row input[type=number]{width:72px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:4px 6px;font-family:var(--mono);font-size:12px;color:var(--ink)}
 .cal-out{margin-top:8px;font-size:10.5px;color:var(--ink-3);line-height:1.55}
 .cal-out b{font-family:var(--mono);font-weight:500;color:var(--ink)}
 .cal-out.warn{color:var(--warn)}
@@ -115,11 +130,11 @@ button,input{font:inherit;color:inherit}
 input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;height:16px;margin:0;cursor:pointer}
 input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
 input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--exp);border:2px solid var(--panel);margin-top:-5px}
-input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--exp);border:2px solid var(--panel)}
-.btn{background:var(--raised);border:1px solid var(--line);border-radius:3px;padding:6px 9px;font-size:11px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:border-color .15s,color .15s}
-.btn:hover{border-color:var(--ink-3);color:var(--ink)}
-.btn.on{border-color:var(--exp);color:var(--exp);background:rgba(201,114,47,.09)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--indigo-700);border:2px solid var(--panel);margin-top:-5px}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--indigo-700);border:2px solid var(--panel)}
+.btn{background:var(--raised);border:1px solid var(--line);border-radius:var(--radius);padding:5px 9px;font-size:11px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+.btn:hover{border-color:var(--indigo-200);color:var(--ink);background:var(--indigo-50)}
+.btn.on{border-color:var(--indigo-200);color:var(--indigo-800);background:var(--indigo-50)}
 .btn-row{display:flex;flex-wrap:wrap;gap:6px}
 .btn-wide{width:100%;text-align:left;padding:8px 10px;margin-bottom:5px}
 .btn-wide small{display:block;color:var(--ink-4);font-size:10px;font-weight:400;margin-top:2px;line-height:1.4}
@@ -131,7 +146,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 #notebook{flex-grow:1;min-height:0;display:flex;flex-direction:column;background:var(--scene)}
 #notebook[hidden]{display:none!important}
 .nb-head{display:flex;align-items:baseline;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-.nb-head .nb-name{font-family:var(--display);font-size:15px;font-weight:400}
+.nb-head .nb-name{font-family:var(--display);font-size:14px;font-weight:600;color:var(--indigo-800)}
 .nb-head .hint{max-width:56ch}
 .nb-scroll{flex-grow:1;overflow:auto;min-height:0}
 .nb-table{border-collapse:separate;border-spacing:0;font-size:11px;width:max-content;min-width:100%}
@@ -143,8 +158,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .nb-table thead .nb-month{z-index:4;top:0}
 .nb-table thead tr.nb-cols .nb-month{top:28px}
 .nb-table tbody th.nb-month{z-index:3}
-.nb-table tbody tr.on td,.nb-table tbody tr.on th{background:rgba(201,114,47,.10)}
-.nb-table tbody tr:hover td,.nb-table tbody tr:hover th{background:rgba(255,255,255,.03)}
+.nb-table tbody tr.on td,.nb-table tbody tr.on th{background:var(--indigo-50)}
+.nb-table tbody tr:hover td,.nb-table tbody tr:hover th{background:var(--sunk)}
+.nb-table tbody tr.on .nb-month,.nb-table tbody tr:hover .nb-month{background:inherit}
 .nb-table .nb-collapsed{padding:4px 8px}
 .nb-gbtn{background:transparent;border:0;color:var(--ink-2);cursor:pointer;font:inherit;padding:0}
 .nb-gbtn.open{color:var(--ink)}
@@ -172,9 +188,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .srow b{margin-left:auto;font-family:var(--mono);font-weight:500;color:var(--ink)}
 .srow b.dim{color:var(--ink-2);font-weight:400}
 .big{display:flex;align-items:baseline;gap:9px;margin:2px 0 4px}
-.big .v{font-family:var(--mono);font-size:27px;font-weight:500;letter-spacing:-.02em;color:var(--exp)}
+.big .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;color:var(--exp)}
 .big .d{font-family:var(--mono);font-size:11.5px}
-.up{color:var(--good)} .down{color:var(--warn)} .flat{color:var(--ink-4)}
+.up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--ink-4)}
 .bridge{display:flex;flex-direction:column;gap:3px;margin-top:6px}
 .brow{display:grid;grid-template-columns:74px minmax(0,1fr) 74px;gap:8px;align-items:center;font-size:11px}
 .brow .bb{height:7px;background:var(--line-soft);position:relative;border-radius:1px}
@@ -187,7 +203,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .cz{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:11px}
 .cz span{color:var(--ink-3)}
 .cz b{font-family:var(--mono);font-weight:500}
-.dossier{background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:11px 12px}
+.dossier{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px}
 .dossier h4{margin:0 0 7px;font-size:11.5px;display:flex;align-items:center;gap:8px}
 .sw{width:9px;height:9px;border-radius:2px;display:inline-block}
 
@@ -202,18 +218,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .attrib-tbl tr.tot td:first-child{color:var(--ink)}
 
 /* ---------- transport ---------- */
-.tbtn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--raised);border:1px solid var(--line);border-radius:3px;cursor:pointer;color:var(--ink-2)}
-.tbtn:hover{border-color:var(--ink-3);color:var(--ink)}
-.tbtn.play{border-color:var(--exp);color:var(--exp)}
+.tbtn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--raised);border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;color:var(--ink-2)}
+.tbtn:hover{border-color:var(--indigo-200);color:var(--ink);background:var(--indigo-50)}
+.tbtn.play{border-color:var(--indigo-200);color:var(--indigo-800);background:var(--indigo-50)}
 #scrub{flex-grow:1;min-width:120px}
 .tlabel{font-family:var(--mono);font-size:13px;color:var(--exp);min-width:132px;white-space:nowrap}
 .tlabel small{color:var(--ink-4);font-size:10px}
 
 /* ---------- key overlay ---------- */
-.key{position:absolute;inset:0;background:rgba(8,11,13,.94);padding:26px 32px;overflow-y:auto;display:none}
+.key{position:absolute;inset:0;background:rgba(244,246,249,.97);padding:26px 32px;overflow-y:auto;display:none}
 .key.on{display:block}
-.key h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 4px}
-.key p.lede{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
+.key h3{font-family:var(--display);font-weight:600;font-size:18px;margin:0 0 4px;color:var(--indigo-800)}
+.key p.lede{font-family:var(--ui);font-style:normal;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
 .key-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;max-width:1100px}
 .key-grid h5{margin:0 0 7px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
 .key-grid ul{margin:0;padding-left:15px;font-size:11.5px;line-height:1.75;color:var(--ink-2)}
@@ -476,14 +492,25 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     resize(); render();
   });
 
-  /* ---------- validated vintage ramp: oldest darkest → newest lightest ---------- */
-  var RAMP = [[149,86,42],[176,110,60],[203,138,85],[224,166,119],[238,196,158],[247,221,196]];
+  /* Painted tokens — RGB lockstep with :root. See docs/DESIGN.md.
+     Darker indigo = primary series; muted indigo / slate = context.
+     Green/red are not used on the canvas. */
+  var THEME = {
+    scene:'#f4f6f9', panel:'#ffffff', line:'#d4dae4',
+    grid:'rgba(30,42,74,0.07)', zero:'#c8ced8',
+    ink:'#1c2430', ink2:'#3d4756', ink3:'#5c6675', ink4:'#8b93a0',
+    font:'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+    exp:[49,64,122], base:[141,154,208], muted:[139,147,160], pale:[198,205,226]
+  };
+  /* ---------- validated vintage ramp: oldest darkest indigo → newest lightest ---------- */
+  var RAMP = [[30,42,74],[42,56,108],[49,64,122],[79,99,173],[141,154,208],[198,205,226]];
   function rampAt(t){                                  // t: 0 = oldest, 1 = newest
     t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
     var i = Math.floor(t), f = t - i, a = RAMP[i], b = RAMP[Math.min(RAMP.length-1, i+1)];
     return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
   }
   function rgba(c, alpha){ return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+alpha+')'; }
+  function tRgba(key, a){ return rgba(THEME[key], a); }
 
   /* ------------------------------------------------------------------ *
    * Precompute: everything drawn is a simulation value, never an effect.
@@ -1164,19 +1191,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.clearRect(0,0,W,HH);
 
     /* --- ground + year grid --- */
-    ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
-    ctx.strokeStyle='#141d22'; ctx.lineWidth=1;
+    ctx.fillStyle=THEME.scene; ctx.fillRect(0,0,W,HH);
+    ctx.strokeStyle=THEME.grid; ctx.lineWidth=1;
     for(var y=1;y<=5;y++){
       var x=X(y*12)+0.5; ctx.beginPath(); ctx.moveTo(x,geo.massTop); ctx.lineTo(x,geo.cashBot); ctx.stroke();
     }
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText(basis, geo.L+8, geo.massTop+11);
     /* gridlines, in the chosen basis — the axis geometry is always ARR-native,
        only the printed number changes */
-    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+    ctx.font='10px '+THEME.font; ctx.textAlign='right'; ctx.fillStyle=THEME.ink4;
     for(var g=1;g<=3;g++){
       var v=S.arrMax*g/4, yy=Math.round(S.yA(v))+0.5;
-      ctx.beginPath(); ctx.moveTo(geo.L,yy); ctx.lineTo(W-geo.R,yy); ctx.strokeStyle='#111a1f'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(geo.L,yy); ctx.lineTo(W-geo.R,yy); ctx.strokeStyle=THEME.grid; ctx.stroke();
       ctx.fillText(reur(v), geo.L-8, yy+3);
     }
 
@@ -1217,7 +1244,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
          boundary only needs to mark where the VINTAGE (quarter) changes */
       var sameQuarterAsPrev = k>0 && !anatomy && quarterOf(k)===quarterOf(k-1);
       if(!sameQuarterAsPrev || isHot){
-        ctx.strokeStyle = anatomy ? 'rgba(11,16,19,.95)' : 'rgba(11,16,19,.55)';
+        ctx.strokeStyle = anatomy ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.55)';
         ctx.lineWidth = anatomy ? 1.4 : 0.9; ctx.stroke();
       }
       /* a cohort in its first two months reads as new business entering */
@@ -1225,17 +1252,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(expRes.cohorts[k].acquisitionMonth>0 && ageNow>=0 && ageNow<2){
         ctx.beginPath(); ctx.moveTo(top[Math.max(0,top.length-3)][0], top[Math.max(0,top.length-3)][1]);
         for(var q=Math.max(0,top.length-2);q<top.length;q++) ctx.lineTo(top[q][0],top[q][1]);
-        ctx.strokeStyle = rgba([255,240,225], 0.55*(1-ageNow/2)); ctx.lineWidth=2; ctx.stroke();
+        ctx.strokeStyle = tRgba('pale', 0.85*(1-ageNow/2)); ctx.lineWidth=2; ctx.stroke();
       }
-      if(isHot){ ctx.strokeStyle='rgba(247,221,196,.95)'; ctx.lineWidth=2; ctx.stroke();
-                 ctx.fillStyle='rgba(247,221,196,.13)'; ctx.fill(); }
+      if(isHot){ ctx.strokeStyle=tRgba('exp',.95); ctx.lineWidth=2; ctx.stroke();
+                 ctx.fillStyle=tRgba('pale',.22); ctx.fill(); }
     }
 
     /* the realised silhouette, so the mass reads as one body made of layers */
     ctx.beginPath();
     for(var sm=0; sm<=mi; sm++){ var sx=X(sm), sy=S.yA(expS.arr[sm]); sm?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy); }
     ctx.lineTo(X(t), S.yA(lerpAt(expS.arr,t)));
-    ctx.strokeStyle='rgba(247,221,196,.75)'; ctx.lineWidth=1.6; ctx.stroke();
+    ctx.strokeStyle=tRgba('exp',.75); ctx.lineWidth=1.6; ctx.stroke();
 
     /* --- projected future of the Experiment: outline only, it has not happened --- */
     ctx.beginPath();
@@ -1243,7 +1270,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var fm=Math.ceil(t); fm<=H; fm++) ctx.lineTo(X(fm), S.yA(expS.arr[fm]));
     ctx.lineTo(X(H), geo.massBot); ctx.lineTo(X(t), geo.massBot); ctx.closePath();
     var fg = ctx.createLinearGradient(X(t),0,X(H),0);
-    fg.addColorStop(0,'rgba(201,114,47,.20)'); fg.addColorStop(1,'rgba(201,114,47,.05)');
+    fg.addColorStop(0,tRgba('exp',.16)); fg.addColorStop(1,tRgba('exp',.04));
     ctx.fillStyle=fg; ctx.fill();
     /* faint vintage banding in the projection: the future is made of cohorts too */
     ctx.save(); ctx.globalAlpha=0.30;
@@ -1261,13 +1288,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.beginPath();
     ctx.moveTo(X(t), S.yA(lerpAt(expS.arr,t)));
     for(var fm2=Math.ceil(t); fm2<=H; fm2++) ctx.lineTo(X(fm2), S.yA(expS.arr[fm2]));
-    ctx.strokeStyle='rgba(201,114,47,.85)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle=tRgba('exp',.85); ctx.lineWidth=2; ctx.stroke();
 
     /* --- BASE: the frozen reference future, dashed and cool --- */
     ctx.save(); ctx.setLineDash([5,4]);
     ctx.beginPath();
     for(var bm=0; bm<=H; bm++){ var px=X(bm), py=S.yA(baseS.arr[bm]); bm?ctx.lineTo(px,py):ctx.moveTo(px,py); }
-    ctx.strokeStyle='rgba(90,143,214,.78)'; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.strokeStyle=tRgba('base',.85); ctx.lineWidth=1.8; ctx.stroke();
     ctx.restore();
 
     /* --- MIDDLE REGISTER: capital-recovery track (Inspect), or the optional
@@ -1279,33 +1306,33 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.beginPath();
       for(var lm=0; lm<=mi; lm++){ var lx0=X(lm), ly0=S.yL(expS.leak[lm]); lm?ctx.lineTo(lx0,ly0):ctx.moveTo(lx0,ly0); }
       ctx.lineTo(X(t), S.yL(lerpAt(expS.leak,t)));
-      ctx.strokeStyle='rgba(178,90,94,.85)'; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.strokeStyle=tRgba('muted',.85); ctx.lineWidth=1.4; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(X(t), S.yL(lerpAt(expS.leak,t)));
       for(var lf=Math.ceil(t); lf<=H; lf++) ctx.lineTo(X(lf), S.yL(expS.leak[lf]));
-      ctx.strokeStyle='rgba(178,90,94,.4)'; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.strokeStyle=tRgba('muted',.4); ctx.lineWidth=1.4; ctx.stroke();
       ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
       for(var lb=0; lb<=H; lb++){ var lx=X(lb), ly=S.yL(baseS.leak[lb]); lb?ctx.lineTo(lx,ly):ctx.moveTo(lx,ly); }
-      ctx.strokeStyle='rgba(90,143,214,.42)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
-      ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.strokeStyle=tRgba('base',.5); ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+      ctx.textAlign='left'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink3;
       ctx.fillText('CUMULATIVE HISTORICAL LEAKAGE', geo.L+8, geo.leakTop+10);
-      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(178,90,94,.9)';
+      ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink2;
       /* §1 — printed figure from the canonical selected-month object, not the
          continuous lerpAt() the curve position above still (correctly) uses. */
       ctx.fillText(reur(expRes.months[selectedMonth()-1].cumulative.leakage), geo.L+8, geo.leakTop+22);
     }
 
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('MODEL CASH (€M)', geo.L+8, geo.cashTop-8);
     var cScaleLo = S.cLo, cScaleHi = S.cHi;
-    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+    ctx.font='10px '+THEME.font; ctx.textAlign='right'; ctx.fillStyle=THEME.ink4;
     for(var cg=1; cg<=3; cg++){
       var cv=cScaleLo+(cScaleHi-cScaleLo)*cg/4, cyy=Math.round(S.yC(cv))+0.5;
-      ctx.beginPath(); ctx.moveTo(geo.L,cyy); ctx.lineTo(W-geo.R,cyy); ctx.strokeStyle='#111a1f'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(geo.L,cyy); ctx.lineTo(W-geo.R,cyy); ctx.strokeStyle=THEME.grid; ctx.stroke();
       ctx.fillText(eur(cv), geo.L-8, cyy+3);
     }
     var y0 = S.yC(0);
-    ctx.strokeStyle='#1c272e'; ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
+    ctx.strokeStyle=THEME.zero; ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
     /* cnow/dNow are the CONTINUOUS, sub-month position — they drive where the
        curve, wedge boundary and playhead sit as tau moves between whole
        months, so the animation stays smooth. The PRINTED Cash/ΔCash text
@@ -1327,38 +1354,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.lineTo(X(t), S.yC(cnow));
     for(var wm2=mi; wm2>=0; wm2--){ ctx.lineTo(X(wm2), S.yC(baseS.cash[wm2])); }
     ctx.closePath();
-    ctx.fillStyle = dNow>=0 ? 'rgba(79,158,119,.30)' : 'rgba(178,90,94,.30)';
+    ctx.fillStyle = tRgba(dNow>=0 ? 'exp' : 'muted', .18);
     ctx.fill();
     ctx.save(); ctx.setLineDash([3,4]); ctx.beginPath();
     for(var wf=Math.ceil(t); wf<=H; wf++){ var wfx=X(wf); wf===Math.ceil(t)?ctx.moveTo(wfx,S.yC(expS.cash[wf])):ctx.lineTo(wfx,S.yC(expS.cash[wf])); }
     for(var wf2=H; wf2>=Math.ceil(t); wf2--) ctx.lineTo(X(wf2), S.yC(baseS.cash[wf2]));
     ctx.closePath();
-    ctx.fillStyle = dNow>=0 ? 'rgba(79,158,119,.12)' : 'rgba(178,90,94,.12)';
+    ctx.fillStyle = tRgba(dNow>=0 ? 'exp' : 'muted', .07);
     ctx.fill(); ctx.restore();
 
     ctx.beginPath();
     for(var c2=0; c2<=mi; c2++){ var cx=X(c2), cy=S.yC(expS.cash[c2]); c2?ctx.lineTo(cx,cy):ctx.moveTo(cx,cy); }
     ctx.lineTo(X(t), S.yC(cnow));
-    ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle=tRgba('exp',.95); ctx.lineWidth=2; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(X(t), S.yC(cnow));
     for(var c3=Math.ceil(t); c3<=H; c3++) ctx.lineTo(X(c3), S.yC(expS.cash[c3]));
-    ctx.strokeStyle='rgba(201,114,47,.4)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle=tRgba('exp',.4); ctx.lineWidth=2; ctx.stroke();
     ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
     for(var c4=0; c4<=H; c4++){ var bx=X(c4), by=S.yC(baseS.cash[c4]); c4?ctx.lineTo(bx,by):ctx.moveTo(bx,by); }
-    ctx.strokeStyle='rgba(90,143,214,.7)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.strokeStyle=tRgba('base',.75); ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, geo.L+8, geo.cashTop+2);
 
     /* --- the playhead: now --- */
     var px2 = X(t);
-    ctx.strokeStyle='rgba(226,233,236,.30)'; ctx.lineWidth=1;
+    ctx.strokeStyle=tRgba('exp',.35); ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(px2+0.5, geo.massTop); ctx.lineTo(px2+0.5, geo.cashBot); ctx.stroke();
     ctx.beginPath(); ctx.arc(px2, S.yA(lerpAt(expS.arr,t)), 3.5, 0, Math.PI*2);
-    ctx.fillStyle='#c9722f'; ctx.fill();
-    ctx.strokeStyle='#0b1013'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle=tRgba('exp',1); ctx.fill();
+    ctx.strokeStyle=THEME.panel; ctx.lineWidth=2; ctx.stroke();
 
     /* --- year labels --- */
-    ctx.fillStyle='#3d4952'; ctx.textAlign='center'; ctx.font='9.5px "JetBrains Mono",monospace';
+    ctx.fillStyle=THEME.ink4; ctx.textAlign='center'; ctx.font='9.5px '+THEME.font;
     for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.cashBot+13);
   }
 
@@ -1393,7 +1420,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var m = selectedMonth();
     var d = isD ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
     var bm = baseRes.months[m-1];
-    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    ctx.clearRect(0,0,W,HH); ctx.fillStyle=THEME.scene; ctx.fillRect(0,0,W,HH);
     beginFit(SYS.W, SYS.H);
 
     /* ---------- scales, declared ---------- */
@@ -1433,8 +1460,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     function dTone(v, warm, cool){ return (!isD || v>=0) ? warm : cool; }
     function dCaption(x,y,v){
       if(!isD) return;
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif';
-      ctx.fillStyle = Math.abs(v)<ZERO ? '#3d4952' : (v>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
+      ctx.textAlign='center'; ctx.font='8.5px '+THEME.font;
+      ctx.fillStyle = Math.abs(v)<ZERO ? THEME.ink4 : (v>0?tRgba('exp',.9):tRgba('muted',.9));
       ctx.fillText(Math.abs(v)<ZERO ? 'no change vs Base' : (v>0?'more than Base':'less than Base'), x, y);
     }
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
@@ -1453,37 +1480,37 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.closePath(); ctx.fill();
     }
     function cloud(x,y,label){
-      ctx.strokeStyle='#3d4952'; ctx.lineWidth=1.4; ctx.beginPath();
+      ctx.strokeStyle=THEME.ink4; ctx.lineWidth=1.4; ctx.beginPath();
       [[-20,0,13],[-2,-7,15],[16,0,13],[0,7,12]].forEach(function(c){ ctx.moveTo(x+c[0]+c[2],y+c[1]); ctx.arc(x+c[0],y+c[1],c[2],0,Math.PI*2); });
       ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+      ctx.textAlign='center'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
       ctx.fillText(label, x, y+34);
     }
     /* the SD valve: a bowtie astride the pipe. It is also the control. */
     function valve(x,y,label,value,key,chipDx,chipDy){
-      ctx.fillStyle='#131b20'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.6;
+      ctx.fillStyle=THEME.panel; ctx.strokeStyle=tRgba('exp',1); ctx.lineWidth=1.6;
       ctx.beginPath(); ctx.moveTo(x-13,y-11); ctx.lineTo(x+13,y+11); ctx.lineTo(x+13,y-11); ctx.lineTo(x-13,y+11);
       ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.textAlign='center'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink3;
       ctx.fillText(label, x, y-20);
-      ctx.font='10.5px "JetBrains Mono",monospace';
+      ctx.font='10.5px '+THEME.font;
       var moved = key && isD && expA[key]!==baseA[key];
-      ctx.fillStyle = moved ? '#c9722f' : (isD ? '#5d6c75' : '#c9722f');
+      ctx.fillStyle = moved ? tRgba('exp',1) : (isD ? THEME.ink3 : tRgba('exp',1));
       ctx.fillText(value, x, y+31);
       /* A valve setting is a setting, not a difference — so in delta it still reads
          its own value, but the Base it is being compared against is named, and a
          valve that did NOT move is dimmed so the one you changed stands out. */
       if(key && isD){
         var fm2 = (FORCES.filter(function(F){ return F.k===key; })[0]||{}).f || 'eur';
-        ctx.font='8.5px "Archivo",sans-serif';
-        ctx.fillStyle = moved ? 'rgba(90,143,214,.95)' : '#3d4952';
+        ctx.font='8.5px '+THEME.font;
+        ctx.fillStyle = moved ? tRgba('base',.95) : THEME.ink4;
         ctx.fillText(moved ? 'base '+fmtF(fm2, baseA[key]) : 'unchanged', x, y+43);
       }
       if(key){
         var sp=toScreen(x+(chipDx===undefined?-72:chipDx), y+(chipDy===undefined?44:chipDy));
         lawAnchors[key]={x:sp.x, y:sp.y};
         valveHits.push({key:key, x:x, y:y});
-        if(openChip===key){ ctx.strokeStyle='rgba(247,221,196,.9)'; ctx.lineWidth=1.4;
+        if(openChip===key){ ctx.strokeStyle=tRgba('exp',.9); ctx.lineWidth=1.4;
           ctx.beginPath(); ctx.arc(x,y,19,0,Math.PI*2); ctx.stroke(); }
       }
     }
@@ -1491,7 +1518,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        absence of a difference is legible as an absence, not as a thin flow. */
     function flatLine(x1,x2,y,v,vy1,vy2){
       if(!isD || Math.abs(v)>=ZERO) return;
-      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(61,73,82,.9)'; ctx.lineWidth=1;
+      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle=THEME.ink4; ctx.lineWidth=1;
       ctx.beginPath();
       if(vy1===undefined){ ctx.moveTo(x1,y); ctx.lineTo(x2,y); }
       else { ctx.moveTo(x1,vy1); ctx.lineTo(x1,vy2); }
@@ -1499,33 +1526,33 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
     function aux(x,y,w,label,value,tone){
       var h=38;
-      ctx.fillStyle='#0e1418'; ctx.strokeStyle=tone||'#22303a'; ctx.lineWidth=1.3;
+      ctx.fillStyle=THEME.panel; ctx.strokeStyle=tone||THEME.line; ctx.lineWidth=1.3;
       ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.textAlign='center'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
       ctx.fillText(label, x, y-3);
-      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+      ctx.font='11px '+THEME.font; ctx.fillStyle=THEME.ink;
       ctx.fillText(value, x, y+12);
     }
     function link(pts, label, absent){
       ctx.save(); ctx.setLineDash(absent?[3,4]:[4,4]); ctx.lineWidth=1.2;
-      ctx.strokeStyle = absent ? 'rgba(93,108,117,.7)' : 'rgba(90,143,214,.85)';
+      ctx.strokeStyle = absent ? tRgba('muted',.7) : tRgba('base',.85);
       ctx.beginPath(); pts.forEach(function(pt,i){ i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); });
       ctx.stroke(); ctx.restore();
       var e=pts[pts.length-1], q=pts[pts.length-2];
       if(absent){
-        ctx.strokeStyle='rgba(201,151,63,.95)'; ctx.lineWidth=1.5;
+        ctx.strokeStyle=THEME.ink3; ctx.lineWidth=1.5;
         ctx.beginPath(); ctx.arc(e[0],e[1],7,0,Math.PI*2); ctx.moveTo(e[0]-5,e[1]-5); ctx.lineTo(e[0]+5,e[1]+5); ctx.stroke();
       } else {
         var a=Math.atan2(e[1]-q[1], e[0]-q[0]);
-        ctx.fillStyle='rgba(90,143,214,.9)'; ctx.beginPath();
+        ctx.fillStyle=tRgba('base',.9); ctx.beginPath();
         ctx.moveTo(e[0],e[1]); ctx.lineTo(e[0]-8*Math.cos(a-0.4), e[1]-8*Math.sin(a-0.4));
         ctx.lineTo(e[0]-8*Math.cos(a+0.4), e[1]-8*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
       }
       if(label){
         var at = absent ? [e[0], e[1]] : pts[Math.floor(pts.length/2)];
         ctx.textAlign = absent ? 'left' : 'center';
-        ctx.font='8.5px "Archivo",sans-serif';
-        ctx.fillStyle = absent ? 'rgba(201,151,63,.95)' : 'rgba(90,143,214,.8)';
+        ctx.font='8.5px '+THEME.font;
+        ctx.fillStyle = absent ? THEME.ink3 : tRgba('base',.9);
         ctx.fillText(label, absent ? at[0]+13 : at[0], absent ? at[1]+3 : at[1]-7);
       }
     }
@@ -1540,7 +1567,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(isD){
       ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
       ctx.moveTo(ax, aZero); ctx.lineTo(ax+aw, aZero);
-      ctx.strokeStyle='rgba(93,108,117,.8)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+      ctx.strokeStyle=tRgba('muted',.8); ctx.lineWidth=1; ctx.stroke(); ctx.restore();
     }
     /* The strata are the stock — in BOTH modes. In delta each stratum is that
        vintage's own contribution to the difference, so you can see WHICH cohorts
@@ -1553,21 +1580,21 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(hgt>0){ y=aZero-accUp-hh; accUp+=hh; } else { y=aZero+accDn; accDn+=hh; }
       ctx.fillStyle=rgba(rampAt(c.acquisitionMonth/H), hgt>0?.92:.45);
       ctx.fillRect(ax+2, y, aw-4, hh);
-      ctx.strokeStyle='rgba(11,16,19,.5)'; ctx.lineWidth=0.7;
+      ctx.strokeStyle='rgba(255,255,255,.65)'; ctx.lineWidth=0.7;
       ctx.strokeRect(ax+2, y, aw-4, hh);
     });
-    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
+    ctx.strokeStyle=THEME.ink4; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
     if(!isD){ var bLvl = aBot - Math.min(1, bm.closingARR/arrMax)*aH;
       ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
       ctx.moveTo(ax-10,bLvl); ctx.lineTo(ax+aw+10,bLvl);
-      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
-    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+      ctx.strokeStyle=tRgba('base',.85); ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    else { ctx.textAlign='left'; ctx.font='8.5px '+THEME.font; ctx.fillStyle=tRgba('base',.95);
       ctx.fillText('Base = 0', ax+aw+8, aZero+3); }
-    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='11px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('STOCK · '+basis, ax+aw/2, aTop-24);
-    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.font='16px '+THEME.font; ctx.fillStyle=tRgba('exp',1);
     ctx.fillText(rn(d.closingARR), ax+aw/2, aTop-6);
-    if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+    if(!isD){ ctx.textAlign='right'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
       ctx.fillText(d.cohorts.length+' cohort vintages', ax-12, aBot+4); }
 
     /* ---------- CASH STOCK ---------- */
@@ -1584,65 +1611,65 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       cZero=cBot - (0-Math.min(0,cashLo))/cRange*cH;
       cLvlY=cBot - (d.cashClosing-Math.min(0,cashLo))/cRange*cH;
     }
-    ctx.fillStyle = d.cashClosing>=0 ? 'rgba(201,114,47,.5)' : 'rgba(59,74,85,.75)';
+    ctx.fillStyle = d.cashClosing>=0 ? tRgba('exp',.45) : tRgba('muted',.45);
     ctx.fillRect(cx+2, Math.min(cLvlY,cZero), cw-4, Math.abs(cZero-cLvlY));
-    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
+    ctx.strokeStyle=THEME.ink4; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
     ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(cx,cZero); ctx.lineTo(cx+cw,cZero);
-    ctx.strokeStyle='rgba(93,108,117,.7)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    ctx.strokeStyle=tRgba('muted',.7); ctx.lineWidth=1; ctx.stroke(); ctx.restore();
     if(!isD){ var bc=cBot-(bm.cashClosing-Math.min(0,cashLo))/cRange*cH;
       ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
       ctx.moveTo(cx-10,bc); ctx.lineTo(cx+cw+10,bc);
-      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
-    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+      ctx.strokeStyle=tRgba('base',.85); ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    else { ctx.textAlign='left'; ctx.font='8.5px '+THEME.font; ctx.fillStyle=tRgba('base',.95);
       ctx.fillText('Base = 0', cx+cw+8, cZero+3); }
-    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='11px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('STOCK · CASH', cx+cw/2, cTop-24);
-    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.font='16px '+THEME.font; ctx.fillStyle=tRgba('exp',1);
     ctx.fillText(n(d.cashClosing), cx+cw/2, cTop-6);
 
     /* ---------- INFLOWS ---------- */
     var yNew=150, yExp=360;
     cloud(80, yNew, 'market / acquisition opportunity');
-    pipeH(112, ax, yNew, pipeW(d.newARR), dTone(d.newARR,'rgba(201,114,47,.55)','rgba(93,108,117,.5)'));
+    pipeH(112, ax, yNew, pipeW(d.newARR), dTone(d.newARR,tRgba('exp',.5),tRgba('muted',.5)));
     flatLine(112, ax, yNew, d.newARR);
-    arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(201,114,47,.9)','rgba(93,108,117,.85)'));
+    arrow(ax-13, yNew, 'r', dTone(d.newARR,tRgba('exp',.9),tRgba('muted',.85)));
     valve(215, yNew, 'S&M per month', fmtF('eur', expA.sm), 'sm', -72, 44);
     valve(350, yNew, 'CAC per New ARR', fmtF('x', expA.cacPerARR), 'cacPerARR', -72, 44);
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('FLOW · New '+basis, 408, yNew-34);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.font='11px '+THEME.font; ctx.fillStyle=THEME.ink;
     ctx.fillText(rn(d.newARR), 408, yNew-18);
     dCaption(408, yNew-46, d.newARR);
-    ctx.font='8.5px "Archivo",sans-serif';
-    ctx.fillStyle = (expA.acqSaturationSpend>0) ? 'rgba(201,151,63,.95)' : '#3d4952';
+    ctx.font='8.5px '+THEME.font;
+    ctx.fillStyle = (expA.acqSaturationSpend>0) ? tRgba('exp',.95) : THEME.ink4;
     ctx.fillText(expA.acqSaturationSpend>0
       ? 'saturates · k='+eur(expA.acqSaturationSpend)+' · A_max='+eur(expRes.derived.acqAMax)
       : 'linear · unbounded (k off)', 282, yNew+58);
 
     cloud(80, yExp, 'existing customer demand / budget');
-    pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(247,221,196,.5)','rgba(93,108,117,.5)'));
+    pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,tRgba('pale',.85),tRgba('muted',.5)));
     flatLine(112, ax, yExp, d.expansion);
-    arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(247,221,196,.85)','rgba(93,108,117,.85)'));
+    arrow(ax-13, yExp, 'r', dTone(d.expansion,tRgba('base',.9),tRgba('muted',.85)));
     valve(350, yExp, 'expansion coefficient', fmtF('pct', expA.expansionCoefficientAnnual), 'expansionCoefficientAnnual', -72, 44);
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('FLOW · Expansion '+basis, 408, yExp-34);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.font='11px '+THEME.font; ctx.fillStyle=THEME.ink;
     ctx.fillText(rn(d.expansion), 408, yExp-18);
     dCaption(408, yExp-46, d.expansion);
 
     /* ---------- OUTFLOW ---------- */
     var xLeak=ax+aw/2;
-    pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,'rgba(59,74,85,.9)','rgba(143,160,170,.55)'));
+    pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,tRgba('muted',.9),tRgba('pale',.7)));
     flatLine(xLeak, xLeak, 0, d.leakage, aBot, 648);
-    arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(143,160,170,.9)'));
+    arrow(xLeak, 636, 'd', dTone(d.leakage,tRgba('muted',1),tRgba('pale',.9)));
     valve(xLeak, 580, 'persistence coefficient', fmtF('pct', expA.persistenceAnnual), 'persistenceAnnual', -216, -10);
     cloud(xLeak, 690, 'leaves the system');
-    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='left'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('FLOW · Leakage '+basis, xLeak+62, 548);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.font='11px '+THEME.font; ctx.fillStyle=THEME.ink;
     ctx.fillText(rn(d.leakage), xLeak+62, 564);
-    if(isD){ ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif';
-      ctx.fillStyle = Math.abs(d.leakage)<ZERO ? '#3d4952' : (d.leakage>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
+    if(isD){ ctx.textAlign='left'; ctx.font='8.5px '+THEME.font;
+      ctx.fillStyle = Math.abs(d.leakage)<ZERO ? THEME.ink4 : (d.leakage>0?tRgba('exp',.9):tRgba('muted',.9));
       ctx.fillText(Math.abs(d.leakage)<ZERO ? 'no change vs Base' : (d.leakage>0?'more leaks than Base':'less leaks than Base'), xLeak+62, 578); }
 
     /* ---------- ARR → economics → cash ---------- */
@@ -1650,12 +1677,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     valve(760, 218, 'gross margin', fmtF('pct', expA.grossMargin), 'grossMargin', -238, -10);
     aux(760, 292, 150, 'Gross profit', n(d.grossProfit));
     aux(760, 408, 150, 'Other operating', n(d.otherOpex));
-    aux(905, 330, 120, 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
+    aux(905, 330, 120, 'FCF', n(d.fcf), d.fcf>=0?tRgba('exp',1):THEME.ink4);
     var fcfW = (isD && Math.abs(d.fcf)<ZERO) ? 0 : Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26));
-    pipeH(965, cx, 330, fcfW, d.fcf>=0?'rgba(79,158,119,.6)':'rgba(201,151,63,.6)');
+    pipeH(965, cx, 330, fcfW, d.fcf>=0?tRgba('exp',.55):tRgba('muted',.55));
     flatLine(965, cx, 330, d.fcf);
-    arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,158,119,1)':'rgba(201,151,63,1)');
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    arrow(cx-13, 330, 'r', d.fcf>=0?tRgba('exp',1):tRgba('muted',1));
+    ctx.textAlign='center'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('FLOW · FCF', 993, 300);
 
     /* ---------- INFORMATION LINKS: the stock sets its own future rates ---------- */
@@ -1675,10 +1702,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     link([[700,428],[700,616],[652,616]], 'R&D → retention or expansion', true);
 
     /* ---------- header and scales ---------- */
-    ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.textAlign='left'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink4;
     ctx.fillText((isD?'SYSTEM · DELTA — Experiment − Base':'SYSTEM · stock and flow')+'   ·   month '+m, 30, 26);
     if(isD && flowsAllFlat && !noExperiment){
-      ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#c9973f'; ctx.textAlign='right';
+      ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink2; ctx.textAlign='right';
       ctx.fillText('Every ARR flow is identical to Base at every month — this change does not touch ARR physics. The whole effect is downstream, in cash.', SYS.W-30, 26);
       ctx.textAlign='left';
     }
@@ -1687,30 +1714,30 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        but an empty diagram cannot say so, and the Forces rail is hidden on this
        layer, so the way out has to be stated here, on the valves themselves. */
     if(isD && noExperiment){
-      ctx.fillStyle='rgba(11,16,19,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
+      ctx.fillStyle='rgba(244,246,249,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
       valveHits.forEach(function(v){
-        ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=1.6;
+        ctx.strokeStyle=tRgba('exp',.95); ctx.lineWidth=1.6;
         ctx.beginPath(); ctx.arc(v.x, v.y, 23, 0, Math.PI*2); ctx.stroke();
       });
       var bw=680, bh=132, bx=(SYS.W-bw)/2, by=396;   /* the one band clear of every valve */
-      ctx.fillStyle='#0e1418'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.4;
+      ctx.fillStyle=THEME.panel; ctx.strokeStyle=tRgba('exp',1); ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke();
       ctx.textAlign='center';
-      ctx.font='15px "Archivo",sans-serif'; ctx.fillStyle='#e2e9ec';
+      ctx.font='15px '+THEME.font; ctx.fillStyle=THEME.ink;
       ctx.fillText('Delta is empty because no experiment is set.', SYS.W/2, by+38);
-      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.font='11.5px '+THEME.font; ctx.fillStyle=THEME.ink2;
       ctx.fillText('This view draws Experiment − Base. Right now they are the same run, so every stock and every', SYS.W/2, by+64);
       ctx.fillText('flow is exactly zero. Nothing is broken — there is simply no difference to draw yet.', SYS.W/2, by+81);
-      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#c9722f';
+      ctx.font='11.5px '+THEME.font; ctx.fillStyle=tRgba('exp',1);
       ctx.fillText('Click any circled valve to move an assumption — or switch Compare to Absolute.', SYS.W/2, by+108);
       ctx.textAlign='left';
     }
-    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+    ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText('Rectangles accumulate. Pipes fill and drain them. Bowties are the valves you set. Clouds are the model boundary. '+
-                 'Dashed blue arrows are information: the stock setting the rate of its own future flows.', 30, 42);
-    ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+                 'Dashed indigo arrows are information: the stock setting the rate of its own future flows.', 30, 42);
+    ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
     ctx.fillText('SCALES  stock level ∝ € of '+basis+' and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
-    ctx.fillStyle='rgba(201,151,63,.95)';
+    ctx.fillStyle=THEME.ink3;
     ctx.fillText('⊘ marks a link the engine does not model. An absent feedback is a finding, not an omission in the drawing.', 30, SYS.H-30);
     endFit(); positionLawChips();
   }
@@ -1762,14 +1789,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var sym = Math.max(1, Math.max.apply(null, capAgg.map(function(a){return a.out;})),
                             Math.max.apply(null, capAgg.map(function(a){return a.surplus;})));
       lo = -sym; hi = sym;
-      col = [201,150,110];
+      col = THEME.exp.slice();
       label = 'CAPITAL · whole portfolio';
     }
     var span = (hi-lo)||1;
     function yC2(v){ return geo.capBot - ((v-lo)/span)*(geo.capBot-geo.capTop); }
     var y0 = yC2(0), dark=[col[0]*0.36, col[1]*0.36, col[2]*0.42];
 
-    ctx.strokeStyle='#22303a'; ctx.lineWidth=1;
+    ctx.strokeStyle=THEME.zero; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
 
     if(subj){
@@ -1810,12 +1837,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
         ctx.moveTo(X(bcap.acquisitionMonth), yC2(-bcap.acquisitionCost));
         bcap.series.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
-        ctx.strokeStyle='rgba(90,143,214,.8)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+        ctx.strokeStyle=tRgba('base',.8); ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
         if(bcap.paybackMonth!==null && bcap.paybackMonth!==subj.paybackMonth){
           var bx=X(bcap.paybackMonth);
           ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
           ctx.moveTo(bx, geo.capTop+2); ctx.lineTo(bx, geo.capBot);
-          ctx.strokeStyle='rgba(90,143,214,.55)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+          ctx.strokeStyle=tRgba('base',.55); ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
         }
       }
       /* §2 — ONE payback sentence, not two independently positioned labels
@@ -1824,14 +1851,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var pxp=X(subj.paybackMonth), reached=subj.paybackMonth<=t;
         ctx.save(); if(!reached) ctx.setLineDash([3,3]);
         ctx.beginPath(); ctx.moveTo(pxp, geo.capTop+2); ctx.lineTo(pxp, geo.capBot);
-        ctx.strokeStyle= reached ? 'rgba(247,221,196,.8)' : 'rgba(247,221,196,.28)';
+        ctx.strokeStyle= reached ? tRgba('exp',.8) : tRgba('exp',.28);
         ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
         var paybackLabel = 'PAYBACK · age '+subj.paybackAge;
         if(bcap && bcap.paybackMonth!==null) paybackLabel += bcap.paybackMonth===subj.paybackMonth ?
           '  (Base: same)' : '  ·  Base age '+bcap.paybackAge;
         else if(bcap && bcap.paybackMonth===null) paybackLabel += '  ·  Base: not reached';
-        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
-        ctx.fillStyle= reached ? '#f7ddc4' : '#5d6c75';
+        ctx.textAlign='left'; ctx.font='9.5px '+THEME.font;
+        ctx.fillStyle= reached ? tRgba('exp',1) : THEME.ink3;
         ctx.fillText(paybackLabel, pxp+6, geo.capTop+24);
         if(j<=t){   /* the span that IS the payback time */
           var yb=geo.capBot-5;
@@ -1841,7 +1868,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           ctx.moveTo(pxp,yb-3); ctx.lineTo(pxp,yb+3); ctx.stroke();
         }
       }
-      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.textAlign='left'; ctx.fillStyle=THEME.ink3; ctx.font='9.5px '+THEME.font;
       ctx.fillText(label+'   deployed '+eur(subj.acquisitionCost)+
         (bcap && bcap.acquisitionCost!==null && bcap.acquisitionCost!==subj.acquisitionCost ? '   (base '+eur(bcap.acquisitionCost)+')' : ''),
         geo.L+8, geo.capTop+11);
@@ -1859,13 +1886,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.strokeStyle=rgba(dark,1); ctx.lineWidth=1.5; ctx.stroke();
       ctx.beginPath(); for(var m5=mi;m5<=H;m5++){ var gx=X(m5); m5===mi?ctx.moveTo(gx,yC2(capAgg[m5].surplus)):ctx.lineTo(gx,yC2(capAgg[m5].surplus)); }
       ctx.strokeStyle=rgba(col,.75); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
-      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.textAlign='left'; ctx.fillStyle=THEME.ink3; ctx.font='9.5px '+THEME.font;
       ctx.fillText(label, geo.L+8, geo.capTop+11);
       ctx.fillStyle=rgba(col,.85);
       ctx.fillText('beyond cost  '+eur(capAgg[mi].surplus), geo.L+8, y0-7);
       ctx.fillStyle=rgba([col[0]*0.72,col[1]*0.72,col[2]*0.78],1);
       ctx.fillText('still out  '+eur(capAgg[mi].out), geo.L+8, y0+15);
-      ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+      ctx.textAlign='right'; ctx.fillStyle=THEME.ink4;
       ctx.fillText('click a stratum to follow one cohort from deployment to payback', W-geo.R-6, geo.capTop+11);
     }
   }
@@ -1993,12 +2020,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       running -= mm.expansionCost;
       steps.push({ label:'− Expansion cost', from:running, to:running+mm.expansionCost, bal:mm.expansionCost, tone:'var(--leak)', op:'−' });
       steps.push({ label:'= EBITA', from:0, to:running, bal:running,
-                   tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
+                   tone: running>=0?'var(--exp)':'var(--indigo-400)', op:'=' });
       running += mm.deltaDeferred;
       steps.push({ label:'+ Δ deferred (billings − revenue)', from:running-mm.deltaDeferred, to:running, bal:mm.deltaDeferred,
-                   tone: mm.deltaDeferred>=0?'var(--good)':'var(--warn)', op:'+' });
+                   tone: mm.deltaDeferred>=0?'var(--indigo-500)':'var(--indigo-300)', op:'+' });
       steps.push({ label:'= FCF', from:0, to:running, bal:running,
-                   tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
+                   tone: running>=0?'var(--exp)':'var(--indigo-400)', op:'=' });
       return steps;
     }
     var expSteps = stepsFor(em), baseSteps = stepsFor(bm);
@@ -2025,7 +2052,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var left = 50 + (lo/scale)*50, w = Math.max(0.4, ((hi-lo)/scale)*50);
       var br = baseSteps[i], blo = Math.min(br.from, br.to), bhi = Math.max(br.from, br.to);
       var bleft = 50 + ((blo+bhi)/2/scale)*50;
-      var figColor = r.op==='−' ? 'var(--ink-2)' : (r.bal<0?'var(--warn)':'var(--ink)');
+      var figColor = r.op==='−' ? 'var(--ink-2)' : 'var(--ink)';
       var figText = (r.op==='−' ? '\u2212' : '') + eur(Math.abs(r.bal));
       return '<div class="crow wf"><span class="cl">'+esc(r.label)+'</span>'+
         '<span class="cbar wfbar"><i style="left:'+Math.max(0,left).toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+r.tone+'"></i>'+
@@ -2376,8 +2403,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span>R12M GRR</span><b>'+pct(kb2.grr,4)+' · '+pct(kx2.grr,4)+'</b>'+
         '<span>R12M expansion</span><b>'+pct(kb2.expansionRate,4)+' · '+pct(kx2.expansionRate,4)+'</b>'+
         '<span>R12M NRR</span><b>'+pct(kb2.nrr,4)+' · '+pct(kx2.nrr,4)+'</b>'+
-        '<span>law set</span><b style="color:var(--good)">identical</b>'+
-        '<span>cohort age at M12</span><b style="color:var(--warn)">36 vs 12 months</b>'+
+        '<span>law set</span><b style="color:var(--indigo-700)">identical</b>'+
+        '<span>cohort age at M12</span><b>36 vs 12 months</b>'+
         '</div><div class="hint" style="margin-top:8px">Every reported metric agrees. Only the hidden age composition differs.</div></div>'+
         '<div class="sgrp"><div class="eyebrow">Forward installed-base contribution</div><div class="recon" style="margin-top:5px">'+
         '<span>Gross profit, M13–M60</span><b>'+eur(fb)+' · '+eur(fx)+'</b>'+
