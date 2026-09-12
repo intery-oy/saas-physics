@@ -110,6 +110,8 @@ Four actions: **Observe → Change → Compare → Inspect**.
 | **Appendix** | Month × KPI table of the current run (the former Notebook), with a compact M(t−1) → flows → M(t) month audit. Companion to System — does not replace Method, System, or Scenarios 5 & 6. |
 | **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
 
+Ordered chips under the header walk **Frame → Sc 5 (capital ≠ ARR) → Company → Sc 6 / Cohorts → System → Appendix → Close**. Deep-links `#guide/sc5` and `#guide/sc6`. Identity chips stay `Default|A|B` · `M##` · scenario · `Base|Exp`. Close is a short list of existing-bound sensitivities and data-room asks.
+
 A global **MRR ⇄ ARR** switch (default MRR) sets the reporting basis for every recurring-revenue
 stock and movement — the stock itself, New/Expansion/Leakage, cohort original/current values —
 consistently across the surfaces, and persists as you move between them. It never touches

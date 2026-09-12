@@ -47,7 +47,7 @@ button,input{font:inherit;color:inherit}
 ::-webkit-scrollbar-track{background:transparent}
 
 /* ---------- shell ---------- */
-.app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;transition:grid-template-columns .2s}
+.app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto auto minmax(0,1fr) auto;height:100vh;transition:grid-template-columns .2s}
 .app.flow{grid-template-columns:0 minmax(0,1fr) 320px}
 .app.flow .rail{opacity:0;pointer-events:none;overflow:hidden}
 .lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
@@ -89,6 +89,20 @@ button,input{font:inherit;color:inherit}
 .recon span{color:var(--ink-3)} .recon b{font-family:var(--mono);font-weight:500}
 .recon .tot{color:var(--ink);border-top:1px solid var(--line);padding-top:3px}
 .head{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.guidebar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:4px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.guidesteps{display:flex;align-items:center;gap:2px;padding:2px;background:var(--sunk);border:1px solid var(--line);border-radius:var(--radius);flex-wrap:wrap}
+.gstep{background:transparent;border:0;border-radius:3px;padding:4px 8px;font-size:10.5px;font-weight:500;color:var(--ink-3);cursor:pointer;font-family:var(--mono);letter-spacing:.01em;white-space:nowrap}
+.gstep:hover{color:var(--ink)}
+.gstep.on{background:var(--indigo-50);color:var(--indigo-800)}
+.gstep .n{color:var(--ink-4);margin-right:4px}
+.gstep.on .n{color:var(--indigo-500)}
+.guide-note{font-size:10.5px;color:var(--ink-3);line-height:1.4;max-width:72ch}
+.closestrip{grid-column:1/-1;display:flex;gap:32px;padding:8px 16px 10px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.closestrip[hidden]{display:none!important}
+.closestrip .col{min-width:220px;flex:1 1 280px}
+.closestrip ul{margin:5px 0 0;padding-left:16px;font-size:11px;color:var(--ink-2);line-height:1.55}
+.closestrip li{margin-bottom:2px}
+.closestrip b{color:var(--ink);font-weight:500}
 .head h1{margin:0;font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.01em;color:var(--indigo-800)}
 .head h1::before{content:"";display:inline-block;width:7px;height:7px;background:var(--indigo-700);border-radius:1px;margin-right:8px;vertical-align:middle}
 .head .sub{font-size:11px;color:var(--ink-3);font-style:normal;font-family:var(--ui)}
@@ -313,6 +327,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
     <button class="btn" id="keybtn">Method</button>
   </header>
+  <nav class="guidebar" id="guidebar" aria-label="Session path">
+    <div class="guidesteps" id="guidesteps"></div>
+    <span class="guide-note" id="guide-note"></span>
+  </nav>
 
   <aside class="rail">
     <div class="grp" id="experiment-summary"></div>
@@ -467,6 +485,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
             <li><b>Cohorts</b> \u2014 composition + vintage reading + age toggle. Which vintage carries or leaks the book, and whether blended NRR conceals variation. Not a triangle and not a hero retention number.</li>
             <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run, with a compact M(t−1) → flows → M(t) month audit. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
+            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (capital ≠ ARR) → Company → Sc 6 / Cohorts → System → Appendix → Close. Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
           </ul>
         </div>
       </div>
@@ -475,6 +494,30 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   </main>
 
   <aside class="side" id="side"></aside>
+
+  <div class="closestrip" id="closestrip" hidden>
+    <div class="col">
+      <span class="eyebrow">Sensitivities</span>
+      <ul>
+        <li><b>Saturation spend</b> — New ARR is linear in S&amp;M at Default.</li>
+        <li><b>Expansion CAC</b> — expansion ARR is unpriced at Default.</li>
+        <li><b>Cash reserve</b> — S&amp;M is unconstrained at Default.</li>
+        <li><b>Prepaid term</b> — FCF is the EBITA-based cash proxy at Default.</li>
+        <li><b>Tenure mix</b> — age is a no-op under flat laws; Vintage reading is the null-check.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <span class="eyebrow">Data-room</span>
+      <ul>
+        <li>Vintage mix / age of the book (seeded opening ≠ births).</li>
+        <li>CAC and S&amp;M separately — not only New ARR.</li>
+        <li>Whether expansion is priced.</li>
+        <li>Whether cash constrains spend.</li>
+        <li>Prepaid / deferred if FCF is used as cash.</li>
+        <li>Logo vs contraction split if customer counts are claimed.</li>
+      </ul>
+    </div>
+  </div>
 
   <div class="transport">
     <button class="tbtn play" id="play" aria-label="Play or pause"></button>
@@ -2765,6 +2808,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var cohortsMode = 'composition';          /* composition | age */
   var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
   var lastMsg = null;
+  var guideStep = 'frame';                 /* ordered chips — not a second product mode */
 
   /* ---------- formatting ---------- */
   function eur(v){ var a=Math.abs(v);
@@ -4619,15 +4663,114 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var j = document.getElementById('co-scen6');
     if(j) j.addEventListener('click', function(){ jumpScenario6(); });
   }
+  function scenarioById(id){
+    for(var i=0;i<SCENARIOS.length;i++) if(SCENARIOS[i].id===id) return SCENARIOS[i];
+    return null;
+  }
+  function jumpScenario5(){
+    var sc = scenarioById('pair');
+    if(!sc) return;
+    applyScenario(sc);
+    setLayer('scen');
+  }
   function jumpScenario6(){
-    var sc = null;
-    for(var i=0;i<SCENARIOS.length;i++) if(SCENARIOS[i].id==='history') sc = SCENARIOS[i];
+    var sc = scenarioById('history');
     if(!sc) return;
     applyScenario(sc);
     cohortsUserPicked = true;
     cohortsWorld = 'experiment';
     cohortsMode = 'age';
     setLayer('cohorts');
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Ordered chips — Frame → Sc5 → Company → Sc6/Cohorts → System →
+   * Appendix → Close. Surface/IA only. Identity chips stay the source
+   * of world / month / scenario / reading.
+   * ------------------------------------------------------------------ */
+  var GUIDE = [
+    { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history.' },
+    { id:'sc5',      n:2, label:'Sc5 · Capital≠ARR', note:'Same New ARR · different capital. A = efficiency, B = spend.' },
+    { id:'company',  n:3, label:'Company',          note:'State at selected month. Closing stock ≠ annualized midpoint revenue.' },
+    { id:'sc6',      n:4, label:'Sc6 / Cohorts',     note:'Same headline KPIs · different vintage mix. Age profile when tenure is live; null-check when flat.' },
+    { id:'system',   n:5, label:'System',           note:'Valves: annual input → monthly applied → measured. Unmodeled links named.' },
+    { id:'appendix', n:6, label:'Appendix',         note:'Selected-month audit · M(t−1) → flows → M(t).' },
+    { id:'close',    n:7, label:'Close',            note:'Sensitivities and data-room asks from existing bounds — no new coefficient.' }
+  ];
+  var GUIDE_ALIAS = { pair:'sc5', 5:'sc5', history:'sc6', cohorts:'sc6', 6:'sc6', notebook:'appendix' };
+  function guideIdFromHash(){
+    var h = (location.hash||'').replace(/^#/, '');
+    var m = /^guide\/([a-z0-9]+)$/i.exec(h);
+    if(!m) return null;
+    var raw = m[1].toLowerCase();
+    return GUIDE_ALIAS[raw] || raw;
+  }
+  function writeGuideHash(id){
+    var next = '#guide/'+id;
+    if((location.hash||'')===next) return;
+    if(history.replaceState) history.replaceState(null, '', next);
+    else location.hash = 'guide/'+id;
+  }
+  function clearGuideHash(){
+    if((location.hash||'').indexOf('#guide/')!==0) return;
+    if(history.replaceState) history.replaceState(null, '', location.pathname+location.search);
+    else location.hash = '';
+  }
+  function syncGuide(){
+    [].forEach.call(document.querySelectorAll('#guidesteps .gstep'), function(b){
+      b.classList.toggle('on', b.dataset.id===guideStep);
+    });
+    var step = null;
+    for(var i=0;i<GUIDE.length;i++) if(GUIDE[i].id===guideStep) step = GUIDE[i];
+    var note = document.getElementById('guide-note');
+    if(note) note.textContent = step ? step.note : '';
+    var strip = document.getElementById('closestrip');
+    if(strip) strip.hidden = guideStep!=='close';
+  }
+  function goGuide(id, fromHash){
+    var resolved = GUIDE_ALIAS[id] || id;
+    var step = null;
+    for(var i=0;i<GUIDE.length;i++) if(GUIDE[i].id===resolved) step = GUIDE[i];
+    if(!step) return;
+    guideStep = resolved;
+    if(resolved==='frame'){
+      resetAll();
+      setLayer('stock');
+    } else if(resolved==='sc5'){
+      jumpScenario5();
+    } else if(resolved==='company'){
+      if(!activeScenario || activeScenario.id!=='pair') applyScenario(scenarioById('pair'));
+      setLayer('stock');
+    } else if(resolved==='sc6'){
+      jumpScenario6();
+    } else if(resolved==='system'){
+      if(!activeScenario || activeScenario.id!=='history') applyScenario(scenarioById('history'));
+      setLayer('flow');
+    } else if(resolved==='appendix' || resolved==='close'){
+      if(!activeScenario) applyScenario(scenarioById('history'));
+      setLayer('notebook');
+    }
+    syncGuide();
+    if(!fromHash) writeGuideHash(resolved);
+  }
+  function buildGuide(){
+    var host = document.getElementById('guidesteps');
+    if(!host) return;
+    host.innerHTML = '';
+    GUIDE.forEach(function(g){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gstep';
+      b.dataset.id = g.id;
+      b.title = g.note;
+      b.innerHTML = '<span class="n">'+g.n+'</span>'+esc(g.label);
+      b.addEventListener('click', function(){ goGuide(g.id); });
+      host.appendChild(b);
+    });
+    window.addEventListener('hashchange', function(){
+      var id = guideIdFromHash();
+      if(id) goGuide(id, true);
+    });
   }
   function drawCohorts(){
     if(!coW) resizeCohorts();
@@ -5422,7 +5565,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(calOut){ calOut.className='cal-out'; calOut.textContent=''; }
     resize(); recompute(); render();
   }
-  document.getElementById('reset').addEventListener('click', resetAll);
+  document.getElementById('reset').addEventListener('click', function(){
+    resetAll();
+    guideStep = 'frame';
+    syncGuide();
+    clearGuideHash();
+  });
   window.addEventListener('resize', function(){ resize(); if(layer==='cohorts') resizeCohorts(); });
 
   /* ---------- loop ---------- */
@@ -5439,7 +5587,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     requestAnimationFrame(frame);
   }
 
-  buildOpening(); buildForces(); buildTenure(); buildCalibrate(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  buildOpening(); buildForces(); buildTenure(); buildCalibrate(); buildScenarios(); buildLawChips(); buildGuide(); playIcon(); resize(); recompute(); syncTime();
+  var bootGuide = guideIdFromHash();
+  if(bootGuide) goGuide(bootGuide, true);
+  else syncGuide();
   requestAnimationFrame(frame);
 
   /* Acceptance-test hook only — read-only getters onto the closured state, so
@@ -5462,7 +5613,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     writeBand: writeBand,
     displayedBands: displayedBands,
     NB: NB,
-    get notebookWorld(){ return notebookWorld; }
+    get notebookWorld(){ return notebookWorld; },
+    get guideStep(){ return guideStep; },
+    goGuide: goGuide
   };
 })();
 </script>
