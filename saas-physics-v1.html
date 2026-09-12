@@ -112,6 +112,10 @@ button,input{font:inherit;color:inherit}
 .cockpit-live{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
 .cockpit-live b{color:var(--ink);font-weight:500}
 .cockpit-links{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.diligence{flex:1 1 300px;min-width:240px}
+.orig-bar{height:10px;position:relative;background:var(--line-soft);border-radius:1px;overflow:hidden;margin:7px 0 8px}
+.orig-bar i{position:absolute;top:0;bottom:0;border-radius:1px}
+.cap-path{display:block;width:100%;height:36px;margin-top:8px}
 .sc5proof{border-bottom:1px solid var(--line);background:var(--panel);padding:10px 18px 12px}
 .sc5proof[hidden]{display:none!important}
 .sc5proof-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
@@ -504,11 +508,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           <h5>What each visual earns its place by</h5>
           <ul>
             <li><b>Cohort strata</b> \u2014 the historical composition and provenance of today\u2019s recurring state.</li>
-            <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
+            <li><b>GP by origin</b> \u2014 this month&rsquo;s gross profit by opening base / earlier acquisitions / born this month (<span style="font-family:var(--mono);font-size:11px">capital.js gpByVintage</span>). Company side; compact on System and Close.</li>
+            <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number. Portfolio outstanding is a Company / Close stock-flow, not a tile wall.</li>
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
             <li><b>Cohorts</b> \u2014 lands on age (null-check when tenure is flat; mechanism when live). Vintage reading is the carry·leak strip. Composition is provenance, not the hero. Not a triangle and not a blended retention number.</li>
             <li><b>Appendix</b> \u2014 a month \u00d7 KPI table of the current run, with a compact M(t−1) → flows → M(t) month audit. Companion to System; does not replace Method, System, or Scenarios 5 &amp; 6.</li>
-            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
+            <li><b>Ordered chips</b> \u2014 Frame → Sc 5 (Capital ≠ ARR ledger) → Company (GP by origin + capital still out) → Sc 6 / Cohorts → System → Appendix → Close (binding-driver cockpit + GP/capital). Deep-link <span style="font-family:var(--mono);font-size:11px">#guide/sc5</span> and <span style="font-family:var(--mono);font-size:11px">#guide/sc6</span>. Identity chips stay Default|A|B · M## · scenario · Base|Exp.</li>
           </ul>
         </div>
       </div>
@@ -526,8 +531,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <div class="cockpit-links">
         <button type="button" class="btn" id="cockpit-company">Company trajectory</button>
         <button type="button" class="btn" id="cockpit-system">System bind</button>
+        <button type="button" class="btn" id="cockpit-capital">GP / capital</button>
       </div>
     </div>
+    <div class="col diligence" id="close-diligence"></div>
     <div class="col">
       <span class="eyebrow">Data-room</span>
       <ul>
@@ -3035,6 +3042,121 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   /* ------------------------------------------------------------------ *
+   * B3 — GP by origin / capital recovery.
+   * First-class reading of quantities capital.js already computes.
+   * Stock-flow, not a KPI tile wall. No new coefficients.
+   * ------------------------------------------------------------------ */
+  function originSegments(g){
+    return [
+      { label:'Opening base', v:g.fromOpeningBase, c:rampAt(0) },
+      { label:'Earlier acquisitions', v:g.fromEarlierAcquisitions, c:rampAt(0.45) },
+      { label:'This month', v:g.fromCohortAcquiredThisMonth, c:rampAt(1) }
+    ];
+  }
+  function outstandingPathSVG(m){
+    if(!capAgg) return '';
+    var w=280, h=36, pad=2, max=1, t, pts=[], x, y, px;
+    for(t=0;t<capAgg.length;t++) if(capAgg[t].out>max) max=capAgg[t].out;
+    for(t=0;t<=H;t++){
+      x = pad + (t/H)*(w-2*pad);
+      y = h-pad - ((capAgg[t]?capAgg[t].out:0)/max)*(h-2*pad);
+      pts.push(x.toFixed(1)+','+y.toFixed(1));
+    }
+    px = pad + (m/H)*(w-2*pad);
+    return '<svg class="cap-path" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+
+      '<polyline fill="none" stroke="var(--indigo-700)" stroke-width="1.4" points="'+pts.join(' ')+'"></polyline>'+
+      '<line x1="'+px.toFixed(1)+'" y1="'+pad+'" x2="'+px.toFixed(1)+'" y2="'+(h-pad)+'" stroke="var(--indigo-400)" stroke-width="1"></line>'+
+      '</svg>';
+  }
+  function gpOriginBody(res, m, compact){
+    if(m<1){
+      return '<div class="eyebrow">GP by origin · this month</div>'+
+        '<div class="hint" style="margin-top:6px">M0 is the opening snapshot — no period GP yet.</div>';
+    }
+    var g = CAP.gpByVintage(res, m);
+    var em = res.months[m-1];
+    var segs = originSegments(g);
+    var installed = g.fromOpeningBase + g.fromEarlierAcquisitions;
+    var instShare = g.total>0 ? installed/g.total : 0;
+    var newShare = g.total>0 ? g.fromCohortAcquiredThisMonth/g.total : 0;
+    var off=0;
+    var bar = segs.map(function(s){
+      var w = g.total>0 ? (s.v/g.total)*100 : 0;
+      var html = '<i style="left:'+off.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+rgba(s.c,.95)+'"></i>';
+      off += w;
+      return html;
+    }).join('');
+    var rows = segs.map(function(s){
+      return '<div class="brow"><span style="color:var(--ink-3)">'+esc(s.label)+'</span>'+
+        '<span class="bb"><i style="width:'+(g.total>0?s.v/g.total*100:0).toFixed(2)+'%;background:'+rgba(s.c,.95)+'"></i></span>'+
+        '<span class="bv">'+eur(s.v)+(g.total>0?' · '+pct(s.v/g.total,1):'')+'</span></div>';
+    }).join('');
+    var resid = eurK(g.total) - eurK(em.grossProfit);
+    return '<div class="eyebrow">GP by origin · this month</div>'+
+      '<div class="hint" style="margin-top:5px;line-height:1.5">Installed base '+pct(instShare,1)+
+        ' · born this month '+pct(newShare,1)+'.</div>'+
+      '<div class="orig-bar">'+bar+'</div>'+
+      '<div class="bridge">'+rows+
+        '<div class="brow" style="margin-top:2px"><span style="color:var(--ink)">This month GP</span><span></span>'+
+        '<span class="bv" style="color:var(--exp)">'+eur(g.total)+'</span></div></div>'+
+      (compact ? '' :
+        '<div class="hint" style="margin-top:7px;line-height:1.55">'+
+        'capital.js <code>gpByVintage</code>. Under one GM this is the ARR mix × GM/12. '+
+        (resid ? 'Display residual '+resid+'k vs engine GP.' : 'Foots to engine GP at displayed €k.')+
+        '</div>');
+  }
+  function capitalRecoveryBody(res, m, compact){
+    var p = CAP.portfolioCapital(res, m);
+    var mx = Math.max(p.deployed, 1);
+    function bar(v, color){
+      return '<span class="bb"><i style="width:'+(v/mx*100).toFixed(2)+'%;background:'+color+'"></i></span>';
+    }
+    var formula = res.derived.cacPaybackMonths;
+    var openingUnknown = false;
+    for(var i=0;i<res.cohorts.length;i++) if(res.cohorts[i].acquisitionCost===null){ openingUnknown=true; break; }
+    var pinLine = '';
+    if(pinned!==null && res.cohorts[pinned] && res.cohorts[pinned].acquisitionCost!==null){
+      var cc = CAP.cohortCapital(res, pinned);
+      if(cc){
+        pinLine = cc.paybackMonth!==null
+          ? ' Pinned M'+cc.acquisitionMonth+': crossing M'+cc.paybackMonth+' · age '+cc.paybackAge+'.'
+          : ' Pinned M'+cc.acquisitionMonth+': no crossing in 60 months.';
+      }
+    }
+    var dep = CAP.deployedSeries(res);
+    var depResid = m>=1 ? eurK(p.deployed) - eurK(dep[m]) : 0;
+    return '<div class="eyebrow">Capital recovery · portfolio</div>'+
+      '<div class="bridge" style="margin-top:6px">'+
+        '<div class="brow"><span style="color:var(--ink-3)">Deployed</span>'+bar(p.deployed,'var(--indigo-200)')+
+          '<span class="bv">'+eur(p.deployed)+'</span></div>'+
+        '<div class="brow"><span style="color:var(--ink-3)">Recovered</span>'+bar(p.recovered,'var(--indigo-500)')+
+          '<span class="bv">'+eur(p.recovered)+(p.deployed?' · '+pct(p.recoveredShare,1):'')+'</span></div>'+
+        '<div class="brow"><span style="color:var(--ink)">Outstanding</span>'+bar(p.outstanding,'var(--indigo-800)')+
+          '<span class="bv" style="color:var(--exp)">'+eur(p.outstanding)+'</span></div>'+
+      '</div>'+
+      (compact ? '' : outstandingPathSVG(m))+
+      '<div class="hint" style="margin-top:7px;line-height:1.55">'+
+        p.counts.prePayback+' vintages still out · '+p.counts.paidBack+' paid back. '+
+        'Formula crossing '+formula.toFixed(1)+' mo (Appendix CAC payback).'+
+        (openingUnknown?' Opening base cost is unknown, not zero.':'')+
+        (depResid?' Deployed residual '+depResid+'k vs cumulative S&amp;M.':'')+
+        pinLine+
+        (compact?'':' capital.js <code>portfolioCapital</code> — unrecovered = max(cost − cumGP, 0).')+
+      '</div>';
+  }
+  function gpOriginPanel(res, m){
+    return '<div class="sgrp" id="gp-origin">'+gpOriginBody(res, m, false)+'</div>';
+  }
+  function capitalRecoveryPanel(res, m){
+    return '<div class="sgrp" id="cap-recovery">'+capitalRecoveryBody(res, m, false)+'</div>';
+  }
+  function diligenceCompact(res, m){
+    return gpOriginBody(res, m, true)+
+      '<div style="height:1px;background:var(--line);margin:10px 0 8px"></div>'+
+      capitalRecoveryBody(res, m, true);
+  }
+
+  /* ------------------------------------------------------------------ *
    * §4 — EXPERIMENT ATTRIBUTION.
    *
    * "Which parts of the experiment are doing the economic work?" answered
@@ -4827,11 +4949,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(live && expRes && baseRes){
       var rs = reserveState();
       var x = E.summarise(expRes), b = E.summarise(baseRes);
+      var mm = selectedMonth();
+      var g = mm>=1 ? CAP.gpByVintage(expRes, mm) : null;
+      var p = CAP.portfolioCapital(expRes, mm);
+      var inst = g && g.total>0 ? (g.fromOpeningBase+g.fromEarlierAcquisitions)/g.total : null;
       live.innerHTML = '<span><b>'+esc(rs.chip)+'</b></span>'+
         '<span>M60 ARR <b>'+reur(x.finalARR)+'</b></span>'+
         '<span>Ending cash <b>'+eur(x.endingCash)+'</b></span>'+
-        '<span>vs Base cash <b>'+(x.endingCash-b.endingCash>=0?'+':'−')+eur(Math.abs(x.endingCash-b.endingCash))+'</b></span>';
+        '<span>vs Base cash <b>'+(x.endingCash-b.endingCash>=0?'+':'−')+eur(Math.abs(x.endingCash-b.endingCash))+'</b></span>'+
+        '<span>Capital out <b>'+eur(p.outstanding)+'</b></span>'+
+        (inst!==null ? '<span>GP installed <b>'+pct(inst,1)+'</b></span>' : '');
     }
+    var dil = document.getElementById('close-diligence');
+    if(dil && expRes) dil.innerHTML = diligenceCompact(expRes, selectedMonth());
   }
 
   /* ------------------------------------------------------------------ *
@@ -4842,11 +4972,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var GUIDE = [
     { id:'frame',    n:1, label:'Frame',            note:'Default world. Two inspections: capital ≠ ARR, then same KPIs / different history.' },
     { id:'sc5',      n:2, label:'Sc5 · Capital≠ARR', note:'A/B ledger + ending cash + pinned bounds (linear; cash does not constrain).' },
-    { id:'company',  n:3, label:'Company',          note:'State at selected month. Closing stock ≠ annualized midpoint revenue.' },
+    { id:'company',  n:3, label:'Company',          note:'State at selected month. GP by origin and capital still out — stock-flow, not a tile wall.' },
     { id:'sc6',      n:4, label:'Sc6 / Cohorts',     note:'Age mechanism when tenure is live; Default flat is the null-check. Carry·leak is the reading.' },
-    { id:'system',   n:5, label:'System',           note:'Valves: annual input → monthly applied → measured. Unmodeled links named.' },
+    { id:'system',   n:5, label:'System',           note:'Valves: annual → monthly → measured. GP origin and capital outstanding on the side.' },
     { id:'appendix', n:6, label:'Appendix',         note:'Selected-month audit · M(t−1) → flows → M(t).' },
-    { id:'close',    n:7, label:'Close',            note:'Sensitivity cockpit: 2–3 binding drivers only. Bind chip and Company trajectory update live.' }
+    { id:'close',    n:7, label:'Close',            note:'Binding drivers plus GP origin / capital outstanding. Bind chip and Company trajectory update live.' }
   ];
   var GUIDE_ALIAS = { pair:'sc5', 5:'sc5', history:'sc6', cohorts:'sc6', 6:'sc6', notebook:'appendix' };
   function guideIdFromHash(){
@@ -5235,6 +5365,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="hint" style="margin-top:7px">Bridge in '+basis+' at displayed €k'+(foot.residual?' · residual '+foot.residual+'k':' · foots')+'.</div>'+
       installedBaseNet(em)+'</div>';
 
+    h+=gpOriginPanel(expRes, m);
+    h+=capitalRecoveryPanel(expRes, m);
+
     h+='<div class="sgrp"><div class="eyebrow">Composition &middot; '+basis+'</div>'+
       row('Seeded opening still here', reur(mix.amounts.base)+' · '+pct(mix.shares.base)) +
       row('Born since t=0', reur(mix.total-mix.amounts.base)+' · '+pct(1-mix.shares.base)) +
@@ -5351,6 +5484,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       (expA.acqSaturationSpend>0
         ? ' — saturating: linear would be '+reur(expRes.derived.newARRLinear)+'; applied '+reur(abs.newARR)+'.'
         : ' — linearly at Default (saturation spend off).')+'</div></div>';
+
+    h+='<div class="sgrp" id="gp-origin">'+(isD?'<div class="hint" style="margin-bottom:6px">Experiment reading — not a delta of vintages.</div>':'')+diligenceCompact(expRes, m)+'</div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two unmodeled links</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
@@ -5723,6 +5858,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     syncGuide();
     renderCockpit();
   });
+  document.getElementById('cockpit-capital').addEventListener('click', function(){
+    guideStep = 'close';
+    setLayer('stock');
+    syncGuide();
+    renderCockpit();
+    var el = document.getElementById('gp-origin');
+    if(el && el.scrollIntoView) el.scrollIntoView({ block:'nearest', behavior:'smooth' });
+  });
   ['abs','delta'].forEach(function(c){
     document.getElementById('cmp-'+c).addEventListener('click', function(){
       compare = c==='abs'?'absolute':'delta';
@@ -5799,7 +5942,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     get cohortsMode(){ return cohortsMode; },
     cockpitBinderKeys: cockpitBinderKeys,
     reserveState: reserveState,
-    syncSc5Proof: syncSc5Proof
+    syncSc5Proof: syncSc5Proof,
+    gpByOriginAt: function(t){ return CAP.gpByVintage(expRes, t==null?selectedMonth():t); },
+    portfolioAt: function(t){ return CAP.portfolioCapital(expRes, t==null?selectedMonth():t); }
   };
 })();
 </script>
