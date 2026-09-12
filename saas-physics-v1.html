@@ -4473,8 +4473,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     else drawComposition(m);
   }
   function drawComposition(m){
-    var ctx=coCtx, W=coW, H=coH, padL=56, padR=18, padT=28, gap=18, stemH=78, padB=22;
-    var plotB = H - padB - stemH - gap;
+    var ctx=coCtx, W=coW, H=coH, padL=58, padR=16, padT=36, stemH=72, padB=28;
+    var plotB = H - padB - stemH - 20;
     var plotT = padT;
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle=THEME.scene; ctx.fillRect(0,0,W,H);
@@ -4488,7 +4488,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(i=0;i<total.length;i++) if(total[i]>arrMax) arrMax=total[i];
     arrMax = arrMax*1.08 || 1;
     for(i=0;i<births.length;i++) if(births[i].arr>birthMax) birthMax=births[i].arr;
-    birthMax = birthMax*1.25 || 1;
+    birthMax = birthMax*1.35 || 1;
     function xOf(mo){ return padL + (mo/hor)*(W-padL-padR); }
     function yA(v){ return plotB - (v/arrMax)*(plotB-plotT); }
     function yB(v){ return (H-padB) - (v/birthMax)*stemH; }
@@ -4500,11 +4500,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(W-padR,yy); ctx.stroke();
       ctx.fillText(CO.formatEur000(v), padL-8, yy+3);
     }
-    ctx.textAlign='center';
     for(t=0;t<=hor;t+=12){
       var xx=Math.round(xOf(t))+0.5;
       ctx.beginPath(); ctx.moveTo(xx,plotT); ctx.lineTo(xx,plotB); ctx.stroke();
-      ctx.fillText('m'+t, xx, plotB+12);
     }
 
     /* stacked layers, oldest (opening) darkest at the bottom */
@@ -4522,7 +4520,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.closePath();
       var col=rampAt(i/Math.max(1,layers.length-1));
       ctx.fillStyle=rgba(col, 0.92); ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=0.8; ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=1; ctx.stroke();
     }
 
     ctx.beginPath();
@@ -4533,9 +4531,21 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.strokeStyle=tRgba('exp',.35); ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(xOf(play)+0.5, plotT); ctx.lineTo(xOf(play)+0.5, H-padB); ctx.stroke();
 
+    /* layer key */
+    var lx = W-padR, ly = padT+2;
+    ctx.textAlign='right'; ctx.font='9px '+THEME.font;
+    for(i=layers.length-1;i>=0;i--){
+      if(layers[i].arr[hor]<=0 && layers[i].arr.every(function(v){ return v<=0; })) continue;
+      ctx.fillStyle=rgba(rampAt(i/Math.max(1,layers.length-1)), 0.92);
+      ctx.fillRect(lx-88, ly-6, 9, 9);
+      ctx.fillStyle=THEME.ink3; ctx.fillText(layers[i].label, lx-12, ly+2);
+      ly += 13;
+    }
+
     /* birth stems */
+    var stemTop = plotB + 16;
     ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
-    ctx.fillText('BIRTH FLOW  ·  New ARR / vintage born each month', padL, plotB+gap+10);
+    ctx.fillText('BIRTH FLOW  ·  New ARR / vintage born each month', padL, stemTop);
     var baseY=H-padB;
     ctx.strokeStyle=THEME.zero; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(padL, baseY+0.5); ctx.lineTo(W-padR, baseY+0.5); ctx.stroke();
@@ -4550,26 +4560,33 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         ctx.fillText(CO.formatEur000(births[t].arr), bx, by-6);
       }
     }
-    ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink4;
-    ctx.fillText('layers = stock   ·   stems = New ARR  ·  one vintage born each month', padL, H-6);
+    ctx.textAlign='center'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    for(t=0;t<=hor;t+=12) ctx.fillText('m'+t, xOf(t), H-8);
+    ctx.textAlign='left';
+    ctx.fillText('layers = stock   ·   stems = New ARR', padL, H-8);
   }
   function drawAgeProfile(m){
-    var ctx=coCtx, W=coW, H=coH, pad=22;
+    var ctx=coCtx, W=coW, H=coH, pad=18;
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle=THEME.scene; ctx.fillRect(0,0,W,H);
     ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
-    ctx.fillText('AGE PROFILE  ·  K3  ·  TENURE CROSS-SECTION', pad, 16);
+    ctx.fillText('AGE PROFILE  ·  K3  ·  TENURE CROSS-SECTION', pad, 14);
     ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink4;
-    ctx.fillText('Same cohort at the same age  ·  m'+m.age.t+' ARR by age band  ·  logos \u2260 ARR', pad, 28);
+    ctx.fillText('m'+m.age.t+' ARR by age  ·  12-month display buckets of existing ages  ·  logos \u2260 ARR', pad, 26);
 
-    var mid=W*0.52, left=pad, right=W-pad;
-    var plotT=46, plotB=H-36, plotL=left+44, plotR=mid-18;
+    var split = Math.round(W*0.50);
+    var plotT=58, plotB=H-44;
+    var plotL=pad+44, plotR=split-20;
+    var rL=split+48, rR=W-pad-6;
     var buckets=m.age.buckets, rates=m.age.rates;
     var maxArr=0, i;
     for(i=0;i<buckets.length;i++) if(buckets[i].arr>maxArr) maxArr=buckets[i].arr;
-    maxArr=maxArr*1.12 || 1;
-    var gap=10, bw=Math.max(12, (plotR-plotL)/buckets.length - gap);
+    maxArr=maxArr*1.18 || 1;
+    var slot=(plotR-plotL)/buckets.length, gap=Math.max(8, slot*0.22);
+    var bw=Math.max(10, slot-gap);
 
+    ctx.save();
+    ctx.beginPath(); ctx.rect(plotL-2, plotT-18, (plotR-plotL)+4, (plotB-plotT)+40); ctx.clip();
     ctx.strokeStyle=THEME.grid; ctx.lineWidth=1;
     ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink4; ctx.textAlign='right';
     for(i=0;i<=3;i++){
@@ -4578,34 +4595,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.fillText(CO.formatEur000(v), plotL-8, yy+3);
     }
     for(i=0;i<buckets.length;i++){
-      var x=plotL + i*((plotR-plotL)/buckets.length) + gap/2;
+      var x=plotL + i*slot + gap/2;
       var bh=(buckets[i].arr/maxArr)*(plotB-plotT);
       var col=rampAt(i/Math.max(1,buckets.length-1));
       ctx.fillStyle=rgba(col, 0.92);
       ctx.fillRect(x, plotB-bh, bw, bh);
       ctx.textAlign='center'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
-      ctx.fillText(buckets[i].label, x+bw/2, plotB+12);
+      ctx.fillText(buckets[i].label, x+bw/2, plotB+13);
       ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink2;
-      ctx.fillText(CO.formatEur000(buckets[i].arr), x+bw/2, plotB-bh-6);
+      ctx.fillText(CO.formatEur000(buckets[i].arr), x+bw/2, plotB-bh-5);
       ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
-      ctx.fillText(buckets[i].logos==null ? CO.MISSING+' logos' : Math.round(buckets[i].logos)+' logos', x+bw/2, plotB+22);
+      ctx.fillText(buckets[i].logos==null ? CO.MISSING+' logos' : Math.round(buckets[i].logos)+' logos', x+bw/2, plotB+24);
     }
+    ctx.restore();
 
-    /* GRR solid / NRR dashed */
-    var rL=mid+28, rR=right-8, rT=plotT, rB=plotB-8;
+    ctx.strokeStyle=THEME.line; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(split+0.5, 34); ctx.lineTo(split+0.5, plotB+8); ctx.stroke();
+
     ctx.textAlign='left'; ctx.font='9.5px '+THEME.font; ctx.fillStyle=THEME.ink3;
-    ctx.fillText('RATES BY AGE  ·  EDGE OF WINDOW', rL, 40);
+    ctx.fillText('RATES BY AGE  ·  EDGE OF WINDOW', rL, 42);
     ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink4;
-    ctx.fillText('GRR solid  ·  NRR dashed  ·  gap = expansion (measured)', rL, 52);
-    var yMin=0.70, yMax=1.05;
-    function yR(v){ return rB - ((v-yMin)/(yMax-yMin))*(rB-rT); }
+    ctx.fillText('GRR solid  ·  NRR dashed  ·  gap = expansion (measured)', rL, 54);
+    var yMin=0.70, yMax=1.08;
+    function yR(v){ return plotB - ((v-yMin)/(yMax-yMin))*(plotB-plotT); }
     ctx.strokeStyle=THEME.grid; ctx.lineWidth=1; ctx.textAlign='right'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
     [0.70,0.80,0.90,1.00].forEach(function(p){
       var yy=Math.round(yR(p))+0.5;
       ctx.beginPath(); ctx.moveTo(rL,yy); ctx.lineTo(rR,yy); ctx.stroke();
-      ctx.fillText((p*100).toFixed(0)+'%', rL-6, yy+3);
+      ctx.fillText((p*100).toFixed(0)+'%', rL-8, yy+3);
     });
-    function xR(i){ return rL + (i/(rates.length-1))*(rR-rL-8); }
+    function xR(i){ return rL + (rates.length<=1 ? 0 : (i/(rates.length-1))*(rR-rL)); }
+    ctx.save();
+    ctx.beginPath(); ctx.rect(rL-4, plotT-4, (rR-rL)+8, (plotB-plotT)+8); ctx.clip();
     ctx.beginPath();
     var started=false;
     for(i=0;i<rates.length;i++){
@@ -4623,20 +4644,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.strokeStyle=tRgba('base',1); ctx.lineWidth=1.8; ctx.stroke(); ctx.restore();
     for(i=0;i<rates.length;i++){
       var cx=xR(i);
-      ctx.textAlign='center'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
-      ctx.fillText(rates[i].label, cx, rB+14);
       if(rates[i].grr!=null){
         ctx.beginPath(); ctx.arc(cx, yR(rates[i].grr), 3, 0, Math.PI*2);
         ctx.fillStyle=tRgba('exp',1); ctx.fill(); ctx.strokeStyle=THEME.panel; ctx.lineWidth=1.4; ctx.stroke();
         ctx.beginPath(); ctx.arc(cx, yR(rates[i].nrr), 3, 0, Math.PI*2);
         ctx.fillStyle=THEME.panel; ctx.strokeStyle=tRgba('base',1); ctx.lineWidth=1.5; ctx.stroke();
-      } else {
-        ctx.fillStyle=THEME.ink4; ctx.fillText(CO.MISSING, cx, (rT+rB)/2);
       }
     }
+    ctx.restore();
+    ctx.textAlign='center'; ctx.font='9px '+THEME.font; ctx.fillStyle=THEME.ink4;
+    for(i=0;i<rates.length;i++) ctx.fillText(rates[i].label, xR(i), plotB+14);
+
     ctx.textAlign='left'; ctx.font='10px '+THEME.font; ctx.fillStyle=THEME.ink3;
     ctx.fillText(m.age.bandsAreFlat
-      ? '48–60mo leakage — Scenario 6 reweights these. Tenure is flat at the default.'
+      ? '48–60 includes the opening vintage. Tenure is flat — Scenario 6 / Tenure give age a rate.'
       : 'Tenure is live — age bands do not share a rate. Scenario 6 owns the historical mix.', pad, H-10);
   }
   function renderCohortsSide(){
