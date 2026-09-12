@@ -26,7 +26,7 @@ Not a PE disclaimer paragraph. Not a CHANGE card.
 - **Scenario 5** — A/B input ledger + one consequence (ending Model cash) + pinned existing bounds (linear acquisition; cash does not constrain spend). Guided Sc5 and the Scenarios stage pin that proof on the glass so it cannot be a side-panel footnote.
 - **Cohorts** — Lands on age. Default/flat is a null-check. Age-mechanism / flagship reading when tenure is live (Scenario 6 at M12). Seeded opening ≠ comparable births. Logo vs contraction when the logo bound is on. Composition remains a provenance toggle, not the hero.
 - **Appendix** — selected month auto-scrolls; compact `M(t−1) → flows → M(t)` audit. Empty Logos group hidden while the logo bound is off.
-- **Close** — Sensitivity cockpit: 2–3 sliders on binding drivers only (S&M, persistence, plus expansion or the active System constraint). Bind chip and Company / System views update live. Non-binders are not offered.
+- **Close** — Sensitivity cockpit: 2–3 sliders on binding drivers only (S&M, persistence, plus expansion or the active System constraint). Bind chip and Company / System views update live. Non-binders are not offered. If the session is still on Scenario 6’s band laws, Close restores Default so scalar binders actually bind.
 
 Optional bounds stay on the rail behind **Optional bounds · off at Default**.
 

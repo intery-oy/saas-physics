@@ -4684,7 +4684,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<div class="delta">expansion '+esc(gap)+' · contraction '+esc(con)+(logo?' · logo churn '+esc(logo):'')+'</div>'+
         '</div>';
     }
-    var present = reading.vintages.filter(function(v){ return v.present; });
+    var present = reading.vintages.filter(function(v){
+      return v.present && v.now && v.now.currentARR > 0;
+    });
     var cards;
     if(reading.bandsAreFlat && present.length){
       var seeded = present.filter(function(v){ return v.seeded; })[0] || present[0];
@@ -4762,12 +4764,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   function cockpitBinderKeys(){
     /* Stock→rate binders plus the active System constraint. Cap at 3.
-       Non-binders (GM, R&D, billing, logos, expansion CAC, CAC) stay off this strip. */
-    var keys = ['sm', 'persistenceAnnual'];
+       Non-binders (GM, R&D, billing, logos, expansion CAC, CAC) stay off this strip.
+       Band laws make scalar persistence/expansion inert — do not offer them then. */
+    var banded = !!(expRes && !expRes.bandsAreFlat);
+    var keys = ['sm'];
+    if(!banded) keys.push('persistenceAnnual');
     if(expA.smCashReserve>0) keys.push('smCashReserve');
     else if(expA.acqSaturationSpend>0) keys.push('acqSaturationSpend');
-    else keys.push('expansionCoefficientAnnual');
-    return keys;
+    else if(!banded) keys.push('expansionCoefficientAnnual');
+    return keys.slice(0, 3);
   }
   function binderWhy(k){
     if(k==='sm') return 'External ARR valve — only New ARR is set from outside.';
@@ -4902,7 +4907,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(!activeScenario) applyScenario(scenarioById('history'));
       setLayer('notebook');
     } else if(resolved==='close'){
-      if(!activeScenario) applyScenario(scenarioById('history'));
+      /* Scalar persistence/expansion do not bind under Scenario 6's band laws.
+         Restore Default so the cockpit only offers knobs that actually move the run. */
+      if(expRes && !expRes.bandsAreFlat){
+        exitPair(); clearScenario();
+        baseA = BASE_A; expA = Object.assign({}, BASE_A);
+        baseStart = undefined; expStart = undefined;
+        lastMsg = null; capitalMode = false;
+        recompute();
+      }
+      playing = false; playBtn.classList.remove('play'); playIcon();
+      tau = H; scrub.value = H;
       setLayer('stock');
     }
     syncGuide();
@@ -5153,7 +5168,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="hint" style="margin-top:7px;line-height:1.7">'+esc(CO.QUESTION)+' Composition is yearly vintage stock. Age is a cross-section. Blended NRR is a warning if it conceals variation.</div></div>'+
       '<div class="sgrp"><div class="eyebrow">This world</div>'+
       row('Reading', cohortsWorld==='experiment'?'Experiment':'Base')+
-      row('Mode', cohortsMode==='age'?'Age profile':'Composition')+
+      row('Mode', cohortsMode==='age'
+        ? (res.bandsAreFlat ? 'Age · null-check' : 'Age · mechanism')
+        : 'Composition · provenance')+
       row('Month '+t+' ARR · €000', CO.formatEur000(t===0?res.start.openingARR:res.months[t-1].closingARR))+
       row('R12M GRR', CO.formatPct(reading.blendedGRR))+
       row('R12M NRR', CO.formatPct(reading.blendedNRR))+
