@@ -1957,6 +1957,27 @@ details.pl .cascade{margin-top:8px}
       ctx.fillText(reur(expRes.months[selectedMonth()-1].cumulative.leakage), geo.L+8, geo.leakTop+22);
     }
 
+    if(geo.noCash){
+      /* --- YoY growth as the secondary line over the formation, its own quiet right scale --- */
+      var gX=[], gB=[], gAll=[];
+      for(var gi=0; gi<H; gi++){ gX.push(expRes.months[gi].arrGrowthYoY); gB.push(baseRes.months[gi].arrGrowthYoY); if(expRes.months[gi].arrGrowthYoY!==null) gAll.push(expRes.months[gi].arrGrowthYoY); if(baseRes.months[gi].arrGrowthYoY!==null) gAll.push(baseRes.months[gi].arrGrowthYoY); }
+      if(gAll.length){
+        var gLo=Math.min(0, Math.min.apply(null,gAll)), gHi=Math.max.apply(null,gAll)*1.15||0.1, gTop=geo.massTop+22, gBot=geo.massBot-6;
+        var yG=function(v){ return gBot-((v-gLo)/((gHi-gLo)||1))*(gBot-gTop); };
+        var gline=function(arr, col, dash, wdt){ ctx.save(); if(dash) ctx.setLineDash(dash); ctx.beginPath(); var on=false; for(var q=0;q<H;q++){ if(arr[q]===null){ on=false; continue; } var gx=X(q+1), gy=yG(arr[q]); on?ctx.lineTo(gx,gy):ctx.moveTo(gx,gy); on=true; } ctx.strokeStyle=col; ctx.lineWidth=wdt; ctx.stroke(); ctx.restore(); };
+        gline(gB, 'rgba(102,112,138,.75)', [4,4], 1.2);
+        gline(gX, 'rgba(230,233,242,.85)', null, 1.5);
+        /* right scale for growth */
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.textAlign='left'; ctx.fillStyle='#414a60';
+        [gLo, gHi].forEach(function(gv){ ctx.fillText(pct(gv,0)+' y/y', W-geo.R+6, yG(gv)+3); });
+        /* selected month: right-edge values */
+        var mS=selectedMonth(), mrec=expRes.months[mS-1], yArr=S.yA(mrec.closingARR), yGr=mrec.arrGrowthYoY===null ? null : yG(mrec.arrGrowthYoY);
+        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText(reur(mrec.closingARR), W-geo.R+6, yArr+3);
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText(basis.toUpperCase()+' · M'+mS, W-geo.R+6, yArr+13);
+        if(yGr!==null){ var yy2 = Math.abs(yGr-yArr)<22 ? (yGr<yArr ? yArr-22 : yArr+22) : yGr; ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText((mrec.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(mrec.arrGrowthYoY),1), W-geo.R+6, yy2+3); ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('YOY GROWTH', W-geo.R+6, yy2+13); }
+      }
+        }
+
     if(!geo.noCash){
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
@@ -2013,26 +2034,8 @@ details.pl .cascade{margin-top:8px}
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
     ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, geo.L+8, geo.cashTop+2);
 
-    } else {
-      /* --- YoY growth as the secondary line over the formation, its own quiet right scale --- */
-      var gX=[], gB=[], gAll=[];
-      for(var gi=0; gi<H; gi++){ gX.push(expRes.months[gi].arrGrowthYoY); gB.push(baseRes.months[gi].arrGrowthYoY); if(expRes.months[gi].arrGrowthYoY!==null) gAll.push(expRes.months[gi].arrGrowthYoY); if(baseRes.months[gi].arrGrowthYoY!==null) gAll.push(baseRes.months[gi].arrGrowthYoY); }
-      if(gAll.length){
-        var gLo=Math.min(0, Math.min.apply(null,gAll)), gHi=Math.max.apply(null,gAll)*1.15||0.1, gTop=geo.massTop+22, gBot=geo.massBot-6;
-        var yG=function(v){ return gBot-((v-gLo)/((gHi-gLo)||1))*(gBot-gTop); };
-        var gline=function(arr, col, dash, wdt){ ctx.save(); if(dash) ctx.setLineDash(dash); ctx.beginPath(); var on=false; for(var q=0;q<H;q++){ if(arr[q]===null){ on=false; continue; } var gx=X(q+1), gy=yG(arr[q]); on?ctx.lineTo(gx,gy):ctx.moveTo(gx,gy); on=true; } ctx.strokeStyle=col; ctx.lineWidth=wdt; ctx.stroke(); ctx.restore(); };
-        gline(gB, 'rgba(102,112,138,.75)', [4,4], 1.2);
-        gline(gX, 'rgba(230,233,242,.85)', null, 1.5);
-        /* right scale for growth */
-        ctx.font='9px "JetBrains Mono",monospace'; ctx.textAlign='left'; ctx.fillStyle='#414a60';
-        [gLo, gHi].forEach(function(gv){ ctx.fillText(pct(gv,0)+' y/y', W-geo.R+6, yG(gv)+3); });
-        /* selected month: right-edge values */
-        var mS=selectedMonth(), mrec=expRes.months[mS-1], yArr=S.yA(mrec.closingARR), yGr=mrec.arrGrowthYoY===null ? null : yG(mrec.arrGrowthYoY);
-        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText(reur(mrec.closingARR), W-geo.R+6, yArr+3);
-        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText(basis.toUpperCase()+' · M'+mS, W-geo.R+6, yArr+13);
-        if(yGr!==null){ var yy2 = Math.abs(yGr-yArr)<22 ? (yGr<yArr ? yArr-22 : yArr+22) : yGr; ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText((mrec.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(mrec.arrGrowthYoY),1), W-geo.R+6, yy2+3); ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('YOY GROWTH', W-geo.R+6, yy2+13); }
-      }
     }
+
     /* --- the playhead: now --- */
     var px2 = X(t);
     ctx.strokeStyle='rgba(230,233,242,.30)'; ctx.lineWidth=1;
