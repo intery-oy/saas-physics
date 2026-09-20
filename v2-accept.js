@@ -191,6 +191,81 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('B · NULL-ON-SCREEN: Reset switches Monetization off; the expansion coefficient is an input again (10.0%, enabled); no composition block on screen',
       bn.A.monetization === null && !bn.mech.monetization && bn.tog === 'off' && bn.Xv === '10.0%' && !bn.Xdis && !bn.txt.includes('WHERE THE MRR COMES FROM'), '');
 
+  /* ---- C · CONTROLS ---- */
+  await pg.click('#t-billingTermMonths'); await pg.waitForTimeout(400);
+  const c0b = await pg.evaluate(() => ({
+    A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-billingTermMonths').textContent, Tv: document.getElementById('v-billingTermMonths').textContent,
+    tim: document.getElementById('t-billingTiming').textContent, Dv: document.getElementById('v-collectionDelayMonths').textContent, Ddis: document.getElementById('f-collectionDelayMonths').disabled,
+    summary: document.getElementById('experiment-summary').innerText, opening: window.__SP_DEBUG.expRes.derived.cash.openingDeferredRevenue
+  }));
+  rec('C · CONTROLS: the billing-term toggle switches Cash Physics on at 12 months in advance; the timing button and delay slider enable; the opening book\'s deferred balance is derived (€9.17m); the summary names the change',
+      c0b.A.billingTermMonths === 12 && c0b.A.billingTiming === 'advance' && c0b.mech.cashPhysics && c0b.tog === 'on' && c0b.Tv === '12 mo' && c0b.tim === 'advance' && !c0b.Ddis && c0b.Dv === '0 mo' &&
+      Math.abs(c0b.opening - 20e6 / 12 * 11 / 2) < 1e-6 && /Billing term\s+off → 12 mo/.test(c0b.summary), JSON.stringify({ Tv: c0b.Tv, tim: c0b.tim, Dv: c0b.Dv }));
+  await pg.click('#t-billingTiming'); await pg.waitForTimeout(300);
+  await setSlider('f-collectionDelayMonths', 2);
+  const c1b = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, tim: document.getElementById('t-billingTiming').textContent, opening: window.__SP_DEBUG.expRes.derived.cash.openingDeferredRevenue, summary: document.getElementById('experiment-summary').innerText }));
+  rec('C · CONTROLS: the timing button cycles to arrears (the opening balance becomes a contract asset, −€9.17m) and the delay slider drives the engine; the summary lists all three',
+      c1b.A.billingTiming === 'arrears' && c1b.A.collectionDelayMonths === 2 && c1b.tim === 'arrears' && Math.abs(c1b.opening + 20e6 / 12 * 11 / 2) < 1e-6 && /3 assumptions changed/.test(c1b.summary) && /Billing timing\s+in advance → in arrears/.test(c1b.summary) && /Collection delay\s+0 mo → 2 mo/.test(c1b.summary),
+      c1b.summary.replace(/\n/g, ' | '));
+  await pg.click('#t-billingTiming'); await pg.waitForTimeout(300);
+  await setSlider('f-collectionDelayMonths', 1);
+
+  /* ---- C · OBSERVE + WATERFALL ---- */
+  await setScrub(36);
+  const co = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, c: D.expRes.months[m - 1].cash, fcf: D.expRes.months[m - 1].fcf, ebita: D.expRes.months[m - 1].ebita, txt: document.getElementById('side').innerText,
+    wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), wfv: [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent) }; });
+  const indepC = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { billingTermMonths: 12, collectionDelayMonths: 1 }));
+  const icC = indepC.months[co.m - 1].cash;
+  const fmtC = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
+  rec('C · OBSERVE: the "Cash beneath EBITA" block is on screen; billings, deferred revenue, receivables and cash FCF tie to an independent Node run; EBITA and cash FCF are shown as two rows',
+      co.txt.includes('CASH BENEATH EBITA') && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
+      co.txt.includes('Deferred revenue\n' + fmtC(icC.deferredClosing)) && co.txt.includes('Receivables\n' + fmtC(icC.receivablesClosing)) && co.txt.includes('EBITA · this month') && co.txt.includes('Cash FCF · this month'),
+      co.txt.slice(co.txt.indexOf('CASH BENEATH'), co.txt.indexOf('CASH BENEATH') + 220).replace(/\n/g, ' | '));
+  rec('C · WATERFALL: the P&L waterfall continues below EBITA — "= EBITA", "± Δ deferred revenue", "± Δ receivables", "= Cash FCF" (10 steps) — and the printed cash FCF equals the engine\'s fcf',
+      co.wf.length === 10 && co.wf[6] === '= EBITA' && /Δ deferred revenue$/.test(co.wf[7]) && /Δ receivables$/.test(co.wf[8]) && co.wf[9] === '= Cash FCF' && co.wfv[9] === fmtC(co.fcf) && Math.abs(co.fcf - co.ebita) > 1000, JSON.stringify(co.wf) + ' ' + co.wfv[9]);
+
+  /* ---- C · INSPECT: a cohort's invoicing ---- */
+  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await setScrub(24);
+  const pinC = await pg.evaluate(() => {
+    const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
+    const geoL = 64, geoR = 20, W = r.width; const x = geoL + (23 / 60) * (W - geoL - geoR);
+    let hit = null;
+    for (let y = 30; y < r.height * 0.6 && hit === null; y += 3) {
+      cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); hit = y; }
+    }
+    return { hit, txt: document.getElementById('side').innerText };
+  });
+  rec('C · INSPECT: the pinned cohort\'s dossier shows what it invoiced this month and its deferred revenue (billed at birth, trued up at renewal)',
+      pinC.hit !== null && /Invoiced this month/.test(pinC.txt) && /(Deferred revenue|Unbilled \(contract asset\))\s+€[\d.]+[km]? · billed at birth, trued up at renewal/.test(pinC.txt),
+      pinC.hit === null ? 'no cohort hit' : pinC.txt.slice(pinC.txt.indexOf('Invoiced'), pinC.txt.indexOf('Invoiced') + 160).replace(/\n/g, ' | '));
+  await pg.evaluate(() => { const cv = document.getElementById('scene'); cv.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+  /* ---- C · SYSTEM ---- */
+  await pg.click('#nav-system'); await pg.waitForTimeout(500);
+  const cs = await pg.evaluate(() => document.getElementById('side').innerText);
+  rec('C · SYSTEM: the side panel states the billing policy, cash FCF vs EBITA this month, and the deferred and receivables balances between the P&L and the cash stock',
+      cs.includes('Cash physics · 12-month term in advance, +1 mo to collect') && cs.includes('cash FCF') && cs.includes('deferred revenue') && cs.includes('of receivables'), cs.slice(cs.indexOf('Cash physics'), cs.indexOf('Cash physics') + 200).replace(/\n/g, ' | '));
+  await pg.click('#cmp-delta'); await pg.waitForTimeout(400); await pg.click('#cmp-abs'); await pg.waitForTimeout(300);
+
+  /* ---- C · SCENARIO 13 ---- */
+  await pg.click('#nav-scen'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="billing"]').click()); await pg.waitForTimeout(500);
+  const s13 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let wE = 0; for (let t = 0; t < 60; t++) wE = Math.max(wE, Math.abs(D.expRes.months[t].ebita - D.baseRes.months[t].ebita));
+    return { txt: document.getElementById('side').innerText, wE, xm: D.expRes.mechanisms, bm: D.baseRes.mechanisms, bc: D.baseRes.months[59].cashClosing, xc: D.expRes.months[59].cashClosing }; });
+  rec('C · SCENARIO 13: Base FCF = EBITA, Experiment billed annually in advance and collected a month later; EBITA identical every month, ending cash differs; the match block and the cash rows are on screen',
+      !s13.bm.cashPhysics && s13.xm.cashPhysics && s13.wE < 1e-6 && Math.abs(s13.xc - s13.bc) > 1e6 && s13.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ABOVE THE CASH LINE') && s13.txt.includes('Cumulative cash FCF') && s13.txt.includes('Deferred revenue at M60') && s13.txt.includes('Receivables at M60') && s13.txt.includes('Cumulative EBITA'),
+      'M60 cash ' + (s13.bc / 1e6).toFixed(2) + 'm → ' + (s13.xc / 1e6).toFixed(2) + 'm');
+  rec('C · SCENARIO 13: the FCF boundary reads the live billing policy', (await pg.evaluate(() => document.getElementById('side').textContent)).includes('billed per the 12-month term in advance and collected 1 months later'), '');
+
+  /* ---- C · NULL ---- */
+  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await pg.click('#reset'); await pg.waitForTimeout(300);
+  const cn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-billingTermMonths').textContent, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), txt: document.getElementById('side').innerText }));
+  rec('C · NULL-ON-SCREEN: Reset switches Cash Physics off; the waterfall ends at "= Modeled FCF (= EBITA)" (7 steps); no cash block on screen',
+      cn.A.billingTermMonths === null && cn.A.collectionDelayMonths === 0 && !cn.mech.cashPhysics && cn.tog === 'off' && cn.wf.length === 7 && cn.wf[6] === '= Modeled FCF (= EBITA)' && !cn.txt.includes('CASH BENEATH EBITA'), JSON.stringify(cn.wf));
+
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
 
   let pass = 0;

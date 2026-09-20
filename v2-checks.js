@@ -365,6 +365,74 @@ var MW = Object.assign({}, CUW, { monetization: MSPEC });
      (function () { var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8'); var i = built.indexOf('root.SaaSPhysicsMonetization = factory()'); return i > 0 && i < built.indexOf('var MO = deps.monetization'); })(), '');
 })();
 
+/* ================================================================== *
+ * GATE C — CASH PHYSICS
+ * ================================================================== */
+var CA = require('./cash.js');
+(function gateC() {
+  var r0 = E.run(A);
+  var worlds = [['advance 12, delay 0', { billingTermMonths: 12 }], ['advance 12, delay 1', { billingTermMonths: 12, collectionDelayMonths: 1 }],
+                ['arrears 12, delay 2', { billingTermMonths: 12, billingTiming: 'arrears', collectionDelayMonths: 2 }], ['advance 3, delay 1', { billingTermMonths: 3, collectionDelayMonths: 1 }],
+                ['advance 1, delay 0', { billingTermMonths: 1 }], ['advance 12 + all layers + lag + cap + cost', Object.assign({}, MW, { billingTermMonths: 12, collectionDelayMonths: 1, acquisitionLagMonths: 6, maxMonthlyNewARR: 2e6, expansionCostPerARR: 0.25 })]];
+  worlds.forEach(function (w) {
+    var r = E.run(Object.assign({}, A, w[1])), base = E.run(Object.assign({}, A, w[1], { billingTermMonths: null, collectionDelayMonths: 0 }));
+    var worst = 0, pl = 0, cashRun = r.start.openingCash, wc = 0, coh = 0;
+    r.months.forEach(function (m, i) {
+      var c = m.cash, dDef = c.deferredClosing - c.deferredOpening, dRec = c.receivablesClosing - c.receivablesOpening;
+      worst = Math.max(worst, Math.abs(c.billings - (m.revenue + dDef)), Math.abs(m.fcf - (c.collections - c.cashCosts)), Math.abs(m.fcf - (m.ebita + dDef - dRec)),
+                       Math.abs(c.cashCosts - (m.cogs + m.sm + m.rd + m.ga + m.expansionCost)), Math.abs(c.billings - c.collections - dRec),
+                       i > 0 ? Math.abs(c.deferredOpening - r.months[i - 1].cash.deferredClosing) + Math.abs(c.receivablesOpening - r.months[i - 1].cash.receivablesClosing) : Math.abs(c.deferredOpening - r.derived.cash.openingDeferredRevenue));
+      cashRun += m.fcf; wc = Math.max(wc, Math.abs(m.cashClosing - cashRun));
+      /* the P&L and the recurring state are untouched by the layer */
+      var b = base.months[i];
+      pl = Math.max(pl, Math.abs(m.ebita - b.ebita), Math.abs(m.revenue - b.revenue), Math.abs(m.closingARR - b.closingARR), Math.abs(m.grossProfit - b.grossProfit), Math.abs(m.expansionCost - b.expansionCost));
+      /* company billings and deferred = Σ cohort rows */
+      var sb = 0, sd = 0; r.cohorts.forEach(function (cc) { var rw = K.rowAt(cc, m.t); if (rw && rw.cash) { sb += rw.cash.billings; sd += rw.cash.deferredClosing; } });
+      coh = Math.max(coh, Math.abs(sb - c.billings), Math.abs(sd - c.deferredClosing));
+    });
+    ok('C-RECONCILE', w[0] + ': every month billings = revenue + Δdeferred; FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables; Δreceivables = billings − collections; balances chain; cash = opening + Σ FCF; company billings and deferred = Σ cohort rows',
+       worst < EPS && wc < EPS && coh < EPS, 'worst residual €' + ex(Math.max(worst, wc, coh)));
+    ok('C-UNTOUCHED', w[0] + ': EBITA, revenue, gross profit, expansion cost and ARR are identical to the same world with Cash Physics off — the layer changes only the cash path', pl < EPS, 'worst |Δ| €' + ex(pl));
+  });
+  var rA = E.run(Object.assign({}, A, { billingTermMonths: 12 })), rR = E.run(Object.assign({}, A, { billingTermMonths: 12, billingTiming: 'arrears' })), rM = E.run(Object.assign({}, A, { billingTermMonths: 1 }));
+  ok('C-OPENING-BOOK', 'the opening base is a staggered book: opening deferred = MRR × (T − 1)/2 = €9.17m under annual advance billing, the same amount as a contract asset under arrears, €0 under monthly billing — derived, reported, never an input',
+     Math.abs(rA.derived.cash.openingDeferredRevenue - 20e6 / 12 * 11 / 2) < EPS && Math.abs(rR.derived.cash.openingDeferredRevenue + 20e6 / 12 * 11 / 2) < EPS && rM.derived.cash.openingDeferredRevenue === 0,
+     'advance €' + (rA.derived.cash.openingDeferredRevenue / 1e6).toFixed(2) + 'm · arrears €' + (rR.derived.cash.openingDeferredRevenue / 1e6).toFixed(2) + 'm');
+  /* a new cohort under advance billing: invoiced its whole period at birth, then nothing until renewal */
+  var c7 = rA.cohorts[7], bl = c7.rows.map(function (rw) { return rw.cash.billings; });
+  var sumRev = 0; c7.rows.slice(0, 12).forEach(function (rw) { sumRev += rw.revenue; });
+  ok('C-ANCHORED', 'an acquisition cohort under annual advance billing is invoiced 12 × its run-rate at birth (€750,000), nothing for eleven months, then TRUED UP at renewal: the M13 invoice = 12 × current MRR − what the first invoice left in deferred (first invoice − revenue recognised over the period)',
+     Math.abs(bl[0] - 750000) < EPS && bl.slice(1, 12).every(function (v) { return v === 0; }) && bl[12] > 0 && Math.abs(bl[12] - (12 * c7.rows[12].openingMRR - c7.rows[11].cash.deferredClosing)) < EPS && Math.abs(c7.rows[11].cash.deferredClosing - (750000 - sumRev)) < EPS,
+     'M7 €' + bl[0].toFixed(0) + ' · M8–M18 €0 · renewal €' + bl[12].toFixed(0) + ' = 12 × €' + c7.rows[12].openingMRR.toFixed(0) + ' − €' + c7.rows[11].cash.deferredClosing.toFixed(0) + ' left in deferred (the cohort shrank and its birth month recognised half a month)');
+  /* steady-state: over a full period, billings = revenue for a flat book */
+  var flat = E.run(Object.assign({}, A, { sm: 0, persistenceAnnual: 1, expansionCoefficientAnnual: 0, billingTermMonths: 12 })), fb = 0, fr = 0;
+  flat.months.slice(0, 12).forEach(function (m) { fb += m.cash.billings; fr += m.revenue; });
+  ok('C-STEADY', 'a flat book (no churn, expansion or acquisition) billed annually in advance invoices exactly its revenue over any twelve months and keeps deferred constant: the timing layer creates no money',
+     Math.abs(fb - fr) < EPS && Math.abs(flat.months[11].cash.deferredClosing - flat.months[0].cash.deferredOpening) < EPS && flat.months.every(function (m) { return Math.abs(m.fcf - m.ebita) < EPS; }), 'Σ billings €' + fb.toFixed(2) + ' = Σ revenue €' + fr.toFixed(2));
+  /* the signature: same P&L, different cash */
+  var sA = E.summarise(rA), sR = E.summarise(rR), s0 = E.summarise(r0), sD = E.summarise(E.run(Object.assign({}, A, { billingTermMonths: 12, collectionDelayMonths: 2 })));
+  ok('C-FCF-NE-EBITA', 'Base P&L, three cash worlds: cumulative EBITA identical; ending cash €59.57m (FCF = EBITA) vs €' + (sA.endingCash / 1e6).toFixed(2) + 'm (annual in advance) vs €' + (sR.endingCash / 1e6).toFixed(2) + 'm (annual in arrears); the trough moves from €6.10m to €' + (sA.cashTrough / 1e6).toFixed(2) + 'm and €' + (sR.cashTrough / 1e6).toFixed(2) + 'm — FCF ≠ EBITA, in both directions',
+     Math.abs(sA.cumEbita - s0.cumEbita) < EPS && Math.abs(sR.cumEbita - s0.cumEbita) < EPS && sA.endingCash > s0.endingCash + 1e6 && sR.endingCash < s0.endingCash - 1e6 && sR.cashTrough < s0.cashTrough - 1e6 && sA.cashTrough > s0.cashTrough,
+     'cum EBITA €' + (s0.cumEbita / 1e6).toFixed(2) + 'm all three; cum FCF − EBITA: advance +€' + (sA.cumFCFMinusEbita / 1e6).toFixed(2) + 'm, arrears €' + (sR.cumFCFMinusEbita / 1e6).toFixed(2) + 'm');
+  ok('C-FCF-NE-EBITA', 'a 2-month collection delay on the same annual advance billing lowers ending cash by exactly the receivables outstanding at M60 (cash is only deferred, never lost)',
+     Math.abs((sA.endingCash - sD.endingCash) - sD.finalReceivables) < EPS, 'Δ ending cash €' + ((sA.endingCash - sD.endingCash) / 1e6).toFixed(3) + 'm = receivables €' + (sD.finalReceivables / 1e6).toFixed(3) + 'm');
+  /* measurement identities */
+  var km = K.cashMeasures(rA, 36);
+  ok('C-MEASURE', 'cashMeasures: (FCF − EBITA) over the window = Δdeferred − Δreceivables (identity residual < €1e-6); cash conversion and deferred months of revenue reported',
+     Math.abs(km.identityResidual) < EPS && km.cashConversion > 1 && km.deferredMonthsOfRevenue > 4, 'conversion ' + km.cashConversion.toFixed(3) + ' · deferred ' + km.deferredMonthsOfRevenue.toFixed(2) + ' months of revenue');
+  /* validation */
+  var badC = [{ billingTermMonths: 0 }, { billingTermMonths: 2.5 }, { billingTermMonths: -1 }, { billingTermMonths: 'x' }, { billingTermMonths: 12, billingTiming: 'monthly' }, { billingTermMonths: 12, collectionDelayMonths: -1 },
+              { billingTermMonths: 12, collectionDelayMonths: 1.5 }, { collectionDelayMonths: 2 }];
+  ok('C-VALIDATION', 'RangeError for a term ≤ 0, fractional, negative or non-numeric; an unknown timing; a negative or fractional delay; and a collection delay without a billing term',
+     badC.every(function (b) { return throws(function () { E.run(Object.assign({}, A, b)); }); }), badC.length + ' invalid inputs rejected');
+  var d1 = E.run(Object.assign({}, A, { billingTermMonths: 12, collectionDelayMonths: 1 })), d2 = E.run(Object.assign({}, A, { billingTermMonths: 12, collectionDelayMonths: 1 }));
+  ok('C-DETERMINISM', 'two runs of the same cash world are identical in every field', JSON.stringify(snapshot(d1)) === JSON.stringify(snapshot(d2)), '');
+  var u1 = [{ share: 1, phase: 0, deferred: 0 }], b1 = CA.bill(u1, 12, 'advance', 0, 100, 50), u2 = [{ share: 1, phase: 0, deferred: 0 }], b2 = CA.bill(u2, 12, 'advance', 0, 100, 50);
+  ok('C-MODULE', 'cash.js: bill() is a pure transition of the units it is given (same input → same output), collect() a FIFO; the built product inlines cash.js before the engine',
+     JSON.stringify(b1) === JSON.stringify(b2) && b1.billings === 1200 && b1.deferred === 1150 &&
+     (function () { var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8'); var i = built.indexOf('root.SaaSPhysicsCash = factory()'); return i > 0 && i < built.indexOf('var CA = deps.cash'); })(), '');
+})();
+
 console.log('\nSaaS Physics v2 — economic system checks\n' + '='.repeat(96));
 var pass = 0;
 out.forEach(function (r, i) {

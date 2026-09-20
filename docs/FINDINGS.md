@@ -282,6 +282,12 @@ expansion headroom stays invisible.
 
 ### 15. `FCF = EBITA` inverts the cash reality of subscription businesses
 
+> **Resolved in v2 Gate C (Cash Physics).** With `billingTermMonths` set, billings = revenue +
+> Δdeferred by construction, collections = billings shifted by the collection delay, and cash
+> FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. EBITA is untouched. The
+> same Base P&L ends between €30m and €80m of cash depending on billing and collection alone.
+> See #37–#39 and `docs/RN-CASH-PHYSICS.md`.
+
 > **Blocked CFO question:** *how do billing timing and working-capital mechanics
 > alter liquidity relative to EBITA?*
 
@@ -516,6 +522,39 @@ layer on with it, the Experiment summary shows both changes, and the attribution
 lone monetization change on a Base without customers as a bundle. Every later layer that
 depends on a lower one (Cash on nothing; Interventions on whichever law they target) has to
 decide the same thing explicitly.
+
+## New in v2 Gate C — Cash Physics
+
+### 37. The opening book's deferred balance is state the model had never carried
+
+A company that bills annually in advance holds, on day one, roughly half a year of revenue as
+deferred revenue. The engine started every run with cash and ARR and nothing between them.
+Gate C derives that balance from a stated assumption — the opening book is a staggered set of
+contracts whose renewal dates are spread evenly, so it carries `MRR × (T − 1) / 2` — and
+reports it, rather than asking for it or pretending it is zero. It is the first opening state
+in the model that is derived from a convention instead of set, and the convention is named on
+every surface. A real company's opening deferred balance is a fact, not a convention; an
+opening-state adapter (ARCHITECTURE "not implemented") would replace the derivation.
+
+### 38. Timing creates no money — and the checks had to prove it before the experiments could mean anything
+
+A flat book billed annually in advance invoices exactly its revenue over any twelve months and
+keeps deferred constant (C-STEADY); a collection delay lowers ending cash by exactly the
+receivables outstanding (C-FCF-NE-EBITA). Both are identities, and both failed on the first
+implementation: the staggered units' opening balances were assigned to the wrong phases, so the
+book's total was right and its monthly billing was wrong. The totals-only check would have
+passed. The lesson for Gate D: a timing mechanism needs a steady-state identity checked month
+by month, not a cumulative one.
+
+### 39. FCF ≠ EBITA in both directions, and the sign is a policy, not a property of SaaS
+
+Annual advance billing makes a growth push largely self-funding (the trough barely moves);
+arrears billing with a collection delay makes the same push deepen the trough by more than
+twice what EBITA says. Neither is "the" SaaS cash reality: billing term, timing and collection
+are policies the company chooses and negotiates. The model takes no position; it lets the user
+set the policy and see the path. What it does not model — payables, prepaid costs, payroll
+timing, tax, capex, bad debt, refunds, financing — is listed in the research note's boundary
+and is the honest answer to "why is my cash still different".
 
 ## What held up
 

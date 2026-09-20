@@ -258,6 +258,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Three nullable mechanisms</b> — expansion realisation cost, acquisition capacity, acquisition lag. Each defaults to the setting under which it does nothing.</li>
             <li><b>Customer physics (v2, nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
             <li><b>Monetization physics (v2, nullable)</b> — a platform fee and a usage component per customer, with price growth, usage growth and adoption to caps. When on, revenue is derived from the components; the expansion coefficient, ARR per new logo and opening ARR are not read.</li>
+            <li><b>Cash physics (v2, nullable)</b> — billing term and timing (deferred revenue or contract asset) and a collection delay (receivables). When on, cash FCF = collections − cash costs; EBITA is untouched.</li>
             <li>Nothing else. There is no plan, no target, no forecast to hit.</li>
           </ul>
         </div>
@@ -339,6 +340,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Expansion</b> — price growth, usage growth to a cap, adoption to a cap. The generic coefficient is bypassed; expansion saturates.</li>
             <li><b>Contraction</b> — reaches usage only, so dollar persistence is emergent from the mix. Scenario 12 shows identical customers and laws with different GRR.</li>
             <li>Off = the customer world exactly. Scenario 11 shows the same customers priced as a coefficient and as components.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Cash physics (v2 Gate C, nullable)</h5>
+          <ul>
+            <li><b>Billings</b> = revenue + Δdeferred revenue, by construction. Contracts are invoiced per billing term, in advance or in arrears; acquisition cohorts at birth, the opening book staggered.</li>
+            <li><b>Collections</b> = billings shifted by the collection delay; receivables in between. Costs are cash when incurred.</li>
+            <li><b>Cash FCF</b> = collections − cash costs = EBITA + Δdeferred − Δreceivables. EBITA never changes; only the cash path does.</li>
+            <li>Off = FCF = EBITA, the v1 world exactly. Scenario 13 shows the same P&amp;L billed annually in advance.</li>
           </ul>
         </div>
         <div>
@@ -596,6 +606,118 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 });
 
 /*
+ * SaaS Physics v2 — CASH PHYSICS (Gate C). Pure billing and collection functions.
+ *
+ * Through Gate B, cash moved with EBITA: FCF = EBITA (FINDINGS #15). Cash
+ * Physics separates three things the P&L does not distinguish:
+ *
+ *   revenue      recognised monthly, exactly as before (midpoint MRR) — unchanged
+ *   billings     what is invoiced: revenue + Δ deferred revenue, BY CONSTRUCTION
+ *   collections  billings shifted by the collection delay; the gap is receivables
+ *
+ *   cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables
+ *
+ * Costs are cash when incurred (COGS, S&M, R&D, G&A, expansion cost) — no
+ * payables. EBITA is untouched by this layer; only the cash path changes.
+ *
+ * BILLING UNITS. A cohort is billed through units { share, phase, deferred }:
+ *   advance  — at the start of each T-month period the unit is invoiced the
+ *              period's run-rate, T × MRR, TRUED UP for whatever the previous
+ *              period left in deferred (expansion recognised beyond what was
+ *              billed sits as negative deferred — an unbilled contract asset —
+ *              until the next invoice); between invoices deferred falls by
+ *              the revenue recognised.
+ *   arrears  — revenue accrues as a contract asset (negative deferred) and is
+ *              invoiced at the end of each period.
+ * An acquisition cohort has ONE unit anchored at its birth. The opening base
+ * has T units with staggered phases — a book of contracts whose renewal dates
+ * are spread evenly over the term — and starts with the deferred balance (or
+ * contract asset) such a book carries: MRR × (T − 1) / 2. That opening
+ * balance is DERIVED state, reported, never an input.
+ *
+ * This module keeps no state and knows nothing about revenue recognition or
+ * the P&L. The engine passes a cohort's units, run-rate and recognised revenue
+ * in and takes the billings and the new balances out.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsCash = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  function enabled(a) { return a.billingTermMonths !== null && a.billingTermMonths !== undefined; }
+
+  function validate(a) {
+    var T = a.billingTermMonths, tm = a.billingTiming, d = a.collectionDelayMonths;
+    if (T === undefined) a.billingTermMonths = null;
+    else if (T !== null && (typeof T !== 'number' || !isFinite(T) || T < 1 || Math.floor(T) !== T))
+      throw new RangeError('billingTermMonths must be null (Cash Physics off) or an integer >= 1 (got ' + String(T) + ')');
+    if (tm === undefined) a.billingTiming = 'advance';
+    else if (tm !== 'advance' && tm !== 'arrears')
+      throw new RangeError('billingTiming must be "advance" or "arrears" (got ' + String(tm) + ')');
+    if (d === undefined) a.collectionDelayMonths = 0;
+    else if (typeof d !== 'number' || !isFinite(d) || d < 0 || Math.floor(d) !== d)
+      throw new RangeError('collectionDelayMonths must be an integer >= 0 (got ' + String(d) + ')');
+    if (!enabled(a) && a.collectionDelayMonths > 0)
+      throw new RangeError('collectionDelayMonths needs a billing term (billingTermMonths: 1 bills monthly); with Cash Physics off cash moves with EBITA');
+    return a;
+  }
+
+  /* Billing units for a cohort. An acquisition cohort: one unit, phase 0
+     (invoiced in its birth month under advance billing). The opening base:
+     T staggered units, each already inside a period, carrying the deferred
+     (advance, +) or accrued (arrears, −) balance of that position. */
+  function unitsFor(T, timing, openingMRR, staggered) {
+    if (!staggered) return [{ share: 1, phase: 0, deferred: 0 }];
+    var out = [];
+    for (var k = 0; k < T; k++) {
+      /* bill() invoices unit k under advance billing in the months where
+         (age + k) % T == 0, i.e. first in month T + 1 − k (k > 0) or month 1
+         (k = 0): it has T − k months of its current period still deferred.
+         Under arrears its period ends where (age + k + 1) % T == 0, i.e. in
+         month T − k (k > 0) or month T (k = 0): it has accrued k months
+         unbilled. Either way the book's total is MRR × (T − 1) / 2. */
+      var def = timing === 'advance' ? (k === 0 ? 0 : T - k) * openingMRR / T : -(k * openingMRR / T);
+      out.push({ share: 1 / T, phase: k, deferred: def });
+    }
+    return out;
+  }
+  function openingBalance(T, timing, openingMRR) {
+    var v = openingMRR * (T - 1) / 2;
+    return timing === 'advance' ? v : -v;
+  }
+
+  /* One cohort, one month. age = months since the cohort's anchor (0 in the
+     birth month); runRate = the MRR the period is invoiced at; revenue = what
+     this month recognised. Mutates unit.deferred; returns the month's flows. */
+  function bill(units, T, timing, age, runRate, revenue) {
+    var billings = 0, deferred = 0;
+    for (var i = 0; i < units.length; i++) {
+      var u = units[i], rev = revenue * u.share, inv = 0;
+      if (timing === 'advance') {
+        if ((age + u.phase) % T === 0) { inv = T * runRate * u.share - u.deferred; u.deferred += inv; }
+        u.deferred -= rev;
+      } else {
+        u.deferred -= rev;
+        if ((age + u.phase + 1) % T === 0) { inv = -u.deferred; u.deferred = 0; }
+      }
+      billings += inv; deferred += u.deferred;
+    }
+    return { billings: billings, deferred: deferred };
+  }
+
+  /* Company receivables: a FIFO of billings awaiting collection. */
+  function collect(queue, billings, delay) {
+    queue.push(billings);
+    var collected = queue.length > delay ? queue.shift() : 0;
+    var receivables = 0; for (var i = 0; i < queue.length; i++) receivables += queue[i];
+    return { collections: collected, receivables: receivables };
+  }
+
+  return { enabled: enabled, validate: validate, unitsFor: unitsFor, openingBalance: openingBalance, bill: bill, collect: collect };
+});
+
+/*
  * SaaS Physics — Prototype 0
  * Deterministic monthly economic engine. No DOM, no randomness, no I/O.
  *
@@ -656,8 +778,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      file (build.js), so the browser finds them on the global. */
   var isNode = typeof module === 'object' && module.exports;
   var deps = isNode
-    ? { customers: require('./customers.js'), monetization: require('./monetization.js') }
-    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization };
+    ? { customers: require('./customers.js'), monetization: require('./monetization.js'), cash: require('./cash.js') }
+    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization, cash: root.SaaSPhysicsCash };
   if (isNode) module.exports = factory(deps);
   else root.SaaSPhysics = factory(deps);
 })(typeof self !== 'undefined' ? self : globalThis, function (deps) {
@@ -665,6 +787,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   var CU = deps.customers;               /* Gate A — Customer Physics */
   var MO = deps.monetization;            /* Gate B — Monetization Physics */
+  var CA = deps.cash;                    /* Gate C — Cash Physics */
   var HORIZON = 60;
 
   /* ------------------------------------------------------------------ *
@@ -742,7 +865,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        adoptionAnnual, penetrationCap }] }. Requires Customer Physics. When
        on: expansionCoefficientAnnual, newLogoARPA and start.openingARR are
        NOT READ — revenue is derived from per-customer components. */
-    monetization:               null     // B   null = revenue is a carried balance (v1.3 / Gate A)
+    monetization:               null,    // B   null = revenue is a carried balance (v1.3 / Gate A)
+    /* v2 Gate C — CASH PHYSICS, at its NULL setting (cash moves with EBITA).
+       When on: billings = revenue + Δdeferred, collections = billings shifted
+       by the delay, cash FCF = collections − cash costs. EBITA is untouched. */
+    billingTermMonths:          null,    // C   contract billing period in months; null = Cash Physics off (FCF = EBITA)
+    billingTiming:              'advance', // C 'advance' (deferred revenue) or 'arrears' (contract asset)
+    collectionDelayMonths:      0        // C   months from invoice to cash; receivables in between
   };
   /* AGE BANDS (v0.3). Three bands by cohort age in months at the START of a month:
      band 1 covers ages 0..11, band 2 covers 12..23, band 3 covers 24 and above.
@@ -938,6 +1067,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       throw new RangeError('maxMonthlyNewARR must be null (no bound) or a finite number >= 0 (got ' + String(cap) + ')');
     CU.validate(a);                                  /* v2 Gate A boundary */
     MO.validate(a, CU.enabled(a));                   /* v2 Gate B boundary (requires Gate A) */
+    CA.validate(a);                                  /* v2 Gate C boundary */
     return a;
   }
   function normaliseAssumptions(a) {
@@ -1094,6 +1224,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var moInitial = MON ? stampKinds(MO.initialState(moSpec)) : null;
     var moNewLogoRevenue = MON ? MO.revenue(moInitial, moR).total : null;
 
+    /* v2 Gate C — CASH PHYSICS. When on, each cohort carries billing units;
+       the company carries a receivables queue. Revenue recognition and EBITA
+       are untouched; only billings, collections and the cash path exist here. */
+    var CASH = CA.enabled(a);
+    var BT = CASH ? a.billingTermMonths : null, BTIM = a.billingTiming, CDL = CASH ? a.collectionDelayMonths : 0;
+    var arQueue = [];
+
     var gM = MON ? null : toMonthlyPersistence(P);
     var eM = MON ? null : toMonthlyExpansion(a.expansionCoefficientAnnual);
     /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
@@ -1174,9 +1311,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         customers: CUON ? c.customers : null,
         /* v2 Gate B — per-customer component state; null = Monetization off */
         money: MON ? MO.copyState(moInitial) : null,
+        /* v2 Gate C — billing units: the opening base is a staggered book of
+           contracts and starts with the deferred balance such a book carries */
+        billingUnits: CASH ? CA.unitsFor(BT, BTIM, c.arr / 12, true) : null,
         rows: []
       };
     });
+    var openingDeferred = CASH ? cohorts.reduce(function (q, c) { return q + c.billingUnits.reduce(function (w, u) { return w + u.deferred; }, 0); }, 0) : null;
 
     var months = [];
     var cash = s.openingCash;
@@ -1189,6 +1330,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* v2 Gate A cumulative customer flows (kept apart from the v1.3 cum object) */
     var cumCu = { logoChurnARR: 0, contractionARR: 0, newCustomers: 0, logoChurnCustomers: 0 };
     var cumMo = { priceARR: 0, usageARR: 0, adoptionARR: 0 };
+    var cumCa = { billings: 0, collections: 0, cashFCF: 0 };
+    var deferredPrev = openingDeferred, receivablesPrev = 0;
 
     for (var t = 1; t <= H; t++) {
       var openingMRR = 0, i, c;
@@ -1197,6 +1340,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0, totExpansionCost = 0;
       var cuOpen = 0, cuClose = 0, cuLogoChurnMRR = 0, cuContractionMRR = 0;
       var moPriceMRR = 0, moUsageMRR = 0, moAdoptMRR = 0, moFixedMRR = 0, moVarMRR = 0;
+      var totBillings = 0, totDeferred = 0;
 
       /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
          Same transition coefficients, same order, same identities as before —
@@ -1268,8 +1412,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           expansion: expansionC * 12, closingARR: closingC * 12,
           revenue: revenue, grossProfit: gp, expansionCost: expCostC,
           customers: cuRow,                         /* v2 Gate A; null when off */
-          monetization: moRow                       /* v2 Gate B; null when off */
+          monetization: moRow,                      /* v2 Gate B; null when off */
+          cash: null                                /* v2 Gate C; filled below when on */
         });
+        if (CASH) {
+          /* v2 Gate C — invoice this cohort: anchored at birth (acquisition
+             cohorts) or staggered from M1 (opening base); the run-rate is the
+             opening MRR of the month; the revenue is what this row recognised */
+          var bl = CA.bill(c.billingUnits, BT, BTIM, c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth, openingC, revenue);
+          c.rows[c.rows.length - 1].cash = { billings: bl.billings, deferredClosing: bl.deferred };
+          totBillings += bl.billings; totDeferred += bl.deferred;
+        }
         c.live = closingC;
 
         totRetainedMRR += retainedC; totLeakageMRR += leakageC;
@@ -1301,6 +1454,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         realisedARR = nc.initialARR; realisedMRR = nc.live;
         if (CUON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
         if (MON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }
+        if (CASH) {
+          /* v2 Gate C — a new cohort: one billing unit anchored at birth; under
+             advance billing its first period is invoiced now at the initial run-rate */
+          nc.billingUnits = CA.unitsFor(BT, BTIM, nc.live, false);
+          var bl0 = CA.bill(nc.billingUnits, BT, BTIM, 0, nc.live, nc.rows[0].revenue);
+          nc.rows[0].cash = { billings: bl0.billings, deferredClosing: bl0.deferred };
+          totBillings += bl0.billings; totDeferred += bl0.deferred;
+        } else nc.billingUnits = null;
         cohorts.push(nc);
         totRevenue += nc.rows[0].revenue;
       }
@@ -1321,8 +1482,25 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var expansionCost = totExpansionCost;
       var ebita = grossProfit - a.sm - a.rd - a.ga - expansionCost;
 
-      /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed. --- */
-      var fcf = ebita;
+      /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed.
+         v2 Gate C: with Cash Physics on, FCF = collections − cash costs
+         = EBITA + Δdeferred − Δreceivables. EBITA itself is untouched. --- */
+      var fcf = ebita, caRec = null;
+      if (CASH) {
+        var col = CA.collect(arQueue, totBillings, CDL);
+        var cashCosts = cogs + a.sm + a.rd + a.ga + expansionCost;
+        fcf = col.collections - cashCosts;
+        cumCa.billings += totBillings; cumCa.collections += col.collections; cumCa.cashFCF += fcf;
+        caRec = {
+          billings: totBillings, collections: col.collections,
+          deferredOpening: deferredPrev, deferredClosing: totDeferred,
+          receivablesOpening: receivablesPrev, receivablesClosing: col.receivables,
+          cashCosts: cashCosts, cashFCF: fcf, ebita: ebita, fcfMinusEbita: fcf - ebita,
+          billingsMinusRevenue: totBillings - revenue,
+          cumulative: Object.assign({}, cumCa)
+        };
+        deferredPrev = totDeferred; receivablesPrev = col.receivables;
+      }
       var cashOpening = cash;
       var cashClosing = cashOpening + fcf;
       cash = cashClosing;
@@ -1420,7 +1598,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         cohortCount: cohorts.length,
         cumulative: Object.assign({}, cum),
         customers: cuRec,                      /* v2 Gate A; null = Customer Physics off */
-        monetization: moRec                    /* v2 Gate B; null = Monetization off */
+        monetization: moRec,                   /* v2 Gate B; null = Monetization off */
+        cash: caRec                            /* v2 Gate C; null = Cash Physics off (fcf = ebita) */
       });
     }
 
@@ -1457,7 +1636,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         acquisitionLag: a.acquisitionLagMonths > 0,
         customerPhysics: CUON,                      /* v2 Gate A */
         monetization: MON,                          /* v2 Gate B */
-        genericExpansionBypassed: MON               /* v2 Gate B: expansionCoefficientAnnual not read */
+        genericExpansionBypassed: MON,              /* v2 Gate B: expansionCoefficientAnnual not read */
+        cashPhysics: CASH                           /* v2 Gate C: fcf ≠ ebita */
       },
       assumptions: a,
       start: s,
@@ -1484,6 +1664,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         persistenceSource: MON ? 'emergent: monetization (contraction reaches variable revenue only)' : CUON ? 'derived: L(1 - C)' : 'input',
         expansionSource: MON ? 'emergent: price + usage + adoption (generic coefficient bypassed)' : 'input',
         emergentMonthlyMultiplier: emergentG,
+        cash: CASH ? {
+          billingTermMonths: BT, billingTiming: BTIM, collectionDelayMonths: CDL,
+          openingDeferredRevenue: openingDeferred,   /* derived: the staggered opening book's balance (negative = contract asset) */
+          openingBookStaggered: true,
+          fcfDefinition: 'collections - cash costs (COGS, S&M, R&D, G&A, expansion cost when incurred)'
+        } : null,
         monetization: MON ? {
           spec: moSpec,
           newLogoRevenuePerCustomer: moNewLogoRevenue,
@@ -1585,7 +1771,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         usageARR: row.monetization ? row.monetization.usageARR : null,
         adoptionARR: row.monetization ? row.monetization.adoptionARR : null,
         headroom: row.monetization ? row.monetization.headroom : null,
-        perCustomerState: row.monetization ? row.monetization.state : null
+        perCustomerState: row.monetization ? row.monetization.state : null,
+        /* v2 Gate C — this cohort's invoicing; null = Cash Physics off */
+        billings: row.cash ? row.cash.billings : null,
+        deferredRevenue: row.cash ? row.cash.deferredClosing : null
       });
     }
     return out;
@@ -1710,7 +1899,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       finalVariableShare: last.monetization ? last.monetization.variableShare : null,
       cumPriceARR: last.monetization ? last.monetization.cumulative.priceARR : null,
       cumUsageARR: last.monetization ? last.monetization.cumulative.usageARR : null,
-      cumAdoptionARR: last.monetization ? last.monetization.cumulative.adoptionARR : null
+      cumAdoptionARR: last.monetization ? last.monetization.cumulative.adoptionARR : null,
+      /* v2 Gate C — cash readouts; null = Cash Physics off */
+      cumBillings: last.cash ? last.cash.cumulative.billings : null,
+      cumCollections: last.cash ? last.cash.cumulative.collections : null,
+      finalDeferredRevenue: last.cash ? last.cash.deferredClosing : null,
+      finalReceivables: last.cash ? last.cash.receivablesClosing : null,
+      cumFCFMinusEbita: last.cash ? cum.fcf - cum.ebita : null
     };
   }
 
@@ -2269,12 +2464,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate C — CASH MEASUREMENT over the trailing 12 months. P&L and cash
+   * flows need no cohort freezing. Null when Cash Physics is off.
+   * ------------------------------------------------------------------ */
+  function cashMeasures(res, T) {
+    if (!res.mechanisms || !res.mechanisms.cashPhysics) return null;
+    var start = Math.max(1, T - WINDOW + 1), ms = res.months.slice(start - 1, T);
+    var sum = function (f) { return ms.reduce(function (s, m) { return s + f(m); }, 0); };
+    var m = res.months[T - 1], c = m.cash, c0 = res.months[start - 1].cash;
+    var revenue = sum(function (x) { return x.revenue; }), billings = sum(function (x) { return x.cash.billings; }), collections = sum(function (x) { return x.cash.collections; });
+    var ebita = sum(function (x) { return x.ebita; }), fcf = sum(function (x) { return x.fcf; });
+    return {
+      T: T, windowStart: start,
+      revenueR12M: revenue, billingsR12M: billings, collectionsR12M: collections,
+      ebitaR12M: ebita, cashFCFR12M: fcf, fcfMinusEbitaR12M: fcf - ebita,
+      deltaDeferredR12M: c.deferredClosing - c0.deferredOpening, deltaReceivablesR12M: c.receivablesClosing - c0.receivablesOpening,
+      identityResidual: (fcf - ebita) - ((c.deferredClosing - c0.deferredOpening) - (c.receivablesClosing - c0.receivablesOpening)),
+      cashConversion: ebita !== 0 ? fcf / ebita : null,                    // cash FCF ÷ EBITA over the window
+      deferredRevenue: c.deferredClosing, receivables: c.receivablesClosing,
+      deferredMonthsOfRevenue: m.revenue > 0 ? c.deferredClosing / m.revenue : null,
+      receivablesDays: billings > 0 ? c.receivablesClosing / (billings / 365) : null,
+      billingsToRevenue: revenue > 0 ? billings / revenue : null
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
     measureR12M: measureR12M,
     customerMeasures: customerMeasures,
     monetizationMeasures: monetizationMeasures,
+    cashMeasures: cashMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,
@@ -2907,6 +3128,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                {k:'maxMonthlyNewARR', label:'Acquisition capacity', sub:'New ARR per month the response approaches as S&M grows · off = linear, unbounded', min:250000, max:5000000, step:50000, f:'cap', nullable:true, onValue:2000000},
                /* v1.3 — timing only. 0 = same month. */
                {k:'acquisitionLagMonths', label:'Acquisition lag', sub:'months between S&M spend and the cohort it creates · 0 = same month', min:0, max:12, step:1, f:'mo'} ] },
+    /* v2 Gate C — CASH PHYSICS. Beneath the P&L: when the cash arrives. Billing
+       term and timing set deferred revenue; the collection delay sets
+       receivables. Off = FCF = EBITA. Touches nothing above the cash line. */
+    { kind:'Cash physics', layer:'cash', note:'Beneath the P&L: when the cash arrives. Contracts are invoiced per billing term, in advance (deferred revenue) or in arrears (a contract asset), and collected after a delay (receivables). EBITA is untouched; cash FCF = collections − cash costs. Off = FCF = EBITA.',
+      forces:[ {k:'billingTermMonths', label:'Billing term', sub:'months invoiced per contract period · off = cash moves with EBITA', min:1, max:12, step:1, f:'mo', nullable:true, onValue:12},
+               {k:'billingTiming', label:'Billing timing', sub:'in advance (customers prepay the period) or in arrears (invoiced at period end)', f:'timing', toggleOnly:true, cycle:['advance','arrears'], needs:'cash'},
+               {k:'collectionDelayMonths', label:'Collection delay', sub:'months from invoice to cash · receivables in between', min:0, max:6, step:1, f:'mo', needs:'cash'} ] },
     { kind:'Economic conversion', note:'How revenue becomes gross profit, and what realising expansion costs. Creates no ARR.',
       forces:[ {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'},
                /* v1.1 — a cost line, priced on expansion ARR the transition already produced. 0 = free. */
@@ -2924,6 +3152,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(f==='cap') return (v===null||v===undefined||!isFinite(v)) ? 'off' : eur(v)+'/mo';
     if(f==='arpa') return (v===null||v===undefined||!isFinite(v)) ? 'opening ARPA' : eur(v);
     if(f==='onoff') return (v===null||v===undefined) ? 'off' : 'on';
+    if(f==='timing') return v===null||v===undefined ? '—' : 'in '+v;
     if(v===null||v===undefined) return 'off';
     if(f==='units') return Math.round(v)+' units';
     if(f==='mo')  return Math.round(v)+' mo';
@@ -2940,6 +3169,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var d=document.createElement('div'); d.className='force';
     d.innerHTML='<div class="force-top"><label for="f-'+F.k+'">'+esc(F.label)+'</label>'+
       (F.nullable ? '<button class="btn nulltog" id="t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
+      (F.cycle ? '<button class="btn nulltog on" id="t-'+F.k+'" title="Switch between the settings">'+esc(getK(expA,F.k))+'</button>' : '')+
       '<span class="force-val" id="v-'+F.k+'"></span></div>'+
       '<div class="force-sub">'+esc(F.sub)+' &middot; <span class="force-base" id="b-'+F.k+'"></span></div>'+
       (F.toggleOnly ? '' : '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
@@ -2955,6 +3185,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
            switches Customer Physics on too, rather than throwing at the boundary */
         if(F.k==='monetization' && isOff && (expA.logoRetentionAnnual===null || expA.logoRetentionAnnual===undefined))
           expA = setK(expA, 'logoRetentionAnnual', 0.92);
+        /* v2 Gate C: a collection delay needs a billing term — switching the term
+           off resets the delay rather than throwing at the boundary */
+        if(F.k==='billingTermMonths' && !isOff) expA = setK(expA, 'collectionDelayMonths', 0);
+        recompute(prev);
+      });
+    }
+    if(F.cycle){
+      d.querySelector('#t-'+F.k).addEventListener('click', function(){
+        var prev = Object.assign({}, expA);
+        clearScenario();
+        var cur = getK(expA, F.k), i = F.cycle.indexOf(cur);
+        expA = setK(expA, F.k, F.cycle[(i+1) % F.cycle.length]);
         recompute(prev);
       });
     }
@@ -3057,6 +3299,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(F.needs==='monetization'){
         el.disabled = !monOn; el.style.opacity = monOn ? 1 : 0.35;
         if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = monOnB ? 'base '+fmtF(F.f, bv) : 'monetization off'; }
+      }
+      if(F.needs==='cash'){
+        var cashOn = expRes.mechanisms.cashPhysics;
+        if(el){ el.disabled = !cashOn; el.style.opacity = cashOn ? 1 : 0.35; }
+        if(F.cycle){ var cb=document.getElementById('t-'+F.k); cb.textContent = xv; cb.disabled = !cashOn; cb.style.opacity = cashOn ? 1 : 0.35; }
+        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? 'base '+fmtF(F.f, bv) : 'cash physics off'; }
       }
       if(F.nullable){
         var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv));
@@ -3211,7 +3459,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       pairLabel:'all platform €20,000 vs platform €12,000 + usage €8,000',
       shows:['arr','mixmatch','leak','gp','cash'],
       note:'No growth drivers in either world, so the only difference is which euros contraction can reach. In the all-platform world the 5% contraction law costs nothing; in the mixed world it costs 5% of the usage revenue a year. Dollar persistence is emergent — L × (1 − C) = 87.4% is what it would be if every euro were variable.',
-      bounds:['mon','cust','fcf'] }
+      bounds:['mon','cust','fcf'] },
+
+    /* v2 Gate C — the same P&L billed annually in advance: FCF ≠ EBITA. */
+    { id:'billing', n:13, name:'Billed in advance',
+      title:'Same P&L, different cash',
+      teach:'A subscription business bills ahead of the revenue it recognises. The same EBITA path can carry very different cash paths — and a growth push can partly fund itself, or not, depending on billing and collection.',
+      ch:{billingTermMonths:12, collectionDelayMonths:1},
+      shows:['arr','cashmatch','fcf','cashfcf','trough','cash'],
+      note:'Base: FCF = EBITA. Experiment: the same company billing 12 months in advance, collected one month after invoice. ARR, revenue and EBITA are identical to floating-point precision; only billings, deferred revenue, receivables and cash differ. The opening book starts with the deferred balance a staggered annual book carries — derived, not set.',
+      bounds:['fcf'] }
   ];
 
   /* §10 — the boundary statements are NOT static text any more: three of them
@@ -3245,7 +3502,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         ? 'Components are homogeneous within a cohort (one per-customer state); contraction reaches variable usage only; usage and penetration caps are the only bounds on expansion; price growth loses no customers and no usage (no price elasticity); no discounts, ramps or minimum commitments. (#21, priced in v2 Gate B)'
         : 'Expansion is a generic coefficient with no price, usage or adoption inside it, and it is unbounded. Switch Monetization on to price it and bound it. (#13, #21)';
     }
-    if(key==='fcf') return 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)';
+    if(key==='fcf'){
+      return E.run(a).mechanisms.cashPhysics
+        ? 'Cash FCF = collections − cash costs, with revenue billed per the '+a.billingTermMonths+'-month term in '+a.billingTiming+(a.collectionDelayMonths>0?' and collected '+a.collectionDelayMonths+' months later':'')+'. Costs are cash when incurred (no payables); no tax, capex, bad debt, refunds or financing; one billing policy for the whole company; the opening book\'s stagger is uniform by construction. (#15, timed in v2 Gate C)'
+        : 'FCF = EBITA. No working capital, deferred revenue, tax or capex. Switch a billing term on to separate cash from the P&L. (#15)';
+    }
     if(key==='rd')  return 'R&D has no modelled effect on retention or expansion. (#16)';
     return '';
   }
@@ -3926,7 +4187,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(!costOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('cost 0 · expansion is free', 788, 388); }
     valve(694, 358, 'cost per €1 exp.', expA.expansionCostPerARR>0 ? expA.expansionCostPerARR.toFixed(2)+'×' : 'off', 'expansionCostPerARR', -72, 44);
     aux(760, 440, 150, 'Other operating', n(d.otherOpex));
-    aux(905, 330, 120, 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
+    var cashOnMap = expRes.mechanisms.cashPhysics, mca = expRes.months[m-1].cash;
+    aux(905, 330, 120, cashOnMap ? 'Cash FCF' : 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
+    if(cashOnMap){
+      /* v2 Gate C — the two balances between the P&L and the cash stock */
+      aux(905, 382, 120, mca.deferredClosing>=0 ? 'Deferred revenue' : 'Contract asset', eur(Math.abs(mca.deferredClosing)), '#22303a');
+      aux(905, 430, 120, 'Receivables', eur(mca.receivablesClosing), '#22303a');
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.fillText('billed '+expA.billingTermMonths+' mo in '+expA.billingTiming+(expA.collectionDelayMonths>0?', collected +'+expA.collectionDelayMonths+' mo':''), 905, 462);
+    }
     var fcfW = (isD && Math.abs(d.fcf)<ZERO) ? 0 : Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26));
     pipeH(965, cx, 330, fcfW, d.fcf>=0?'rgba(79,158,119,.6)':'rgba(201,151,63,.6)');
     flatLine(965, cx, 330, d.fcf);
@@ -4295,12 +4564,26 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         running -= mm.expansionCost;
         steps.push({ label:'− Expansion realisation cost', from:running, to:running+mm.expansionCost, bal:mm.expansionCost, tone:'var(--leak)', op:'−' });
       }
+      /* v2 Gate C — with Cash Physics on in either world the waterfall continues
+         below EBITA: + Δdeferred − Δreceivables = cash FCF. Signed steps. */
+      if(em.cash || bm.cash){
+        steps.push({ label:'= EBITA', from:0, to:running, bal:running, tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
+        var cc = mm.cash, dd = cc ? cc.deferredClosing-cc.deferredOpening : 0, dr = cc ? cc.receivablesClosing-cc.receivablesOpening : 0;
+        var r1 = running + dd;
+        steps.push({ label:(dd>=0?'+ ':'− ')+'Δ deferred revenue', from:running, to:r1, bal:Math.abs(dd), tone: dd>=0?'var(--exp)':'var(--leak)', op: dd>=0?'+':'−' });
+        running = r1; var r2 = running - dr;
+        steps.push({ label:(dr>0?'− ':'+ ')+'Δ receivables', from:running, to:r2, bal:Math.abs(dr), tone: dr>0?'var(--leak)':'var(--exp)', op: dr>0?'−':'+' });
+        running = r2;
+        steps.push({ label:'= Cash FCF', from:0, to:running, bal:running, tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
+        return steps;
+      }
       steps.push({ label:'= Modeled FCF (= EBITA)', from:0, to:running, bal:running,
                    tone: running>=0?'var(--good)':'var(--warn)', op:'=' });
       return steps;
     }
     var expSteps = stepsFor(em), baseSteps = stepsFor(bm);
-    var scale = Math.max(em.revenue, bm.revenue, Math.abs(em.ebita), Math.abs(bm.ebita)) * 1.08 || 1;
+    var scale = Math.max(em.revenue, bm.revenue, Math.abs(em.ebita), Math.abs(bm.ebita), Math.abs(em.fcf), Math.abs(bm.fcf),
+                         em.cash ? Math.abs(em.ebita + (em.cash.deferredClosing-em.cash.deferredOpening)) : 0) * 1.08 || 1;
 
     document.getElementById('cascade-when').textContent = 'month '+m+' · year '+Math.ceil(m/12);
     var attrib='';
@@ -4337,7 +4620,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     '<div class="crow" style="margin-top:7px"><span class="cl">Cash balance</span>'+
       '<span class="cbar" style="background:transparent"></span>'+
       '<span class="cv" style="color:var(--exp)">'+eur(expRes.months[m-1].cashClosing)+'</span></div>'+
-    '<div class="hint" style="margin-top:8px">v1 assumes modeled FCF = EBITA; no working capital, tax, capex or financing mechanics.'+
+    '<div class="hint" style="margin-top:8px">'+(expRes.mechanisms.cashPhysics
+      ? 'Cash FCF = collections − cash costs: EBITA plus the deferred revenue billed ahead of recognition, less the receivables not yet collected. No tax, capex, payables or financing.'
+      : 'v1 assumes modeled FCF = EBITA; no working capital, tax, capex or financing mechanics.')+
     (expRes.derived.acquisitionLagMonths>0 ? ' Under the '+expRes.derived.acquisitionLagMonths+'-month lag, S&amp;M is expensed here in the month it is spent; the ARR it buys is still pending ('+reur(expRes.months[m-1].pendingNewARR)+' of '+basis+' at month '+m+').' : '')+'</div>';
   }
 
@@ -4370,7 +4655,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var host=document.getElementById('side');
       if(!activeScenario){
         host.innerHTML='<div class="sgrp"><div class="eyebrow">Scenarios</div>'+
-          '<div class="hint" style="margin-top:7px;line-height:1.7">Twelve canonical scenarios. Each changes one declared '+
+          '<div class="hint" style="margin-top:7px;line-height:1.7">Thirteen canonical scenarios. Each changes one declared '+
           'assumption against a frozen Base and reports only the consequences that scenario actually bears on.</div></div>'+
           SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard">'+
             '<h4>'+sc.n+' · '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
@@ -4392,7 +4677,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       row('Gross margin', pct(expRes.assumptions.grossMargin)) +
       row('Gross profit · this month', eur(em.grossProfit)) +
       ((em.expansionCost>0 || bm.expansionCost>0) ? row('Expansion realisation cost · this month', eur(em.expansionCost)) : '') +
-      row('EBITA / FCF · this month', eur(em.ebita)) +
+      (em.cash ? row('EBITA · this month', eur(em.ebita)) + row('Cash FCF · this month', eur(em.fcf)) : row('EBITA / FCF · this month', eur(em.ebita))) +
       row('Cash', eur(em.cashClosing)) + '</div>';
 
     var mx=Math.max(em.openingARR, em.closingARR);
@@ -4445,6 +4730,21 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         (baseRow && baseRow.monetization ? row('Opening base · per customer', eur(baseRow.monetization.perCustomerClosing)+'/yr' + (hr && hr.units!==null ? ' · usage '+pct(hr.units,0)+' of cap' : '') + (hr ? ' · adoption '+pct(hr.penetration,0)+' of cap' : '')) : '') +
         row('Opening '+basis+' derived', reur(dm.openingARRDerived)+' = customers × '+eur(dm.newLogoRevenuePerCustomer)) +
         '<div class="hint" style="margin-top:7px">Revenue is customers × per-customer components, recomputed every month — one source of truth. The expansion coefficient ('+pct(dm.expansionCoefficientIgnored,1)+') is bypassed: expansion IS price + usage + adoption, and it saturates at the usage and penetration caps.</div></div>';
+    }
+
+    /* v2 Gate C — the cash beneath EBITA, only when the layer is on. Every
+       figure is engine state (months[].cash) or K.cashMeasures. */
+    if(em.cash){
+      var ca = em.cash, ckm = K.cashMeasures(expRes, m), dc = expRes.derived.cash;
+      h+='<div class="sgrp" id="observe-cash"><div class="eyebrow">Cash beneath EBITA</div>'+
+        row('Billings · this month', eur(ca.billings)+' vs revenue '+eur(em.revenue)) +
+        row('Collections · this month', eur(ca.collections)) +
+        row(ca.deferredClosing>=0 ? 'Deferred revenue' : 'Contract asset (unbilled)', eur(Math.abs(ca.deferredClosing))+(ca.deferredClosing>=0 && em.revenue>0 ? ' · '+(ca.deferredClosing/em.revenue).toFixed(1)+' months of revenue' : '')) +
+        row('Receivables', eur(ca.receivablesClosing)) +
+        row('EBITA → cash FCF', eur(ca.ebita)+' → '+eur(ca.cashFCF)+' ('+(ca.fcfMinusEbita>=0?'+':'−')+eur(Math.abs(ca.fcfMinusEbita))+')') +
+        (ckm && m>=12 ? row('Cash conversion · trailing 12', ckm.cashConversion===null ? '—' : ckm.cashConversion.toFixed(2)+'× EBITA') : '') +
+        row('Billing policy', dc.billingTermMonths+'-month term, in '+dc.billingTiming+(dc.collectionDelayMonths>0 ? ', collected '+dc.collectionDelayMonths+' mo later' : '')) +
+        '<div class="hint" style="margin-top:7px">Billings = revenue + Δdeferred by construction; cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. The opening book started with '+eur(Math.abs(dc.openingDeferredRevenue))+' of '+(dc.openingDeferredRevenue>=0?'deferred revenue':'contract asset')+' — derived from a staggered book, not an input. Costs are cash when incurred.</div></div>';
     }
 
     var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition;
@@ -4511,6 +4811,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           (snap.perCustomerRevenue!==null ? row('Per customer', eur(snap.perCustomerRevenue)+'/yr · '+reur(snap.fixedARR)+' platform + '+reur(snap.variableARR)+' usage') +
                                              row('Expansion this month', reur(snap.priceARR)+' price · '+reur(snap.usageARR)+' usage · '+reur(snap.adoptionARR)+' adoption') +
                                              (snap.headroom && snap.headroom[1] ? row('Headroom used', (snap.headroom[1].units!==null ? pct(snap.headroom[1].units,0)+' of the usage cap · ' : '')+pct(snap.headroom[1].penetration,0)+' of the penetration cap') : '') : '') +
+          (snap.billings!==null ? row('Invoiced this month', eur(snap.billings)) +
+                                  row(snap.deferredRevenue>=0 ? 'Deferred revenue' : 'Unbilled (contract asset)', eur(Math.abs(snap.deferredRevenue))+(c.acquisitionMonth===0 ? ' · staggered book' : ' · billed at birth, trued up at renewal')) : '') +
           provenanceRows(c) +
           capitalRows(c, m)
           : '<div class="hint">Not yet born at this moment.</div>')+
@@ -4620,6 +4922,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var satOn2 = E.saturationEnabled(expA), lagOn2 = expRes.derived.acquisitionLagMonths>0, costOn2 = expA.expansionCostPerARR>0;
     var cuOn2 = expRes.mechanisms.customerPhysics, mcu2 = expRes.months[m-1].customers;
     var monOn2 = expRes.mechanisms.monetization, mmo2 = expRes.months[m-1].monetization;
+    var cashOn2 = expRes.mechanisms.cashPhysics, mca2 = expRes.months[m-1].cash;
     h+='<div class="sgrp"><div class="eyebrow">Mechanisms on the map</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
       '<b style="color:'+(satOn2?'var(--exp)':'var(--ink-3)')+'">Acquisition capacity · '+(satOn2?fmtF('cap',expA.maxMonthlyNewARR):'off')+'.</b> '+
@@ -4648,6 +4951,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         ? 'The expansion valve is bypassed: the expansion pipe carries <b style="color:var(--ink)">price + usage + adoption</b> — '+reur(mmo2.priceARR)+' + '+reur(mmo2.usageARR)+' + '+reur(mmo2.adoptionARR)+' this month — produced by per-customer components (platform '+reur(mmo2.fixedARR)+', usage '+reur(mmo2.variableARR)+'). '+
           'Usage and adoption are bounded by their caps, so this is the first version of the map on which expansion can saturate. Contraction reaches usage only, so persistence is emergent.'
         : 'Expansion is one coefficient with no price, usage or adoption inside it. Switch Monetization on (Company layer) and the expansion pipe is fed by named, bounded effects.')+
+      '<br><br><b style="color:'+(cashOn2?'var(--exp)':'var(--ink-3)')+'">Cash physics · '+(cashOn2 ? expA.billingTermMonths+'-month term in '+expA.billingTiming+(expA.collectionDelayMonths>0?', +'+expA.collectionDelayMonths+' mo to collect':'') : 'off')+'.</b> '+
+      (cashOn2
+        ? 'The FCF box is <b style="color:var(--ink)">cash FCF</b>: EBITA '+eur(mca2.ebita)+' '+(mca2.fcfMinusEbita>=0?'+':'−')+' '+eur(Math.abs(mca2.fcfMinusEbita))+' of timing this month. Between the P&amp;L and the cash stock sit '+(mca2.deferredClosing>=0 ? eur(mca2.deferredClosing)+' of deferred revenue' : eur(-mca2.deferredClosing)+' of unbilled contract asset')+' and '+eur(mca2.receivablesClosing)+' of receivables. Same revenue, same EBITA, a different cash path.'
+        : 'FCF = EBITA: the cash stock moves with the P&amp;L. Switch a billing term on (Company layer) and billings, deferred revenue and receivables appear between them.')+
       '</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
@@ -4730,7 +5037,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(has('avgcac'))  rows.push(row('Average CAC', qb.averageCAC.toFixed(2)+'× → '+qx.averageCAC.toFixed(2)+'×', -(qx.averageCAC - qb.averageCAC)));
     if(has('marginal'))rows.push(row('Marginal CAC', qb.marginalCAC.toFixed(2)+'× → '+qx.marginalCAC.toFixed(2)+'×', -(qx.marginalCAC - qb.marginalCAC)));
     if(has('gp'))      rows.push(row('Cumulative gross profit', x.cumGrossProfit - b.cumGrossProfit));
-    if(has('fcf'))     rows.push(row('Cumulative FCF', x.cumEbita - b.cumEbita));
+    if(has('fcf') && !has('cashfcf')) rows.push(row('Cumulative FCF', x.cumEbita - b.cumEbita));
+    if(has('fcf') && has('cashfcf'))  rows.push(row('Cumulative EBITA', x.cumEbita - b.cumEbita));
+    /* v2 Gate C — cash rows */
+    if(has('cashfcf')){
+      rows.push(row('Cumulative cash FCF', xm2.cumulative.fcf - bm2.cumulative.fcf));
+      if(x.cumBillings!==null) rows.push(row('Cumulative FCF − EBITA (Experiment)', x.cumFCFMinusEbita));
+      if(x.finalDeferredRevenue!==null) rows.push(row(x.finalDeferredRevenue>=0 ? 'Deferred revenue at M60 (Experiment)' : 'Contract asset at M60 (Experiment)', Math.abs(x.finalDeferredRevenue), 0));
+      if(x.finalReceivables!==null) rows.push(row('Receivables at M60 (Experiment)', x.finalReceivables, 0));
+    }
     if(has('trough'))  rows.push(row('Cash trough', eur(b.cashTrough)+' (M'+b.cashTroughMonth+') → '+eur(x.cashTrough)+' (M'+x.cashTroughMonth+')', x.cashTrough - b.cashTrough));
     if(has('cash'))    rows.push(row('Ending cash', x.endingCash - b.endingCash));
     if(has('payback')) rows.push(row('Coefficient payback',
@@ -4794,6 +5109,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span>max |ΔNRR| over all measurement dates</span><b>'+wNRR.toExponential(1)+'</b>'+
         '<span>expansion realisation cost</span><b>'+expA.expansionCostPerARR.toFixed(2)+'× both</b>'+
         '</div><div class="hint" style="margin-top:8px">The recurring state is identical to floating-point precision. Only the realisation cost line differs, because one world realises more expansion to reach the same ARR.</div></div>';
+    }
+
+    /* Scenario 13 proves its own premise on screen: same P&L, different cash. */
+    if(has('cashmatch')){
+      var wE = 0, wA13 = 0, wR = 0;
+      for(var t13=1; t13<=H; t13++){
+        wE = Math.max(wE, Math.abs(expRes.months[t13-1].ebita - baseRes.months[t13-1].ebita));
+        wA13 = Math.max(wA13, Math.abs(expRes.months[t13-1].closingARR - baseRes.months[t13-1].closingARR));
+        wR = Math.max(wR, Math.abs(expRes.months[t13-1].revenue - baseRes.months[t13-1].revenue));
+      }
+      var ck13 = K.cashMeasures(expRes, H);
+      h += '<div class="sgrp"><div class="eyebrow">The two worlds agree on everything above the cash line</div><div class="recon" style="margin-top:5px">'+
+        '<span>max |Δ'+basis+'| over 60 months</span><b>'+reur(wA13)+'</b>'+
+        '<span>max |Δrevenue|, |ΔEBITA| over 60 months</span><b>'+eur(Math.max(wE, wR))+'</b>'+
+        '<span>cash trough</span><b style="color:var(--warn)">'+eur(b.cashTrough)+' (M'+b.cashTroughMonth+') · '+eur(x.cashTrough)+' (M'+x.cashTroughMonth+')</b>'+
+        '<span>ending cash</span><b style="color:var(--warn)">'+eur(b.endingCash)+' · '+eur(x.endingCash)+'</b>'+
+        (ck13 ? '<span>cash conversion · trailing 12 at M60</span><b>'+(ck13.cashConversion===null?'—':ck13.cashConversion.toFixed(2)+'× EBITA')+'</b>' : '')+
+        '</div><div class="hint" style="margin-top:8px">Identical P&amp;L; the difference is entirely timing — deferred revenue billed ahead of recognition, less receivables not yet collected.</div></div>';
     }
 
     /* Scenario 12 proves its own premise on screen: same start, different GRR. */
@@ -4918,6 +5251,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(keys.indexOf('expansionCoefficientAnnual')>=0 || keys.indexOf('expansionCostPerARR')>=0) bounds.push('exp');
     if(keys.indexOf('logoRetentionAnnual')>=0 || keys.indexOf('contractionAnnual')>=0 || keys.indexOf('newLogoARPA')>=0) bounds.push('cust');
     if(keys.some(function(k3){ return k3.indexOf('monetization')===0; })) bounds.push('mon');
+    /* 'fcf' is always pushed below, and reads the live billing policy */
     if(keys.indexOf('rd')>=0) bounds.push('rd');
     bounds.push('fcf');            // relevant whenever a financial consequence is displayed
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>Model boundaries</summary><ul>'+
@@ -4961,10 +5295,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var LABEL={sm:'S&M', cacPerARR:'CAC coefficient', persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
-             logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization'};
+             logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization',
+             billingTermMonths:'Billing term', billingTiming:'Billing timing', collectionDelayMonths:'Collection delay'};
   var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur',
                  expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo',
-                 logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa', monetization:'onoff'};
+                 logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa', monetization:'onoff',
+                 billingTermMonths:'mo', billingTiming:'timing', collectionDelayMonths:'mo'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

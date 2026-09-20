@@ -154,3 +154,52 @@ console.log('  ' + L(86));
 });
 console.log('  Identical at T = 12 by construction; they diverge because usage runs into its cap and price does not. The ARR-only world reports one expansion number for both.');
 console.log('\n' + L());
+
+/* ================================================================== *
+ * C. CASH PHYSICS — the same P&L, different cash
+ * ================================================================== */
+console.log('\nC. CASH PHYSICS — billings, collections and the cash path beneath EBITA');
+console.log(L());
+var cashWorlds = [
+  ['FCF = EBITA (off)',                       {}],
+  ['monthly in advance',                      { billingTermMonths: 1 }],
+  ['quarterly in advance',                    { billingTermMonths: 3 }],
+  ['annual in advance',                       { billingTermMonths: 12 }],
+  ['annual in advance, collected 2 mo later', { billingTermMonths: 12, collectionDelayMonths: 2 }],
+  ['annual in arrears',                       { billingTermMonths: 12, billingTiming: 'arrears' }],
+  ['annual in arrears, collected 2 mo later', { billingTermMonths: 12, billingTiming: 'arrears', collectionDelayMonths: 2 }]
+];
+console.log('  Base P&L in every row (S&M €900k, CAC 1.20×, persistence 90%, expansion 10%, GM 80%). Only billing and collection differ.\n');
+console.log('  ' + pad('world', 44) + rpad('cum EBITA', 12) + rpad('cum FCF', 12) + rpad('FCF − EBITA', 13) + rpad('trough', 12) + rpad('at', 5) + rpad('M60 cash', 12) + rpad('deferred M60', 14) + rpad('recv. M60', 12));
+console.log('  ' + L(136));
+cashWorlds.forEach(function (w) {
+  var r = E.run(Object.assign({}, A, w[1])), s = E.summarise(r), c = r.months[59].cash;
+  console.log('  ' + pad(w[0], 44) + rpad(m(s.cumEbita), 12) + rpad(m(r.months[59].cumulative.fcf), 12) + rpad(sm(r.months[59].cumulative.fcf - s.cumEbita), 13) + rpad(m(s.cashTrough), 12) + rpad('M' + s.cashTroughMonth, 5) +
+              rpad(m(s.endingCash), 12) + rpad(c ? m(c.deferredClosing) : '—', 14) + rpad(c ? m(c.receivablesClosing) : '—', 12));
+});
+console.log('\n  Deferred revenue is negative under arrears: a contract asset (revenue recognised, not yet invoiced).');
+console.log('  The FCF − EBITA gap at M60 equals the change in deferred revenue minus the change in receivables since M0 — identity, every month.');
+
+/* --- C.2 how a growing book funds itself --- */
+var rAdv = E.run(Object.assign({}, A, { billingTermMonths: 12 })), r0c = E.run(A);
+console.log('\n  C.2  Annual in advance, month by month: billings run ahead of revenue while the book grows');
+console.log('  ' + pad('month', 8) + rpad('revenue', 11) + rpad('billings', 11) + rpad('Δdeferred', 12) + rpad('EBITA', 11) + rpad('cash FCF', 11) + rpad('cash', 11) + rpad('cash (off)', 12));
+console.log('  ' + L(87));
+[1, 2, 3, 6, 12, 13, 24, 36, 60].forEach(function (t) {
+  var mm = rAdv.months[t - 1], c = mm.cash;
+  console.log('  ' + pad(t, 8) + rpad(m(mm.revenue), 11) + rpad(m(c.billings), 11) + rpad(sm(c.deferredClosing - c.deferredOpening), 12) + rpad(m(mm.ebita), 11) + rpad(m(mm.fcf), 11) + rpad(m(mm.cashClosing), 11) + rpad(m(r0c.months[t - 1].cashClosing), 12));
+});
+var km36 = K.cashMeasures(rAdv, 36);
+console.log('  Trailing-12 at M36: billings ' + m(km36.billingsR12M) + ' on revenue ' + m(km36.revenueR12M) + ' (' + km36.billingsToRevenue.toFixed(3) + '×) · cash conversion ' + km36.cashConversion.toFixed(2) + '× EBITA · deferred ' + km36.deferredMonthsOfRevenue.toFixed(1) + ' months of revenue.');
+console.log('  Each new cohort is invoiced a year up front (M7 cohort: €750,000 in M7, €0 for eleven months, trued-up at renewal); the opening book, staggered, invoices ~1/12 of itself a month.');
+
+/* --- C.3 growth push under different cash physics --- */
+console.log('\n  C.3  The same growth push (S&M €900k → €1.8m) under three cash physics — what the P&L cannot see:');
+console.log('  ' + pad('cash physics', 30) + rpad('trough Base', 13) + rpad('trough push', 13) + rpad('Δ trough', 12) + rpad('M60 cash Base', 15) + rpad('M60 cash push', 15) + rpad('Δ M60', 10));
+console.log('  ' + L(108));
+[['FCF = EBITA (off)', {}], ['annual in advance', { billingTermMonths: 12 }], ['annual in arrears, +2 mo', { billingTermMonths: 12, billingTiming: 'arrears', collectionDelayMonths: 2 }]].forEach(function (w) {
+  var b = E.summarise(E.run(Object.assign({}, A, w[1]))), x = E.summarise(E.run(Object.assign({}, A, w[1], { sm: 1800000 })));
+  console.log('  ' + pad(w[0], 30) + rpad(m(b.cashTrough), 13) + rpad(m(x.cashTrough), 13) + rpad(sm(x.cashTrough - b.cashTrough), 12) + rpad(m(b.endingCash), 15) + rpad(m(x.endingCash), 15) + rpad(sm(x.endingCash - b.endingCash), 10));
+});
+console.log('  Under annual advance billing the push funds part of itself (each new cohort pays a year up front); under arrears with a delay it deepens the trough by more than EBITA says.');
+console.log('\n' + L());

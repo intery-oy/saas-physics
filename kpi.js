@@ -460,12 +460,38 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate C — CASH MEASUREMENT over the trailing 12 months. P&L and cash
+   * flows need no cohort freezing. Null when Cash Physics is off.
+   * ------------------------------------------------------------------ */
+  function cashMeasures(res, T) {
+    if (!res.mechanisms || !res.mechanisms.cashPhysics) return null;
+    var start = Math.max(1, T - WINDOW + 1), ms = res.months.slice(start - 1, T);
+    var sum = function (f) { return ms.reduce(function (s, m) { return s + f(m); }, 0); };
+    var m = res.months[T - 1], c = m.cash, c0 = res.months[start - 1].cash;
+    var revenue = sum(function (x) { return x.revenue; }), billings = sum(function (x) { return x.cash.billings; }), collections = sum(function (x) { return x.cash.collections; });
+    var ebita = sum(function (x) { return x.ebita; }), fcf = sum(function (x) { return x.fcf; });
+    return {
+      T: T, windowStart: start,
+      revenueR12M: revenue, billingsR12M: billings, collectionsR12M: collections,
+      ebitaR12M: ebita, cashFCFR12M: fcf, fcfMinusEbitaR12M: fcf - ebita,
+      deltaDeferredR12M: c.deferredClosing - c0.deferredOpening, deltaReceivablesR12M: c.receivablesClosing - c0.receivablesOpening,
+      identityResidual: (fcf - ebita) - ((c.deferredClosing - c0.deferredOpening) - (c.receivablesClosing - c0.receivablesOpening)),
+      cashConversion: ebita !== 0 ? fcf / ebita : null,                    // cash FCF ÷ EBITA over the window
+      deferredRevenue: c.deferredClosing, receivables: c.receivablesClosing,
+      deferredMonthsOfRevenue: m.revenue > 0 ? c.deferredClosing / m.revenue : null,
+      receivablesDays: billings > 0 ? c.receivablesClosing / (billings / 365) : null,
+      billingsToRevenue: revenue > 0 ? billings / revenue : null
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
     measureR12M: measureR12M,
     customerMeasures: customerMeasures,
     monetizationMeasures: monetizationMeasures,
+    cashMeasures: cashMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,
