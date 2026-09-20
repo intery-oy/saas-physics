@@ -259,6 +259,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Customer physics (v2, nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
             <li><b>Monetization physics (v2, nullable)</b> — a platform fee and a usage component per customer, with price growth, usage growth and adoption to caps. When on, revenue is derived from the components; the expansion coefficient, ARR per new logo and opening ARR are not read.</li>
             <li><b>Cash physics (v2, nullable)</b> — billing term and timing (deferred revenue or contract asset) and a collection delay (receivables). When on, cash FCF = collections − cash costs; EBITA is untouched.</li>
+            <li><b>Hypotheses (v2, none by default)</b> — a costed, lagged, temporary move of one law, resolved into the law in force month by month. Never a coefficient.</li>
             <li>Nothing else. There is no plan, no target, no forecast to hit.</li>
           </ul>
         </div>
@@ -349,6 +350,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Collections</b> = billings shifted by the collection delay; receivables in between. Costs are cash when incurred.</li>
             <li><b>Cash FCF</b> = collections − cash costs = EBITA + Δdeferred − Δreceivables. EBITA never changes; only the cash path does.</li>
             <li>Off = FCF = EBITA, the v1 world exactly. Scenario 13 shows the same P&amp;L billed annually in advance.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Hypotheses (v2 Gate D, none by default)</h5>
+          <ul>
+            <li><b>An intervention is an object</b> — target, effect, value, decision month, lag, duration, one-off and monthly cost — never a coefficient. The engine reads the law in force each month from lawAt(t).</li>
+            <li><b>Its cost is its own P&amp;L line</b>, booked from the decision month; cash when incurred.</li>
+            <li><b>Provenance</b> — every month records which hypotheses were in force and what each changed; every cohort records the hypotheses in force when its spend was committed.</li>
+            <li><b>Bounds before benefits</b> — a hypothesis cannot switch a layer on or change the billing policy, and is rejected up front if any month's resolved law leaves the engine's domain. Scenario 14 shows a retention programme.</li>
           </ul>
         </div>
         <div>
@@ -718,6 +728,196 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 });
 
 /*
+ * SaaS Physics v2 — INTERVENTIONS (Gate D). Hypotheses, resolved month by month.
+ *
+ * Every law in the engine is a coefficient the world obeys. An INTERVENTION is
+ * not a law: it is a management hypothesis — "if we do X from month s, law L
+ * moves by Δ after a lag, for a while, and it costs this much" — and it must
+ * never silently become a coefficient. So an intervention is an explicit
+ * object,
+ *
+ *   { id, name, target, effect: 'multiply' | 'add' | 'set', value,
+ *     startMonth, lagMonths, durationMonths (null = permanent),
+ *     cost: { oneOff, monthly } }
+ *
+ * and the engine reads the assumptions IN FORCE in month t from
+ *
+ *   lawAt(t) = base laws, with every intervention active in t applied in
+ *              declaration order (active: startMonth + lagMonths ≤ t <
+ *              startMonth + lagMonths + durationMonths)
+ *
+ * Costs are incurred from startMonth (the decision), not from the month the
+ * effect arrives: oneOff in startMonth, monthly from startMonth through the
+ * last active month (or the horizon when permanent). They are a P&L line of
+ * their own (interventionCost) and cash when incurred.
+ *
+ * What an intervention may target: any numeric assumption that is ON in the
+ * base world (a flat key, or a monetization component leaf by path). It may
+ * not switch a layer on or off (a null target is rejected; setting a layer's
+ * switch is rejected), and it may not change the billing policy (billing
+ * units are anchored to a term). The resolved law of EVERY month must pass the
+ * engine's own boundary validation, or the intervention is rejected up front:
+ * a hypothesis cannot produce a world the engine would refuse to run.
+ *
+ * Provenance: every month records which interventions were active and what
+ * each changed (target: from → to); every pending-acquisition entry and every
+ * cohort records the interventions in force at spend.
+ *
+ * This module keeps no state and knows nothing about the economics: it
+ * validates, resolves lawAt(t), and schedules cost.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsInterventions = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  var LAYER_SWITCHES = { logoRetentionAnnual: 'Customer Physics', monetization: 'Monetization Physics', billingTermMonths: 'Cash Physics' };
+  var FORBIDDEN = { billingTermMonths: 'billing policy', billingTiming: 'billing policy', collectionDelayMonths: 'billing policy', monetization: 'a whole layer', bands: 'age bands', interventions: 'itself' };
+
+  /* Domains of the v1 laws the engine never bounded at its boundary (a caller
+     could always set them; a hypothesis may not push them out of the world). */
+  var DOMAIN = {
+    sm: [0, Infinity], rd: [0, Infinity], ga: [0, Infinity], cacPerARR: [1e-9, Infinity],
+    persistenceAnnual: [1e-9, 1], expansionCoefficientAnnual: [0, Infinity], grossMargin: [0, 1],
+    expansionCostPerARR: [0, Infinity], maxMonthlyNewARR: [0, Infinity], acquisitionLagMonths: [0, Infinity],
+    logoRetentionAnnual: [1e-9, 1], contractionAnnual: [0, 1 - 1e-9], newLogoARPA: [1e-9, Infinity]
+  };
+  function inDomain(key, v) { var d = DOMAIN[key]; return !d || (v >= d[0] && v <= d[1]); }
+
+  function enabled(a) { return Array.isArray(a.interventions) && a.interventions.length > 0; }
+  function isInt(v) { return typeof v === 'number' && isFinite(v) && Math.floor(v) === v; }
+
+  /* nested paths: 'monetization.components[1].priceGrowthAnnual' */
+  function parts(key) { return key.replace(/\[(\d+)\]/g, '.$1').split('.'); }
+  function getK(obj, key) {
+    var p = parts(key), v = obj;
+    for (var i = 0; i < p.length; i++) { if (v === null || v === undefined) return undefined; v = v[p[i]]; }
+    return v;
+  }
+  function setK(obj, key, val) {
+    var p = parts(key), out = Object.assign({}, obj);
+    if (p.length === 1) { out[key] = val; return out; }
+    out[p[0]] = JSON.parse(JSON.stringify(obj[p[0]]));
+    var v = out[p[0]];
+    for (var i = 1; i < p.length - 1; i++) v = v[p[i]];
+    v[p[p.length - 1]] = val;
+    return out;
+  }
+
+  function applyOne(law, iv) {
+    var cur = getK(law, iv.target), next;
+    if (iv.effect === 'multiply') next = cur * iv.value;
+    else if (iv.effect === 'add') next = cur + iv.value;
+    else next = iv.value;
+    return setK(law, iv.target, next);
+  }
+
+  function activeIn(iv, t) {
+    var from = iv.startMonth + iv.lagMonths;
+    if (t < from) return false;
+    return iv.durationMonths === null || t < from + iv.durationMonths;
+  }
+  function costIn(iv, t, H) {
+    var last = iv.durationMonths === null ? H : iv.startMonth + iv.lagMonths + iv.durationMonths - 1;
+    var c = 0;
+    if (t === iv.startMonth) c += iv.cost.oneOff;
+    if (t >= iv.startMonth && t <= last) c += iv.cost.monthly;
+    return c;
+  }
+
+  /* Validates and canonicalises; throws RangeError. `validateLaw` is the
+     engine's own boundary validator, run on the resolved law of every month. */
+  function validate(a, H, validateLaw) {
+    var list = a.interventions;
+    if (list === undefined || list === null) { a.interventions = []; return a; }
+    if (!Array.isArray(list)) throw new RangeError('interventions must be an array (got ' + typeof list + ')');
+    var seen = {};
+    a.interventions = list.map(function (iv, i) {
+      var tag = 'interventions[' + i + '] ';
+      if (!iv || typeof iv !== 'object') throw new RangeError(tag + 'must be an object');
+      var id = iv.id === undefined ? 'H' + (i + 1) : String(iv.id);
+      if (seen[id]) throw new RangeError(tag + 'duplicate id "' + id + '"'); seen[id] = true;
+      if (typeof iv.target !== 'string' || !iv.target) throw new RangeError(tag + 'target must be an assumption key');
+      var root = parts(iv.target)[0];
+      if (FORBIDDEN[root] && parts(iv.target).length === 1) throw new RangeError(tag + 'may not target ' + iv.target + ' (' + FORBIDDEN[root] + ')');
+      if (root !== 'monetization' && parts(iv.target).length > 1) throw new RangeError(tag + 'only monetization component leaves may be targeted by path (got ' + iv.target + ')');
+      var cur = getK(a, iv.target);
+      if (cur === undefined) throw new RangeError(tag + 'unknown target ' + iv.target);
+      if (cur === null) throw new RangeError(tag + 'targets ' + iv.target + ', which is off in the base world' + (LAYER_SWITCHES[root] ? ' — an intervention cannot switch ' + LAYER_SWITCHES[root] + ' on' : ''));
+      if (typeof cur !== 'number') throw new RangeError(tag + 'target ' + iv.target + ' is not numeric');
+      var effect = iv.effect === undefined ? 'multiply' : iv.effect;
+      if (effect !== 'multiply' && effect !== 'add' && effect !== 'set') throw new RangeError(tag + 'effect must be "multiply", "add" or "set" (got ' + String(iv.effect) + ')');
+      if (typeof iv.value !== 'number' || !isFinite(iv.value)) throw new RangeError(tag + 'value must be a finite number');
+      if (!isInt(iv.startMonth) || iv.startMonth < 1) throw new RangeError(tag + 'startMonth must be an integer >= 1');
+      var lag = iv.lagMonths === undefined ? 0 : iv.lagMonths;
+      if (!isInt(lag) || lag < 0) throw new RangeError(tag + 'lagMonths must be an integer >= 0');
+      var dur = iv.durationMonths === undefined ? null : iv.durationMonths;
+      if (dur !== null && (!isInt(dur) || dur < 1)) throw new RangeError(tag + 'durationMonths must be null (permanent) or an integer >= 1');
+      var cost = iv.cost || {};
+      var oneOff = cost.oneOff === undefined ? 0 : cost.oneOff, monthly = cost.monthly === undefined ? 0 : cost.monthly;
+      if (typeof oneOff !== 'number' || !(oneOff >= 0) || !isFinite(oneOff) || typeof monthly !== 'number' || !(monthly >= 0) || !isFinite(monthly))
+        throw new RangeError(tag + 'cost.oneOff and cost.monthly must be numbers >= 0');
+      return { id: id, name: iv.name || id, target: iv.target, effect: effect, value: iv.value, startMonth: iv.startMonth, lagMonths: lag, durationMonths: dur, cost: { oneOff: oneOff, monthly: monthly } };
+    });
+    /* bounds before benefits: the resolved law of every month must be a world the engine accepts */
+    if (a.interventions.length && validateLaw) {
+      for (var t = 1; t <= H; t++) {
+        var rs = resolve(a, t), law = rs.law;
+        if (law !== a) {
+          for (var c = 0; c < rs.changes.length; c++) {
+            var ch = rs.changes[c];
+            if (!inDomain(ch.target, ch.to) || (ch.target === 'acquisitionLagMonths' && !isInt(ch.to)))
+              throw new RangeError('interventions produce an invalid law in month ' + t + ': ' + ch.target + ' = ' + ch.to + ' is outside its domain');
+          }
+          try { validateLaw(Object.assign({}, law, { interventions: [] })); }
+          catch (e) { throw new RangeError('interventions produce an invalid law in month ' + t + ': ' + e.message); }
+        }
+      }
+    }
+    return a;
+  }
+
+  /* The law in force in month t, and what each active intervention changed. */
+  function resolve(a, t) {
+    var law = a, active = [], changes = [];
+    for (var i = 0; i < a.interventions.length; i++) {
+      var iv = a.interventions[i];
+      if (!activeIn(iv, t)) continue;
+      var before = getK(law, iv.target);
+      law = applyOne(law, iv);
+      active.push(iv.id);
+      changes.push({ id: iv.id, target: iv.target, from: before, to: getK(law, iv.target) });
+    }
+    return { law: law, active: active, changes: changes };
+  }
+
+  function costAt(a, t, H) {
+    var total = 0, items = [];
+    for (var i = 0; i < a.interventions.length; i++) {
+      var c = costIn(a.interventions[i], t, H);
+      if (c) { total += c; items.push({ id: a.interventions[i].id, cost: c }); }
+    }
+    return { total: total, items: items };
+  }
+
+  /* The schedule, for provenance and the product. */
+  function schedule(a, H) {
+    return a.interventions.map(function (iv) {
+      var from = iv.startMonth + iv.lagMonths, to = iv.durationMonths === null ? H : Math.min(H, from + iv.durationMonths - 1);
+      var totalCost = 0; for (var t = 1; t <= H; t++) totalCost += costIn(iv, t, H);
+      return { id: iv.id, name: iv.name, target: iv.target, effect: iv.effect, value: iv.value,
+               startMonth: iv.startMonth, lagMonths: iv.lagMonths, durationMonths: iv.durationMonths,
+               effectiveFrom: from, effectiveTo: to, activeMonths: Math.max(0, to - from + 1),
+               baseValue: getK(a, iv.target), valueInForce: from <= H ? getK(resolve(a, from).law, iv.target) : null,
+               cost: iv.cost, totalCost: totalCost };
+    });
+  }
+
+  return { enabled: enabled, validate: validate, resolve: resolve, costAt: costAt, schedule: schedule, activeIn: activeIn, getK: getK, setK: setK };
+});
+
+/*
  * SaaS Physics — Prototype 0
  * Deterministic monthly economic engine. No DOM, no randomness, no I/O.
  *
@@ -778,8 +978,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      file (build.js), so the browser finds them on the global. */
   var isNode = typeof module === 'object' && module.exports;
   var deps = isNode
-    ? { customers: require('./customers.js'), monetization: require('./monetization.js'), cash: require('./cash.js') }
-    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization, cash: root.SaaSPhysicsCash };
+    ? { customers: require('./customers.js'), monetization: require('./monetization.js'), cash: require('./cash.js'), interventions: require('./interventions.js') }
+    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization, cash: root.SaaSPhysicsCash, interventions: root.SaaSPhysicsInterventions };
   if (isNode) module.exports = factory(deps);
   else root.SaaSPhysics = factory(deps);
 })(typeof self !== 'undefined' ? self : globalThis, function (deps) {
@@ -788,6 +988,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var CU = deps.customers;               /* Gate A — Customer Physics */
   var MO = deps.monetization;            /* Gate B — Monetization Physics */
   var CA = deps.cash;                    /* Gate C — Cash Physics */
+  var IV = deps.interventions;           /* Gate D — Interventions */
   var HORIZON = 60;
 
   /* ------------------------------------------------------------------ *
@@ -871,7 +1072,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        by the delay, cash FCF = collections − cash costs. EBITA is untouched. */
     billingTermMonths:          null,    // C   contract billing period in months; null = Cash Physics off (FCF = EBITA)
     billingTiming:              'advance', // C 'advance' (deferred revenue) or 'arrears' (contract asset)
-    collectionDelayMonths:      0        // C   months from invoice to cash; receivables in between
+    collectionDelayMonths:      0,       // C   months from invoice to cash; receivables in between
+    /* v2 Gate D — INTERVENTIONS, at their NULL setting (none). Hypotheses,
+       never laws: { id, target, effect, value, startMonth, lagMonths,
+       durationMonths, cost }, resolved into the law in force by lawAt(t). */
+    interventions:              []       // D   [] = no hypotheses; every month runs on the base laws
   };
   /* AGE BANDS (v0.3). Three bands by cohort age in months at the START of a month:
      band 1 covers ages 0..11, band 2 covers 12..23, band 3 covers 24 and above.
@@ -1056,7 +1261,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * equal whichever spelling the caller used. A finite capacity < 0 or NaN is
    * rejected; 0 is kept (no acquisition capacity, N = 0 — documented).
    * ------------------------------------------------------------------ */
-  function validateAssumptions(a) {
+  function validateAssumptions(a, horizon) {
     var L = a.acquisitionLagMonths;
     if (L === undefined) a.acquisitionLagMonths = DEFAULT_ASSUMPTIONS.acquisitionLagMonths;
     else if (typeof L !== 'number' || !isFinite(L) || L < 0 || Math.floor(L) !== L)
@@ -1068,10 +1273,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     CU.validate(a);                                  /* v2 Gate A boundary */
     MO.validate(a, CU.enabled(a));                   /* v2 Gate B boundary (requires Gate A) */
     CA.validate(a);                                  /* v2 Gate C boundary */
+    /* v2 Gate D boundary: every month's resolved law must itself pass this
+       function (with no interventions) and stay inside each law's domain */
+    IV.validate(a, Math.max(HORIZON, horizon || 0), validateAssumptions);
     return a;
   }
-  function normaliseAssumptions(a) {
-    return validateAssumptions(Object.assign({}, DEFAULT_ASSUMPTIONS, a || {}));
+  function normaliseAssumptions(a, horizon) {
+    return validateAssumptions(Object.assign({}, DEFAULT_ASSUMPTIONS, a || {}), horizon);
   }
 
   /* ------------------------------------------------------------------ *
@@ -1092,7 +1300,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * the integrity suite prove it by calling this function with a synthetic
    * entry whose law differs from any assumption the engine holds.
    * ------------------------------------------------------------------ */
-  function pendingEntry(a, t, L, newARR, newLogoARPA, perCustomerState) {
+  function pendingEntry(a, t, L, newARR, newLogoARPA, perCustomerState, activeInterventions) {
     return {
       spendMonth: t, matureMonth: t + L, lagMonths: L,
       sm: a.sm, newARR: newARR,
@@ -1104,6 +1312,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       /* v2 Gate B: the per-customer component state new logos start with, in
          force at spend; null = Monetization off. The cohort is born from it. */
       perCustomerAtSpend: perCustomerState ? MO.copyState(perCustomerState) : null,
+      /* v2 Gate D: the hypotheses in force when this spend was committed */
+      interventionsAtSpend: activeInterventions ? activeInterventions.slice() : [],
       realised: false, cohortId: null
     };
   }
@@ -1143,7 +1353,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       initialCustomers: anyCustomers ? realisedCustomers : null,
       customers: anyCustomers ? realisedCustomers : null,
       /* v2 Gate B — per-customer component state, from the first entry */
-      money: first.perCustomerAtSpend ? MO.copyState(first.perCustomerAtSpend) : null
+      money: first.perCustomerAtSpend ? MO.copyState(first.perCustomerAtSpend) : null,
+      /* v2 Gate D — the hypotheses in force at spend, from the first entry */
+      interventionsAtSpend: first.interventionsAtSpend ? first.interventionsAtSpend.slice() : []
     };
     if (nc.money) {
       /* every matured entry must carry the same per-customer state: a cohort
@@ -1198,9 +1410,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * The engine
    * ------------------------------------------------------------------ */
   function run(assumptions, start, horizon) {
-    var a = normaliseAssumptions(assumptions);
-    var s = Object.assign({}, DEFAULT_START, start || {});
     var H = horizon || HORIZON;
+    var a = normaliseAssumptions(assumptions, H);
+    var s = Object.assign({}, DEFAULT_START, start || {});
+    /* v2 Gate D — INTERVENTIONS. lawAt(t) is the assumption object in force in
+       month t: the base laws with every active hypothesis applied. With none
+       (the null world) lawAt(t) IS the base object, so every per-month
+       quantity below is recomputed from the same inputs and is bit-identical
+       to the once-computed v1.3 value. */
+    var IVON = IV.enabled(a);
+    function lawAt(t) { return IVON ? IV.resolve(a, t) : { law: a, active: [], changes: [] }; }
 
     /* v2 Gate A — CUSTOMER PHYSICS. When on, the cohort transition is
        generated by customers.js and persistenceAnnual is NOT READ: the
@@ -1220,7 +1439,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var moR = MON ? MO.rates(moSpec) : null;
     /* the per-customer state carries its component kind and caps so a row's
        fixed/variable split can be read without the spec */
-    function stampKinds(state) { return state.map(function (k, i) { return { penetration: k.penetration, units: k.units, price: k.price, fixed: moR[i].fixed, unitsCap: moR[i].unitsCap, penetrationCap: moR[i].penetrationCap }; }); }
+    function stampKinds(state, rates) { var rr = rates || moR; return state.map(function (k, i) { return { penetration: k.penetration, units: k.units, price: k.price, fixed: rr[i].fixed, unitsCap: rr[i].unitsCap, penetrationCap: rr[i].penetrationCap }; }); }
     var moInitial = MON ? stampKinds(MO.initialState(moSpec)) : null;
     var moNewLogoRevenue = MON ? MO.revenue(moInitial, moR).total : null;
 
@@ -1250,14 +1469,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        stamped from the entry, never from the live assumptions at maturity. */
     var ledger = [], pending = [];
 
+    function ratesOfBands(bs) {
+      return bs.map(function (b) {
+        return { name: b.name, maxAgeExclusive: b.maxAgeExclusive,
+                 persistenceAnnual: b.persistenceAnnual,
+                 expansionCoefficientAnnual: b.expansionCoefficientAnnual,
+                 g: toMonthlyPersistence(b.persistenceAnnual),
+                 e: toMonthlyExpansion(b.expansionCoefficientAnnual) };
+      });
+    }
     var bands = resolveBands(aEff);
-    var bandRates = bands.map(function (b) {
-      return { name: b.name, maxAgeExclusive: b.maxAgeExclusive,
-               persistenceAnnual: b.persistenceAnnual,
-               expansionCoefficientAnnual: b.expansionCoefficientAnnual,
-               g: toMonthlyPersistence(b.persistenceAnnual),
-               e: toMonthlyExpansion(b.expansionCoefficientAnnual) };
-    });
+    var bandRates = ratesOfBands(bands);
 
     /* 4. The company IS a set of cohorts. Aggregates are only ever sums.
        v0.3: the opening base may be several vintages of different ages. */
@@ -1332,10 +1554,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var cumMo = { priceARR: 0, usageARR: 0, adoptionARR: 0 };
     var cumCa = { billings: 0, collections: 0, cashFCF: 0 };
     var deferredPrev = openingDeferred, receivablesPrev = 0;
+    var cumIv = 0;
 
     for (var t = 1; t <= H; t++) {
       var openingMRR = 0, i, c;
       for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
+
+      /* --- v2 Gate D: the law in force THIS month. When it is the base
+         object every derived quantity below is the run-level one. --- */
+      var rs = lawAt(t), law = rs.law, lawChanged = law !== a;
+      var cuR_t = lawChanged && CUON ? CU.rates(law) : cuR;
+      var bandRates_t = lawChanged ? ratesOfBands(resolveBands(CUON ? Object.assign({}, law, { persistenceAnnual: cuR_t.impliedPersistenceAnnual }) : law)) : bandRates;
+      var moR_t = lawChanged && MON ? MO.rates(law.monetization) : moR;
+      var moInitial_t = lawChanged && MON ? stampKinds(MO.initialState(law.monetization), moR_t) : moInitial;
+      var newLogoARPA_t = !lawChanged ? newLogoARPA : (MON ? MO.revenue(moInitial_t, moR_t).total : (CUON ? (law.newLogoARPA !== null ? law.newLogoARPA : openingARPA) : null));
+      var newARR_t = lawChanged ? newARRPerMonth(law) : newARR;
+      var LAG_t = law.acquisitionLagMonths;
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0, totExpansionCost = 0;
       var cuOpen = 0, cuClose = 0, cuLogoChurnMRR = 0, cuContractionMRR = 0;
@@ -1353,8 +1587,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         c = cohorts[i];
         var ageEnd     = c.initialAge + (t - c.acquisitionMonth);
         var ageAtStart = ageEnd - 1;
-        var bi = bandFor(bandRates, ageAtStart);
-        var br = bandRates[bi];
+        var bi = bandFor(bandRates_t, ageAtStart);
+        var br = bandRates_t[bi];
         var openingC  = c.live;
         var retainedC, leakageC, expansionC, closingC, cuRow = null, moRow = null;
         if (MON) {
@@ -1362,16 +1596,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
              per-customer components: contraction (variable units) → price →
              usage (to cap) → adoption (to cap). The generic expansion
              coefficient is BYPASSED: expansion = price + usage + adoption. */
-          var trc = CU.transition({ n: c.customers, mrr: openingC }, cuR);
-          var mt = MO.transition(c.money, moR, cuR.cM);
+          var trc = CU.transition({ n: c.customers, mrr: openingC }, cuR_t);
+          var mt = MO.transition(c.money, moR_t, cuR_t.cM);
           var n1 = trc.customersClosing;
           var contrC = n1 * mt.effects.contraction / 12;
           var priceC = n1 * mt.effects.price / 12, usageC = n1 * mt.effects.usage / 12, adoptC = n1 * mt.effects.adoption / 12;
           retainedC = trc.survivorMRR - contrC; leakageC = trc.logoChurnMRR + contrC;
           expansionC = priceC + usageC + adoptC; closingC = retainedC + expansionC;
           cuRow = customerRow(trc.customersOpening, n1, trc.logoChurnMRR, contrC, trc.survivorMRR);
-          var stateClose = stampKinds(mt.state);
-          moRow = monetizationRow(n1, c.money, stateClose, moR, mt);
+          var stateClose = stampKinds(mt.state, moR_t);
+          moRow = monetizationRow(n1, c.money, stateClose, moR_t, mt);
           c.money = stateClose; c.customers = n1;
           cuOpen += trc.customersOpening; cuClose += n1;
           cuLogoChurnMRR += trc.logoChurnMRR; cuContractionMRR += contrC;
@@ -1382,7 +1616,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
              logo survival, then contraction among survivors, then expansion
              among survivors. leakage = logo churn + contraction; the v1.3
              identity closing = opening × g × (1 + e) holds with g = l(1 − c). */
-          var tr = CU.transition({ n: c.customers, mrr: openingC }, cuR);
+          var tr = CU.transition({ n: c.customers, mrr: openingC }, cuR_t);
           retainedC = tr.retainedMRR; leakageC = tr.leakageMRR;
           expansionC = tr.expansionMRR; closingC = tr.closingMRR;
           cuRow = customerRow(tr.customersOpening, tr.customersClosing, tr.logoChurnMRR, tr.contractionMRR, tr.survivorMRR);
@@ -1397,12 +1631,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         }
         var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
         var revenue   = avgMRR;                       // MRR already IS the monthly amount
-        var gp        = revenue * a.grossMargin;
+        var gp        = revenue * law.grossMargin;
         /* v1.1 EXPANSION REALISATION COST — priced on the expansion ARR the
            transition above ALREADY produced. Read by nothing in the transition:
            it is computed after closingC and never feeds c.live, so retained,
            expansion, closing, GRR and NRR are provably untouched by it. */
-        var expCostC  = expansionC * 12 * a.expansionCostPerARR;
+        var expCostC  = expansionC * 12 * law.expansionCostPerARR;
 
         c.rows.push({
           t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
@@ -1432,7 +1666,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       /* --- v1.3 SPEND. S&M is incurred NOW (it hits EBITA and cash below in
          this month) and enters the pending ledger with the New ARR the law IN
          FORCE NOW says it will create, dated to mature at t + LAG. --- */
-      var entry = pendingEntry(a, t, LAG, newARR, newLogoARPA, moInitial);
+      var entry = pendingEntry(law, t, LAG_t, newARR_t, newLogoARPA_t, moInitial_t, rs.active);
       ledger.push(entry); pending.push(entry);
 
       /* --- v1.3 REALISE. Whatever matured this month becomes the acquisition
@@ -1450,7 +1684,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       }
       var realisedARR = 0, realisedMRR = 0, realisedCustomers = 0;
       if (matured.length) {
-        var nc = realiseCohort(t, matured, bandRates[0].name, a.grossMargin);
+        var nc = realiseCohort(t, matured, bandRates_t[0].name, law.grossMargin);
         realisedARR = nc.initialARR; realisedMRR = nc.live;
         if (CUON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
         if (MON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }
@@ -1474,13 +1708,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       /* --- 7/8. Revenue and gross profit (company = sum of cohorts) --- */
       var avgMRRco  = (openingMRR + closingMRR) / 2;
       var revenue   = avgMRRco;              // MRR-NATIVE: no /12 — MRR is already monthly
-      var cogs      = revenue * (1 - a.grossMargin);
-      var grossProfit = revenue * a.grossMargin;
+      var cogs      = revenue * (1 - law.grossMargin);
+      var grossProfit = revenue * law.grossMargin;
 
       /* --- 9. EBITA. v1.1: less the expansion realisation cost, a named line
          of its own (company total = Σ cohort expansionCost, by construction). --- */
       var expansionCost = totExpansionCost;
-      var ebita = grossProfit - a.sm - a.rd - a.ga - expansionCost;
+      /* v2 Gate D — the hypotheses' own cost line: one-off at the decision
+         month, monthly while the programme runs. 0 with no interventions. */
+      var ivCost = IVON ? IV.costAt(a, t, H) : null;
+      var interventionCost = ivCost ? ivCost.total : 0;
+      var ebita = grossProfit - law.sm - law.rd - law.ga - expansionCost - interventionCost;
 
       /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed.
          v2 Gate C: with Cash Physics on, FCF = collections − cash costs
@@ -1488,7 +1726,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var fcf = ebita, caRec = null;
       if (CASH) {
         var col = CA.collect(arQueue, totBillings, CDL);
-        var cashCosts = cogs + a.sm + a.rd + a.ga + expansionCost;
+        var cashCosts = cogs + law.sm + law.rd + law.ga + expansionCost + interventionCost;
         fcf = col.collections - cashCosts;
         cumCa.billings += totBillings; cumCa.collections += col.collections; cumCa.cashFCF += fcf;
         caRec = {
@@ -1519,7 +1757,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
       cum.newARR += realisedARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
-      cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga; cum.expansionCost += expansionCost;
+      cum.sm += law.sm; cum.rd += law.rd; cum.ga += law.ga; cum.expansionCost += expansionCost;
+      cumIv += interventionCost;
       cum.ebita += ebita; cum.fcf += fcf;
 
       /* v2 Gate A — the company customer record: sums of the cohort sub-records */
@@ -1572,7 +1811,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         closingARR: closingARR,
         /* v1.3 — the pending-acquisition stock at the END of this month, and
            what left it. All zero in the null world. */
-        acquisitionLawNewARR: newARR,          /* what this month's spend will create, when it matures */
+        acquisitionLawNewARR: newARR_t,        /* what this month's spend will create, when it matures */
         pendingNewARR: pendingARR,
         pendingSpend: pendingSpend,
         pendingCount: pending.length,
@@ -1583,8 +1822,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         revenue: revenue,
         cogs: cogs,
         grossProfit: grossProfit,
-        sm: a.sm, rd: a.rd, ga: a.ga,
+        sm: law.sm, rd: law.rd, ga: law.ga,
         expansionCost: expansionCost,          /* v1.1 — 0 in the null world */
+        interventionCost: interventionCost,    /* v2 Gate D — 0 with no hypotheses */
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
         fcf: fcf,
@@ -1599,7 +1839,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         cumulative: Object.assign({}, cum),
         customers: cuRec,                      /* v2 Gate A; null = Customer Physics off */
         monetization: moRec,                   /* v2 Gate B; null = Monetization off */
-        cash: caRec                            /* v2 Gate C; null = Cash Physics off (fcf = ebita) */
+        cash: caRec,                           /* v2 Gate C; null = Cash Physics off (fcf = ebita) */
+        /* v2 Gate D — provenance: which hypotheses were in force, what each
+           changed (target: from → to), and what they cost this month */
+        interventions: IVON ? { active: rs.active, changes: rs.changes, cost: interventionCost, costItems: ivCost.items, cumulativeCost: cumIv } : null
       });
     }
 
@@ -1637,7 +1880,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         customerPhysics: CUON,                      /* v2 Gate A */
         monetization: MON,                          /* v2 Gate B */
         genericExpansionBypassed: MON,              /* v2 Gate B: expansionCoefficientAnnual not read */
-        cashPhysics: CASH                           /* v2 Gate C: fcf ≠ ebita */
+        cashPhysics: CASH,                          /* v2 Gate C: fcf ≠ ebita */
+        interventions: IVON                         /* v2 Gate D: lawAt(t) differs from the base in some month */
       },
       assumptions: a,
       start: s,
@@ -1664,6 +1908,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         persistenceSource: MON ? 'emergent: monetization (contraction reaches variable revenue only)' : CUON ? 'derived: L(1 - C)' : 'input',
         expansionSource: MON ? 'emergent: price + usage + adoption (generic coefficient bypassed)' : 'input',
         emergentMonthlyMultiplier: emergentG,
+        /* v2 Gate D — the resolved schedule of every hypothesis */
+        interventions: IVON ? IV.schedule(a, H) : null,
         cash: CASH ? {
           billingTermMonths: BT, billingTiming: BTIM, collectionDelayMonths: CDL,
           openingDeferredRevenue: openingDeferred,   /* derived: the staggered opening book's balance (negative = contract asset) */
@@ -1774,7 +2020,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         perCustomerState: row.monetization ? row.monetization.state : null,
         /* v2 Gate C — this cohort's invoicing; null = Cash Physics off */
         billings: row.cash ? row.cash.billings : null,
-        deferredRevenue: row.cash ? row.cash.deferredClosing : null
+        deferredRevenue: row.cash ? row.cash.deferredClosing : null,
+        /* v2 Gate D — the hypotheses in force when this cohort's spend was committed */
+        interventionsAtSpend: c.interventionsAtSpend || []
       });
     }
     return out;
@@ -1905,7 +2153,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       cumCollections: last.cash ? last.cash.cumulative.collections : null,
       finalDeferredRevenue: last.cash ? last.cash.deferredClosing : null,
       finalReceivables: last.cash ? last.cash.receivablesClosing : null,
-      cumFCFMinusEbita: last.cash ? cum.fcf - cum.ebita : null
+      cumFCFMinusEbita: last.cash ? cum.fcf - cum.ebita : null,
+      /* v2 Gate D */
+      cumInterventionCost: last.interventions ? last.interventions.cumulativeCost : null
     };
   }
 
@@ -1918,6 +2168,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var changed = [];
     Object.keys(expRes.assumptions).forEach(function (k) {
       if (k === 'bands') return;                       // structural, compared separately
+      if (k === 'interventions') {                     // v2 Gate D: hypothesis lists, compared whole
+        var bj = JSON.stringify(baseRes.assumptions[k] || []), xj = JSON.stringify(expRes.assumptions[k] || []);
+        if (bj !== xj) changed.push({ key: k, from: (baseRes.assumptions[k] || []).map(function (h) { return h.id; }), to: (expRes.assumptions[k] || []).map(function (h) { return h.id; }) });
+        return;
+      }
       if (k === 'monetization') {                      // v2 Gate B: a nested spec — compared leaf by leaf
         var bm = baseRes.assumptions[k], xm = expRes.assumptions[k];
         if (bm === xm) return;
@@ -1986,6 +2241,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     saturationEnabled: saturationEnabled,
     acquisitionResponse: acquisitionResponse,
     validateAssumptions: validateAssumptions,
+    normaliseAssumptions: normaliseAssumptions,
     pendingEntry: pendingEntry,
     realiseCohort: realiseCohort,
     cacPerMRR: cacPerMRR,
@@ -2489,6 +2745,30 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate D — INTERVENTION MEASUREMENT. What each hypothesis has cost to
+   * date and whether it is in force at T. The EFFECT of a hypothesis is a
+   * counterfactual — the same world without it — which is a comparison of two
+   * runs (E.compare / the product's Base vs Experiment), not a measurement of
+   * one; this function deliberately does not pretend otherwise.
+   * ------------------------------------------------------------------ */
+  function interventionMeasures(res, T) {
+    if (!res.mechanisms || !res.mechanisms.interventions) return null;
+    var m = res.months[T - 1], sched = res.derived.interventions;
+    return {
+      T: T,
+      cumulativeCost: m.interventions.cumulativeCost,
+      costThisMonth: m.interventions.cost,
+      active: m.interventions.active.slice(),
+      hypotheses: sched.map(function (h) {
+        var cost = 0; for (var t = 1; t <= T; t++) { var it = res.months[t - 1].interventions.costItems.filter(function (x) { return x.id === h.id; })[0]; if (it) cost += it.cost; }
+        return { id: h.id, name: h.name, target: h.target, startMonth: h.startMonth, lagMonths: h.lagMonths, effectiveFrom: h.effectiveFrom, effectiveTo: h.effectiveTo, inForce: m.interventions.active.indexOf(h.id) >= 0,
+                 status: T < h.startMonth ? 'not started' : T < h.effectiveFrom ? 'decided, effect pending' : T <= h.effectiveTo ? 'in force' : 'ended',
+                 monthsInForce: Math.max(0, Math.min(T, h.effectiveTo) - h.effectiveFrom + 1), costToDate: cost, totalCost: h.totalCost };
+      })
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
@@ -2496,6 +2776,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     customerMeasures: customerMeasures,
     monetizationMeasures: monetizationMeasures,
     cashMeasures: cashMeasures,
+    interventionMeasures: interventionMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,
@@ -3094,6 +3375,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     { name:'platform', kind:'fixed', units:1, priceAnnual:12000, priceGrowthAnnual:0.03 },
     { name:'usage', kind:'variable', penetration:0.8, units:100, priceAnnual:100, priceGrowthAnnual:0.02, usageGrowthAnnual:0.15, unitsCap:300, adoptionAnnual:0.10, penetrationCap:0.95 } ] };
   function monDefault(){ return JSON.parse(JSON.stringify(MON_DEFAULT)); }
+  /* v2 Gate D — the hypothesis the Interventions toggle switches on: a retention
+     programme, decided in M6, working from M9 for 24 months, costed. The target
+     cycles over the laws that are ON in the current Experiment. */
+  var HYP_DEFAULT = { id:'h1', name:'Hypothesis', target:'persistenceAnnual', effect:'multiply', value:1.05, startMonth:6, lagMonths:3, durationMonths:24, cost:{ oneOff:200000, monthly:50000 } };
+  function hypDefault(){ var h = JSON.parse(JSON.stringify(HYP_DEFAULT)); if(expA.logoRetentionAnnual!==null && expA.logoRetentionAnnual!==undefined){ h.target='logoRetentionAnnual'; h.value=1.03; } return [h]; }
+  var HYP_TARGETS = [
+    {k:'persistenceAnnual', label:'persistence', when:function(a){ return a.logoRetentionAnnual===null||a.logoRetentionAnnual===undefined; }},
+    {k:'logoRetentionAnnual', label:'logo retention', when:function(a){ return a.logoRetentionAnnual!==null && a.logoRetentionAnnual!==undefined; }},
+    {k:'contractionAnnual', label:'contraction', when:function(a){ return a.logoRetentionAnnual!==null && a.logoRetentionAnnual!==undefined && a.contractionAnnual>0; }},
+    {k:'expansionCoefficientAnnual', label:'expansion coefficient', when:function(a){ return !a.monetization; }},
+    {k:'monetization.components[1].priceGrowthAnnual', label:'usage price growth', when:function(a){ return !!a.monetization; }},
+    {k:'monetization.components[0].priceAnnual', label:'platform fee (new logos)', when:function(a){ return !!a.monetization; }},
+    {k:'cacPerARR', label:'CAC coefficient', when:function(){ return true; }},
+    {k:'sm', label:'S&M', when:function(){ return true; }},
+    {k:'grossMargin', label:'gross margin', when:function(){ return true; }}
+  ];
+  function hypTargetLabel(k){ var t = HYP_TARGETS.filter(function(x){ return x.k===k; })[0]; return t ? t.label : k; }
 
   var FORCE_GROUPS = [
     { kind:'Management input', note:'Set externally. Nothing in the engine constrains it.',
@@ -3135,6 +3433,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       forces:[ {k:'billingTermMonths', label:'Billing term', sub:'months invoiced per contract period · off = cash moves with EBITA', min:1, max:12, step:1, f:'mo', nullable:true, onValue:12},
                {k:'billingTiming', label:'Billing timing', sub:'in advance (customers prepay the period) or in arrears (invoiced at period end)', f:'timing', toggleOnly:true, cycle:['advance','arrears'], needs:'cash'},
                {k:'collectionDelayMonths', label:'Collection delay', sub:'months from invoice to cash · receivables in between', min:0, max:6, step:1, f:'mo', needs:'cash'} ] },
+    /* v2 Gate D — INTERVENTIONS. Hypotheses, never laws: one programme slot,
+       resolved into the law in force month by month with its own cost line. */
+    { kind:'Hypothesis', layer:'interventions', note:'A management hypothesis, not a law: "from month s, after a lag, law L moves by this factor for this long, and it costs this much". The engine runs the base laws with the hypothesis applied only while it is in force, and books its cost on its own P&L line. Off = no hypotheses.',
+      forces:[ {k:'interventions', label:'Hypothesis', sub:'off = the base laws every month · on = one costed programme against a law', f:'hyp', nullable:true, toggleOnly:true, onValue:hypDefault, offValue:[]},
+               {k:'interventions[0].target', label:'Targets', sub:'which law the programme moves · only laws that are on can be targeted', f:'target', toggleOnly:true, cycleFn:function(){ return HYP_TARGETS.filter(function(t){ return t.when(expA); }).map(function(t){ return t.k; }); }, needs:'hyp'},
+               {k:'interventions[0].value', label:'Effect', sub:'multiplier on the targeted law while in force', min:0.5, max:1.5, step:0.01, f:'x', needs:'hyp'},
+               {k:'interventions[0].startMonth', label:'Decided in month', sub:'the cost starts here', min:1, max:48, step:1, f:'mo', needs:'hyp'},
+               {k:'interventions[0].lagMonths', label:'Lag to effect', sub:'months between the decision and the law moving', min:0, max:12, step:1, f:'mo', needs:'hyp'},
+               {k:'interventions[0].durationMonths', label:'Duration', sub:'months in force · off = permanent', min:1, max:48, step:1, f:'mo', nullable:true, onValue:24, needs:'hyp'},
+               {k:'interventions[0].cost.oneOff', label:'One-off cost', sub:'booked in the decision month', min:0, max:2000000, step:25000, f:'eur', needs:'hyp'},
+               {k:'interventions[0].cost.monthly', label:'Monthly cost', sub:'booked every month the programme runs', min:0, max:500000, step:5000, f:'eur', needs:'hyp'} ] },
     { kind:'Economic conversion', note:'How revenue becomes gross profit, and what realising expansion costs. Creates no ARR.',
       forces:[ {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'},
                /* v1.1 — a cost line, priced on expansion ARR the transition already produced. 0 = free. */
@@ -3153,6 +3462,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(f==='arpa') return (v===null||v===undefined||!isFinite(v)) ? 'opening ARPA' : eur(v);
     if(f==='onoff') return (v===null||v===undefined) ? 'off' : 'on';
     if(f==='timing') return v===null||v===undefined ? '—' : 'in '+v;
+    if(f==='hyp') return (v===null||v===undefined||(Array.isArray(v)&&!v.length)) ? 'off' : (Array.isArray(v) ? v.length+' active' : 'on');
+    if(f==='target') return v===null||v===undefined ? '—' : hypTargetLabel(v);
     if(v===null||v===undefined) return 'off';
     if(f==='units') return Math.round(v)+' units';
     if(f==='mo')  return Math.round(v)+' mo';
@@ -3160,7 +3471,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   function forceOf(key){ return FORCES.filter(function(F){ return F.k===key; })[0]; }
   /* the value a slider shows for a nullable force that is currently off */
-  function sliderValueFor(F, v){ return (F.nullable && (v===null||v===undefined||!isFinite(v))) ? F.onValue : v; }
+  function sliderValueFor(F, v){ return (F.nullable && (v===null||v===undefined||typeof v!=='number'||!isFinite(v))) ? (typeof F.onValue==='function' ? 0 : F.onValue) : v; }
 
   /* §6 — "underlying law -> measured KPI." kpi.js's own labels for each. */
   var MEASURED_LABEL = { grr:'measured GRR', expansionRate:'measured Expansion', nrr:'measured NRR',
@@ -3169,18 +3480,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var d=document.createElement('div'); d.className='force';
     d.innerHTML='<div class="force-top"><label for="f-'+F.k+'">'+esc(F.label)+'</label>'+
       (F.nullable ? '<button class="btn nulltog" id="t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
-      (F.cycle ? '<button class="btn nulltog on" id="t-'+F.k+'" title="Switch between the settings">'+esc(getK(expA,F.k))+'</button>' : '')+
+      ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="t-'+F.k+'" title="Switch between the settings">'+esc(String(getK(expA,F.k)))+'</button>' : '')+
       '<span class="force-val" id="v-'+F.k+'"></span></div>'+
       '<div class="force-sub">'+esc(F.sub)+' &middot; <span class="force-base" id="b-'+F.k+'"></span></div>'+
       (F.toggleOnly ? '' : '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
-      d.querySelector('#t-'+F.k).addEventListener('click', function(){
+      d.querySelector('[id="t-'+F.k+'"]').addEventListener('click', function(){
         var prev = Object.assign({}, expA);
         clearScenario();
         var cur = getK(expA, F.k);
-        var isOff = cur===null || cur===undefined || (typeof cur==='number' && !isFinite(cur));
+        var isOff = cur===null || cur===undefined || (typeof cur==='number' && !isFinite(cur)) || (Array.isArray(cur) && !cur.length);
         var onVal = typeof F.onValue==='function' ? F.onValue() : parseFloat(document.getElementById('f-'+F.k).value);
-        expA = setK(expA, F.k, isOff ? onVal : null);
+        expA = setK(expA, F.k, isOff ? onVal : (F.offValue!==undefined ? F.offValue : null));
         /* v2 Gate B: Monetization requires the customer layer — switching it on
            switches Customer Physics on too, rather than throwing at the boundary */
         if(F.k==='monetization' && isOff && (expA.logoRetentionAnnual===null || expA.logoRetentionAnnual===undefined))
@@ -3191,12 +3502,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         recompute(prev);
       });
     }
-    if(F.cycle){
-      d.querySelector('#t-'+F.k).addEventListener('click', function(){
+    if(F.cycle || F.cycleFn){
+      d.querySelector('[id="t-'+F.k+'"]').addEventListener('click', function(){
         var prev = Object.assign({}, expA);
         clearScenario();
-        var cur = getK(expA, F.k), i = F.cycle.indexOf(cur);
-        expA = setK(expA, F.k, F.cycle[(i+1) % F.cycle.length]);
+        var list = F.cycle || F.cycleFn(), cur = getK(expA, F.k), i = list.indexOf(cur);
+        expA = setK(expA, F.k, list[(i+1) % list.length]);
         recompute(prev);
       });
     }
@@ -3300,6 +3611,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         el.disabled = !monOn; el.style.opacity = monOn ? 1 : 0.35;
         if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = monOnB ? 'base '+fmtF(F.f, bv) : 'monetization off'; }
       }
+      if(F.needs==='hyp'){
+        var hypOn = expRes.mechanisms.interventions;
+        if(el){ el.disabled = !hypOn; el.style.opacity = hypOn ? 1 : 0.35; }
+        if(F.cycleFn){ var hb=document.getElementById('t-'+F.k); hb.textContent = hypOn ? hypTargetLabel(xv) : '—'; hb.disabled = !hypOn; hb.style.opacity = hypOn ? 1 : 0.35; }
+        if(!hypOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = 'no hypothesis';
+                    if(F.nullable){ var ht=document.getElementById('t-'+F.k); ht.disabled = true; ht.style.opacity = 0.35; } }
+        else if(F.nullable){ var ht2=document.getElementById('t-'+F.k); ht2.disabled = false; ht2.style.opacity = 1; }
+      }
       if(F.needs==='cash'){
         var cashOn = expRes.mechanisms.cashPhysics;
         if(el){ el.disabled = !cashOn; el.style.opacity = cashOn ? 1 : 0.35; }
@@ -3307,7 +3626,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? 'base '+fmtF(F.f, bv) : 'cash physics off'; }
       }
       if(F.nullable){
-        var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv));
+        var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv)) || (Array.isArray(xv) && !xv.length);
         var tg=document.getElementById('t-'+F.k); tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off);
         if(el && F.k!=='newLogoARPA') el.style.opacity = off ? 0.35 : 1;
         else if(el) el.style.opacity = (off || monOn) ? 0.35 : 1;
@@ -3468,7 +3787,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ch:{billingTermMonths:12, collectionDelayMonths:1},
       shows:['arr','cashmatch','fcf','cashfcf','trough','cash'],
       note:'Base: FCF = EBITA. Experiment: the same company billing 12 months in advance, collected one month after invoice. ARR, revenue and EBITA are identical to floating-point precision; only billings, deferred revenue, receivables and cash differ. The opening book starts with the deferred balance a staggered annual book carries — derived, not set.',
-      bounds:['fcf'] }
+      bounds:['fcf'] },
+
+    /* v2 Gate D — a costed, lagged, temporary hypothesis against the base. */
+    { id:'hypothesis', n:14, name:'A retention programme',
+      title:'A hypothesis, not a law: costed, lagged, temporary',
+      teach:'Moving a law is a decision with a cost, a delay and an end. The engine runs the hypothesis only while it is in force and books its cost on its own line; the effect is the comparison against the same company without it.',
+      ch:{interventions:[{ id:'ret', name:'Retention programme', target:'persistenceAnnual', effect:'multiply', value:1.05, startMonth:6, lagMonths:3, durationMonths:24, cost:{ oneOff:200000, monthly:50000 } }]},
+      shows:['arr','hyp','leak','gp','fcf','cash'],
+      note:'Persistence × 1.05 (90% → 94.5%), decided in month 6, working from month 9 for 24 months, then reverting; €200k one-off plus €50k a month while it runs. Base is the same company with no programme. Months 1–8 are identical; the ARR advantage decays after month 32 because the law reverts — a programme, not a coefficient.',
+      bounds:['hyp','fcf'] }
   ];
 
   /* §10 — the boundary statements are NOT static text any more: three of them
@@ -3501,6 +3829,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return E.run(a).mechanisms.monetization
         ? 'Components are homogeneous within a cohort (one per-customer state); contraction reaches variable usage only; usage and penetration caps are the only bounds on expansion; price growth loses no customers and no usage (no price elasticity); no discounts, ramps or minimum commitments. (#21, priced in v2 Gate B)'
         : 'Expansion is a generic coefficient with no price, usage or adoption inside it, and it is unbounded. Switch Monetization on to price it and bound it. (#13, #21)';
+    }
+    if(key==='hyp'){
+      return 'A hypothesis moves one law by a stated factor for a stated window and books a stated cost; it models no mechanism for WHY the law moves and no uncertainty about whether it will. Two hypotheses on one law apply in declaration order. It cannot switch a layer on or off or change the billing policy, and it is rejected up front if any month\'s resolved law leaves the engine\'s domain. (v2 Gate D)';
     }
     if(key==='fcf'){
       return E.run(a).mechanisms.cashPhysics
@@ -3870,6 +4201,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     valveHits = [];
     var isD = compare==='delta';
     var m = selectedMonth();
+    /* v2 Gate D — a valve shows the law IN FORCE this month: the base setting,
+       or what an active hypothesis moved it to (months[].interventions.changes) */
+    var ivNow = expRes.months[m-1].interventions;
+    function lv(key){ var ch = ivNow && ivNow.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; return ch ? ch.to : getK(expA, key); }
     var d = isD ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
     var abs = isD ? d.experiment : d;          /* the Experiment's own absolute month, in either mode */
     var bm = baseRes.months[m-1];
@@ -4098,9 +4433,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     pipeH(xPend+wPend/2, ax, yNew, pipeW(d.newARR), dTone(d.newARR,'rgba(201,114,47,.55)','rgba(93,108,117,.5)'));
     flatLine(xPend+wPend/2, ax, yNew, d.newARR);
     arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(201,114,47,.9)','rgba(93,108,117,.85)'));
-    valve(168, yNew, 'S&M per month', fmtF('eur', expA.sm), 'sm', -72, 44);
-    valve(255, yNew, 'CAC coefficient', fmtF('x', expA.cacPerARR), 'cacPerARR', -72, 44);
-    valve(340, yNew, 'capacity / month', satOn ? eur(expA.maxMonthlyNewARR) : 'off', 'maxMonthlyNewARR', -72, 44);
+    valve(168, yNew, 'S&M per month', fmtF('eur', lv('sm')), 'sm', -72, 44);
+    valve(255, yNew, 'CAC coefficient', fmtF('x', lv('cacPerARR')), 'cacPerARR', -72, 44);
+    valve(340, yNew, 'capacity / month', satOn ? eur(lv('maxMonthlyNewARR')) : 'off', 'maxMonthlyNewARR', -72, 44);
     if(!satOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('linear, unbounded', 340, yNew+55); }
     /* the pending-acquisition stock */
     ctx.save(); if(!lagOn) ctx.setLineDash([3,3]);
@@ -4129,7 +4464,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(247,221,196,.85)','rgba(93,108,117,.85)'));
     var monOnMap = expRes.mechanisms.monetization, mmo = expRes.months[m-1].monetization;
     valve(300, yExp, monOnMap ? 'expansion · price + usage + adoption' : 'expansion coefficient',
-          monOnMap ? 'bypassed' : fmtF('pct', expA.expansionCoefficientAnnual), monOnMap ? null : 'expansionCoefficientAnnual', -72, 44);
+          monOnMap ? 'bypassed' : fmtF('pct', lv('expansionCoefficientAnnual')), monOnMap ? null : 'expansionCoefficientAnnual', -72, 44);
     if(monOnMap){
       /* v2 Gate B — the three named effects that ARE the expansion flow, and the
          caps that bound them; drawn beneath the pipe where the coefficient sat */
@@ -4151,13 +4486,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var cuOnMap = expRes.mechanisms.customerPhysics;
     var Pmap = expRes.derived.persistenceAnnualEffective;
     valve(xLeak, 580, cuOnMap ? (Pmap===null ? 'persistence · emergent (mix)' : 'persistence · derived L(1−C)') : 'persistence coefficient',
-          cuOnMap ? (Pmap===null ? 'emergent' : pct(Pmap,1)) : fmtF('pct', expA.persistenceAnnual), cuOnMap ? null : 'persistenceAnnual', -216, -10);
+          cuOnMap ? (Pmap===null ? 'emergent' : pct(Pmap,1)) : fmtF('pct', lv('persistenceAnnual')), cuOnMap ? null : 'persistenceAnnual', -216, -10);
     /* v2 Gate A — the customer laws sit beneath the persistence valve and feed
        it: an information link from each to the (now derived) persistence. */
     if(cuOnMap){
       var mcu = expRes.months[m-1].customers;
-      valve(xLeak-270, 600, 'logo retention', fmtF('pct', expA.logoRetentionAnnual), 'logoRetentionAnnual', -72, 44);
-      valve(xLeak-150, 660, 'contraction', fmtF('pct', expA.contractionAnnual), 'contractionAnnual', -72, 44);
+      valve(xLeak-270, 600, 'logo retention', fmtF('pct', lv('logoRetentionAnnual')), 'logoRetentionAnnual', -72, 44);
+      valve(xLeak-150, 660, 'contraction', fmtF('pct', lv('contractionAnnual')), 'contractionAnnual', -72, 44);
       link([[xLeak-256, 600],[xLeak-24, 584]], '', false);
       link([[xLeak-136, 660],[xLeak-20, 592]], '', false);
       aux(xLeak-270, 690, 120, 'Customers', mcu ? mcu.closing.toFixed(0) : '—');
@@ -4178,15 +4513,26 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* ---------- ARR → economics → cash ---------- */
     var costOn = expA.expansionCostPerARR>0 || baseA.expansionCostPerARR>0;
     aux(760, 140, 150, 'Revenue', n(d.revenue));
-    valve(760, 218, 'gross margin', fmtF('pct', expA.grossMargin), 'grossMargin', -238, -10);
+    valve(760, 218, 'gross margin', fmtF('pct', lv('grossMargin')), 'grossMargin', -238, -10);
     aux(760, 292, 150, 'Gross profit', n(d.grossProfit));
     /* v1.1 — the realisation cost is a P&L line fed by the EXPANSION FLOW, so
        its valve sits on the P&L column and its information link comes from
        the tank at the height the expansion flow enters it. Drawn dim when 0. */
     aux(788, 358, 112, 'Expansion realisation cost', n(d.expansionCost), costOn ? '#22303a' : '#141d22');
     if(!costOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('cost 0 · expansion is free', 788, 388); }
-    valve(694, 358, 'cost per €1 exp.', expA.expansionCostPerARR>0 ? expA.expansionCostPerARR.toFixed(2)+'×' : 'off', 'expansionCostPerARR', -72, 44);
+    valve(694, 358, 'cost per €1 exp.', lv('expansionCostPerARR')>0 ? lv('expansionCostPerARR').toFixed(2)+'×' : 'off', 'expansionCostPerARR', -72, 44);
     aux(760, 440, 150, 'Other operating', n(d.otherOpex));
+    /* v2 Gate D — a hypothesis in force this month rings the valve it moves */
+    var ivMap = expRes.months[m-1].interventions;
+    if(ivMap && ivMap.changes.length){
+      ivMap.changes.forEach(function(ch){
+        var vh = valveHits.filter(function(v){ return v.key===ch.target; })[0]; if(!vh) return;
+        ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(90,143,214,.95)'; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.arc(vh.x, vh.y, 24, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.95)';
+        ctx.fillText('hypothesis '+ch.id+' in force', vh.x, vh.y-30);
+      });
+    }
     var cashOnMap = expRes.mechanisms.cashPhysics, mca = expRes.months[m-1].cash;
     aux(905, 330, 120, cashOnMap ? 'Cash FCF' : 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
     if(cashOnMap){
@@ -4564,6 +4910,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         running -= mm.expansionCost;
         steps.push({ label:'− Expansion realisation cost', from:running, to:running+mm.expansionCost, bal:mm.expansionCost, tone:'var(--leak)', op:'−' });
       }
+      /* v2 Gate D — the hypotheses' own line, shown only when one carries a cost */
+      if(expRes.mechanisms.interventions || baseRes.mechanisms.interventions){
+        var anyCost = expRes.months.some(function(q){ return q.interventionCost>0; }) || baseRes.months.some(function(q){ return q.interventionCost>0; });
+        if(anyCost){ running -= mm.interventionCost; steps.push({ label:'− Hypothesis cost', from:running, to:running+mm.interventionCost, bal:mm.interventionCost, tone:'var(--leak)', op:'−' }); }
+      }
       /* v2 Gate C — with Cash Physics on in either world the waterfall continues
          below EBITA: + Δdeferred − Δreceivables = cash FCF. Signed steps. */
       if(em.cash || bm.cash){
@@ -4655,7 +5006,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var host=document.getElementById('side');
       if(!activeScenario){
         host.innerHTML='<div class="sgrp"><div class="eyebrow">Scenarios</div>'+
-          '<div class="hint" style="margin-top:7px;line-height:1.7">Thirteen canonical scenarios. Each changes one declared '+
+          '<div class="hint" style="margin-top:7px;line-height:1.7">Fourteen canonical scenarios. Each changes one declared '+
           'assumption against a frozen Base and reports only the consequences that scenario actually bears on.</div></div>'+
           SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard">'+
             '<h4>'+sc.n+' · '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
@@ -4747,6 +5098,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<div class="hint" style="margin-top:7px">Billings = revenue + Δdeferred by construction; cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. The opening book started with '+eur(Math.abs(dc.openingDeferredRevenue))+' of '+(dc.openingDeferredRevenue>=0?'deferred revenue':'contract asset')+' — derived from a staggered book, not an input. Costs are cash when incurred.</div></div>';
     }
 
+    /* v2 Gate D — the hypotheses in force, only when there are any. Every
+       figure is engine state (months[].interventions, derived.interventions). */
+    if(em.interventions){
+      var ivm = K.interventionMeasures(expRes, m);
+      h+='<div class="sgrp" id="observe-hypotheses"><div class="eyebrow">Hypotheses</div>'+
+        ivm.hypotheses.map(function(hy){
+          var ch = em.interventions.changes.filter(function(x){ return x.id===hy.id; })[0];
+          var f = (forceOf(hy.target)||{}).f || (LABEL_FMT[hy.target]||'x');
+          return row(hy.name, hy.status+(ch ? ' · '+hypTargetLabel(hy.target)+' '+fmtF(f, ch.from)+' → '+fmtF(f, ch.to) : ' · '+hypTargetLabel(hy.target))) +
+                 row('  decided M'+hy.startMonth+(hy.lagMonths>0?', effect from M'+hy.effectiveFrom:'')+' to M'+hy.effectiveTo+(hy.totalCost>0?', cost to date '+eur(hy.costToDate)+' of '+eur(hy.totalCost):''), hy.monthsInForce+' months in force');
+        }).join('') +
+        row('Hypothesis cost · this month', eur(em.interventionCost)) +
+        (bm.interventions ? '' : row('vs Base', 'Base runs the base laws with no hypothesis — the Consequence is the effect net of the cost')) +
+        '<div class="hint" style="margin-top:7px">A hypothesis is applied only while it is in force and never becomes a coefficient: outside its window every cohort runs on the base law. Its cost is a P&amp;L line of its own, booked from the decision month. The effect is Experiment − Base, a comparison of two runs, not a measurement of one.</div></div>';
+    }
+
     var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition;
     var satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0;
     var am = K.acquisitionMeasures(expRes, m);
@@ -4836,6 +5203,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(c.cacPerARRAtCreation!==null)
         out += row('Cohort CAC (realised)', c.cacPerARRAtCreation.toFixed(2)+'× · CAC coefficient '+c.cacCoefficientAtCreation.toFixed(2)+'×'+
                    (c.capacityAtSpend!==null ? ' · capacity '+eur(c.capacityAtSpend)+'/mo at spend' : ''));
+      /* v2 Gate D — the hypotheses in force when this cohort's spend was committed */
+      if(c.interventionsAtSpend && c.interventionsAtSpend.length)
+        out += row('Hypotheses at spend', c.interventionsAtSpend.join(', ')+' · the law this cohort was bought under, not the law now');
+      else if(expRes.mechanisms.interventions && c.acquisitionMonth>0)
+        out += row('Hypotheses at spend', 'none in force · bought under the base laws');
       /* v2 Gate A — customers realised from the ARR-per-logo stamped on the pending entry at spend */
       if(c.initialCustomers!==null && c.initialCustomers!==undefined){
         var ents = expRes.acquisitionLedger.filter(function(e){ return e.cohortId===c.id; });
@@ -4923,6 +5295,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var cuOn2 = expRes.mechanisms.customerPhysics, mcu2 = expRes.months[m-1].customers;
     var monOn2 = expRes.mechanisms.monetization, mmo2 = expRes.months[m-1].monetization;
     var cashOn2 = expRes.mechanisms.cashPhysics, mca2 = expRes.months[m-1].cash;
+    var ivOn2 = expRes.mechanisms.interventions, miv2 = expRes.months[m-1].interventions;
     h+='<div class="sgrp"><div class="eyebrow">Mechanisms on the map</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
       '<b style="color:'+(satOn2?'var(--exp)':'var(--ink-3)')+'">Acquisition capacity · '+(satOn2?fmtF('cap',expA.maxMonthlyNewARR):'off')+'.</b> '+
@@ -4955,6 +5328,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       (cashOn2
         ? 'The FCF box is <b style="color:var(--ink)">cash FCF</b>: EBITA '+eur(mca2.ebita)+' '+(mca2.fcfMinusEbita>=0?'+':'−')+' '+eur(Math.abs(mca2.fcfMinusEbita))+' of timing this month. Between the P&amp;L and the cash stock sit '+(mca2.deferredClosing>=0 ? eur(mca2.deferredClosing)+' of deferred revenue' : eur(-mca2.deferredClosing)+' of unbilled contract asset')+' and '+eur(mca2.receivablesClosing)+' of receivables. Same revenue, same EBITA, a different cash path.'
         : 'FCF = EBITA: the cash stock moves with the P&amp;L. Switch a billing term on (Company layer) and billings, deferred revenue and receivables appear between them.')+
+      '<br><br><b style="color:'+(ivOn2?'var(--exp)':'var(--ink-3)')+'">Hypotheses · '+(ivOn2 ? expRes.derived.interventions.length : 'none')+'.</b> '+
+      (ivOn2
+        ? (miv2.changes.length
+            ? 'In force this month: '+miv2.changes.map(function(ch){ return ch.id+' moves '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. The ringed valve is running on the hypothesis, not on its base setting; '
+            : 'None in force this month — every valve is at its base setting; ')+
+          'cost this month '+eur(miv2.cost)+', to date '+eur(miv2.cumulativeCost)+'. A hypothesis is resolved into the law month by month and never becomes a coefficient.'
+        : 'Every valve is a law the world obeys. Switch a Hypothesis on (Company layer) to test a costed, lagged, temporary move of one of them.')+
       '</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
@@ -5039,6 +5419,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(has('gp'))      rows.push(row('Cumulative gross profit', x.cumGrossProfit - b.cumGrossProfit));
     if(has('fcf') && !has('cashfcf')) rows.push(row('Cumulative FCF', x.cumEbita - b.cumEbita));
     if(has('fcf') && has('cashfcf'))  rows.push(row('Cumulative EBITA', x.cumEbita - b.cumEbita));
+    /* v2 Gate D — hypothesis rows */
+    if(has('hyp') && x.cumInterventionCost!==null){
+      var sch14 = expRes.derived.interventions[0], payback14 = null;
+      for(var t14=1; t14<=H; t14++) if(payback14===null && expRes.months[t14-1].cashClosing > baseRes.months[t14-1].cashClosing) payback14 = t14;
+      rows.push(row('Hypothesis window', 'decided M'+sch14.startMonth+' · in force M'+sch14.effectiveFrom+'–M'+sch14.effectiveTo, 0));
+      rows.push(row('Hypothesis cost (Experiment)', -x.cumInterventionCost));
+      rows.push(row('Cash overtakes Base', payback14===null ? 'not within 60 months' : 'month '+payback14, payback14===null ? -1 : 1));
+    }
     /* v2 Gate C — cash rows */
     if(has('cashfcf')){
       rows.push(row('Cumulative cash FCF', xm2.cumulative.fcf - bm2.cumulative.fcf));
@@ -5252,6 +5640,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(keys.indexOf('logoRetentionAnnual')>=0 || keys.indexOf('contractionAnnual')>=0 || keys.indexOf('newLogoARPA')>=0) bounds.push('cust');
     if(keys.some(function(k3){ return k3.indexOf('monetization')===0; })) bounds.push('mon');
     /* 'fcf' is always pushed below, and reads the live billing policy */
+    if(keys.some(function(k3){ return k3.indexOf('interventions')===0; })) bounds.push('hyp');
     if(keys.indexOf('rd')>=0) bounds.push('rd');
     bounds.push('fcf');            // relevant whenever a financial consequence is displayed
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>Model boundaries</summary><ul>'+
@@ -5296,11 +5685,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
              logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization',
-             billingTermMonths:'Billing term', billingTiming:'Billing timing', collectionDelayMonths:'Collection delay'};
+             billingTermMonths:'Billing term', billingTiming:'Billing timing', collectionDelayMonths:'Collection delay', interventions:'Hypothesis'};
   var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur',
                  expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo',
                  logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa', monetization:'onoff',
-                 billingTermMonths:'mo', billingTiming:'timing', collectionDelayMonths:'mo'};
+                 billingTermMonths:'mo', billingTiming:'timing', collectionDelayMonths:'mo', interventions:'hyp'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

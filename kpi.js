@@ -485,6 +485,30 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate D — INTERVENTION MEASUREMENT. What each hypothesis has cost to
+   * date and whether it is in force at T. The EFFECT of a hypothesis is a
+   * counterfactual — the same world without it — which is a comparison of two
+   * runs (E.compare / the product's Base vs Experiment), not a measurement of
+   * one; this function deliberately does not pretend otherwise.
+   * ------------------------------------------------------------------ */
+  function interventionMeasures(res, T) {
+    if (!res.mechanisms || !res.mechanisms.interventions) return null;
+    var m = res.months[T - 1], sched = res.derived.interventions;
+    return {
+      T: T,
+      cumulativeCost: m.interventions.cumulativeCost,
+      costThisMonth: m.interventions.cost,
+      active: m.interventions.active.slice(),
+      hypotheses: sched.map(function (h) {
+        var cost = 0; for (var t = 1; t <= T; t++) { var it = res.months[t - 1].interventions.costItems.filter(function (x) { return x.id === h.id; })[0]; if (it) cost += it.cost; }
+        return { id: h.id, name: h.name, target: h.target, startMonth: h.startMonth, lagMonths: h.lagMonths, effectiveFrom: h.effectiveFrom, effectiveTo: h.effectiveTo, inForce: m.interventions.active.indexOf(h.id) >= 0,
+                 status: T < h.startMonth ? 'not started' : T < h.effectiveFrom ? 'decided, effect pending' : T <= h.effectiveTo ? 'in force' : 'ended',
+                 monthsInForce: Math.max(0, Math.min(T, h.effectiveTo) - h.effectiveFrom + 1), costToDate: cost, totalCost: h.totalCost };
+      })
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
@@ -492,6 +516,7 @@
     customerMeasures: customerMeasures,
     monetizationMeasures: monetizationMeasures,
     cashMeasures: cashMeasures,
+    interventionMeasures: interventionMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,

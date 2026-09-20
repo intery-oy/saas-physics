@@ -59,8 +59,8 @@
      file (build.js), so the browser finds them on the global. */
   var isNode = typeof module === 'object' && module.exports;
   var deps = isNode
-    ? { customers: require('./customers.js'), monetization: require('./monetization.js'), cash: require('./cash.js') }
-    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization, cash: root.SaaSPhysicsCash };
+    ? { customers: require('./customers.js'), monetization: require('./monetization.js'), cash: require('./cash.js'), interventions: require('./interventions.js') }
+    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization, cash: root.SaaSPhysicsCash, interventions: root.SaaSPhysicsInterventions };
   if (isNode) module.exports = factory(deps);
   else root.SaaSPhysics = factory(deps);
 })(typeof self !== 'undefined' ? self : globalThis, function (deps) {
@@ -69,6 +69,7 @@
   var CU = deps.customers;               /* Gate A — Customer Physics */
   var MO = deps.monetization;            /* Gate B — Monetization Physics */
   var CA = deps.cash;                    /* Gate C — Cash Physics */
+  var IV = deps.interventions;           /* Gate D — Interventions */
   var HORIZON = 60;
 
   /* ------------------------------------------------------------------ *
@@ -152,7 +153,11 @@
        by the delay, cash FCF = collections − cash costs. EBITA is untouched. */
     billingTermMonths:          null,    // C   contract billing period in months; null = Cash Physics off (FCF = EBITA)
     billingTiming:              'advance', // C 'advance' (deferred revenue) or 'arrears' (contract asset)
-    collectionDelayMonths:      0        // C   months from invoice to cash; receivables in between
+    collectionDelayMonths:      0,       // C   months from invoice to cash; receivables in between
+    /* v2 Gate D — INTERVENTIONS, at their NULL setting (none). Hypotheses,
+       never laws: { id, target, effect, value, startMonth, lagMonths,
+       durationMonths, cost }, resolved into the law in force by lawAt(t). */
+    interventions:              []       // D   [] = no hypotheses; every month runs on the base laws
   };
   /* AGE BANDS (v0.3). Three bands by cohort age in months at the START of a month:
      band 1 covers ages 0..11, band 2 covers 12..23, band 3 covers 24 and above.
@@ -337,7 +342,7 @@
    * equal whichever spelling the caller used. A finite capacity < 0 or NaN is
    * rejected; 0 is kept (no acquisition capacity, N = 0 — documented).
    * ------------------------------------------------------------------ */
-  function validateAssumptions(a) {
+  function validateAssumptions(a, horizon) {
     var L = a.acquisitionLagMonths;
     if (L === undefined) a.acquisitionLagMonths = DEFAULT_ASSUMPTIONS.acquisitionLagMonths;
     else if (typeof L !== 'number' || !isFinite(L) || L < 0 || Math.floor(L) !== L)
@@ -349,10 +354,13 @@
     CU.validate(a);                                  /* v2 Gate A boundary */
     MO.validate(a, CU.enabled(a));                   /* v2 Gate B boundary (requires Gate A) */
     CA.validate(a);                                  /* v2 Gate C boundary */
+    /* v2 Gate D boundary: every month's resolved law must itself pass this
+       function (with no interventions) and stay inside each law's domain */
+    IV.validate(a, Math.max(HORIZON, horizon || 0), validateAssumptions);
     return a;
   }
-  function normaliseAssumptions(a) {
-    return validateAssumptions(Object.assign({}, DEFAULT_ASSUMPTIONS, a || {}));
+  function normaliseAssumptions(a, horizon) {
+    return validateAssumptions(Object.assign({}, DEFAULT_ASSUMPTIONS, a || {}), horizon);
   }
 
   /* ------------------------------------------------------------------ *
@@ -373,7 +381,7 @@
    * the integrity suite prove it by calling this function with a synthetic
    * entry whose law differs from any assumption the engine holds.
    * ------------------------------------------------------------------ */
-  function pendingEntry(a, t, L, newARR, newLogoARPA, perCustomerState) {
+  function pendingEntry(a, t, L, newARR, newLogoARPA, perCustomerState, activeInterventions) {
     return {
       spendMonth: t, matureMonth: t + L, lagMonths: L,
       sm: a.sm, newARR: newARR,
@@ -385,6 +393,8 @@
       /* v2 Gate B: the per-customer component state new logos start with, in
          force at spend; null = Monetization off. The cohort is born from it. */
       perCustomerAtSpend: perCustomerState ? MO.copyState(perCustomerState) : null,
+      /* v2 Gate D: the hypotheses in force when this spend was committed */
+      interventionsAtSpend: activeInterventions ? activeInterventions.slice() : [],
       realised: false, cohortId: null
     };
   }
@@ -424,7 +434,9 @@
       initialCustomers: anyCustomers ? realisedCustomers : null,
       customers: anyCustomers ? realisedCustomers : null,
       /* v2 Gate B — per-customer component state, from the first entry */
-      money: first.perCustomerAtSpend ? MO.copyState(first.perCustomerAtSpend) : null
+      money: first.perCustomerAtSpend ? MO.copyState(first.perCustomerAtSpend) : null,
+      /* v2 Gate D — the hypotheses in force at spend, from the first entry */
+      interventionsAtSpend: first.interventionsAtSpend ? first.interventionsAtSpend.slice() : []
     };
     if (nc.money) {
       /* every matured entry must carry the same per-customer state: a cohort
@@ -479,9 +491,16 @@
    * The engine
    * ------------------------------------------------------------------ */
   function run(assumptions, start, horizon) {
-    var a = normaliseAssumptions(assumptions);
-    var s = Object.assign({}, DEFAULT_START, start || {});
     var H = horizon || HORIZON;
+    var a = normaliseAssumptions(assumptions, H);
+    var s = Object.assign({}, DEFAULT_START, start || {});
+    /* v2 Gate D — INTERVENTIONS. lawAt(t) is the assumption object in force in
+       month t: the base laws with every active hypothesis applied. With none
+       (the null world) lawAt(t) IS the base object, so every per-month
+       quantity below is recomputed from the same inputs and is bit-identical
+       to the once-computed v1.3 value. */
+    var IVON = IV.enabled(a);
+    function lawAt(t) { return IVON ? IV.resolve(a, t) : { law: a, active: [], changes: [] }; }
 
     /* v2 Gate A — CUSTOMER PHYSICS. When on, the cohort transition is
        generated by customers.js and persistenceAnnual is NOT READ: the
@@ -501,7 +520,7 @@
     var moR = MON ? MO.rates(moSpec) : null;
     /* the per-customer state carries its component kind and caps so a row's
        fixed/variable split can be read without the spec */
-    function stampKinds(state) { return state.map(function (k, i) { return { penetration: k.penetration, units: k.units, price: k.price, fixed: moR[i].fixed, unitsCap: moR[i].unitsCap, penetrationCap: moR[i].penetrationCap }; }); }
+    function stampKinds(state, rates) { var rr = rates || moR; return state.map(function (k, i) { return { penetration: k.penetration, units: k.units, price: k.price, fixed: rr[i].fixed, unitsCap: rr[i].unitsCap, penetrationCap: rr[i].penetrationCap }; }); }
     var moInitial = MON ? stampKinds(MO.initialState(moSpec)) : null;
     var moNewLogoRevenue = MON ? MO.revenue(moInitial, moR).total : null;
 
@@ -531,14 +550,17 @@
        stamped from the entry, never from the live assumptions at maturity. */
     var ledger = [], pending = [];
 
+    function ratesOfBands(bs) {
+      return bs.map(function (b) {
+        return { name: b.name, maxAgeExclusive: b.maxAgeExclusive,
+                 persistenceAnnual: b.persistenceAnnual,
+                 expansionCoefficientAnnual: b.expansionCoefficientAnnual,
+                 g: toMonthlyPersistence(b.persistenceAnnual),
+                 e: toMonthlyExpansion(b.expansionCoefficientAnnual) };
+      });
+    }
     var bands = resolveBands(aEff);
-    var bandRates = bands.map(function (b) {
-      return { name: b.name, maxAgeExclusive: b.maxAgeExclusive,
-               persistenceAnnual: b.persistenceAnnual,
-               expansionCoefficientAnnual: b.expansionCoefficientAnnual,
-               g: toMonthlyPersistence(b.persistenceAnnual),
-               e: toMonthlyExpansion(b.expansionCoefficientAnnual) };
-    });
+    var bandRates = ratesOfBands(bands);
 
     /* 4. The company IS a set of cohorts. Aggregates are only ever sums.
        v0.3: the opening base may be several vintages of different ages. */
@@ -613,10 +635,22 @@
     var cumMo = { priceARR: 0, usageARR: 0, adoptionARR: 0 };
     var cumCa = { billings: 0, collections: 0, cashFCF: 0 };
     var deferredPrev = openingDeferred, receivablesPrev = 0;
+    var cumIv = 0;
 
     for (var t = 1; t <= H; t++) {
       var openingMRR = 0, i, c;
       for (i = 0; i < cohorts.length; i++) openingMRR += cohorts[i].live;
+
+      /* --- v2 Gate D: the law in force THIS month. When it is the base
+         object every derived quantity below is the run-level one. --- */
+      var rs = lawAt(t), law = rs.law, lawChanged = law !== a;
+      var cuR_t = lawChanged && CUON ? CU.rates(law) : cuR;
+      var bandRates_t = lawChanged ? ratesOfBands(resolveBands(CUON ? Object.assign({}, law, { persistenceAnnual: cuR_t.impliedPersistenceAnnual }) : law)) : bandRates;
+      var moR_t = lawChanged && MON ? MO.rates(law.monetization) : moR;
+      var moInitial_t = lawChanged && MON ? stampKinds(MO.initialState(law.monetization), moR_t) : moInitial;
+      var newLogoARPA_t = !lawChanged ? newLogoARPA : (MON ? MO.revenue(moInitial_t, moR_t).total : (CUON ? (law.newLogoARPA !== null ? law.newLogoARPA : openingARPA) : null));
+      var newARR_t = lawChanged ? newARRPerMonth(law) : newARR;
+      var LAG_t = law.acquisitionLagMonths;
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0, totExpansionCost = 0;
       var cuOpen = 0, cuClose = 0, cuLogoChurnMRR = 0, cuContractionMRR = 0;
@@ -634,8 +668,8 @@
         c = cohorts[i];
         var ageEnd     = c.initialAge + (t - c.acquisitionMonth);
         var ageAtStart = ageEnd - 1;
-        var bi = bandFor(bandRates, ageAtStart);
-        var br = bandRates[bi];
+        var bi = bandFor(bandRates_t, ageAtStart);
+        var br = bandRates_t[bi];
         var openingC  = c.live;
         var retainedC, leakageC, expansionC, closingC, cuRow = null, moRow = null;
         if (MON) {
@@ -643,16 +677,16 @@
              per-customer components: contraction (variable units) → price →
              usage (to cap) → adoption (to cap). The generic expansion
              coefficient is BYPASSED: expansion = price + usage + adoption. */
-          var trc = CU.transition({ n: c.customers, mrr: openingC }, cuR);
-          var mt = MO.transition(c.money, moR, cuR.cM);
+          var trc = CU.transition({ n: c.customers, mrr: openingC }, cuR_t);
+          var mt = MO.transition(c.money, moR_t, cuR_t.cM);
           var n1 = trc.customersClosing;
           var contrC = n1 * mt.effects.contraction / 12;
           var priceC = n1 * mt.effects.price / 12, usageC = n1 * mt.effects.usage / 12, adoptC = n1 * mt.effects.adoption / 12;
           retainedC = trc.survivorMRR - contrC; leakageC = trc.logoChurnMRR + contrC;
           expansionC = priceC + usageC + adoptC; closingC = retainedC + expansionC;
           cuRow = customerRow(trc.customersOpening, n1, trc.logoChurnMRR, contrC, trc.survivorMRR);
-          var stateClose = stampKinds(mt.state);
-          moRow = monetizationRow(n1, c.money, stateClose, moR, mt);
+          var stateClose = stampKinds(mt.state, moR_t);
+          moRow = monetizationRow(n1, c.money, stateClose, moR_t, mt);
           c.money = stateClose; c.customers = n1;
           cuOpen += trc.customersOpening; cuClose += n1;
           cuLogoChurnMRR += trc.logoChurnMRR; cuContractionMRR += contrC;
@@ -663,7 +697,7 @@
              logo survival, then contraction among survivors, then expansion
              among survivors. leakage = logo churn + contraction; the v1.3
              identity closing = opening × g × (1 + e) holds with g = l(1 − c). */
-          var tr = CU.transition({ n: c.customers, mrr: openingC }, cuR);
+          var tr = CU.transition({ n: c.customers, mrr: openingC }, cuR_t);
           retainedC = tr.retainedMRR; leakageC = tr.leakageMRR;
           expansionC = tr.expansionMRR; closingC = tr.closingMRR;
           cuRow = customerRow(tr.customersOpening, tr.customersClosing, tr.logoChurnMRR, tr.contractionMRR, tr.survivorMRR);
@@ -678,12 +712,12 @@
         }
         var avgMRR    = (openingC + closingC) / 2;   // 7. stock -> flow
         var revenue   = avgMRR;                       // MRR already IS the monthly amount
-        var gp        = revenue * a.grossMargin;
+        var gp        = revenue * law.grossMargin;
         /* v1.1 EXPANSION REALISATION COST — priced on the expansion ARR the
            transition above ALREADY produced. Read by nothing in the transition:
            it is computed after closingC and never feeds c.live, so retained,
            expansion, closing, GRR and NRR are provably untouched by it. */
-        var expCostC  = expansionC * 12 * a.expansionCostPerARR;
+        var expCostC  = expansionC * 12 * law.expansionCostPerARR;
 
         c.rows.push({
           t: t, age: ageEnd, ageAtStart: ageAtStart, band: bi, bandName: br.name,
@@ -713,7 +747,7 @@
       /* --- v1.3 SPEND. S&M is incurred NOW (it hits EBITA and cash below in
          this month) and enters the pending ledger with the New ARR the law IN
          FORCE NOW says it will create, dated to mature at t + LAG. --- */
-      var entry = pendingEntry(a, t, LAG, newARR, newLogoARPA, moInitial);
+      var entry = pendingEntry(law, t, LAG_t, newARR_t, newLogoARPA_t, moInitial_t, rs.active);
       ledger.push(entry); pending.push(entry);
 
       /* --- v1.3 REALISE. Whatever matured this month becomes the acquisition
@@ -731,7 +765,7 @@
       }
       var realisedARR = 0, realisedMRR = 0, realisedCustomers = 0;
       if (matured.length) {
-        var nc = realiseCohort(t, matured, bandRates[0].name, a.grossMargin);
+        var nc = realiseCohort(t, matured, bandRates_t[0].name, law.grossMargin);
         realisedARR = nc.initialARR; realisedMRR = nc.live;
         if (CUON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
         if (MON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }
@@ -755,13 +789,17 @@
       /* --- 7/8. Revenue and gross profit (company = sum of cohorts) --- */
       var avgMRRco  = (openingMRR + closingMRR) / 2;
       var revenue   = avgMRRco;              // MRR-NATIVE: no /12 — MRR is already monthly
-      var cogs      = revenue * (1 - a.grossMargin);
-      var grossProfit = revenue * a.grossMargin;
+      var cogs      = revenue * (1 - law.grossMargin);
+      var grossProfit = revenue * law.grossMargin;
 
       /* --- 9. EBITA. v1.1: less the expansion realisation cost, a named line
          of its own (company total = Σ cohort expansionCost, by construction). --- */
       var expansionCost = totExpansionCost;
-      var ebita = grossProfit - a.sm - a.rd - a.ga - expansionCost;
+      /* v2 Gate D — the hypotheses' own cost line: one-off at the decision
+         month, monthly while the programme runs. 0 with no interventions. */
+      var ivCost = IVON ? IV.costAt(a, t, H) : null;
+      var interventionCost = ivCost ? ivCost.total : 0;
+      var ebita = grossProfit - law.sm - law.rd - law.ga - expansionCost - interventionCost;
 
       /* --- 10. Cash. FCF = EBITA in v0.1 (no WC/tax/capex). Disclosed.
          v2 Gate C: with Cash Physics on, FCF = collections − cash costs
@@ -769,7 +807,7 @@
       var fcf = ebita, caRec = null;
       if (CASH) {
         var col = CA.collect(arQueue, totBillings, CDL);
-        var cashCosts = cogs + a.sm + a.rd + a.ga + expansionCost;
+        var cashCosts = cogs + law.sm + law.rd + law.ga + expansionCost + interventionCost;
         fcf = col.collections - cashCosts;
         cumCa.billings += totBillings; cumCa.collections += col.collections; cumCa.cashFCF += fcf;
         caRec = {
@@ -800,7 +838,8 @@
 
       cum.newARR += realisedARR; cum.expansion += totExpansionARR; cum.leakage += totLeakageARR;
       cum.revenue += revenue; cum.cogs += cogs; cum.grossProfit += grossProfit;
-      cum.sm += a.sm; cum.rd += a.rd; cum.ga += a.ga; cum.expansionCost += expansionCost;
+      cum.sm += law.sm; cum.rd += law.rd; cum.ga += law.ga; cum.expansionCost += expansionCost;
+      cumIv += interventionCost;
       cum.ebita += ebita; cum.fcf += fcf;
 
       /* v2 Gate A — the company customer record: sums of the cohort sub-records */
@@ -853,7 +892,7 @@
         closingARR: closingARR,
         /* v1.3 — the pending-acquisition stock at the END of this month, and
            what left it. All zero in the null world. */
-        acquisitionLawNewARR: newARR,          /* what this month's spend will create, when it matures */
+        acquisitionLawNewARR: newARR_t,        /* what this month's spend will create, when it matures */
         pendingNewARR: pendingARR,
         pendingSpend: pendingSpend,
         pendingCount: pending.length,
@@ -864,8 +903,9 @@
         revenue: revenue,
         cogs: cogs,
         grossProfit: grossProfit,
-        sm: a.sm, rd: a.rd, ga: a.ga,
+        sm: law.sm, rd: law.rd, ga: law.ga,
         expansionCost: expansionCost,          /* v1.1 — 0 in the null world */
+        interventionCost: interventionCost,    /* v2 Gate D — 0 with no hypotheses */
         ebita: ebita,
         ebitaMargin: revenue > 0 ? ebita / revenue : 0,
         fcf: fcf,
@@ -880,7 +920,10 @@
         cumulative: Object.assign({}, cum),
         customers: cuRec,                      /* v2 Gate A; null = Customer Physics off */
         monetization: moRec,                   /* v2 Gate B; null = Monetization off */
-        cash: caRec                            /* v2 Gate C; null = Cash Physics off (fcf = ebita) */
+        cash: caRec,                           /* v2 Gate C; null = Cash Physics off (fcf = ebita) */
+        /* v2 Gate D — provenance: which hypotheses were in force, what each
+           changed (target: from → to), and what they cost this month */
+        interventions: IVON ? { active: rs.active, changes: rs.changes, cost: interventionCost, costItems: ivCost.items, cumulativeCost: cumIv } : null
       });
     }
 
@@ -918,7 +961,8 @@
         customerPhysics: CUON,                      /* v2 Gate A */
         monetization: MON,                          /* v2 Gate B */
         genericExpansionBypassed: MON,              /* v2 Gate B: expansionCoefficientAnnual not read */
-        cashPhysics: CASH                           /* v2 Gate C: fcf ≠ ebita */
+        cashPhysics: CASH,                          /* v2 Gate C: fcf ≠ ebita */
+        interventions: IVON                         /* v2 Gate D: lawAt(t) differs from the base in some month */
       },
       assumptions: a,
       start: s,
@@ -945,6 +989,8 @@
         persistenceSource: MON ? 'emergent: monetization (contraction reaches variable revenue only)' : CUON ? 'derived: L(1 - C)' : 'input',
         expansionSource: MON ? 'emergent: price + usage + adoption (generic coefficient bypassed)' : 'input',
         emergentMonthlyMultiplier: emergentG,
+        /* v2 Gate D — the resolved schedule of every hypothesis */
+        interventions: IVON ? IV.schedule(a, H) : null,
         cash: CASH ? {
           billingTermMonths: BT, billingTiming: BTIM, collectionDelayMonths: CDL,
           openingDeferredRevenue: openingDeferred,   /* derived: the staggered opening book's balance (negative = contract asset) */
@@ -1055,7 +1101,9 @@
         perCustomerState: row.monetization ? row.monetization.state : null,
         /* v2 Gate C — this cohort's invoicing; null = Cash Physics off */
         billings: row.cash ? row.cash.billings : null,
-        deferredRevenue: row.cash ? row.cash.deferredClosing : null
+        deferredRevenue: row.cash ? row.cash.deferredClosing : null,
+        /* v2 Gate D — the hypotheses in force when this cohort's spend was committed */
+        interventionsAtSpend: c.interventionsAtSpend || []
       });
     }
     return out;
@@ -1186,7 +1234,9 @@
       cumCollections: last.cash ? last.cash.cumulative.collections : null,
       finalDeferredRevenue: last.cash ? last.cash.deferredClosing : null,
       finalReceivables: last.cash ? last.cash.receivablesClosing : null,
-      cumFCFMinusEbita: last.cash ? cum.fcf - cum.ebita : null
+      cumFCFMinusEbita: last.cash ? cum.fcf - cum.ebita : null,
+      /* v2 Gate D */
+      cumInterventionCost: last.interventions ? last.interventions.cumulativeCost : null
     };
   }
 
@@ -1199,6 +1249,11 @@
     var changed = [];
     Object.keys(expRes.assumptions).forEach(function (k) {
       if (k === 'bands') return;                       // structural, compared separately
+      if (k === 'interventions') {                     // v2 Gate D: hypothesis lists, compared whole
+        var bj = JSON.stringify(baseRes.assumptions[k] || []), xj = JSON.stringify(expRes.assumptions[k] || []);
+        if (bj !== xj) changed.push({ key: k, from: (baseRes.assumptions[k] || []).map(function (h) { return h.id; }), to: (expRes.assumptions[k] || []).map(function (h) { return h.id; }) });
+        return;
+      }
       if (k === 'monetization') {                      // v2 Gate B: a nested spec — compared leaf by leaf
         var bm = baseRes.assumptions[k], xm = expRes.assumptions[k];
         if (bm === xm) return;
@@ -1267,6 +1322,7 @@
     saturationEnabled: saturationEnabled,
     acquisitionResponse: acquisitionResponse,
     validateAssumptions: validateAssumptions,
+    normaliseAssumptions: normaliseAssumptions,
     pendingEntry: pendingEntry,
     realiseCohort: realiseCohort,
     cacPerMRR: cacPerMRR,

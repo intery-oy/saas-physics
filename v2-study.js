@@ -203,3 +203,36 @@ console.log('  ' + L(108));
 });
 console.log('  Under annual advance billing the push funds part of itself (each new cohort pays a year up front); under arrears with a delay it deepens the trough by more than EBITA says.');
 console.log('\n' + L());
+
+/* ================================================================== *
+ * D. INTERVENTIONS — hypotheses against the base, with their cost
+ * ================================================================== */
+console.log('\nD. INTERVENTIONS — a retention programme, as a hypothesis with a lag, a duration and a cost');
+console.log(L());
+var RET = { id: 'ret', name: 'Retention programme', target: 'persistenceAnnual', effect: 'multiply', value: 1.05, startMonth: 6, lagMonths: 3, durationMonths: 24, cost: { oneOff: 200000, monthly: 50000 } };
+var rD0 = E.run(A), rD = E.run(Object.assign({}, A, { interventions: [RET] })), rDc = E.run(Object.assign({}, A, { interventions: [Object.assign({}, RET, { value: 1.0 })] }));
+var sch = rD.derived.interventions[0];
+console.log('  Hypothesis: persistence × 1.05 (0.90 → 0.945), decided in M' + RET.startMonth + ', effect from M' + sch.effectiveFrom + ' to M' + sch.effectiveTo + ' (' + sch.activeMonths + ' months), cost €200k one-off + €50k/month while it runs = ' + m(sch.totalCost) + '.');
+console.log('  Base is the same company without the hypothesis. The effect is the comparison; the cost is a P&L line of its own.\n');
+console.log('  ' + pad('month', 8) + rpad('law in force', 14) + rpad('cost', 9) + rpad('ARR base', 11) + rpad('ARR hyp.', 11) + rpad('ΔARR', 10) + rpad('cash base', 11) + rpad('cash hyp.', 11) + rpad('Δcash', 10) + rpad('Δcash, cost only', 18));
+console.log('  ' + L(113));
+[5, 6, 8, 9, 12, 20, 32, 33, 40, 60].forEach(function (t) {
+  var b = rD0.months[t - 1], x = rD.months[t - 1], c = rDc.months[t - 1], iv = x.interventions;
+  console.log('  ' + pad(t, 8) + rpad(iv.changes.length ? pc(iv.changes[0].to, 1) : pc(A.persistenceAnnual, 1) + ' (base)', 14) + rpad('€' + (iv.cost / 1e3).toFixed(0) + 'k', 9) + rpad(m(b.closingARR), 11) + rpad(m(x.closingARR), 11) + rpad(sm(x.closingARR - b.closingARR), 10) +
+              rpad(m(b.cashClosing), 11) + rpad(m(x.cashClosing), 11) + rpad(sm(x.cashClosing - b.cashClosing), 10) + rpad(sm(c.cashClosing - b.cashClosing), 18));
+});
+var payback = null; for (var t = 1; t <= 60; t++) if (payback === null && rD.months[t - 1].cashClosing > rD0.months[t - 1].cashClosing) payback = t;
+var sD0 = E.summarise(rD0), sD = E.summarise(rD);
+console.log('\n  The programme costs cash from M6, starts working in M9 and ends in M32; cash overtakes Base in M' + payback + ' and ends ' + sm(sD.endingCash - sD0.endingCash) + ' ahead on ' + m(sD.cumInterventionCost) + ' of cost.');
+console.log('  Cumulative leakage ' + m(sD0.cumLeakage) + ' → ' + m(sD.cumLeakage) + ' (' + sm(sD.cumLeakage - sD0.cumLeakage) + '); after M32 the law reverts and the ARR advantage decays — a programme, not a coefficient.');
+console.log('  "Cost only" is the same hypothesis with × 1.0: ARR bit-identical to Base, cash lower by exactly the cost. The gap between the two Δcash columns is what the effect is worth.');
+
+/* --- D.2 provenance under a lag --- */
+console.log('\n  D.2  A CAC hypothesis under a 6-month acquisition lag: stamped at spend, not at maturity');
+var rDL = E.run(Object.assign({}, A, { acquisitionLagMonths: 6, interventions: [{ id: 'cac', name: 'Cheaper acquisition', target: 'cacPerARR', effect: 'multiply', value: 0.8, startMonth: 10 }] }));
+console.log('  ' + pad('cohort', 10) + rpad('spent in', 10) + rpad('CAC at spend', 14) + rpad('hypotheses at spend', 22) + rpad('initial ARR', 13));
+console.log('  ' + L(69));
+[8, 9, 10, 15, 16, 17].forEach(function (mo) { var c = rDL.cohorts.filter(function (x) { return x.acquisitionMonth === mo; })[0]; if (!c) return;
+  console.log('  ' + pad(c.id, 10) + rpad('M' + c.spendMonth, 10) + rpad(c.cacCoefficientAtCreation.toFixed(2) + '×', 14) + rpad(c.interventionsAtSpend.length ? c.interventionsAtSpend.join(',') : 'none', 22) + rpad(m(c.initialARR), 13)); });
+console.log('  Cohorts realised in M10–M15 were bought before the hypothesis and keep 1.20×; the first cohort at 0.96× appears in M16. Later assumptions never re-price committed spend.');
+console.log('\n' + L());

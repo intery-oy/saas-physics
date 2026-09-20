@@ -266,6 +266,77 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('C · NULL-ON-SCREEN: Reset switches Cash Physics off; the waterfall ends at "= Modeled FCF (= EBITA)" (7 steps); no cash block on screen',
       cn.A.billingTermMonths === null && cn.A.collectionDelayMonths === 0 && !cn.mech.cashPhysics && cn.tog === 'off' && cn.wf.length === 7 && cn.wf[6] === '= Modeled FCF (= EBITA)' && !cn.txt.includes('CASH BENEATH EBITA'), JSON.stringify(cn.wf));
 
+  /* ---- D · CONTROLS ---- */
+  await pg.click('#t-interventions'); await pg.waitForTimeout(400);
+  const d0 = await pg.evaluate(() => ({
+    A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, Hv: document.getElementById('v-interventions').textContent,
+    tgt: document.getElementById('t-interventions[0].target').textContent, Ev: document.getElementById('v-interventions[0].value').textContent, Edis: document.getElementById('f-interventions[0].value').disabled,
+    Dv: document.getElementById('v-interventions[0].durationMonths').textContent, Dt: document.getElementById('t-interventions[0].durationMonths').textContent,
+    summary: document.getElementById('experiment-summary').innerText, sched: window.__SP_DEBUG.expRes.derived.interventions
+  }));
+  rec('D · CONTROLS: the Hypothesis toggle switches one costed programme on (persistence × 1.05, decided M6, lag 3, 24 months); the target button, effect, timing and cost sliders enable; the schedule is resolved (in force M9–M32); the summary names it',
+      d0.A.interventions.length === 1 && d0.A.interventions[0].target === 'persistenceAnnual' && d0.mech.interventions && d0.tog === 'on' && d0.Hv === '1 active' && d0.tgt === 'persistence' && d0.Ev === '1.05×' && !d0.Edis && d0.Dv === '24 mo' && d0.Dt === 'on' &&
+      d0.sched[0].effectiveFrom === 9 && d0.sched[0].effectiveTo === 32 && /Hypothesis\s+off → 1 active/.test(d0.summary), JSON.stringify({ Hv: d0.Hv, tgt: d0.tgt, Ev: d0.Ev, Dv: d0.Dv }));
+  await pg.click('[id="t-interventions[0].target"]'); await pg.waitForTimeout(300);
+  const d1 = await pg.evaluate(() => ({ t: window.__SP_DEBUG.expA.interventions[0].target, tgt: document.getElementById('t-interventions[0].target').textContent }));
+  rec('D · CONTROLS: the target button cycles to the next law that is on (persistence → expansion coefficient, since the customer layer is off)', d1.t === 'expansionCoefficientAnnual' && d1.tgt === 'expansion coefficient', JSON.stringify(d1));
+  /* cycle back to persistence */
+  for (let i = 0; i < 6; i++) { const t = await pg.evaluate(() => window.__SP_DEBUG.expA.interventions[0].target); if (t === 'persistenceAnnual') break; await pg.click('[id="t-interventions[0].target"]'); await pg.waitForTimeout(150); }
+  await pg.click('[id="t-interventions[0].durationMonths"]'); await pg.waitForTimeout(300);
+  const d2 = await pg.evaluate(() => ({ d: window.__SP_DEBUG.expA.interventions[0].durationMonths, Dv: document.getElementById('v-interventions[0].durationMonths').textContent, to: window.__SP_DEBUG.expRes.derived.interventions[0].effectiveTo }));
+  rec('D · CONTROLS: the duration toggle switches the programme to permanent (null): the schedule runs to the horizon', d2.d === null && d2.Dv === 'off' && d2.to === 60, JSON.stringify(d2));
+  await pg.click('[id="t-interventions[0].durationMonths"]'); await pg.waitForTimeout(300);
+
+  /* ---- D · OBSERVE + WATERFALL ---- */
+  await setScrub(20);
+  const dob = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, iv: D.expRes.months[m - 1].interventions, cost: D.expRes.months[m - 1].interventionCost, txt: document.getElementById('side').innerText,
+    wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), wfv: [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent) }; });
+  rec('D · OBSERVE: the "Hypotheses" block shows the programme in force with what it changed (persistence 90.0% → 94.5%), months in force, cost to date, and this month\'s cost',
+      dob.txt.includes('HYPOTHESES') && /in force · persistence 90\.0% → 94\.5%/.test(dob.txt) && /12 months in force/.test(dob.txt) && dob.txt.includes('Hypothesis cost · this month\n€50k') && dob.iv.active[0] === 'h1' && dob.cost === 50000,
+      dob.txt.slice(dob.txt.indexOf('HYPOTHESES'), dob.txt.indexOf('HYPOTHESES') + 260).replace(/\n/g, ' | '));
+  rec('D · WATERFALL: a "− Hypothesis cost" step appears before FCF and prints the engine\'s cost line (€50k)',
+      dob.wf.includes('− Hypothesis cost') && dob.wfv[dob.wf.indexOf('− Hypothesis cost')] === '−€50k', JSON.stringify(dob.wf));
+
+  /* ---- D · SYSTEM ---- */
+  await pg.click('#nav-system'); await pg.waitForTimeout(500);
+  const ds = await pg.evaluate(() => document.getElementById('side').innerText);
+  rec('D · SYSTEM: the side panel names the hypothesis in force, the valve it moves (persistence 90.0% → 94.5%) and its cost to date',
+      ds.includes('Hypotheses · 1') && /h1 moves persistence 90\.0% → 94\.5%/.test(ds) && ds.includes('cost this month €50k'), ds.slice(ds.indexOf('Hypotheses ·'), ds.indexOf('Hypotheses ·') + 200).replace(/\n/g, ' | '));
+  await pg.click('#cmp-delta'); await pg.waitForTimeout(400); await pg.click('#cmp-abs'); await pg.waitForTimeout(300);
+
+  /* ---- D · INSPECT: a cohort's provenance ---- */
+  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await setScrub(24);
+  const pinD = await pg.evaluate(() => {
+    const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
+    const geoL = 64, geoR = 20, W = r.width; const x = geoL + (23 / 60) * (W - geoL - geoR);
+    let hit = null;
+    for (let y = 30; y < r.height * 0.6 && hit === null; y += 3) {
+      cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); hit = y; }
+    }
+    return { hit, txt: document.getElementById('side').innerText };
+  });
+  rec('D · INSPECT: the pinned cohort\'s dossier states the hypotheses in force when its spend was committed', pinD.hit !== null && /Hypotheses at spend\s+h1 · the law this cohort was bought under/.test(pinD.txt),
+      pinD.hit === null ? 'no cohort hit' : pinD.txt.slice(pinD.txt.indexOf('Hypotheses at spend'), pinD.txt.indexOf('Hypotheses at spend') + 120).replace(/\n/g, ' | '));
+  await pg.evaluate(() => { const cv = document.getElementById('scene'); cv.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+  /* ---- D · SCENARIO 14 ---- */
+  await pg.click('#nav-scen'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="hypothesis"]').click()); await pg.waitForTimeout(500);
+  const s14 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let same = true; for (let t = 0; t < 8; t++) if (D.expRes.months[t].closingARR !== D.baseRes.months[t].closingARR) same = false;
+    return { txt: document.getElementById('side').innerText, same, bm: D.baseRes.mechanisms, xm: D.expRes.mechanisms, cost: D.K.interventionMeasures(D.expRes, 60).cumulativeCost }; });
+  rec('D · SCENARIO 14: Base has no hypothesis, Experiment the retention programme; months 1–8 identical; the panel shows the window, the cost (€1.55m), the month cash overtakes Base and the boundary',
+      !s14.bm.interventions && s14.xm.interventions && s14.same && Math.abs(s14.cost - 1550000) < 1e-6 && s14.txt.includes('Hypothesis window\ndecided M6 · in force M9–M32') && s14.txt.includes('Hypothesis cost (Experiment)\n−€1.55m') && /Cash overtakes Base\nmonth 26/.test(s14.txt),
+      s14.txt.slice(s14.txt.indexOf('CONSEQUENCE'), s14.txt.indexOf('CONSEQUENCE') + 220).replace(/\n/g, ' | '));
+  rec('D · SCENARIO 14: the boundary states what a hypothesis cannot do', (await pg.evaluate(() => document.getElementById('side').textContent)).includes('cannot switch a layer on or off'), '');
+
+  /* ---- D · NULL ---- */
+  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await pg.click('#reset'); await pg.waitForTimeout(300);
+  const dn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, txt: document.getElementById('side').innerText, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent) }));
+  rec('D · NULL-ON-SCREEN: Reset removes the hypothesis; no Hypotheses block, no cost step', dn.A.interventions.length === 0 && !dn.mech.interventions && dn.tog === 'off' && !dn.txt.includes('HYPOTHESES') && !dn.wf.includes('− Hypothesis cost'), '');
+
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
 
   let pass = 0;

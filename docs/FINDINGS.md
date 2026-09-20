@@ -556,6 +556,44 @@ set the policy and see the path. What it does not model — payables, prepaid co
 timing, tax, capex, bad debt, refunds, financing — is listed in the research note's boundary
 and is the honest answer to "why is my cash still different".
 
+## New in v2 Gate D — Interventions
+
+### 40. A hypothesis had to be a different kind of object from a law, and the engine had to enforce the difference
+
+Every earlier release added a coefficient. A "retention programme" could have been modelled as
+"set persistence to 0.945" — and would then have been a law: permanent, free, in force from
+M1, indistinguishable from the world simply being better. Gate D makes an intervention an
+explicit object with a decision month, a lag, a duration and a cost, resolved into the law in
+force by `lawAt(t)`, and records on every month what was in force and what it changed. The
+structural guarantee is that outside its window every cohort runs on the base law; the
+product guarantee is that the Change surface shows a hypothesis in a group of its own, the
+Consequence panel books its cost against its effect, and the System map rings the valve it is
+moving. Two implementation facts follow: the monthly loop now reads every law from the
+resolved object of that month (bit-identical to the once-computed value when nothing is
+active — the null gate proves it), and committed spend is stamped with the hypotheses in force
+at spend, so a later hypothesis never re-prices it.
+
+### 41. What a hypothesis may not do is as important as what it may
+
+It may not switch a layer on or off (a null target is rejected; the layers' switches are
+rejected), because a world that gains customers in month 12 has no customer state before it.
+It may not change the billing policy, because billing units are anchored to a term. It may not
+push any law outside its domain in any month — the resolved law of every month is run through
+the engine's own boundary validation before the run starts, and the v1 laws the engine never
+bounded (persistence, gross margin, S&M…) gained explicit domains for this purpose. "Bounds
+before benefits" applied to hypotheses means: the engine will not run a hypothesis it would
+refuse as an assumption.
+
+### 42. The effect of a hypothesis is not a measurement
+
+`K.interventionMeasures` reports status, months in force and cost to date. It deliberately
+does not report an "effect": the effect is a counterfactual — the same company without the
+hypothesis — which is a comparison of two runs (Base vs Experiment), not a property of one.
+Presenting a within-run number as the programme's effect would have been the KPI-as-law error
+of `docs/MEASUREMENT.md` in a new coat. What the product does instead: Base is the company
+without the programme, the Consequence panel shows the effect net of cost, and the month cash
+overtakes Base is reported as a fact of the comparison.
+
 ## What held up
 
 - **The cohort spine.** Company ARR and revenue are only ever sums of cohorts, reconciling to ~10⁻⁸

@@ -433,6 +433,104 @@ var CA = require('./cash.js');
      (function () { var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8'); var i = built.indexOf('root.SaaSPhysicsCash = factory()'); return i > 0 && i < built.indexOf('var CA = deps.cash'); })(), '');
 })();
 
+/* ================================================================== *
+ * GATE D — INTERVENTIONS
+ * ================================================================== */
+var IV = require('./interventions.js');
+var RET = { id: 'ret', name: 'Retention programme', target: 'persistenceAnnual', effect: 'multiply', value: 1.05, startMonth: 6, lagMonths: 3, durationMonths: 24, cost: { oneOff: 200000, monthly: 50000 } };
+(function gateD() {
+  var r0 = E.run(A), r = E.run(Object.assign({}, A, { interventions: [RET] })), rEmpty = E.run(Object.assign({}, A, { interventions: [] }));
+  var acc = { fields: 0, worst: 0, where: '', missing: [] }; walkCompare(snapshot(r0), snapshot(rEmpty), 'run', acc);
+  ok('D-NULL', 'interventions: [] is the null world: every field identical to a run without the key (lawAt(t) IS the base object); mechanisms.interventions false; no month carries a hypothesis record',
+     acc.worst === 0 && acc.missing.length === 0 && !rEmpty.mechanisms.interventions && rEmpty.months.every(function (m) { return m.interventions === null && m.interventionCost === 0; }) && rEmpty.derived.interventions === null, acc.fields + ' fields identical');
+
+  /* --- lawAt(t): before, during, after --- */
+  var sched = r.derived.interventions[0];
+  var before = true; for (var t = 0; t < 8; t++) before = before && Math.abs(r.months[t].closingARR - r0.months[t].closingARR) === 0 && r.months[t].interventions.active.length === 0;
+  var during = r.months.slice(8, 32).every(function (m) { return m.interventions.active.length === 1 && m.interventions.changes[0].target === 'persistenceAnnual' && Math.abs(m.interventions.changes[0].to - 0.945) < 1e-12; });
+  var after = r.months.slice(32).every(function (m) { return m.interventions.active.length === 0 && m.interventions.changes.length === 0; });
+  var gDuring = Math.pow(0.945, 1 / 12), gBase = Math.pow(0.9, 1 / 12), rowsOK = true;
+  r.cohorts.forEach(function (c) { c.rows.forEach(function (rw, i) { if (c.acquisitionMonth > 0 && i === 0) return; var g = rw.retainedMRR / rw.openingMRR; var want = (rw.t >= 9 && rw.t <= 32) ? gDuring : gBase; if (rw.openingMRR > 0 && Math.abs(g - want) > 1e-12) rowsOK = false; }); });
+  ok('D-LAWAT', 'retention programme (persistence × 1.05 from M6, 3-month lag, 24 months): months 1–8 bit-identical to Base; months 9–32 run every cohort at persistence 0.945 (monthly g = 0.945^(1/12) on every ageing row); from M33 the law reverts to 0.90 — a hypothesis never became a coefficient',
+     before && during && after && rowsOK && sched.effectiveFrom === 9 && sched.effectiveTo === 32 && sched.activeMonths === 24 && Math.abs(sched.valueInForce - 0.945) < 1e-12, 'in force M' + sched.effectiveFrom + '–M' + sched.effectiveTo);
+
+  /* --- cost: its own line, decision-dated --- */
+  var costOK = r.months.every(function (m) { var want = (m.t === 6 ? 200000 : 0) + (m.t >= 6 && m.t <= 32 ? 50000 : 0); return Math.abs(m.interventionCost - want) < EPS && Math.abs(m.ebita - (m.grossProfit - m.sm - m.rd - m.ga - m.expansionCost - m.interventionCost)) < EPS; });
+  var rNoEffect = E.run(Object.assign({}, A, { interventions: [Object.assign({}, RET, { value: 1.0 })] }));
+  var costOnly = rNoEffect.months.every(function (m, i) { return Math.abs(m.closingARR - r0.months[i].closingARR) === 0 && Math.abs((r0.months[i].ebita - m.ebita) - m.interventionCost) < EPS && Math.abs((r0.months[i].cashClosing - m.cashClosing) - m.interventions.cumulativeCost) < EPS; });
+  ok('D-COST', 'the cost line is decision-dated (€200,000 one-off in M6, €50,000/month M6–M32, total €1.55m) and its own P&L line; a hypothesis with no effect (× 1.0) leaves ARR bit-identical and lowers EBITA and cash by exactly its cost',
+     costOK && costOnly && Math.abs(E.summarise(r).cumInterventionCost - 1550000) < EPS, 'Σ cost €' + E.summarise(r).cumInterventionCost.toFixed(0));
+
+  /* --- provenance: stamped at spend, not at maturity --- */
+  var CAC = { id: 'cac', target: 'cacPerARR', effect: 'multiply', value: 0.8, startMonth: 10, lagMonths: 0, durationMonths: null, cost: { oneOff: 0, monthly: 0 } };
+  var rL = E.run(Object.assign({}, A, { acquisitionLagMonths: 6, interventions: [CAC] }));
+  var provOK = rL.acquisitionLedger.every(function (e) { return (e.spendMonth < 10 ? e.cacPerARRAtSpend === 1.2 && e.interventionsAtSpend.length === 0 : Math.abs(e.cacPerARRAtSpend - 0.96) < 1e-12 && e.interventionsAtSpend[0] === 'cac'); }) &&
+               rL.cohorts.slice(1).every(function (c) { return c.spendMonth < 10 ? c.cacCoefficientAtCreation === 1.2 && c.interventionsAtSpend.length === 0 : Math.abs(c.cacCoefficientAtCreation - 0.96) < 1e-12 && c.interventionsAtSpend[0] === 'cac'; }) &&
+               rL.cohorts.filter(function (c) { return c.acquisitionMonth >= 10 && c.acquisitionMonth <= 15; }).every(function (c) { return c.cacCoefficientAtCreation === 1.2; });
+  ok('D-PROVENANCE', 'CAC coefficient × 0.8 from M10 under a 6-month lag: entries spent before M10 carry 1.20 and no hypothesis; entries from M10 carry 0.96 and the hypothesis id; cohorts realised M10–M15 (spent before the change) still carry 1.20 — stamped at spend, not at maturity',
+     provOK, rL.cohorts.length + ' cohorts');
+
+  /* --- bounds before benefits: the boundary --- */
+  var badD = [
+    [{ target: 'maxMonthlyNewARR', effect: 'set', value: 2e6, startMonth: 1 }, 'a null target (capacity off)'],
+    [{ target: 'logoRetentionAnnual', effect: 'set', value: 0.9, startMonth: 1 }, 'switching Customer Physics on'],
+    [{ target: 'billingTermMonths', effect: 'set', value: 12, startMonth: 1 }, 'the billing policy'],
+    [{ target: 'monetization', effect: 'set', value: 1, startMonth: 1 }, 'a whole layer'],
+    [{ target: 'persistenceAnnual', effect: 'multiply', value: 1.3, startMonth: 1 }, 'persistence pushed above 1'],
+    [{ target: 'grossMargin', effect: 'add', value: 0.5, startMonth: 1 }, 'gross margin above 1'],
+    [{ target: 'sm', effect: 'multiply', value: -1, startMonth: 1 }, 'negative S&M'],
+    [{ target: 'acquisitionLagMonths', effect: 'add', value: 1.5, startMonth: 1 }, 'a fractional lag'],
+    [{ target: 'nope', effect: 'add', value: 1, startMonth: 1 }, 'an unknown target'],
+    [{ target: 'sm', effect: 'divide', value: 2, startMonth: 1 }, 'an unknown effect'],
+    [{ target: 'sm', effect: 'add', value: 1, startMonth: 0 }, 'startMonth 0'],
+    [{ target: 'sm', effect: 'add', value: 1, startMonth: 1, durationMonths: 0 }, 'duration 0'],
+    [{ target: 'sm', effect: 'add', value: 1, startMonth: 1, cost: { monthly: -5 } }, 'a negative cost'],
+    [{ target: 'sm', effect: 'add', value: NaN, startMonth: 1 }, 'a NaN value']
+  ];
+  var allRejected = badD.every(function (b) { return throws(function () { E.run(Object.assign({}, A, { interventions: [b[0]] })); }); });
+  var dup = throws(function () { E.run(Object.assign({}, A, { interventions: [Object.assign({}, RET), Object.assign({}, RET)] })); });
+  ok('D-BOUNDS', 'RangeError for: ' + badD.map(function (b) { return b[1]; }).join(', ') + ', a duplicate id; the resolved law of every month must pass the engine\'s own boundary and stay inside each law\'s domain',
+     allRejected && dup, (badD.length + 1) + ' invalid hypotheses rejected');
+  ok('D-BOUNDS', 'a hypothesis may switch a bound ON where the base carries it: capacity × 0.5 from M12 on a bounded world halves the capacity from M12 and the entries carry the capacity at spend',
+     (function () { var rc = E.run(Object.assign({}, A, { maxMonthlyNewARR: 2e6, interventions: [{ target: 'maxMonthlyNewARR', effect: 'multiply', value: 0.5, startMonth: 12 }] }));
+                    return rc.acquisitionLedger.every(function (e) { return e.maxMonthlyNewARRAtSpend === (e.spendMonth < 12 ? 2e6 : 1e6); }) && rc.months[11].acquisitionLawNewARR < rc.months[10].acquisitionLawNewARR; })(), '');
+
+  /* --- order and composition --- */
+  var A1 = { id: 'a', target: 'sm', effect: 'multiply', value: 1.1, startMonth: 1 }, A2 = { id: 'b', target: 'sm', effect: 'add', value: 100000, startMonth: 1 };
+  var rAB = E.run(Object.assign({}, A, { interventions: [A1, A2] })), rBA = E.run(Object.assign({}, A, { interventions: [A2, A1] }));
+  ok('D-ORDER', 'two hypotheses on the same law apply in declaration order (× 1.1 then + €100k → €1,090,000; + €100k then × 1.1 → €1,100,000): the order is a stated convention, recorded per month',
+     Math.abs(rAB.months[0].sm - 1090000) < EPS && Math.abs(rBA.months[0].sm - 1100000) < EPS && rAB.months[0].interventions.changes.length === 2 && Math.abs(rAB.months[0].interventions.changes[1].from - 990000) < EPS, rAB.months[0].sm + ' vs ' + rBA.months[0].sm);
+  var perm = E.run(Object.assign({}, A, { interventions: [{ id: 'p', target: 'grossMargin', effect: 'add', value: 0.05, startMonth: 24, durationMonths: null, cost: { monthly: 10000 } }] }));
+  ok('D-DURATION', 'a permanent hypothesis (duration null) stays in force to the horizon and its monthly cost runs to the horizon; the schedule reports effectiveTo = H',
+     perm.months.slice(23).every(function (m) { return m.interventions.active[0] === 'p' && Math.abs(m.grossProfit - m.revenue * 0.85) < EPS && m.interventionCost === 10000; }) && perm.derived.interventions[0].effectiveTo === 60 && Math.abs(perm.derived.interventions[0].totalCost - 37 * 10000) < EPS, '');
+
+  /* --- targets inside the layers --- */
+  var rM = E.run(Object.assign({}, A, MW, { interventions: [{ id: 'px', target: 'monetization.components[1].priceGrowthAnnual', effect: 'set', value: 0.10, startMonth: 13 }, { id: 'list', target: 'monetization.components[0].priceAnnual', effect: 'multiply', value: 1.25, startMonth: 25 }] }));
+  var rMb = E.run(Object.assign({}, A, MW));
+  var pxOK = rM.months.slice(0, 12).every(function (m, i) { return Math.abs(m.closingARR - rMb.months[i].closingARR) === 0; }) && rM.months[12].monetization.priceARR > rMb.months[12].monetization.priceARR;
+  var listOK = rM.cohorts.filter(function (c) { return c.acquisitionMonth >= 25; }).every(function (c) { return Math.abs(c.rows[0].monetization.perCustomerClosing - 23000) < 1e-9; }) &&
+               rM.cohorts.filter(function (c) { return c.acquisitionMonth > 0 && c.acquisitionMonth < 25; }).every(function (c) { return Math.abs(c.rows[0].monetization.perCustomerClosing - 20000) < 1e-9; }) &&
+               Math.abs(rM.cohorts[0].rows[24].monetization.state[0].price - rMb.cohorts[0].rows[24].monetization.state[0].price) < 1e-9;
+  ok('D-LAYERS', 'hypotheses reach into the layers by path: usage price growth set to 10% from M13 changes every cohort\'s price effect from M13 (months 1–12 identical); a 25% list-price rise from M25 prices NEW logos at €23,000 while existing cohorts keep their own state — the two kinds of price change are distinct objects',
+     pxOK && listOK, '');
+  var rCu = E.run(Object.assign({}, A, CUW, { interventions: [{ id: 'L', target: 'logoRetentionAnnual', effect: 'add', value: 0.03, startMonth: 1 }] }));
+  ok('D-LAYERS', 'logo retention + 3pp from M1 with Customer Physics on: the derived persistence in force follows (0.95 × 0.95 = 0.9025), read from the month record',
+     Math.abs(rCu.months[0].interventions.changes[0].to - 0.95) < 1e-12 && Math.abs(rCu.cohorts[0].rows[0].customers.closing - 1000 * Math.pow(0.95, 1 / 12)) < 1e-9, '');
+
+  /* --- composition with cash and measurement --- */
+  var rC = E.run(Object.assign({}, A, { billingTermMonths: 12, interventions: [RET] }));
+  ok('D-COMPOSE', 'with Cash Physics on the intervention cost is cash when incurred (cash costs include it) and the cash identities still hold every month',
+     rC.months.every(function (m) { var c = m.cash; return Math.abs(c.cashCosts - (m.cogs + m.sm + m.rd + m.ga + m.expansionCost + m.interventionCost)) < EPS && Math.abs(m.fcf - (c.collections - c.cashCosts)) < EPS; }), '');
+  var km = K.interventionMeasures(r, 20), km60 = K.interventionMeasures(r, 60);
+  ok('D-MEASURE', 'interventionMeasures reports status, months in force and cost to date per hypothesis (M20: in force 12 months, €950k to date; M60: ended, €1.55m); the effect itself is a comparison of runs, not a measurement of one',
+     km.hypotheses[0].status === 'in force' && km.hypotheses[0].monthsInForce === 12 && Math.abs(km.hypotheses[0].costToDate - 950000) < EPS && km60.hypotheses[0].status === 'ended' && Math.abs(km60.cumulativeCost - 1550000) < EPS, JSON.stringify(km.hypotheses[0]));
+  var d1 = E.run(Object.assign({}, A, { interventions: [RET] })), d2 = E.run(Object.assign({}, A, { interventions: [RET] }));
+  ok('D-DETERMINISM', 'two runs of the same hypothesis world are identical in every field', JSON.stringify(snapshot(d1)) === JSON.stringify(snapshot(d2)), '');
+  ok('D-MODULE', 'interventions.js resolves without touching the base object (resolve(a, t).law is the base when nothing is active, a fresh object otherwise) and the built product inlines it before the engine',
+     (function () { var a2 = E.normaliseAssumptions(Object.assign({}, A, { interventions: [RET] })); var r8 = IV.resolve(a2, 8), r9 = IV.resolve(a2, 9); return r8.law === a2 && r9.law !== a2 && a2.persistenceAnnual === 0.9 && r9.law.persistenceAnnual !== 0.9; })() &&
+     (function () { var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8'); var i = built.indexOf('root.SaaSPhysicsInterventions = factory()'); return i > 0 && i < built.indexOf('var IV = deps.interventions'); })(), '');
+})();
+
 console.log('\nSaaS Physics v2 — economic system checks\n' + '='.repeat(96));
 var pass = 0;
 out.forEach(function (r, i) {
