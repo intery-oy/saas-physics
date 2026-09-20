@@ -40,17 +40,16 @@ button,input{font:inherit;color:inherit}
 .eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
 
 /* ---------- shell ---------- */
-.app{display:grid;grid-template-columns:262px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;transition:grid-template-columns .2s}
-.app.flow{grid-template-columns:0 minmax(0,1fr) 320px}
-.app.flow .rail{opacity:0;pointer-events:none;overflow:hidden}
+.app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;height:100vh}
+.app.flow .rail{opacity:0;pointer-events:none}
 .lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
 .lawchip:hover{border-color:var(--exp);color:var(--ink)}
 .lawchip b{font-family:var(--mono);color:var(--exp);font-weight:500}
 .lawchip input[type=range]{width:118px;margin-top:5px;display:block}
 .lawchip.open{border-color:var(--exp)}
 .nav .btn{padding:6px 13px}
-.scenbar{display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
-.scenbar .btn{font-size:11px}
+.scenbar{display:flex;align-items:center;gap:8px;padding:12px 0 10px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.scenbar .btn{font-size:10.5px;padding:4px 8px}
 .fgrp{padding:12px 18px;border-bottom:1px solid var(--line-soft)}
 .fgrp-head{display:flex;align-items:baseline;gap:7px;margin-bottom:3px}
 .fgrp-kind{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--exp)}
@@ -78,23 +77,65 @@ button,input{font:inherit;color:inherit}
 .scencard{border:1px solid var(--line);border-radius:3px;background:var(--sunk);padding:11px 13px;margin-bottom:9px}
 .scencard h4{margin:0 0 3px;font-size:12.5px}
 .scencard .teach{font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--ink-2);line-height:1.55;margin:0}
-.pulsebar{display:flex;align-items:center;gap:10px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
+.pulsebar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 14px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
+.pulsebar .lawnote{grid-column:1/-1}
 .pulsebar .stepname{font-family:var(--mono);font-size:11.5px;color:var(--exp);min-width:210px}
 .pulsebar .lawnote{font-size:10.5px;color:var(--ink-3);line-height:1.5}
 .recon{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:11px;margin-top:5px}
 .recon span{color:var(--ink-3)} .recon b{font-family:var(--mono);font-weight:500}
 .recon .tot{color:var(--ink);border-top:1px solid var(--line);padding-top:3px}
-.head{grid-column:1/-1;display:flex;align-items:baseline;gap:16px;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.head{display:flex;align-items:baseline;gap:16px;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
 .head h1{margin:0;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.005em}
 .head .sub{font-size:11.5px;color:var(--ink-3);font-style:italic;font-family:var(--display)}
 .spacer{flex-grow:1}
 .chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--line);border-radius:2px;color:var(--ink-3)}
 .chip.on{border-color:var(--exp);color:var(--exp)}
 
-.rail{border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:0 0 16px}
-.stage{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--scene)}
-.side{border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:0 0 18px}
-.transport{grid-column:1/-1;display:flex;align-items:center;gap:13px;padding:10px 20px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:nowrap}
+/* Change is a mode, not furniture: a drawer over the surface at every width */
+.rail{position:fixed;left:0;top:0;bottom:0;width:460px;max-width:100%;z-index:20;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:0 0 16px;transform:translateX(-100%);transition:transform .2s;box-shadow:8px 0 28px rgba(0,0,0,.5)}
+.app.rail-open .rail{transform:none}
+.scrim{position:fixed;inset:0;background:rgba(8,11,13,.55);z-index:19;display:none}
+.app.rail-open .scrim{display:block}
+.app.rail-open #rail-toggle{border-color:var(--exp);color:var(--exp)}
+#rail-close{display:block;margin:10px 18px 0;width:calc(100% - 36px)}
+/* one scrolling column: hero → lens navigation → the active lens → the figure as context */
+.stage{position:relative;min-width:0;overflow-y:auto;background:var(--scene)}
+.stagecol{max-width:980px;margin:0 auto;padding:0 28px 32px}
+.side{padding:0}
+.app.flow .stage{overflow:hidden;display:flex;flex-direction:column}
+.app.flow .stagecol{display:contents}
+/* System: the notes are a drawer, opened on purpose */
+.app.flow .side{position:fixed;right:0;top:0;bottom:0;width:400px;max-width:100%;z-index:20;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:8px 0 18px;transform:translateX(100%);transition:transform .2s;box-shadow:-8px 0 28px rgba(0,0,0,.5)}
+.app.flow.notes .side{transform:none}
+.app.flow.notes #notes-toggle{border-color:var(--exp);color:var(--exp)}
+/* the figure: temporal context beneath the active lens */
+.figwrap{margin:4px 0 0;border-top:1px solid var(--line-soft)}
+.figwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:12px;padding:11px 0 9px;font-family:var(--ui);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.figwrap>summary::-webkit-details-marker{display:none}
+.figwrap>summary::before{content:"\25B8";color:var(--ink-4);font-size:10px}
+.figwrap[open]>summary::before{content:"\25BE"}
+.figwrap>summary .hint{text-transform:none;letter-spacing:0;font-family:var(--ui);font-size:10.5px}
+.figbox{position:relative}
+#scene{display:block;width:100%;height:320px}
+.figwrap.tall #scene{height:460px}
+.figctl{display:flex;gap:10px;align-items:center;padding:8px 0 0;flex-wrap:wrap}
+.app.flow .figwrap{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;margin:0;border:0}
+.app.flow .figwrap>summary,.app.flow .figctl{display:none}
+.app.flow .figbox{flex:1 1 auto;min-height:0;position:relative}
+.app.flow #scene{position:absolute;inset:0;width:100%;height:100%}
+.app.flow .pulsebar{flex:none}
+/* lenses: one at a time */
+#side .lens.tab{display:none}
+#side[data-active="customers"] #lens-customers,#side[data-active="growth"] #lens-growth,#side[data-active="monetization"] #lens-monetization,#side[data-active="cash"] #lens-cash{display:block}
+#side[data-reading="all"] .lens.tab{display:block}
+.lens.herolens{padding:24px 2px 16px;border-bottom:none}
+.herolens .hero .hv{font-size:42px}
+.cmpstrip{display:flex;gap:12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--ink-2);flex-wrap:wrap}
+.cmpstrip b{color:var(--ink);font-family:var(--mono);font-weight:500}
+.cmpstrip .btn{margin-left:auto}
+.inspecthead{display:flex;align-items:baseline;gap:12px;padding:12px 0 6px}
+.inspecthead .btn{font-size:11px}
+.transport{display:flex;align-items:center;gap:13px;padding:10px 20px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:nowrap}
 .transport .btn-row{flex-wrap:nowrap}
 .transport .eyebrow{white-space:nowrap}
 
@@ -130,8 +171,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .btn-wide small{display:block;color:var(--ink-4);font-size:10px;font-weight:400;margin-top:2px;line-height:1.4}
 
 /* ---------- stage ---------- */
-#scene{flex-grow:1;width:100%;display:block;min-height:0}
-.cascade{border-top:1px solid var(--line);padding:11px 20px 12px;background:var(--sunk)}
+.cascade{border:1px solid var(--line-soft);border-radius:3px;padding:11px 16px 12px;background:var(--sunk);margin-top:14px}
 .cascade-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
 .crow{display:grid;grid-template-columns:104px minmax(0,1fr) 88px;gap:11px;align-items:center;margin-bottom:5px}
 .crow:last-child{margin-bottom:0}
@@ -172,9 +212,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .sw{width:9px;height:9px;border-radius:2px;display:inline-block}
 
 /* ---------- lenses (docs/VISUAL-GRAMMAR.md §5, §7) ---------- */
-.lensnav{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--panel);z-index:2;flex-wrap:wrap}
-.lensnav .btn{font-size:10px;padding:3px 7px}
-.lens{padding:15px 17px 16px;border-bottom:1px solid var(--line-soft)}
+.lensnav{display:flex;gap:6px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--scene);z-index:3;flex-wrap:wrap}
+.lensnav .btn{font-size:11px;padding:5px 11px}
+.lensnav .btn.on{border-color:var(--ink-2);color:var(--ink);background:var(--raised)}
+.lens{padding:18px 2px 20px;border-bottom:1px solid var(--line-soft)}
 .lens-head{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
 .lens-n{font-family:var(--mono);font-size:9.5px;color:var(--ink-4)}
 .lens-q{font-family:var(--display);font-style:italic;font-size:12.5px;color:var(--ink-2);flex-grow:1;line-height:1.35}
@@ -183,7 +224,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .hero .hv{font-family:var(--mono);font-size:32px;font-weight:500;letter-spacing:-.02em;color:var(--ink);line-height:1}
 .hero .hs{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
 .hero .hd{font-family:var(--mono);font-size:11px}
-.desc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px 12px;margin-top:13px}
+.desc{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px 16px;margin-top:13px}
 .desc .dv{font-family:var(--mono);font-size:13px;color:var(--ink);white-space:nowrap}
 .desc .dl{font-size:10px;color:var(--ink-3);margin-top:2px;line-height:1.3}
 .desc .dv.law{color:var(--law)}
@@ -192,7 +233,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .fig{margin-top:10px}
 .fig-t{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
 .fig-t .eyebrow{flex-grow:1}
-.lrow{display:grid;grid-template-columns:118px minmax(0,1fr) 66px;gap:8px;align-items:center;font-size:11px;height:19px}
+.lrow{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 90px;gap:8px;align-items:center;font-size:11px;height:19px}
 .lrow .ln{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lrow.stock .ln{color:var(--ink);font-weight:500}
 .lrow .lb{height:8px;position:relative}
@@ -228,27 +269,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
 .lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
 /* ---------- responsive: reflow, never shrink (docs/VISUAL-GRAMMAR.md) ---------- */
-#rail-toggle,#rail-close{display:none}
 @media (max-width:1180px){
-  .app,.app.flow{grid-template-columns:minmax(0,1fr) 300px}   /* the rail leaves the grid: it is a drawer */
-  .rail{position:fixed;left:0;top:0;bottom:0;width:272px;z-index:20;transform:translateX(-100%);transition:transform .2s;box-shadow:8px 0 24px rgba(0,0,0,.45)}
-  .app.rail-open .rail{transform:none}
-  #rail-toggle{display:inline-block}
-  .app.rail-open #rail-toggle{border-color:var(--exp);color:var(--exp)}
-  #rail-close{display:block;margin:10px 18px 0;width:calc(100% - 36px)}
   .head{flex-wrap:wrap;row-gap:8px}
   .head .sub{display:none}
 }
 @media (max-width:760px){
-  /* one column, the page scrolls: header · stage (figure + waterfall) · the five lenses · transport pinned */
-  html,body{height:auto;overflow:auto}
-  .app,.app.flow{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto;height:auto;min-height:100vh}
-  .stage{overflow-x:auto;overflow-y:visible}
-  #scene{flex:none;height:300px}
-  .app.flow #scene{min-width:1000px;height:640px}
-  .side{grid-column:1;grid-row:3;border-left:none;border-top:1px solid var(--line);overflow:visible}
-  .transport{grid-row:4;flex-wrap:wrap;row-gap:8px;position:sticky;bottom:0;z-index:5}
+  /* phone: orientation and the active lens first; Change opens on purpose; the figure expands on request */
+  .rail{width:100%}
+  .stagecol{padding:0 16px 24px}
+  #scene{height:260px}
+  .figwrap.tall #scene{height:300px}
+  .app.flow .stage{overflow:auto}
+  .app.flow .figbox{flex:none;min-height:640px}
+  .app.flow #scene{position:static;min-width:1000px;height:640px}
+  .app.flow .side{width:100%}
+  .transport{flex-wrap:wrap;row-gap:8px}
   .transport .tlabel{min-width:0}
+  .lrow{grid-template-columns:118px minmax(0,1fr) 66px}
+  .herolens .hero .hv{font-size:34px}
   .head{padding:10px 16px;gap:10px}
   .head h1{font-size:17px}
   .head .chip{display:none}
@@ -334,7 +372,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .tlabel small{color:var(--ink-4);font-size:10px}
 
 /* ---------- key overlay ---------- */
-.key{position:absolute;inset:0;background:rgba(8,11,13,.94);padding:26px 32px;overflow-y:auto;display:none}
+.key{position:fixed;inset:0;z-index:40;background:rgba(8,11,13,.96);padding:26px 32px;overflow-y:auto;display:none}
 .key.on{display:block}
 .key h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 4px}
 .key p.lede{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
@@ -433,17 +471,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 </div>
 <div class="app">
   <header class="head">
-    <button class="btn" id="rail-toggle" aria-label="Open or close the Change rail">Change</button>
     <h1>SaaS Physics</h1>
     <span class="sub">an economic system, observed</span>
     <span class="spacer"></span>
     <span class="chip" id="mode-chip">base vs experiment</span>
-    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-scen">Scenarios</button></div>
-    <span class="eyebrow">Compare</span>
-    <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
+    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-compare">Compare</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-scen">Scenarios</button></div>
+    <button class="btn" id="rail-toggle" aria-label="Open or close Change" title="Build or modify the economic world">Change</button>
     <span class="eyebrow">Basis</span>
     <div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div>
-    <button class="btn" id="leak-toggle" title="Cumulative historical leakage — off by default">Leakage shadow: Off</button>
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
   </header>
@@ -470,19 +505,35 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <button class="btn btn-wide" id="reset">Reset to Base</button>
     </div>
   </aside>
+  <div class="scrim" id="scrim"></div>
 
   <main class="stage">
-    <canvas id="scene"></canvas>
-    <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
+   <div class="stagecol">
     <div class="scenbar" id="scenbar" hidden>
-      <span class="eyebrow">Canonical scenarios</span>
+      <span class="eyebrow">Experiments</span>
       <div class="btn-row" id="scenlist"></div>
       <button class="btn" id="scen-clear">Clear</button>
     </div>
+    <aside class="side" id="side"></aside>
+    <details class="figwrap" id="figwrap" open>
+      <summary><span id="fig-title">Formation · 60 months</span><span class="hint" id="fig-hint">recurring revenue as cohort strata, cash beneath · click a stratum to inspect that cohort</span></summary>
+      <div class="figbox">
+        <canvas id="scene"></canvas>
+        <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
+      </div>
+      <div class="figctl">
+        <span class="eyebrow">Compare</span>
+        <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
+        <button class="btn" id="leak-toggle" title="Cumulative historical leakage — off by default">Leakage shadow: Off</button>
+      </div>
+    </details>
     <div class="pulsebar" id="pulsebar" hidden>
       <div class="btn-row" id="sysviews"></div>
       <span class="lawnote" id="pulse-law"></span>
+      <button class="btn" id="notes-toggle" title="Read the laws and mechanisms on this map">Notes</button>
     </div>
+    <div id="causal-slot"></div>
+    <div id="cascade-park" hidden>
     <div class="cascade">
       <div class="cascade-head">
         <span class="eyebrow">Monthly P&amp;L waterfall</span>
@@ -492,6 +543,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       </div>
       <div id="cascade"></div>
     </div>
+    </div>
+   </div>
     <div class="key" id="key">
       <button class="btn close" id="keyclose">Close</button>
       <h3>Method</h3>
@@ -629,8 +682,6 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <div class="note">Illustrative company throughout. No real company data is connected, and no valuation, multiple or embedded value is computed. The engine is deliberately a portable synthetic methodology: translating a real company into an opening state would be the job of a separate adapter, which does not exist and is out of scope.</div>
     </div>
   </main>
-
-  <aside class="side" id="side"></aside>
 
   <div class="transport">
     <button class="tbtn play" id="play" aria-label="Play or pause"></button>
@@ -4310,6 +4361,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var W=0, HH=0, geo=null;
 
   function resize(){
+    /* System: the machine takes the whole stage above its view bar (a <details> content box has no flex height of its own) */
+    var fb = document.querySelector('.figbox');
+    if(fb){ if(layer==='flow' && window.innerWidth>760){ var st=document.querySelector('.stage'), pb=document.getElementById('pulsebar'); fb.style.height = Math.max(240, st.clientHeight - (pb ? pb.offsetHeight : 0)) + 'px'; } else fb.style.height=''; }
     var r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio||1);
     W = Math.max(320, r.width); HH = Math.max(240, r.height);
     cv.width = W*dpr; cv.height = HH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -5653,7 +5707,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   /* a readout row: kind 'meas' (→ observed), 'law' (⋈ set), 'derived' (⋈ generated), 'hyp' (↯) */
   function ro(label, value, kind){ var g = kind==='law' ? '⋈ ' : kind==='derived' ? '⋈ ' : kind==='hyp' ? '↯ ' : '→ '; return '<span>'+esc(label)+'</span><b class="'+(kind||'meas')+'">'+g+value+'</b>'; }
-  function lensHead(n, q, basisTag, id){ return '<div class="lens" id="lens-'+id+'"><div class="lens-head"><span class="lens-n">'+n+'</span><span class="lens-q">'+esc(q)+'</span><span class="basis">'+esc(basisTag)+'</span></div>'; }
+  function lensHead(n, q, basisTag, id){ return '<div class="lens '+(id==='company'?'herolens':'tab')+'" id="lens-'+id+'"><div class="lens-head"><span class="lens-n">'+n+'</span><span class="lens-q">'+esc(q)+'</span><span class="basis">'+esc(basisTag)+'</span></div>'; }
   function figT(title, basisTag){ return '<div class="fig"><div class="fig-t"><span class="eyebrow">'+esc(title)+'</span><span class="basis">'+esc(basisTag)+'</span></div>'; }
   function comp(parts){ var tot=parts.reduce(function(q,p){ return q+Math.max(0,p.v); },0)||1;
     return '<div class="comp">'+parts.map(function(p){ return '<i style="width:'+(Math.max(0,p.v)/tot*100).toFixed(2)+'%;background:'+p.c+'"></i>'; }).join('')+'</div>'+
@@ -5666,7 +5720,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
     var mm = moOn && m>=12 ? K.monetizationMeasures(expRes, m) : null;
-    var h = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+    var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+    var h = '';
+    var offLayers = [];
+    if(!cuOn) offLayers.push('customers'); if(!moOn) offLayers.push('monetization'); if(!caOn) offLayers.push('cash');
 
     /* ---- 1. COMPANY ---- */
     var dARR = em.closingARR-bm.closingARR;
@@ -5677,17 +5734,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
         (Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
       '<div class="desc">'+
-        '<div><div class="dv">'+(cuOn ? em.customers.closing.toFixed(0) : '—')+'</div><div class="dl">'+(cuOn ? 'customers' : 'customers · no customer layer')+'</div></div>'+
-        '<div><div class="dv">'+(cuOn ? eurF(em.closingARR/em.customers.closing) : '—')+'</div><div class="dl">ARPA · ARR per customer</div></div>'+
+        (cuOn ? '<div><div class="dv">'+em.customers.closing.toFixed(0)+'</div><div class="dl">customers</div></div>'+
+                '<div><div class="dv">'+eurF(em.closingARR/em.customers.closing)+'</div><div class="dl">ARPA · ARR per customer</div></div>' : '')+
+        (kpi ? '<div><div class="dv meas">→ '+pct(kpi.nrr,1)+'</div><div class="dl">net dollar retention · R12M</div></div>' : '')+
         '<div><div class="dv law">⋈ '+pct(lawNow('grossMargin'),0)+'</div><div class="dl">gross margin · law</div></div>'+
         '<div><div class="dv meas">→ '+(revR12>0 ? pct(ebR12/revR12,1) : '—')+'</div><div class="dl">EBITA margin · '+w.tag+'</div></div>'+
-        '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash</div></div>'+
-        '<div><div class="dv">'+eur(trough.cashTrough)+'</div><div class="dl">cash trough · M'+trough.cashTroughMonth+' of 60</div></div>'+
+        '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · trough '+eur(trough.cashTrough)+' at M'+trough.cashTroughMonth+'</div></div>'+
       '</div>'+
       (ivOn ? '<div class="hyprow">'+(em.interventions.changes.length
           ? em.interventions.changes.map(function(ch){ return '<b>hypothesis '+esc(ch.id)+'</b> in force · '+esc(hypTargetLabel(ch.target))+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('<br>')
           : '<b>hypothesis</b> not in force this month')+(em.interventionCost>0 ? ' · cost '+eur(em.interventionCost)+' this month' : '')+'</div>' : '')+
+      (offLayers.length ? '<div class="lens-off">This world carries no '+offLayers.join(', no ')+' layer'+(offLayers.length>1?'s':'')+'. Change adds '+(offLayers.length>1?'them':'it')+'.</div>' : '')+
       '</div>';
+    h += nav;
 
     /* ---- 2. CUSTOMERS ---- */
     h += lensHead('2', 'What installed base produces the revenue?', Mt, 'customers');
@@ -5815,7 +5874,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '</div>'+
         '<div class="lens-off">No cash layer: cash FCF = EBITA — profit and cash move together. Switch a billing term on to see billings, deferred revenue and receivables come between them.</div>';
     }
-    h += '</div>';
+    h += '<div id="pl-slot"></div></div>';
     return h;
   }
   /* the law in force this month for a flat or nested key (a hypothesis may have moved it) */
@@ -5836,8 +5895,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '</svg>';
   }
 
+  /* the P&L waterfall lives inside Economics & cash; between renders it is parked so innerHTML never destroys it */
+  function parkCascade(){ var c=document.querySelector('.cascade'), p=document.getElementById('cascade-park'); if(c && p && c.parentNode!==p){ p.appendChild(c); } }
+  function placeCascade(){ var c=document.querySelector('.cascade'), slot=document.getElementById('pl-slot'); if(c && slot){ slot.appendChild(c); c.hidden=false; } }
+  var activeLens = 'company', figPref = {};
+  function setLens(id){
+    activeLens = id;
+    var side=document.getElementById('side'); side.dataset.active = id;
+    [].forEach.call(document.querySelectorAll('#side .lensnav .btn'), function(b){ b.classList.toggle('on', b.dataset.lens===id); });
+    syncFigure();
+  }
+  /* the figure is context: open and tall on Company, open on Customers, a strip elsewhere — unless the reader chose otherwise */
+  function syncFigure(){
+    var fw=document.getElementById('figwrap'), key=layer+':'+(layer==='stock'?activeLens:'');
+    if(layer==='flow'){ fw.open=true; fw.classList.remove('tall'); return; }
+    var inspect = layer==='stock' && pinned!==null;
+    var want = figPref[key]!==undefined ? figPref[key] : (layer!=='stock' || activeLens==='company' || activeLens==='customers' || inspect);
+    fw.classList.toggle('tall', layer==='stock' && activeLens==='company' && !inspect);
+    document.getElementById('fig-title').textContent = layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Formation · 60 months';
+    fw.dataset.silent='1'; fw.open = want; delete fw.dataset.silent;
+    setTimeout(function(){ resize(); render(); }, 0);
+  }
   function renderSide(){
+    parkCascade();
     if(layer==='flow'){ return renderFlowSide(); }
+    if(layer==='cmp'){
+      var hostC=document.getElementById('side');
+      hostC.dataset.active='compare';
+      hostC.innerHTML = '<div class="lens herolens" style="padding-bottom:6px"><div class="lens-head"><span class="lens-n">Compare</span><span class="lens-q">Why does the Experiment differ from Base?</span><span class="basis">Base → Experiment</span></div></div>'+
+        '<div class="sgrp" id="compare-panel" style="padding-left:2px;padding-right:2px;max-width:640px"></div>';
+      renderCausal(null, true);
+      return;
+    }
     if(layer==='scen'){
       var host=document.getElementById('side');
       if(!activeScenario){
@@ -5854,7 +5943,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var t=tau, m=selectedMonth();
     var em=expRes.months[m-1], bm=baseRes.months[m-1];
     var h = renderLenses(m, em, bm);
-    h+='<div class="sgrp" id="causal-slot"></div>';
+    if(pinned!==null && pinned<expS.C){
+      /* Inspect is a surface: the hero stays for orientation, the chain replaces the lenses */
+      h = h.slice(0, h.indexOf('<div class="lensnav">')) + '<div class="inspecthead"><button class="btn" id="inspect-back">‹ Company</button><span class="eyebrow">Inspect · where did this number come from?</span></div>';
+    }
 
     if(pinned!==null && pinned<expS.C){
       var c=expRes.cohorts[pinned], snap=E.cohortSnapshot(expRes,m).filter(function(x){return x.id===c.id;})[0];
@@ -5872,9 +5964,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       h+='<div class="sgrp"><div class="hint">Anatomy is on — the strata have separated. Hover the mass to trace a vintage, click to hold its dossier here.</div></div>';
     }
 
-    document.getElementById('side').innerHTML=h;
+    var sideEl=document.getElementById('side'); sideEl.innerHTML=h;
+    sideEl.dataset.active = (pinned!==null && pinned<expS.C) ? 'inspect' : activeLens;
+    placeCascade();
     renderCausal(null, true);
-    [].forEach.call(document.querySelectorAll('.lensnav .btn'), function(b){ b.addEventListener('click', function(){ var el=document.getElementById('lens-'+b.dataset.lens); if(el) el.scrollIntoView({block:'start', behavior:'smooth'}); }); });
+    [].forEach.call(document.querySelectorAll('.lensnav .btn'), function(b){ b.addEventListener('click', function(){ setLens(b.dataset.lens); }); });
+    var ib=document.getElementById('inspect-back'); if(ib) ib.addEventListener('click', function(){ pinned=null; capitalMode=anatomy=false; resize(); render(); renderSide(); });
+    syncFigure();
     function row(a,b,cls){ return '<div class="srow"><span>'+esc(a)+'</span><b'+(cls?' class="'+cls+'"':'')+'>'+b+'</b></div>'; }
     function pstep(label, hero, body, kind, basisTag){
       return '<div class="pstep'+(kind?' '+kind:'')+'"><div class="pl">'+esc(label)+(basisTag?'<span class="basis">'+esc(basisTag)+'</span>':'')+'</div>'+
@@ -5973,6 +6069,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
 
   function renderSystemSide(d, isD){
+    parkCascade();
     var m = d.t, abs = isD ? d.experiment : d;
     var noExp = isD && sameAsBase();
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
@@ -6475,11 +6572,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   /* ---------- causal feedback, from real simulation outputs ---------- */
   function renderCausal(prevExp, reuse){
-    var slot=document.getElementById('causal-slot'); if(!slot) return;
+    var slot=document.getElementById(layer==='cmp' ? 'compare-panel' : 'causal-slot'); if(!slot) return;
     var c=E.compare(baseRes, expRes), b=c.base, x=c.experiment, d=c.delta;
+    if(layer!=='cmp'){
+      /* Company keeps one line: that a comparison exists, and where it lives */
+      if(layer!=='stock' || (!c.changed.length && !pairMode)){ slot.innerHTML=''; return; }
+      var sb=E.summarise(baseRes), sx=E.summarise(expRes), dM=sx.finalARR-sb.finalARR, nC=c.changed.length;
+      slot.innerHTML='<div class="cmpstrip"><span>'+(pairMode ? 'A declared pair: two worlds, one comparison' : 'Experiment differs from Base · <b>'+nC+' assumption'+(nC>1?'s':'')+'</b>')+
+        ' · '+basis+' M60 <b>'+(Math.abs(dM)<1?'=':reurS(dM))+'</b> · ending cash <b>'+(Math.abs(sx.endingCash-sb.endingCash)<1?'=':eurS(sx.endingCash-sb.endingCash))+'</b></span>'+
+        '<button class="btn" id="goto-compare">Compare ›</button></div>';
+      document.getElementById('goto-compare').addEventListener('click', function(){ setLayer('cmp'); });
+      return;
+    }
     if(!c.changed.length && !pairMode){
-      slot.innerHTML='<div class="causal idle"><h4>Experiment matches Base</h4>'+
-        '<div class="msg">The two futures coincide exactly. Move a force and watch the mass pull away from its own ghost.</div></div>';
+      slot.innerHTML='<div class="causal idle"><h4>Experiment equals Base</h4>'+
+        '<div class="msg">Nothing has been changed, so there is nothing to compare. Open <b>Change</b>, move one law, and this surface shows what you changed, what the system did and what company emerged.</div>'+
+        '<button class="btn" id="cmp-open-change" style="margin-top:8px">Change</button></div>';
+      document.getElementById('cmp-open-change').addEventListener('click', function(){ document.querySelector('.app').classList.add('rail-open'); });
       return;
     }
     var title = pairMode ? (activeScenario && activeScenario.pairLabel ? activeScenario.name : 'Efficiency versus Spend')
@@ -6580,6 +6689,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function renderExperimentSummary(){
     var host=document.getElementById('experiment-summary');
     var changed = E.compare(baseRes, expRes).changed;      // [{key, from, to}], real engine diff
+    document.getElementById('rail-toggle').textContent = pairMode ? 'Change · pair' : changed.length ? 'Experiment · '+changed.length+' change'+(changed.length>1?'s':'') : 'Change';
+    document.getElementById('nav-compare').classList.toggle('live', pairMode || changed.length>0);
     if(pairMode){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         (activeScenario && activeScenario.pairLabel
@@ -6655,19 +6766,28 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function setLayer(l){
     layer=l;
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
+    document.getElementById('nav-compare').classList.toggle('on', l==='cmp');
     document.getElementById('nav-system').classList.toggle('on', l==='flow');
     document.getElementById('nav-scen').classList.toggle('on', l==='scen');
-    document.querySelector('.app').classList.toggle('flow', l==='flow');
+    var appEl=document.querySelector('.app');
+    appEl.classList.toggle('flow', l==='flow');
+    if(l!=='flow') appEl.classList.remove('notes');
+    appEl.classList.remove('rail-open');
     document.getElementById('pulsebar').hidden = l!=='flow';
     document.getElementById('scenbar').hidden = l!=='scen';
-    document.getElementById('leak-toggle').style.display = l==='stock' ? '' : 'none';
-    document.querySelector('.cascade').hidden = l==='flow';
+    document.getElementById('leak-toggle').style.display = (l==='stock'||l==='cmp') ? '' : 'none';
+    document.querySelector('.cascade').hidden = l!=='stock';
+    document.querySelector('.stage').scrollTop = 0;
+    syncFigure();
     /* The system view is a time-varying stock-and-flow diagram: the transport
        drives it in every mode. */
     setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
     syncPulse(); renderSide();
   }
   document.getElementById('nav-company').addEventListener('click', function(){ setLayer('stock'); });
+  document.getElementById('nav-compare').addEventListener('click', function(){ setLayer('cmp'); });
+  document.getElementById('notes-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('notes'); });
+  document.getElementById('figwrap').addEventListener('toggle', function(){ var fw=this; if(fw.dataset.silent) return; figPref[layer+':'+(layer==='stock'?activeLens:'')] = fw.open; setTimeout(function(){ resize(); render(); }, 0); });
   document.getElementById('nav-system').addEventListener('click', function(){ setLayer('flow'); });
   document.getElementById('nav-scen').addEventListener('click', function(){ setLayer('scen'); });
   document.getElementById('scen-clear').addEventListener('click', function(){ resetAll(); });
@@ -6692,7 +6812,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* narrow screens: the Change rail is a drawer over the stage */
   document.getElementById('rail-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('rail-open'); });
   document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
-  document.querySelector('.stage').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
+  document.getElementById('scrim').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ document.querySelector('.app').classList.remove('rail-open'); document.querySelector('.app').classList.remove('notes'); } });
   buildPacks(); buildSysViews(); syncPackButtons(); syncSysViews();
   window.addEventListener('resize', function(){ resize(); });
 
@@ -6700,7 +6821,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var last=performance.now(), acc=0;
   function frame(now){
     var dt=Math.min(100, now-last); last=now;
-    if(playing && (layer==='stock' || layer==='flow')){
+    if(playing && (layer==='stock' || layer==='flow' || layer==='cmp')){
       tau += dt/1000 * 2.2 * speed;                 // ~2.2 simulated months per second at 1×
       if(tau>=H){ tau=H; playing=false; playBtn.classList.remove('play'); playIcon(); }
       scrub.value=tau;
@@ -6733,7 +6854,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       { sel:'.head .nav', t:'Three surfaces', x:'<b>Company</b> is where you observe and change a company. <b>System</b> draws it as an economic machine. <b>Scenarios</b> are canonical experiments. Compare and Basis change how the same run is read, not the run.' },
       { sel:'#packs', t:'World', x:'Which layers the Base world carries: ARR physics alone, customers beneath it, monetization, cash, a hypothesis \u2014 or one of three illustrative company shapes. Reset returns to the chosen world.', rail:true },
       { sel:'#rail-change', t:'Change', x:'Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis \u2014 with its unit and direction. Move one and the whole future recalculates against the unchanged Base.', rail:true },
-      { sel:'#scene', t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
+      { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
       { sel:'#side', t:'The five lenses', x:'Company, Customers, Growth engine, Monetization, Economics & cash \u2014 each a question, a hero figure and readouts with their time basis. When Experiment differs from Base, the causal comparison appears beneath them.' },
       { sel:'.transport', t:'Time', x:'Play, or drag the scrubber. Every basis tag on every lens follows the selected month. Month 36 is a good place to read a mature company.' }
     ];
@@ -6743,7 +6864,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     function showStep(i){
       clearHl(); step = i; var s = STEPS[i], el = document.querySelector(s.sel);
       var narrow = window.matchMedia('(max-width:1180px)').matches;
-      app.classList.toggle('rail-open', !!(s.rail && narrow));
+      app.classList.toggle('rail-open', !!s.rail);
+      if(s.fig){ var fw=document.getElementById('figwrap'); if(!fw.open){ fw.open=true; } }
       if(el){ hl = el; el.classList.add('tour-on'); try { el.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch(e){} }
       document.getElementById('tour-step').textContent = 'Tour \u00b7 ' + (i+1) + ' of ' + STEPS.length + ' \u00b7 ' + s.t;
       document.getElementById('tour-text').innerHTML = s.x;

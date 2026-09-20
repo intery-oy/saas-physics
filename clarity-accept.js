@@ -21,13 +21,16 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + '');
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
+  /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
+  const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
+  await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
   await pg.waitForTimeout(900);
 
   /* ---- DISPLAY-RECONCILIATION: same quantity, same month, two surfaces ---- */
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 30; s.dispatchEvent(new Event('input')); });
   await pg.waitForTimeout(300);
   const companyMRR = await pg.evaluate(() => document.querySelector('.side .hero .hv').textContent);
-  await pg.click('#nav-system'); await pg.waitForTimeout(500);
+  await jsClick('#nav-system'); await pg.waitForTimeout(500);
   const systemStock = await pg.evaluate(() => {
     const c = document.getElementById('scene'); return null; // canvas text isn't DOM-readable
   });
@@ -47,13 +50,13 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   });
   rec('DISPLAY-RECONCILIATION: Company Cash === System STOCK CASH at month t',
       tieCash.company === tieCash.system, JSON.stringify(tieCash));
-  await pg.click('#nav-company'); await pg.waitForTimeout(400);
+  await jsClick('#nav-company'); await pg.waitForTimeout(400);
 
   /* ---- DELTA-CASH: the displayed ΔCash equals Experiment − Base, exactly ---- */
-  await pg.click('#nav-scen'); await pg.waitForTimeout(300);
+  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="retention"]').click());
   await pg.waitForTimeout(400);
-  await pg.click('#nav-company'); await pg.waitForTimeout(400);
+  await jsClick('#nav-company'); await pg.waitForTimeout(400);
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 45; s.dispatchEvent(new Event('input')); });
   await pg.waitForTimeout(400);
   const deltaCash = await pg.evaluate(() => {
@@ -102,22 +105,22 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- BASIS-INVARIANCE: switching MRR/ARR must not change the Experiment ---- */
   const beforeARR = await pg.evaluate(() => __SP_DEBUG.expRes.months[23].closingARR);
-  await pg.click('#basis-arr'); await pg.waitForTimeout(300);
+  await jsClick('#basis-arr'); await pg.waitForTimeout(300);
   const afterARR = await pg.evaluate(() => __SP_DEBUG.expRes.months[23].closingARR);
   rec('BASIS-INVARIANCE: toggling MRR/ARR does not re-simulate or change the economics',
       beforeARR === afterARR, '');
-  await pg.click('#basis-mrr'); await pg.waitForTimeout(200);
+  await jsClick('#basis-mrr'); await pg.waitForTimeout(200);
 
   /* ---- leakage-shadow default off, toggles to an outline (§4) ---- */
   const leakLabelOff = await pg.evaluate(() => document.getElementById('leak-toggle').textContent);
   rec('leakage-shadow defaults OFF', leakLabelOff.includes('Off'), leakLabelOff);
-  await pg.click('#leak-toggle'); await pg.waitForTimeout(300);
+  await jsClick('#leak-toggle'); await pg.waitForTimeout(300);
   const leakLabelOn = await pg.evaluate(() => document.getElementById('leak-toggle').textContent);
   rec('leakage-shadow toggles on and relabels', leakLabelOn.includes('On'), leakLabelOn);
-  await pg.click('#leak-toggle'); await pg.waitForTimeout(200);
+  await jsClick('#leak-toggle'); await pg.waitForTimeout(200);
 
   /* ---- Experiment summary answers "why" instantly ---- */
-  await pg.click('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#reset'); await pg.waitForTimeout(300);
   const zeroChanged = await pg.evaluate(() => document.getElementById('experiment-summary').innerText);
   rec('Experiment summary: 0 changed at Base', zeroChanged.includes('0 assumptions changed'), '');
   await pg.evaluate(() => { const i = document.getElementById('f-grossMargin'); i.value = 0.7; i.dispatchEvent(new Event('input')); });
@@ -127,7 +130,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       /1 assumption changed/.test(oneChanged) && /Gross margin/.test(oneChanged) && /→/.test(oneChanged), oneChanged.slice(0, 80));
 
   /* ---- waterfall reconciles on screen, for a scenario with S&M != 0 ---- */
-  await pg.click('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#reset'); await pg.waitForTimeout(300);
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 40; s.dispatchEvent(new Event('input')); });
   await pg.waitForTimeout(300);
   const wf = await pg.evaluate(() => {

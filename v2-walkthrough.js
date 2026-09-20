@@ -26,7 +26,8 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   const side = async () => pg.evaluate(() => document.getElementById('side').innerText);
   const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(250); };
   const scrub = async v => setSlider('scrub', v);
-  const click = async sel => { await pg.click(sel); await pg.waitForTimeout(400); };
+  const click = async sel => { await pg.evaluate(s => document.querySelector(s).click(), sel); await pg.waitForTimeout(400); };
+  await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
 
   /* 1. the ARR world */
   await scrub(36);

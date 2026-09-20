@@ -30,6 +30,9 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
+  /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
+  const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
+  await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
   await pg.waitForTimeout(900);
   const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(250); };
   const setScrub = async v => setSlider('scrub', v);
@@ -49,7 +52,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('CONTROLS: the page\'s Experiment assumptions carry the null settings the engine defaults to',
       ctrls.A.expansionCostPerARR === 0 && ctrls.A.maxMonthlyNewARR === null && ctrls.A.acquisitionLagMonths === 0, '');
 
-  await pg.click('#t-maxMonthlyNewARR'); await pg.waitForTimeout(300);
+  await jsClick('#t-maxMonthlyNewARR'); await pg.waitForTimeout(300);
   const capOn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA.maxMonthlyNewARR, tog: document.getElementById('t-maxMonthlyNewARR').textContent, val: document.getElementById('v-maxMonthlyNewARR').textContent, mech: window.__SP_DEBUG.expRes.mechanisms }));
   rec('CONTROLS: the capacity toggle switches the bound on at the slider value, and the run reports the mechanism on',
       capOn.A === 2000000 && capOn.tog === 'on' && capOn.val === '€2.00m/mo' && capOn.mech.acquisitionSaturation === true, JSON.stringify(capOn));
@@ -95,7 +98,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('WATERFALL: the printed cost step equals the engine\'s month field', wfTie.shown === '−' + fmtEur(wfTie.engine), JSON.stringify(wfTie));
 
   /* ---- INSPECT: a lagged cohort ---- */
-  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await jsClick('#nav-company'); await pg.waitForTimeout(200);
   await setScrub(20);
   const dossier = await pg.evaluate(() => {
     const D = window.__SP_DEBUG;
@@ -126,31 +129,33 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- CAC-UNITS: the pinned cohort's CAC does not change when the display basis changes ---- */
   const cacMRR = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
-  await pg.click('#basis-arr'); await pg.waitForTimeout(300);
+  await jsClick('#basis-arr'); await pg.waitForTimeout(300);
   const cacARR = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
-  await pg.click('#basis-mrr'); await pg.waitForTimeout(200);
+  await jsClick('#basis-mrr'); await pg.waitForTimeout(200);
   rec('CAC-UNITS: switching the MRR/ARR display basis leaves the cohort CAC string unchanged (CAC is per €1 of ARR, never ×12)',
       cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC coefficient 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
+  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); });   /* Inspect is its own surface: back to the lenses */
+  await pg.waitForTimeout(300);
   const alive = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/cohort M20 · (\d+) alive/); return m ? +m[1] : null; });
   rec('OBSERVE (screen): the Growth engine\'s cohort node at month 20 under a 6-month lag counts the opening base + 14 realised cohorts alive, not 20', alive === 15, 'shown ' + alive);
 
   /* ---- SYSTEM ---- */
-  await pg.click('#nav-system'); await pg.waitForTimeout(500);
+  await jsClick('#nav-system'); await pg.waitForTimeout(500);
   const sysAbs = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, pending: window.__SP_DEBUG.SS.stateAt(window.__SP_DEBUG.expRes, window.__SP_DEBUG.selectedMonth()).pendingNewARR }));
   rec('SYSTEM (absolute): the side panel states all three mechanisms with their live settings and what each does not touch',
       sysAbs.txt.includes('Mechanisms on the map') && sysAbs.txt.includes('Acquisition capacity · €2.00m/mo') && sysAbs.txt.includes('Acquisition lag · 6 months') &&
       sysAbs.txt.includes('Expansion realisation cost · 0.25× per €1') && sysAbs.txt.includes('touches no ARR quantity') && sysAbs.txt.includes('never how much per euro'), '');
   rec('SYSTEM: systemstate.stateAt exposes the engine\'s pending stock at the selected month, equal to the month record',
       Math.abs(sysAbs.pending - indep.months[19].pendingNewARR) < 1e-6, sysAbs.pending + ' vs ' + indep.months[19].pendingNewARR);
-  await pg.click('#cmp-delta'); await pg.waitForTimeout(400);
+  await jsClick('#cmp-delta'); await pg.waitForTimeout(400);
   const sysDelta = await pg.evaluate(() => document.getElementById('side').textContent);
   rec('SYSTEM (delta): renders with the mechanisms on and reports the stocks as Experiment − Base', sysDelta.includes('Stocks · month') && sysDelta.includes('Flows into and out of'), '');
-  await pg.click('#cmp-abs'); await pg.waitForTimeout(200);
+  await jsClick('#cmp-abs'); await pg.waitForTimeout(200);
 
   /* ---- SCENARIOS 7–9 ---- */
-  await pg.click('#nav-company'); await pg.waitForTimeout(400);   /* the Forces rail (and Reset) is hidden on the System layer */
-  await pg.click('#reset'); await pg.waitForTimeout(300);
-  await pg.click('#nav-scen'); await pg.waitForTimeout(300);
+  await jsClick('#nav-company'); await pg.waitForTimeout(400);   /* the Forces rail (and Reset) is hidden on the System layer */
+  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="expcost"]').click()); await pg.waitForTimeout(500);
   const s7 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     dARR: Math.max(...window.__SP_DEBUG.expRes.months.map((m, i) => Math.abs(m.closingARR - window.__SP_DEBUG.baseRes.months[i].closingARR))),
@@ -176,7 +181,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       bounds9.includes('creates its cohort in month t + 6') && bounds9.includes('mature beyond M60 and stay pending'), '');
 
   /* ---- NULL-ON-SCREEN ---- */
-  await pg.click('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#reset'); await pg.waitForTimeout(300);
   const nul = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-maxMonthlyNewARR').textContent,
     wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].length }));
   rec('NULL-ON-SCREEN: Reset returns every mechanism to null (cost 0, capacity off, lag 0), the run reports none on, and the waterfall is back to 7 steps',

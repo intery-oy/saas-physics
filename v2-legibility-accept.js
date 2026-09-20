@@ -225,7 +225,9 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     if (id === 'wA') rec('WORLD A: the enterprise mix is platform-led (usage < 50% of ARR at M24)', w.varShare < 0.5, 'variable share ' + w.varShare.toFixed(2));
     /* one change → Compare reads; System ontology draws every node on */
     await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = Math.round(parseFloat(i.value) * 1.3 / 25000) * 25000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400);
+    await pg.evaluate(() => document.getElementById('nav-compare').click()); await pg.waitForTimeout(400);
     const cmp = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); return s ? s.innerText : ''; });
+    await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(300);
     rec('WORLD ' + name + ': one change to S&M reads as a causal comparison (changed → system → company) in this world', /S&M/.test(cmp) && /new (MRR|ARR) per month/.test(cmp) && /(MRR|ARR) M60/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' | '));
     await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
     await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(500);
@@ -242,16 +244,22 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     const geo = await q.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect();
       return { scrollW: document.documentElement.scrollWidth, innerW: innerWidth, stage: r('.stage'), side: r('.side'), rail: r('.rail'), toggle: getComputedStyle(document.getElementById('rail-toggle')).display, open: document.querySelector('.app').classList.contains('rail-open') }; });
     const probeSide = await q.evaluate(OVERFLOW_PROBE + '("#side", ' + JSON.stringify(SIBLINGS) + ')');
-    if (w <= 1180) await q.evaluate(() => document.getElementById('rail-toggle').click()); await q.waitForTimeout(350);
+    await q.evaluate(() => document.getElementById('rail-toggle').click()); await q.waitForTimeout(350);
     const probeRail = await q.evaluate(OVERFLOW_PROBE + '(".rail", ' + JSON.stringify(SIBLINGS) + ')');
     const railGeo = await q.evaluate(() => document.querySelector('.rail').getBoundingClientRect().left);
+    const railW = await q.evaluate(() => document.querySelector('.rail').getBoundingClientRect().width);
+    await q.evaluate(() => document.getElementById('rail-close').click()); await q.waitForTimeout(300);
     rec('INTEGRITY ' + w + '×' + h + ': no element in the lenses or the rail leaves its container, no siblings overlap, no horizontal page scroll',
         probeSide.out.length === 0 && probeSide.overlap.length === 0 && probeRail.out.length === 0 && probeRail.overlap.length === 0 && geo.scrollW <= geo.innerW, JSON.stringify({ side: probeSide, rail: probeRail, scrollW: geo.scrollW }).slice(0, 600));
-    if (w > 1180) rec('LAYOUT ' + w + ': three columns — rail, figure, lenses — and no drawer toggle', geo.rail.left === 0 && geo.rail.width > 200 && geo.side.left > geo.stage.left + 300 && geo.toggle === 'none', JSON.stringify({ rail: geo.rail.left, toggle: geo.toggle }));
-    else if (w > 760) rec('LAYOUT ' + w + ': the rail is a drawer (off-screen until the Change toggle opens it), figure and lenses side by side', geo.rail.left < 0 && geo.toggle !== 'none' && railGeo === 0 && geo.side.left > geo.stage.left + 200, JSON.stringify({ railClosed: geo.rail.left, railOpen: railGeo, side: geo.side.left }));
-    else rec('LAYOUT ' + w + ': one column — the lenses stack beneath the figure, the rail is a drawer, the page scrolls without a horizontal bar', geo.side.top >= geo.stage.top + geo.stage.height - 1 && geo.side.width === geo.stage.width && geo.rail.left < 0 && railGeo === 0 && geo.scrollW <= geo.innerW, JSON.stringify({ stage: [geo.stage.top, geo.stage.height], side: [geo.side.top, geo.side.width] }));
+    /* one hierarchy at every width: hero, then lens navigation, then the active lens, in one column; Change is a drawer opened on purpose */
+    const hier = await q.evaluate(() => { const r = e => { const el = document.querySelector(e); return el ? el.getBoundingClientRect() : null; };
+      const hero = r('#lens-company'), nav = r('#side .lensnav'), stage = r('.stage'), fig = r('#figwrap');
+      const visibleLenses = [...document.querySelectorAll('#side .lens.tab')].filter(l => getComputedStyle(l).display !== 'none').length;
+      return { heroTop: hero && hero.top, navTop: nav && nav.top, heroLeft: hero && hero.left, navLeft: nav && nav.left, stageW: stage.width, heroW: hero && hero.width, visibleLenses, figOpen: document.getElementById('figwrap').open, figTop: fig && fig.top, sceneH: document.getElementById('scene').getBoundingClientRect().height }; });
+    rec('LAYOUT ' + w + ': one column — the hero above the lens navigation, no lens body open on the Company tab, the figure beneath; the rail is a drawer at every width (closed off-screen, open at the left edge) with its toggle in the header' + (w <= 760 ? '; on a phone the drawer takes the full width and the figure stays at or under 300px' : ''),
+        hier.heroTop < hier.navTop && hier.navTop < hier.figTop && hier.visibleLenses === 0 && hier.figOpen && Math.abs(hier.heroLeft - hier.navLeft) < 2 && hier.heroW <= hier.stageW && geo.rail.left < 0 && railGeo === 0 && geo.toggle !== 'none' && (w > 760 || (railW >= w - 1 && hier.sceneH <= 300)),
+        JSON.stringify({ hier, railClosed: geo.rail.left, railOpen: railGeo, railW, toggle: geo.toggle }));
     if (w === 390) {
-      await q.evaluate(() => document.getElementById('rail-close').click()); await q.waitForTimeout(300);
       await q.evaluate(() => document.getElementById('nav-system').click()); await q.waitForTimeout(500);
       const sys = await q.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(), s = document.querySelector('.stage'); return { cw: c.width, ch: c.height, scroll: s.scrollWidth > s.clientWidth, pageW: document.documentElement.scrollWidth }; });
       rec('LAYOUT 390 · System: the ontology keeps its size inside a horizontally scrolling frame (never shrunk to illegibility); the page itself does not scroll sideways', sys.cw >= 1000 && sys.ch >= 600 && sys.scroll && sys.pageW <= 390, JSON.stringify(sys));
