@@ -283,6 +283,22 @@ ARR ÷ customers everywhere and never a stock. Age bands cannot be combined with
 (rejected at the boundary). Measured: `K.customerMeasures` — R12M logo retention, the GRR
 decomposition into lost-logo and contraction euros, ARPA path.
 
+### Gate B — Monetization Physics (`monetization.js`)
+
+```
+revenue per customer = Σ_k pen_k × units_k × price_k        (annual; components fixed or variable)
+cohort ARR           = customers × revenue per customer     DERIVED every month — one source of truth
+per month, survivors: contraction (variable units × (1 − cM)) → price (× (1 + pM)) → usage (→ cap) → adoption (→ cap)
+closing = opening − logo churn − contraction + price + usage + adoption
+```
+
+`expansion` IS price + usage + adoption (the generic coefficient is bypassed);
+`newLogoARPA` and `start.openingARR` are not read (opening ARR = customers × per-customer
+revenue). Contraction reaches variable revenue only, so persistence is emergent, not L(1 − C).
+Pending entries stamp `perCustomerAtSpend`; cohorts are born from it. Requires Customer
+Physics. Measured: `K.monetizationMeasures` — NRR = 1 − logos − contraction + price + usage +
+adoption on the frozen cohort, mix, headroom.
+
 ## Scenario architecture
 
 `BASE_A` is a frozen assumption object; the Experiment is a separate object that is copied,
@@ -296,11 +312,11 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 
 | Class | Members |
 |---|---|
-| **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band**, **pending acquisition (v1.3)**, **cohort customers (v2 Gate A)** |
-| **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, **expansion realisation cost (v1.1)**, EBITA, FCF |
-| **TRANSITION** | persistence coefficient (an input only while Customer Physics is off; derived L(1 − C) when on), expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band; **expansionCostPerARR (v1.1), maxMonthlyNewARR (v1.2), acquisitionLagMonths (v1.3)**; **logoRetentionAnnual, contractionAnnual (v2 Gate A)** |
+| **STATE** | ARR (opening/closing), cash, cohort balances (a carried MRR until Monetization; derived from components with it), **cohort age / maturity band**, **pending acquisition (v1.3)**, **cohort customers (v2 Gate A)**, **per-customer components (v2 Gate B)** |
+| **FLOW** | New ARR, expansion (= price + usage + adoption under Gate B), leakage (= logo churn + contraction under Gate A), revenue, COGS, gross profit, **expansion realisation cost (v1.1)**, EBITA, FCF |
+| **TRANSITION** | persistence coefficient (an input only while Customer Physics is off; derived L(1 − C) when on), expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band; **expansionCostPerARR (v1.1), maxMonthlyNewARR (v1.2), acquisitionLagMonths (v1.3)**; **logoRetentionAnnual, contractionAnnual (v2 Gate A)**; **component price growth, usage growth, adoption and their caps (v2 Gate B; the expansion coefficient is not read)** |
 | **CONTROL** | S&M, R&D, G&A investment |
-| **MEASURED** | **R12M GRR / expansion / NRR**, **R12M logo retention and the lost-logo / contraction decomposition of GRR, ARPA (v2 Gate A)**, **Coefficient / Average / Marginal payback**, **Cohort CAC (realised)**, **Measured CAC · trailing 12**, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable. Every CAC is € of S&M per €1 of ARR, in either display basis. |
+| **MEASURED** | **R12M GRR / expansion / NRR**, **R12M logo retention and the lost-logo / contraction decomposition of GRR, ARPA (v2 Gate A)**, **R12M price / usage / adoption effects, revenue mix, headroom (v2 Gate B)**, **Coefficient / Average / Marginal payback**, **Cohort CAC (realised)**, **Measured CAC · trailing 12**, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable. Every CAC is € of S&M per €1 of ARR, in either display basis. |
 
 ## Files
 
@@ -308,6 +324,7 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 |---|---|
 | `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. Orchestrates one monthly loop and owns every stock; v2 layer transitions are pure functions in their own modules. |
 | `customers.js` | **v2 Gate A** — Customer Physics transition (logo survival · contraction · survivor expansion). Pure, stateless, UMD; inlined before the engine by `build.js`. |
+| `monetization.js` | **v2 Gate B** — per-customer component state, its monthly transition (contraction → price → usage → adoption) and revenue composition. Pure, stateless, UMD. |
 | `kpi.js` | **Layer B** — the KPI measurement engine, plus forward economic content and the v1.1–v1.3 measurements (`acquisitionMeasures`, `expansionCostMeasures`). Contains no economics of its own. UMD. |
 | `integrity.js` | The 51 economic, measurement and state assertions (35 original + 16 for v1.1–v1.3). UMD. |
 | `checks.js` | Node CLI for the assertions. |

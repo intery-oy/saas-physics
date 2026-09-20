@@ -411,11 +411,61 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate B — MONETIZATION MEASUREMENT over the same frozen R12M cohort.
+   *
+   * Same eligibility and frozen opening as measureR12M. Adds what neither the
+   * ARR-only nor the customer measurement can see: WHERE survivor revenue
+   * change came from — price, usage, adoption (the expansion side) and
+   * contraction (the leakage side) — each ÷ the frozen opening ARR, so
+   *   NRR = 1 − logo churn − contraction + price + usage + adoption
+   * to the identity residual. Plus the revenue mix (fixed / variable share)
+   * at T and the headroom the eligible cohorts have used. Null when
+   * Monetization is off or T < 12.
+   * ------------------------------------------------------------------ */
+  function monetizationMeasures(res, T) {
+    if (T < WINDOW || !res.mechanisms || !res.mechanisms.monetization) return null;
+    var start = T - WINDOW + 1, asOf = T - WINDOW;
+    var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
+    var arrOpen = 0, arrClose = 0, logoARR = 0, contrARR = 0, priceARR = 0, usageARR = 0, adoptARR = 0, fixedClose = 0, varClose = 0;
+    eligible.forEach(function (c) {
+      var first = rowAt(c, start); if (!first || !first.monetization) return;
+      arrOpen += first.openingARR;
+      var last = null;
+      for (var t = start; t <= T; t++) {
+        var r = rowAt(c, t); if (!r) break;
+        logoARR += r.customers.logoChurnARR; contrARR += r.monetization.contractionARR;
+        priceARR += r.monetization.priceARR; usageARR += r.monetization.usageARR; adoptARR += r.monetization.adoptionARR; last = r;
+      }
+      if (last) { arrClose += last.closingARR; fixedClose += last.monetization.fixedARR; varClose += last.monetization.variableARR; }
+    });
+    var m = res.months[T - 1].monetization;
+    var base = res.cohorts[0], baseRow = rowAt(base, T);
+    var f = function (v) { return arrOpen > 0 ? v / arrOpen : 0; };
+    return {
+      T: T, windowStart: start, asOf: asOf,
+      openingARR: arrOpen, closingEligibleARR: arrClose,
+      logoChurnR12M: f(logoARR), contractionR12M: f(contrARR),
+      priceEffectR12M: f(priceARR), usageEffectR12M: f(usageARR), adoptionEffectR12M: f(adoptARR),
+      expansionR12M: f(priceARR + usageARR + adoptARR),
+      grrR12M: 1 - f(logoARR) - f(contrARR),
+      nrrR12M: arrOpen > 0 ? arrClose / arrOpen : 1,
+      identityResidual: arrOpen - logoARR - contrARR + priceARR + usageARR + adoptARR - arrClose,
+      /* mix of the eligible cohorts' closing ARR, and of the company at T */
+      eligibleVariableShare: (fixedClose + varClose) > 0 ? varClose / (fixedClose + varClose) : 0,
+      companyVariableShare: m.variableShare, companyFixedARR: m.fixedARR, companyVariableARR: m.variableARR,
+      /* headroom used by the opening base at T (per variable component) */
+      baseHeadroom: baseRow && baseRow.monetization ? baseRow.monetization.headroom : null,
+      basePerCustomerRevenue: baseRow && baseRow.monetization ? baseRow.monetization.perCustomerClosing : null
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
     measureR12M: measureR12M,
     customerMeasures: customerMeasures,
+    monetizationMeasures: monetizationMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,

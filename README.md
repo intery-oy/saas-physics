@@ -17,7 +17,7 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 
 | | |
 |---|---|
-| **Engine version** | v2.0 (in progress on `v2-economic-system`) — the frozen v1.3 ARR physics (`docs/BASELINE-v1.3.md`, `44f7652`) plus the Economic System layers, each nullable, each reproducing the layer below exactly. Gate A Customer Physics is in. |
+| **Engine version** | v2.0 (in progress on `v2-economic-system`) — the frozen v1.3 ARR physics (`docs/BASELINE-v1.3.md`, `44f7652`) plus the Economic System layers, each nullable, each reproducing the layer below exactly. Gates A (Customer Physics) and B (Monetization Physics) are in. |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
 `engine.js`, `kpi.js` and `integrity.js` are the economic core: they stay untouched by
@@ -172,7 +172,7 @@ node checks.js              # 53 economic, measurement and state integrity check
 node physics-checks.js      # v1.1–v1.3: ALL-NULL-FULL gate vs the complete v1.0 snapshot, no-phantom-cohorts, capital reconciliation, independent saturation, cross-mechanism, extremes, S&M sweep
 node physics-study.js       # v1.1–v1.3: the three experiments with measured results (quoted in docs/RN-*.md)
 node physics-accept.js      # v1.1–v1.3 DOM/render checks — needs playwright
-node v2-checks.js           # v2: ALL-NULL-V13 gate vs the complete v1.3 snapshot (12 worlds), then the per-gate law checks (Gate A: reconciliation, no duplication, logo vs dollar retention, matched world, provenance)
+node v2-checks.js           # v2: ALL-NULL-V13 gate vs the complete v1.3 snapshot (12 worlds), then the per-gate law checks (A: reconciliation, logo vs dollar retention, matched world; B: one source of truth, bypass, saturation, mix, decomposition)
 node v2-study.js            # v2: the experiments with measured results (quoted in docs/RN-*-PHYSICS.md)
 node v2-accept.js           # v2 DOM/render checks — needs playwright
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
@@ -211,6 +211,7 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | TRANSITION (v2 A) | Contraction (12-month revenue shrink among survivors) | 0 |
 | POLICY (v2 A) | ARR per new logo | opening ARPA |
 | STATE (v2 A) | Opening customers (read only with the layer on) | 1,000 |
+| TRANSITION (v2 B) | Monetization: per-customer components (platform fee, usage) with price growth, usage growth and adoption to caps | off (revenue is a carried balance) |
 | STATE | Opening ARR | €20.0m |
 | STATE | Opening cash | €10.0m |
 
@@ -272,6 +273,9 @@ creates; gross margin decides how fast that investment is recovered.
 - [`docs/RN-CUSTOMER-PHYSICS.md`](docs/RN-CUSTOMER-PHYSICS.md) — **v2 Gate A**: customers beneath
   the ARR; persistence derived as L(1 − C); the matched-world result (same ARR, GRR, NRR;
   1.41× the customers at 71% of the ARPA)
+- [`docs/RN-MONETIZATION-PHYSICS.md`](docs/RN-MONETIZATION-PHYSICS.md) — **v2 Gate B**: revenue
+  derived from per-customer components; expansion as price + usage + adoption, bounded by caps;
+  the mix alone moves GRR (92.00 / 90.21 / 87.40%); price-only vs usage-only told apart
 
 ## Model version
 

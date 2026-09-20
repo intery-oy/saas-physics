@@ -257,6 +257,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Economic transition assumptions</b> — persistence and expansion (how the installed base evolves), CAC per €1 of New ARR (how spend becomes ARR), gross margin (how revenue becomes gross profit).</li>
             <li><b>Three nullable mechanisms</b> — expansion realisation cost, acquisition capacity, acquisition lag. Each defaults to the setting under which it does nothing.</li>
             <li><b>Customer physics (v2, nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
+            <li><b>Monetization physics (v2, nullable)</b> — a platform fee and a usage component per customer, with price growth, usage growth and adoption to caps. When on, revenue is derived from the components; the expansion coefficient, ARR per new logo and opening ARR are not read.</li>
             <li>Nothing else. There is no plan, no target, no forecast to hit.</li>
           </ul>
         </div>
@@ -329,6 +330,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Contraction</b> — how much surviving customers shrink. Leakage = lost logos + contraction; persistence = L × (1 − C), <b>derived</b>, not set.</li>
             <li><b>ARR per new logo</b> — how many customers a euro of New ARR brings. Moves customers and ARPA, never ARR.</li>
             <li>With Logo retention off the engine reproduces the v1.3 world exactly, every field (the ALL-NULL-V13 gate). Scenario 10 shows two worlds with identical ARR and NRR and different customers.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Monetization physics (v2 Gate B, nullable)</h5>
+          <ul>
+            <li><b>Components</b> — each customer pays a platform fee (fixed) plus usage (penetration × units × price). Revenue is customers × components, recomputed every month: one source of truth.</li>
+            <li><b>Expansion</b> — price growth, usage growth to a cap, adoption to a cap. The generic coefficient is bypassed; expansion saturates.</li>
+            <li><b>Contraction</b> — reaches usage only, so dollar persistence is emergent from the mix. Scenario 12 shows identical customers and laws with different GRR.</li>
+            <li>Off = the customer world exactly. Scenario 11 shows the same customers priced as a coefficient and as components.</li>
           </ul>
         </div>
         <div>
@@ -444,6 +454,148 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 });
 
 /*
+ * SaaS Physics v2 — MONETIZATION PHYSICS (Gate B). Pure transition functions.
+ *
+ * Requires Customer Physics. With Monetization on, a cohort's revenue is no
+ * longer a carried MRR balance: it is DERIVED every month from per-customer
+ * component state,
+ *
+ *   revenue per customer (annual) = Σ_k  penetration_k × units_k × price_k
+ *   cohort ARR = customers × revenue per customer
+ *
+ * Every component is (penetration, units, price). A FIXED component (platform
+ * fee, seats under contract) has penetration 1 and no usage or adoption
+ * headroom; a VARIABLE component (usage, an add-on) may be adopted by more of
+ * the cohort's customers (penetration → cap), used more (units → cap) and
+ * repriced. The generic expansion coefficient is BYPASSED: survivor revenue
+ * changes only through the four named effects below, in this order each month,
+ *
+ *   1. contraction   variable units × (1 − cM)            customers who stay and use less
+ *   2. price         price_k × (1 + pM_k)                   list-price growth, every component
+ *   3. usage         units_k → min(cap_k, units_k (1 + uM_k)) variable components only
+ *   4. adoption      pen_k  → pen_k + (penCap_k − pen_k) aM_k  variable components only
+ *
+ * so  closing = opening − logo churn − contraction + price + usage + adoption,
+ * with logo churn from customers.js (departing customers take the cohort's
+ * average revenue). Contraction reaches only variable revenue, so a cohort's
+ * dollar persistence is EMERGENT here — it depends on its fixed/variable mix —
+ * not the Gate A constant L(1 − C). Usage and penetration caps make expansion
+ * saturate: a cohort's ARPA converges to a ceiling (FINDINGS #13/#30).
+ *
+ * Rates: pM = (1 + P)^(1/12) − 1, uM = (1 + U)^(1/12) − 1 (growth rates);
+ * aM = 1 − (1 − A)^(1/12) (share of remaining non-adopters per month).
+ *
+ * This module keeps no state and knows nothing about acquisition, cash or the
+ * company. The engine passes a cohort's per-customer state in and takes the
+ * transition out.
+ */
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SaaSPhysicsMonetization = factory();
+})(typeof self !== 'undefined' ? self : globalThis, function () {
+  'use strict';
+
+  function enabled(a) { return a.monetization !== null && a.monetization !== undefined; }
+
+  function num(v) { return typeof v === 'number' && isFinite(v); }
+
+  /* Validates and CANONICALISES the spec (returns a fresh object). Throws
+     RangeError; never coerces a value silently. */
+  function validate(a, customersOn) {
+    var M = a.monetization;
+    if (M === undefined || M === null) { a.monetization = null; return a; }
+    if (!customersOn) throw new RangeError('Monetization Physics requires Customer Physics (logoRetentionAnnual) to be on');
+    if (typeof M !== 'object' || !Array.isArray(M.components) || M.components.length === 0)
+      throw new RangeError('monetization must be { components: [ ... ] } with at least one component');
+    var out = { components: M.components.map(function (c, i) {
+      var tag = 'monetization.components[' + i + '] ';
+      if (!c || typeof c !== 'object') throw new RangeError(tag + 'must be a component object (got ' + String(c) + ')');
+      var kind = c.kind === undefined ? 'variable' : c.kind;
+      if (kind !== 'fixed' && kind !== 'variable') throw new RangeError(tag + 'kind must be "fixed" or "variable" (got ' + String(c.kind) + ')');
+      var pen = c.penetration === undefined ? 1 : c.penetration;
+      if (!num(pen) || !(pen > 0) || pen > 1) throw new RangeError(tag + 'penetration must be in (0, 1] (got ' + String(c.penetration) + ')');
+      if (!num(c.units) || !(c.units > 0)) throw new RangeError(tag + 'units must be > 0 (got ' + String(c.units) + ')');
+      if (!num(c.priceAnnual) || !(c.priceAnnual > 0)) throw new RangeError(tag + 'priceAnnual must be > 0 (got ' + String(c.priceAnnual) + ')');
+      var pg = c.priceGrowthAnnual === undefined ? 0 : c.priceGrowthAnnual;
+      if (!num(pg) || pg <= -1) throw new RangeError(tag + 'priceGrowthAnnual must be a number > -1 (got ' + String(c.priceGrowthAnnual) + ')');
+      var ug = c.usageGrowthAnnual === undefined ? 0 : c.usageGrowthAnnual;
+      var cap = c.unitsCap === undefined ? null : c.unitsCap;
+      var ad = c.adoptionAnnual === undefined ? 0 : c.adoptionAnnual;
+      var pcap = c.penetrationCap === undefined ? 1 : c.penetrationCap;
+      if (kind === 'fixed') {
+        if (pen !== 1) throw new RangeError(tag + 'a fixed component has penetration 1 (got ' + pen + ')');
+        if (ug !== 0 || ad !== 0 || (cap !== null && cap !== c.units)) throw new RangeError(tag + 'a fixed component has no usage growth, adoption or headroom');
+        cap = c.units; pcap = 1;
+      } else {
+        if (!num(ug) || ug < 0) throw new RangeError(tag + 'usageGrowthAnnual must be a number >= 0 (got ' + String(c.usageGrowthAnnual) + ')');
+        if (cap !== null && (!num(cap) || cap < c.units)) throw new RangeError(tag + 'unitsCap must be null (no cap) or >= units (got ' + String(c.unitsCap) + ')');
+        if (!num(ad) || ad < 0 || ad >= 1) throw new RangeError(tag + 'adoptionAnnual must be in [0, 1) (got ' + String(c.adoptionAnnual) + ')');
+        if (!num(pcap) || pcap < pen || pcap > 1) throw new RangeError(tag + 'penetrationCap must be in [penetration, 1] (got ' + String(c.penetrationCap) + ')');
+      }
+      return { name: c.name || (kind === 'fixed' ? 'fixed' : 'variable ' + (i + 1)), kind: kind, penetration: pen, units: c.units, priceAnnual: c.priceAnnual,
+               priceGrowthAnnual: pg, usageGrowthAnnual: ug, unitsCap: cap, adoptionAnnual: ad, penetrationCap: pcap };
+    }) };
+    a.monetization = out;
+    return a;
+  }
+
+  function rates(spec) {
+    return spec.components.map(function (c) {
+      return { pM: Math.pow(1 + c.priceGrowthAnnual, 1 / 12) - 1,
+               uM: Math.pow(1 + c.usageGrowthAnnual, 1 / 12) - 1,
+               aM: 1 - Math.pow(1 - c.adoptionAnnual, 1 / 12),
+               unitsCap: c.unitsCap, penetrationCap: c.penetrationCap, fixed: c.kind === 'fixed' };
+    });
+  }
+
+  /* The per-customer state a cohort starts with: the spec's opening values. */
+  function initialState(spec) {
+    return spec.components.map(function (c) { return { penetration: c.penetration, units: c.units, price: c.priceAnnual }; });
+  }
+  function copyState(st) { return st.map(function (k) { return { penetration: k.penetration, units: k.units, price: k.price }; }); }
+
+  /* Annual revenue per customer, and its fixed / variable split. */
+  function revenue(state, r) {
+    var fixed = 0, variable = 0;
+    for (var k = 0; k < state.length; k++) {
+      var v = state[k].penetration * state[k].units * state[k].price;
+      if (r[k].fixed) fixed += v; else variable += v;
+    }
+    return { total: fixed + variable, fixed: fixed, variable: variable };
+  }
+
+  /* One cohort's per-customer state, one month. cM = monthly contraction
+     (customers.js rates().cM). Returns the closing state and the four effects
+     as ANNUAL revenue per customer, in application order. */
+  function transition(state, r, cM) {
+    var s = copyState(state), k;
+    var r0 = revenue(s, r).total;
+    for (k = 0; k < s.length; k++) if (!r[k].fixed) s[k].units *= (1 - cM);
+    var r1 = revenue(s, r).total;
+    for (k = 0; k < s.length; k++) s[k].price *= (1 + r[k].pM);
+    var r2 = revenue(s, r).total;
+    for (k = 0; k < s.length; k++) if (!r[k].fixed) {
+      var u = s[k].units * (1 + r[k].uM);
+      s[k].units = r[k].unitsCap === null ? u : Math.min(r[k].unitsCap, u);
+    }
+    var r3 = revenue(s, r).total;
+    for (k = 0; k < s.length; k++) if (!r[k].fixed) s[k].penetration += (r[k].penetrationCap - s[k].penetration) * r[k].aM;
+    var rv = revenue(s, r);
+    return {
+      state: s,
+      opening: r0, closing: rv.total, fixed: rv.fixed, variable: rv.variable,
+      effects: { contraction: r0 - r1, price: r2 - r1, usage: r3 - r2, adoption: rv.total - r3 },
+      headroom: s.map(function (c, i) {
+        return { units: r[i].fixed || r[i].unitsCap === null ? null : c.units / r[i].unitsCap,
+                 penetration: r[i].fixed ? null : c.penetration / r[i].penetrationCap };
+      })
+    };
+  }
+
+  return { enabled: enabled, validate: validate, rates: rates, initialState: initialState, copyState: copyState, revenue: revenue, transition: transition };
+});
+
+/*
  * SaaS Physics — Prototype 0
  * Deterministic monthly economic engine. No DOM, no randomness, no I/O.
  *
@@ -504,14 +656,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      file (build.js), so the browser finds them on the global. */
   var isNode = typeof module === 'object' && module.exports;
   var deps = isNode
-    ? { customers: require('./customers.js') }
-    : { customers: root.SaaSPhysicsCustomers };
+    ? { customers: require('./customers.js'), monetization: require('./monetization.js') }
+    : { customers: root.SaaSPhysicsCustomers, monetization: root.SaaSPhysicsMonetization };
   if (isNode) module.exports = factory(deps);
   else root.SaaSPhysics = factory(deps);
 })(typeof self !== 'undefined' ? self : globalThis, function (deps) {
   'use strict';
 
   var CU = deps.customers;               /* Gate A — Customer Physics */
+  var MO = deps.monetization;            /* Gate B — Monetization Physics */
   var HORIZON = 60;
 
   /* ------------------------------------------------------------------ *
@@ -582,7 +735,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        is generated as L(1 − C) by customers.js. */
     logoRetentionAnnual:        null,    // A   12-month logo (customer) survival; null = Customer Physics off
     contractionAnnual:          0,       // A   12-month revenue contraction among surviving customers
-    newLogoARPA:                null     // A   € ARR per newly acquired customer; null = the opening ARPA
+    newLogoARPA:                null,    // A   € ARR per newly acquired customer; null = the opening ARPA
+    /* v2 Gate B — MONETIZATION PHYSICS, at its NULL setting (the Gate A world).
+       { components: [{ name, kind: 'fixed'|'variable', penetration, units,
+       priceAnnual, priceGrowthAnnual, usageGrowthAnnual, unitsCap,
+       adoptionAnnual, penetrationCap }] }. Requires Customer Physics. When
+       on: expansionCoefficientAnnual, newLogoARPA and start.openingARR are
+       NOT READ — revenue is derived from per-customer components. */
+    monetization:               null     // B   null = revenue is a carried balance (v1.3 / Gate A)
   };
   /* AGE BANDS (v0.3). Three bands by cohort age in months at the START of a month:
      band 1 covers ages 0..11, band 2 covers 12..23, band 3 covers 24 and above.
@@ -777,6 +937,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     else if (typeof cap !== 'number' || isNaN(cap) || cap < 0)
       throw new RangeError('maxMonthlyNewARR must be null (no bound) or a finite number >= 0 (got ' + String(cap) + ')');
     CU.validate(a);                                  /* v2 Gate A boundary */
+    MO.validate(a, CU.enabled(a));                   /* v2 Gate B boundary (requires Gate A) */
     return a;
   }
   function normaliseAssumptions(a) {
@@ -801,7 +962,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * the integrity suite prove it by calling this function with a synthetic
    * entry whose law differs from any assumption the engine holds.
    * ------------------------------------------------------------------ */
-  function pendingEntry(a, t, L, newARR, newLogoARPA) {
+  function pendingEntry(a, t, L, newARR, newLogoARPA, perCustomerState) {
     return {
       spendMonth: t, matureMonth: t + L, lagMonths: L,
       sm: a.sm, newARR: newARR,
@@ -810,6 +971,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       /* v2 Gate A: € ARR per new logo in force at spend; null = Customer Physics off.
          The cohort's customer count is realised FROM THIS, never from a live value. */
       newLogoARPAAtSpend: (newLogoARPA === undefined || newLogoARPA === null) ? null : newLogoARPA,
+      /* v2 Gate B: the per-customer component state new logos start with, in
+         force at spend; null = Monetization off. The cohort is born from it. */
+      perCustomerAtSpend: perCustomerState ? MO.copyState(perCustomerState) : null,
       realised: false, cohortId: null
     };
   }
@@ -847,15 +1011,26 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       sourceEntries: matured.length,
       /* v2 Gate A — customer state. null = Customer Physics off. */
       initialCustomers: anyCustomers ? realisedCustomers : null,
-      customers: anyCustomers ? realisedCustomers : null
+      customers: anyCustomers ? realisedCustomers : null,
+      /* v2 Gate B — per-customer component state, from the first entry */
+      money: first.perCustomerAtSpend ? MO.copyState(first.perCustomerAtSpend) : null
     };
+    if (nc.money) {
+      /* every matured entry must carry the same per-customer state: a cohort
+         has one ARPA. Entries priced differently maturing together is a
+         boundary, not something to average away. */
+      for (var j = 0; j < matured.length; j++)
+        if (JSON.stringify(matured[j].perCustomerAtSpend) !== JSON.stringify(first.perCustomerAtSpend))
+          throw new RangeError('pending entries with different per-customer monetization states matured in the same month (M' + t + ')');
+    }
     var ncRevenue = (0 + realisedMRR) / 2;    // half a month of MRR, same midpoint rule
     nc.rows.push({
       t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandName,
       openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: realisedMRR,
       openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: realisedARR,
       revenue: ncRevenue, grossProfit: ncRevenue * grossMargin, expansionCost: 0,
-      customers: anyCustomers ? customerRow(0, realisedCustomers, 0, 0, 0, realisedCustomers) : null
+      customers: anyCustomers ? customerRow(0, realisedCustomers, 0, 0, 0, realisedCustomers) : null,
+      monetization: nc.money ? monetizationRow(realisedCustomers, nc.money, nc.money, moRatesFor(nc.money), null) : null
     });
     return nc;
   }
@@ -868,6 +1043,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       opening: nOpen, closing: nClose, newCustomers: nNew, logoChurn: nOpen + nNew - nClose,
       logoChurnMRR: logoChurnMRR, contractionMRR: contractionMRR, survivorMRR: survivorMRR,
       logoChurnARR: logoChurnMRR * 12, contractionARR: contractionMRR * 12
+    };
+  }
+
+  /* v2 Gate B — the monetization sub-record of a cohort row. Per-customer
+     revenue is ANNUAL (the unit the components are priced in); cohort flows
+     are ARR readouts of the MRR quantities the transition produced. */
+  var moRatesFor = function (state) {   /* fixed/variable split needs only the kind, carried on the state */
+    return state.map(function (k) { return { fixed: !!k.fixed, unitsCap: k.unitsCap === undefined ? null : k.unitsCap, penetrationCap: k.penetrationCap === undefined ? 1 : k.penetrationCap }; });
+  };
+  function monetizationRow(n, stateOpen, stateClose, r, tr) {
+    var rv = MO.revenue(stateClose, r);
+    return {
+      perCustomerOpening: MO.revenue(stateOpen, r).total, perCustomerClosing: rv.total,
+      fixedARR: n * rv.fixed, variableARR: n * rv.variable,
+      priceARR: tr ? n * tr.effects.price : 0, usageARR: tr ? n * tr.effects.usage : 0, adoptionARR: tr ? n * tr.effects.adoption : 0,
+      contractionARR: tr ? n * tr.effects.contraction : 0,
+      headroom: tr ? tr.headroom : null,
+      state: MO.copyState(stateClose)
     };
   }
 
@@ -887,9 +1080,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var cuR = CUON ? CU.rates(a) : null;   /* named apart from the loop scalars below */
     var P = CUON ? cuR.impliedPersistenceAnnual : a.persistenceAnnual;
     var aEff = CUON ? Object.assign({}, a, { persistenceAnnual: P }) : a;
+    /* v2 Gate B — MONETIZATION PHYSICS. When on, a cohort's revenue is DERIVED
+       from per-customer components every month; the generic expansion
+       coefficient, newLogoARPA and start.openingARR are NOT READ. Contraction
+       reaches variable revenue only, so persistence is EMERGENT (mix-dependent),
+       not the Gate A constant. Requires Customer Physics (validated). */
+    var MON = MO.enabled(a);
+    var moSpec = MON ? a.monetization : null;
+    var moR = MON ? MO.rates(moSpec) : null;
+    /* the per-customer state carries its component kind and caps so a row's
+       fixed/variable split can be read without the spec */
+    function stampKinds(state) { return state.map(function (k, i) { return { penetration: k.penetration, units: k.units, price: k.price, fixed: moR[i].fixed, unitsCap: moR[i].unitsCap, penetrationCap: moR[i].penetrationCap }; }); }
+    var moInitial = MON ? stampKinds(MO.initialState(moSpec)) : null;
+    var moNewLogoRevenue = MON ? MO.revenue(moInitial, moR).total : null;
 
-    var gM = toMonthlyPersistence(P);
-    var eM = toMonthlyExpansion(a.expansionCoefficientAnnual);
+    var gM = MON ? null : toMonthlyPersistence(P);
+    var eM = MON ? null : toMonthlyExpansion(a.expansionCoefficientAnnual);
     /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
        newARR (still newARRPerMonth(a), v1.2: through the saturating response)
        is kept as the exact 12x-derived reporting figure every existing caller
@@ -921,6 +1127,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var seed = (s.openingCohorts && s.openingCohorts.length)
       ? s.openingCohorts
       : [{ arr: s.openingARR, age: 0, customers: s.openingCustomers }];
+    /* v2 Gate B: opening ARR is DERIVED — customers × per-customer revenue of
+       the opening components. The arr the caller passed is reported, not read. */
+    var openingARRInputIgnored = null;
+    if (MON) {
+      openingARRInputIgnored = seed.reduce(function (q, c) { return q + (c.arr || 0); }, 0);
+      seed = seed.map(function (c) {
+        if (typeof c.customers !== 'number' || !(c.customers > 0))
+          throw new RangeError('Monetization Physics is on: every opening cohort needs customers > 0 (got ' + String(c.customers) + ')');
+        return Object.assign({}, c, { arr: c.customers * moNewLogoRevenue });
+      });
+    }
+    var openingARRUsed = seed.reduce(function (q, c) { return q + c.arr; }, 0);
     /* v2 Gate A: opening customers, opening ARPA, and the € ARR per new logo
        (input, or the opening ARPA when null). Read only when the layer is on. */
     var openingCustomersTotal = null, openingARPA = null, newLogoARPA = null, newLogoARPASource = null;
@@ -933,7 +1151,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       });
       var seedARR = seed.reduce(function (q, c) { return q + c.arr; }, 0);
       openingARPA = seedARR / openingCustomersTotal;
-      if (a.newLogoARPA !== null) { newLogoARPA = a.newLogoARPA; newLogoARPASource = 'input'; }
+      if (MON) { newLogoARPA = moNewLogoRevenue; newLogoARPASource = 'monetization: per-customer components'; }
+      else if (a.newLogoARPA !== null) { newLogoARPA = a.newLogoARPA; newLogoARPASource = 'input'; }
       else { newLogoARPA = openingARPA; newLogoARPASource = 'opening ARPA'; }
     }
     var cohorts = seed.map(function (c, i) {
@@ -953,6 +1172,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         /* v2 Gate A — customer state; null = Customer Physics off */
         initialCustomers: CUON ? c.customers : null,
         customers: CUON ? c.customers : null,
+        /* v2 Gate B — per-customer component state; null = Monetization off */
+        money: MON ? MO.copyState(moInitial) : null,
         rows: []
       };
     });
@@ -963,10 +1184,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var cum = { newARR: 0, expansion: 0, leakage: 0, revenue: 0, cogs: 0,
                 grossProfit: 0, sm: 0, rd: 0, ga: 0, expansionCost: 0, ebita: 0, fcf: 0 };
 
-    function closingAt(k) { return k === 0 ? s.openingARR : months[k - 1].closingARR; }
+    function closingAt(k) { return k === 0 ? openingARRUsed : months[k - 1].closingARR; }
 
     /* v2 Gate A cumulative customer flows (kept apart from the v1.3 cum object) */
     var cumCu = { logoChurnARR: 0, contractionARR: 0, newCustomers: 0, logoChurnCustomers: 0 };
+    var cumMo = { priceARR: 0, usageARR: 0, adoptionARR: 0 };
 
     for (var t = 1; t <= H; t++) {
       var openingMRR = 0, i, c;
@@ -974,6 +1196,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
       var totRetainedMRR = 0, totLeakageMRR = 0, totExpansionMRR = 0, totRevenue = 0, totExpansionCost = 0;
       var cuOpen = 0, cuClose = 0, cuLogoChurnMRR = 0, cuContractionMRR = 0;
+      var moPriceMRR = 0, moUsageMRR = 0, moAdoptMRR = 0, moFixedMRR = 0, moVarMRR = 0;
 
       /* --- 5. MRR physics, applied cohort by cohort (MRR-NATIVE) ---
          Same transition coefficients, same order, same identities as before —
@@ -989,8 +1212,28 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var bi = bandFor(bandRates, ageAtStart);
         var br = bandRates[bi];
         var openingC  = c.live;
-        var retainedC, leakageC, expansionC, closingC, cuRow = null;
-        if (CUON) {
+        var retainedC, leakageC, expansionC, closingC, cuRow = null, moRow = null;
+        if (MON) {
+          /* v2 Gate B — logo churn from customers.js; survivor revenue from the
+             per-customer components: contraction (variable units) → price →
+             usage (to cap) → adoption (to cap). The generic expansion
+             coefficient is BYPASSED: expansion = price + usage + adoption. */
+          var trc = CU.transition({ n: c.customers, mrr: openingC }, cuR);
+          var mt = MO.transition(c.money, moR, cuR.cM);
+          var n1 = trc.customersClosing;
+          var contrC = n1 * mt.effects.contraction / 12;
+          var priceC = n1 * mt.effects.price / 12, usageC = n1 * mt.effects.usage / 12, adoptC = n1 * mt.effects.adoption / 12;
+          retainedC = trc.survivorMRR - contrC; leakageC = trc.logoChurnMRR + contrC;
+          expansionC = priceC + usageC + adoptC; closingC = retainedC + expansionC;
+          cuRow = customerRow(trc.customersOpening, n1, trc.logoChurnMRR, contrC, trc.survivorMRR);
+          var stateClose = stampKinds(mt.state);
+          moRow = monetizationRow(n1, c.money, stateClose, moR, mt);
+          c.money = stateClose; c.customers = n1;
+          cuOpen += trc.customersOpening; cuClose += n1;
+          cuLogoChurnMRR += trc.logoChurnMRR; cuContractionMRR += contrC;
+          moPriceMRR += priceC; moUsageMRR += usageC; moAdoptMRR += adoptC;
+          moFixedMRR += moRow.fixedARR / 12; moVarMRR += moRow.variableARR / 12;
+        } else if (CUON) {
           /* v2 Gate A — the transition is GENERATED by customer mechanics:
              logo survival, then contraction among survivors, then expansion
              among survivors. leakage = logo churn + contraction; the v1.3
@@ -1024,7 +1267,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           openingARR: openingC * 12, retainedARR: retainedC * 12, leakage: leakageC * 12,
           expansion: expansionC * 12, closingARR: closingC * 12,
           revenue: revenue, grossProfit: gp, expansionCost: expCostC,
-          customers: cuRow                          /* v2 Gate A; null when off */
+          customers: cuRow,                         /* v2 Gate A; null when off */
+          monetization: moRow                       /* v2 Gate B; null when off */
         });
         c.live = closingC;
 
@@ -1035,7 +1279,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       /* --- v1.3 SPEND. S&M is incurred NOW (it hits EBITA and cash below in
          this month) and enters the pending ledger with the New ARR the law IN
          FORCE NOW says it will create, dated to mature at t + LAG. --- */
-      var entry = pendingEntry(a, t, LAG, newARR, newLogoARPA);
+      var entry = pendingEntry(a, t, LAG, newARR, newLogoARPA, moInitial);
       ledger.push(entry); pending.push(entry);
 
       /* --- v1.3 REALISE. Whatever matured this month becomes the acquisition
@@ -1056,6 +1300,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var nc = realiseCohort(t, matured, bandRates[0].name, a.grossMargin);
         realisedARR = nc.initialARR; realisedMRR = nc.live;
         if (CUON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
+        if (MON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }
         cohorts.push(nc);
         totRevenue += nc.rows[0].revenue;
       }
@@ -1115,6 +1360,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         };
       }
 
+      /* v2 Gate B — the company monetization record: sums of the cohort sub-records */
+      var moRec = null;
+      if (MON) {
+        cumMo.priceARR += moPriceMRR * 12; cumMo.usageARR += moUsageMRR * 12; cumMo.adoptionARR += moAdoptMRR * 12;
+        moRec = {
+          fixedARR: moFixedMRR * 12, variableARR: moVarMRR * 12,
+          variableShare: closingMRR > 0 ? moVarMRR / closingMRR : 0,
+          priceARR: moPriceMRR * 12, usageARR: moUsageMRR * 12, adoptionARR: moAdoptMRR * 12,
+          contractionARR: cuContractionMRR * 12,
+          cumulative: Object.assign({}, cumMo)
+        };
+      }
+
       months.push({
         t: t,
         year: Math.ceil(t / 12),
@@ -1161,7 +1419,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         arrGrowthYoY: t >= 12 ? closingARR / closingAt(t - 12) - 1 : null,
         cohortCount: cohorts.length,
         cumulative: Object.assign({}, cum),
-        customers: cuRec                       /* v2 Gate A; null = Customer Physics off */
+        customers: cuRec,                      /* v2 Gate A; null = Customer Physics off */
+        monetization: moRec                    /* v2 Gate B; null = Monetization off */
       });
     }
 
@@ -1182,7 +1441,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       co.finalMRR = co.live;
       co.finalARR = co.live * 12;
       co.finalCustomers = CUON ? co.customers : null;
+      co.finalPerCustomerRevenue = MON ? MO.revenue(co.money, moR).total : null;
     }
+    /* v2 Gate B — the emergent monthly multiplier of the opening base in its
+       first month (closing ÷ opening), for readers that framed the regime on
+       g = persistence × (1 + expansion) — under Monetization neither is a law */
+    var emergentG = (cohorts[0].rows.length && cohorts[0].rows[0].openingMRR > 0) ? cohorts[0].rows[0].closingMRR / cohorts[0].rows[0].openingMRR : null;
 
     return {
       modelVersion: '2.0',
@@ -1191,7 +1455,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         expansionCost: a.expansionCostPerARR > 0,
         acquisitionSaturation: saturationEnabled(a),
         acquisitionLag: a.acquisitionLagMonths > 0,
-        customerPhysics: CUON                       /* v2 Gate A */
+        customerPhysics: CUON,                      /* v2 Gate A */
+        monetization: MON,                          /* v2 Gate B */
+        genericExpansionBypassed: MON               /* v2 Gate B: expansionCoefficientAnnual not read */
       },
       assumptions: a,
       start: s,
@@ -1210,10 +1476,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         annualAcquisitionSpend: a.sm * 12,
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — the coefficient's own payback, unchanged value
-        impliedAnnualNRR: P * (1 + a.expansionCoefficientAnnual),
-        /* v2 Gate A — the persistence actually in force, and where it came from */
-        persistenceAnnualEffective: P,
-        persistenceSource: CUON ? 'derived: L(1 - C)' : 'input',
+        impliedAnnualNRR: MON ? null : P * (1 + a.expansionCoefficientAnnual),
+        /* v2 Gate A — the persistence actually in force, and where it came from.
+           v2 Gate B — under Monetization neither persistence nor expansion is a
+           law: both are emergent from the component state and its mix. */
+        persistenceAnnualEffective: MON ? null : P,
+        persistenceSource: MON ? 'emergent: monetization (contraction reaches variable revenue only)' : CUON ? 'derived: L(1 - C)' : 'input',
+        expansionSource: MON ? 'emergent: price + usage + adoption (generic coefficient bypassed)' : 'input',
+        emergentMonthlyMultiplier: emergentG,
+        monetization: MON ? {
+          spec: moSpec,
+          newLogoRevenuePerCustomer: moNewLogoRevenue,
+          openingARRDerived: openingARRUsed,
+          openingARRInputIgnored: openingARRInputIgnored,
+          expansionCoefficientIgnored: a.expansionCoefficientAnnual,
+          newLogoARPAIgnored: a.newLogoARPA,
+          customerLawPersistence: P,             /* L(1 − C): what persistence WOULD be if contraction reached all revenue */
+          monthlyRates: moR
+        } : null,
         customers: CUON ? {
           logoRetentionAnnual: a.logoRetentionAnnual, contractionAnnual: a.contractionAnnual,
           monthlyLogoRetention: cuR.l, monthlyContraction: cuR.cM,
@@ -1296,7 +1576,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         customers: row.customers ? row.customers.closing : null,
         logoChurnARR: row.customers ? row.customers.logoChurnARR : null,
         contractionARR: row.customers ? row.customers.contractionARR : null,
-        arpa: row.customers && row.customers.closing > 0 ? row.closingARR / row.customers.closing : null
+        arpa: row.customers && row.customers.closing > 0 ? row.closingARR / row.customers.closing : null,
+        /* v2 Gate B — per-customer revenue and its composition; null = Monetization off */
+        perCustomerRevenue: row.monetization ? row.monetization.perCustomerClosing : null,
+        fixedARR: row.monetization ? row.monetization.fixedARR : null,
+        variableARR: row.monetization ? row.monetization.variableARR : null,
+        priceARR: row.monetization ? row.monetization.priceARR : null,
+        usageARR: row.monetization ? row.monetization.usageARR : null,
+        adoptionARR: row.monetization ? row.monetization.adoptionARR : null,
+        headroom: row.monetization ? row.monetization.headroom : null,
+        perCustomerState: row.monetization ? row.monetization.state : null
       });
     }
     return out;
@@ -1416,7 +1705,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       cumNewCustomers: last.customers ? last.customers.cumulative.newCustomers : null,
       cumLogoChurnCustomers: last.customers ? last.customers.cumulative.logoChurnCustomers : null,
       cumLogoChurnARR: last.customers ? last.customers.cumulative.logoChurnARR : null,
-      cumContractionARR: last.customers ? last.customers.cumulative.contractionARR : null
+      cumContractionARR: last.customers ? last.customers.cumulative.contractionARR : null,
+      /* v2 Gate B — monetization readouts; null = Monetization off */
+      finalVariableShare: last.monetization ? last.monetization.variableShare : null,
+      cumPriceARR: last.monetization ? last.monetization.cumulative.priceARR : null,
+      cumUsageARR: last.monetization ? last.monetization.cumulative.usageARR : null,
+      cumAdoptionARR: last.monetization ? last.monetization.cumulative.adoptionARR : null
     };
   }
 
@@ -1429,6 +1723,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var changed = [];
     Object.keys(expRes.assumptions).forEach(function (k) {
       if (k === 'bands') return;                       // structural, compared separately
+      if (k === 'monetization') {                      // v2 Gate B: a nested spec — compared leaf by leaf
+        var bm = baseRes.assumptions[k], xm = expRes.assumptions[k];
+        if (bm === xm) return;
+        if (!bm || !xm) { changed.push({ key: k, from: bm ? 'on' : null, to: xm ? 'on' : null }); return; }
+        var n = Math.max(bm.components.length, xm.components.length);
+        for (var ci = 0; ci < n; ci++) {
+          var bc = bm.components[ci], xc = xm.components[ci];
+          if (!bc || !xc) { changed.push({ key: k + '.components[' + ci + ']', from: bc || null, to: xc || null }); continue; }
+          Object.keys(xc).forEach(function (f) { if (xc[f] !== bc[f]) changed.push({ key: k + '.components[' + ci + '].' + f, from: bc[f], to: xc[f] }); });
+        }
+        return;
+      }
       if (expRes.assumptions[k] !== baseRes.assumptions[k]) {
         changed.push({ key: k, from: baseRes.assumptions[k], to: expRes.assumptions[k] });
       }
@@ -1914,11 +2220,61 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate B — MONETIZATION MEASUREMENT over the same frozen R12M cohort.
+   *
+   * Same eligibility and frozen opening as measureR12M. Adds what neither the
+   * ARR-only nor the customer measurement can see: WHERE survivor revenue
+   * change came from — price, usage, adoption (the expansion side) and
+   * contraction (the leakage side) — each ÷ the frozen opening ARR, so
+   *   NRR = 1 − logo churn − contraction + price + usage + adoption
+   * to the identity residual. Plus the revenue mix (fixed / variable share)
+   * at T and the headroom the eligible cohorts have used. Null when
+   * Monetization is off or T < 12.
+   * ------------------------------------------------------------------ */
+  function monetizationMeasures(res, T) {
+    if (T < WINDOW || !res.mechanisms || !res.mechanisms.monetization) return null;
+    var start = T - WINDOW + 1, asOf = T - WINDOW;
+    var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
+    var arrOpen = 0, arrClose = 0, logoARR = 0, contrARR = 0, priceARR = 0, usageARR = 0, adoptARR = 0, fixedClose = 0, varClose = 0;
+    eligible.forEach(function (c) {
+      var first = rowAt(c, start); if (!first || !first.monetization) return;
+      arrOpen += first.openingARR;
+      var last = null;
+      for (var t = start; t <= T; t++) {
+        var r = rowAt(c, t); if (!r) break;
+        logoARR += r.customers.logoChurnARR; contrARR += r.monetization.contractionARR;
+        priceARR += r.monetization.priceARR; usageARR += r.monetization.usageARR; adoptARR += r.monetization.adoptionARR; last = r;
+      }
+      if (last) { arrClose += last.closingARR; fixedClose += last.monetization.fixedARR; varClose += last.monetization.variableARR; }
+    });
+    var m = res.months[T - 1].monetization;
+    var base = res.cohorts[0], baseRow = rowAt(base, T);
+    var f = function (v) { return arrOpen > 0 ? v / arrOpen : 0; };
+    return {
+      T: T, windowStart: start, asOf: asOf,
+      openingARR: arrOpen, closingEligibleARR: arrClose,
+      logoChurnR12M: f(logoARR), contractionR12M: f(contrARR),
+      priceEffectR12M: f(priceARR), usageEffectR12M: f(usageARR), adoptionEffectR12M: f(adoptARR),
+      expansionR12M: f(priceARR + usageARR + adoptARR),
+      grrR12M: 1 - f(logoARR) - f(contrARR),
+      nrrR12M: arrOpen > 0 ? arrClose / arrOpen : 1,
+      identityResidual: arrOpen - logoARR - contrARR + priceARR + usageARR + adoptARR - arrClose,
+      /* mix of the eligible cohorts' closing ARR, and of the company at T */
+      eligibleVariableShare: (fixedClose + varClose) > 0 ? varClose / (fixedClose + varClose) : 0,
+      companyVariableShare: m.variableShare, companyFixedARR: m.fixedARR, companyVariableARR: m.variableARR,
+      /* headroom used by the opening base at T (per variable component) */
+      baseHeadroom: baseRow && baseRow.monetization ? baseRow.monetization.headroom : null,
+      basePerCustomerRevenue: baseRow && baseRow.monetization ? baseRow.monetization.perCustomerClosing : null
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
     measureR12M: measureR12M,
     customerMeasures: customerMeasures,
+    monetizationMeasures: monetizationMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,
@@ -2461,14 +2817,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                                             maxMonthlyNewARR: expA.maxMonthlyNewARR, acquisitionLagMonths: expA.acquisitionLagMonths });
       var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual,
                                             /* v2 Gate A: the customer laws generate persistence, so they are installed-base levers */
-                                            logoRetentionAnnual: expA.logoRetentionAnnual, contractionAnnual: expA.contractionAnnual, newLogoARPA: expA.newLogoARPA });
+                                            logoRetentionAnnual: expA.logoRetentionAnnual, contractionAnnual: expA.contractionAnnual, newLogoARPA: expA.newLogoARPA,
+                                            monetization: expA.monetization });   /* v2 Gate B: revenue components are installed-base levers too */
       attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
       var changedLevers = E.compare(baseRes, expRes).changed;
       attrCash = changedLevers.map(function(c){
-        var soA = Object.assign({}, baseA); soA[c.key] = expA[c.key];
-        var wA = Object.assign({}, expA); wA[c.key] = baseA[c.key];
-        return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) };
-      });
+        var soA = setK(baseA, c.key, getK(expA, c.key));     /* nested keys (monetization.…) handled by setK */
+        var wA = setK(expA, c.key, getK(baseA, c.key));
+        /* v2 Gate B: Monetization requires the customer layer, so a lone
+           monetization change on a Base without it is attributed together
+           with the customer layer it needs (and removing the customer layer
+           from an Experiment with Monetization removes both). A variant the
+           engine rejects at its boundary is dropped from the attribution
+           rather than crashing the surface. */
+        if(soA.monetization && (soA.logoRetentionAnnual===null || soA.logoRetentionAnnual===undefined)) soA.logoRetentionAnnual = expA.logoRetentionAnnual;
+        if(wA.monetization && (wA.logoRetentionAnnual===null || wA.logoRetentionAnnual===undefined)) wA.monetization = null;
+        try { return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) }; }
+        catch(err){ return null; }
+      }).filter(function(c){ return c!==null; });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
     syncForces(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
   }
@@ -2479,6 +2845,35 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* §6 — controls are NOT equivalent sliders. Each group states what KIND of
      thing it is, because changing a management input and changing a law of the
      installed base are different acts with different standing. */
+  /* v2 Gate B — nested assumption paths ("monetization.components[1].usageGrowthAnnual").
+     getK reads one; setK returns a NEW assumption object with the monetization
+     spec deep-copied and the leaf replaced, so the Experiment is never mutated
+     in place (the same rule every flat key already follows). */
+  function getK(obj, key){
+    if(key.indexOf('.')<0) return obj[key];
+    var parts = key.replace(/\[(\d+)\]/g, '.$1').split('.'), v = obj;
+    for(var i=0;i<parts.length;i++){ if(v===null||v===undefined) return undefined; v = v[parts[i]]; }
+    return v;
+  }
+  function setK(obj, key, val){
+    var out = Object.assign({}, obj);
+    if(key.indexOf('.')<0){ out[key] = val; return out; }
+    var parts = key.replace(/\[(\d+)\]/g, '.$1').split('.');
+    out[parts[0]] = JSON.parse(JSON.stringify(obj[parts[0]]));
+    var v = out[parts[0]];
+    for(var i=1;i<parts.length-1;i++) v = v[parts[i]];
+    v[parts[parts.length-1]] = val;
+    return out;
+  }
+  /* the spec the Monetization toggle switches on: a platform fee plus a usage
+     component, priced so the opening ARPA is the same €20,000 the customer
+     layer already implies — switching the layer on changes WHERE revenue comes
+     from before it changes how much there is */
+  var MON_DEFAULT = { components: [
+    { name:'platform', kind:'fixed', units:1, priceAnnual:12000, priceGrowthAnnual:0.03 },
+    { name:'usage', kind:'variable', penetration:0.8, units:100, priceAnnual:100, priceGrowthAnnual:0.02, usageGrowthAnnual:0.15, unitsCap:300, adoptionAnnual:0.10, penetrationCap:0.95 } ] };
+  function monDefault(){ return JSON.parse(JSON.stringify(MON_DEFAULT)); }
+
   var FORCE_GROUPS = [
     { kind:'Management input', note:'Set externally. Nothing in the engine constrains it.',
       forces:[ {k:'sm', label:'S&M investment', sub:'commercial investment per month', min:0, max:2500000, step:25000, f:'eur'} ] },
@@ -2493,6 +2888,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       forces:[ {k:'logoRetentionAnnual', label:'Logo retention', sub:'12-month share of customers that stay · off = no customer layer', min:0.5, max:1, step:0.005, f:'pct', nullable:true, onValue:0.92, measures:['logoRetentionR12M']},
                {k:'contractionAnnual', label:'Contraction', sub:'12-month revenue shrink among surviving customers · leakage = lost logos + contraction', min:0, max:0.3, step:0.005, f:'pct', measures:['contractionShare']},
                {k:'newLogoARPA', label:'ARR per new logo', sub:'€ ARR each acquired customer brings · off = the opening ARPA · moves customers, never ARR', min:2000, max:100000, step:1000, f:'arpa', nullable:true, onValue:20000} ] },
+    /* v2 Gate B — MONETIZATION PHYSICS. Beneath the customer layer: revenue is
+       derived every month from per-customer components (a platform fee and a
+       usage component). Expansion becomes price + usage + adoption; the generic
+       coefficient, ARR per new logo and opening ARR are no longer read. */
+    { kind:'Monetization physics', layer:'monetization', note:'Beneath the customer laws: each customer pays a platform fee plus usage. Revenue is derived from those components every month; expansion is price, usage (to a cap) and adoption (to a cap), and contraction reaches usage only. When on, the expansion coefficient, ARR per new logo and opening ARR stop being inputs. Requires the customer layer.',
+      forces:[ {k:'monetization', label:'Monetization', sub:'off = revenue is a carried balance · on = revenue is customers × components', f:'onoff', nullable:true, toggleOnly:true, onValue:monDefault},
+               {k:'monetization.components[0].priceAnnual', label:'Platform fee', sub:'€ per customer per year · fixed component · sets the opening ARPA', min:4000, max:30000, step:500, f:'eur', needs:'monetization'},
+               {k:'monetization.components[0].priceGrowthAnnual', label:'Platform price growth', sub:'annual list-price change on the fixed component', min:-0.1, max:0.15, step:0.005, f:'pct', needs:'monetization'},
+               {k:'monetization.components[1].priceGrowthAnnual', label:'Usage price growth', sub:'annual price change per unit of usage', min:-0.1, max:0.15, step:0.005, f:'pct', needs:'monetization'},
+               {k:'monetization.components[1].usageGrowthAnnual', label:'Usage growth', sub:'annual growth of units per adopting customer, until the cap', min:0, max:0.5, step:0.01, f:'pct', needs:'monetization'},
+               {k:'monetization.components[1].unitsCap', label:'Usage cap', sub:'units per customer the usage component cannot exceed · the bound on expansion', min:100, max:1000, step:10, f:'units', needs:'monetization'},
+               {k:'monetization.components[1].adoptionAnnual', label:'Adoption', sub:'share of the remaining non-adopters who adopt usage each year', min:0, max:0.5, step:0.01, f:'pct', needs:'monetization'},
+               {k:'monetization.components[1].penetrationCap', label:'Penetration cap', sub:'share of a cohort\'s customers usage can reach', min:0.8, max:1, step:0.01, f:'pct', needs:'monetization'} ] },
     { kind:'Acquisition response', note:'How much recurring state S&M creates, whether that response is bounded, and when the ARR appears. Each has a null setting that is the v1.0 world.',
       forces:[ {k:'cacPerARR', label:'CAC coefficient', sub:'acquisition-law coefficient: € of S&M per €1 of New ARR at low spend', min:0.3, max:3, step:0.05, f:'x'},
                /* v1.2 — a BOUND on the response, never a benefit. null = off = the linear law. */
@@ -2515,7 +2923,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function fmtF(f, v){
     if(f==='cap') return (v===null||v===undefined||!isFinite(v)) ? 'off' : eur(v)+'/mo';
     if(f==='arpa') return (v===null||v===undefined||!isFinite(v)) ? 'opening ARPA' : eur(v);
+    if(f==='onoff') return (v===null||v===undefined) ? 'off' : 'on';
     if(v===null||v===undefined) return 'off';
+    if(f==='units') return Math.round(v)+' units';
     if(f==='mo')  return Math.round(v)+' mo';
     return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
   }
@@ -2532,14 +2942,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       (F.nullable ? '<button class="btn nulltog" id="t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
       '<span class="force-val" id="v-'+F.k+'"></span></div>'+
       '<div class="force-sub">'+esc(F.sub)+' &middot; <span class="force-base" id="b-'+F.k+'"></span></div>'+
-      '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">';
+      (F.toggleOnly ? '' : '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
       d.querySelector('#t-'+F.k).addEventListener('click', function(){
         var prev = Object.assign({}, expA);
         clearScenario();
-        expA = Object.assign({}, expA);
-        var isOff = expA[F.k]===null || expA[F.k]===undefined || !isFinite(expA[F.k]);
-        expA[F.k] = isOff ? parseFloat(document.getElementById('f-'+F.k).value) : null;
+        var cur = getK(expA, F.k);
+        var isOff = cur===null || cur===undefined || (typeof cur==='number' && !isFinite(cur));
+        var onVal = typeof F.onValue==='function' ? F.onValue() : parseFloat(document.getElementById('f-'+F.k).value);
+        expA = setK(expA, F.k, isOff ? onVal : null);
+        /* v2 Gate B: Monetization requires the customer layer — switching it on
+           switches Customer Physics on too, rather than throwing at the boundary */
+        if(F.k==='monetization' && isOff && (expA.logoRetentionAnnual===null || expA.logoRetentionAnnual===undefined))
+          expA = setK(expA, 'logoRetentionAnnual', 0.92);
         recompute(prev);
       });
     }
@@ -2550,10 +2965,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       }).join('<br>') + '<div id="mn-'+F.k+'" hidden style="margin-top:6px;font-style:italic;color:var(--ink-3)"></div>';
       d.appendChild(mrow);
     }
-    d.querySelector('input').addEventListener('input', function(e){
+    if(!F.toggleOnly) d.querySelector('input').addEventListener('input', function(e){
       var prev = Object.assign({}, expA);
       clearScenario();
-      expA = Object.assign({}, expA); expA[F.k] = parseFloat(e.target.value);   // moving a nullable slider switches it on
+      expA = setK(expA, F.k, parseFloat(e.target.value));   // moving a nullable slider switches it on
       recompute(prev);
     });
     return d;
@@ -2614,24 +3029,40 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
   }
   function syncForces(){
+    var monOn = expRes.mechanisms.monetization, monOnB = baseRes.mechanisms.monetization;
     FORCES.forEach(function(F){
-      var el=document.getElementById('f-'+F.k); if(!el) return;
-      el.value = sliderValueFor(F, expA[F.k]);
-      var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
-      v.className = 'force-val' + (expA[F.k]===baseA[F.k] ? ' same' : '');
-      document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
+      var el=document.getElementById('f-'+F.k); if(!el && !F.toggleOnly) return;
+      var xv = getK(expA, F.k), bv = getK(baseA, F.k);
+      if(el) el.value = sliderValueFor(F, xv);
+      var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, xv);
+      v.className = 'force-val' + (xv===bv ? ' same' : '');
+      document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, bv);
       /* v2 Gate A — with Customer Physics on, persistence is a READOUT: the
-         slider is disabled and shows the derived value and its formula. */
+         slider is disabled and shows the derived value and its formula.
+         v2 Gate B — under Monetization it is EMERGENT (mix-dependent), and the
+         expansion coefficient and ARR per new logo are bypassed. */
       if(F.k==='persistenceAnnual'){
         var cuOn = expRes.mechanisms.customerPhysics, cuOnB = baseRes.mechanisms.customerPhysics;
         el.disabled = cuOn; el.style.opacity = cuOn ? 0.35 : 1;
-        if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
-        if(cuOnB) document.getElementById('b-'+F.k).textContent = 'base derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+        if(monOn){ v.textContent = 'emergent — set by the revenue mix'; v.className='force-val'; }
+        else if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
+        if(monOnB) document.getElementById('b-'+F.k).textContent = 'base emergent';
+        else if(cuOnB) document.getElementById('b-'+F.k).textContent = 'base derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+      }
+      if(F.k==='expansionCoefficientAnnual'){
+        el.disabled = monOn; el.style.opacity = monOn ? 0.35 : 1;
+        if(monOn){ v.textContent = 'bypassed — price + usage + adoption'; v.className='force-val'; }
+      }
+      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(expRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
+      if(F.needs==='monetization'){
+        el.disabled = !monOn; el.style.opacity = monOn ? 1 : 0.35;
+        if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = monOnB ? 'base '+fmtF(F.f, bv) : 'monetization off'; }
       }
       if(F.nullable){
-        var off = expA[F.k]===null || expA[F.k]===undefined || !isFinite(expA[F.k]);
+        var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv));
         var tg=document.getElementById('t-'+F.k); tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off);
-        el.style.opacity = off ? 0.35 : 1;
+        if(el && F.k!=='newLogoARPA') el.style.opacity = off ? 0.35 : 1;
+        else if(el) el.style.opacity = (off || monOn) ? 0.35 : 1;
       }
     });
   }
@@ -2751,7 +3182,36 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       pairLabel:'every lost euro is a lost logo vs fewer logos lost, survivors shrinking',
       shows:['arr','custmatch','customers','gp','cash'],
       note:'Base loses 12.6% of customers a year and no survivor shrinks; Experiment loses 8% of customers and survivors shrink 5%. Both derive persistence 87.4%, so ARR, revenue, cash, GRR and NRR are identical to floating-point precision. Only the customer state differs — which is the whole point of the layer.',
-      bounds:['cust','fcf'] }
+      bounds:['cust','fcf'] },
+
+    /* v2 Gate B — where expansion comes from: the customer world with a generic
+       10% expansion coefficient vs the same customers priced as platform + usage. */
+    { id:'monetization', n:11, name:'Where expansion comes from',
+      title:'One coefficient, or price, usage and adoption',
+      teach:'Expansion as a coefficient cannot say what produced it or where it stops. Priced as components, survivor revenue grows through named, bounded effects — and saturates at the usage and penetration caps.',
+      pair:function(){
+        return { baseA: Object.assign({}, BASE_A, { logoRetentionAnnual:0.92, contractionAnnual:0.05 }),
+                 expA:  Object.assign({}, BASE_A, { logoRetentionAnnual:0.92, contractionAnnual:0.05, monetization: monDefault() }) };
+      },
+      pairLabel:'generic 10% expansion vs platform €12,000 + usage 80% × 100 units × €100',
+      shows:['arr','moneffects','exp','leak','gp','cash'],
+      note:'Both worlds start from the same €20m, 1,000 customers and ARPA €20,000, with the same logo retention and contraction. Base grows survivors by a 10% coefficient; Experiment by platform price +3%, usage price +2%, usage +15%/yr to a 300-unit cap and adoption 10%/yr to 95%, with contraction reaching usage only. The decomposition on the right is measured on the same frozen R12M cohort as GRR and NRR.',
+      bounds:['mon','cust','fcf'] },
+
+    /* v2 Gate B — the matched-start pair: same ARR, customers, ARPA, L and C;
+       only the fixed/variable mix differs. Contraction reaches usage only. */
+    { id:'mix', n:12, name:'Fixed or variable?',
+      title:'Same customers, same laws, different revenue mix',
+      teach:'Two companies with identical ARR, customers, ARPA, logo retention and contraction can have different dollar retention: contraction can only reach the revenue that is variable.',
+      pair:function(){
+        return { baseA: Object.assign({}, BASE_A, { logoRetentionAnnual:0.92, contractionAnnual:0.05, monetization:{ components:[ { name:'platform', kind:'fixed', units:1, priceAnnual:20000, priceGrowthAnnual:0 } ] } }),
+                 expA:  Object.assign({}, BASE_A, { logoRetentionAnnual:0.92, contractionAnnual:0.05, monetization:{ components:[ { name:'platform', kind:'fixed', units:1, priceAnnual:12000, priceGrowthAnnual:0 },
+                                                                                                                                       { name:'usage', kind:'variable', penetration:0.8, units:100, priceAnnual:100, priceGrowthAnnual:0, usageGrowthAnnual:0, unitsCap:null, adoptionAnnual:0, penetrationCap:0.8 } ] } }) };
+      },
+      pairLabel:'all platform €20,000 vs platform €12,000 + usage €8,000',
+      shows:['arr','mixmatch','leak','gp','cash'],
+      note:'No growth drivers in either world, so the only difference is which euros contraction can reach. In the all-platform world the 5% contraction law costs nothing; in the mixed world it costs 5% of the usage revenue a year. Dollar persistence is emergent — L × (1 − C) = 87.4% is what it would be if every euro were variable.',
+      bounds:['mon','cust','fcf'] }
   ];
 
   /* §10 — the boundary statements are NOT static text any more: three of them
@@ -2779,6 +3239,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return E.run(a).mechanisms.customerPhysics
         ? 'Customers are a continuous cohort count with one ARPA per cohort: no customer-size heterogeneity, no concentration, no reactivation. Logo retention and contraction are flat laws — age bands cannot be combined with the customer layer. (#18, separated in v2 Gate A)'
         : 'Leakage is one number while the customer layer is off: the engine cannot separate lost logos from shrinking accounts. Switch Logo retention on to separate them. (#18)';
+    }
+    if(key==='mon'){
+      return E.run(a).mechanisms.monetization
+        ? 'Components are homogeneous within a cohort (one per-customer state); contraction reaches variable usage only; usage and penetration caps are the only bounds on expansion; price growth loses no customers and no usage (no price elasticity); no discounts, ramps or minimum commitments. (#21, priced in v2 Gate B)'
+        : 'Expansion is a generic coefficient with no price, usage or adoption inside it, and it is unbounded. Switch Monetization on to price it and bound it. (#13, #21)';
     }
     if(key==='fcf') return 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)';
     if(key==='rd')  return 'R&D has no modelled effect on retention or expansion. (#16)';
@@ -3401,7 +3866,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(247,221,196,.5)','rgba(93,108,117,.5)'));
     flatLine(112, ax, yExp, d.expansion);
     arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(247,221,196,.85)','rgba(93,108,117,.85)'));
-    valve(300, yExp, 'expansion coefficient', fmtF('pct', expA.expansionCoefficientAnnual), 'expansionCoefficientAnnual', -72, 44);
+    var monOnMap = expRes.mechanisms.monetization, mmo = expRes.months[m-1].monetization;
+    valve(300, yExp, monOnMap ? 'expansion · price + usage + adoption' : 'expansion coefficient',
+          monOnMap ? 'bypassed' : fmtF('pct', expA.expansionCoefficientAnnual), monOnMap ? null : 'expansionCoefficientAnnual', -72, 44);
+    if(monOnMap){
+      /* v2 Gate B — the three named effects that ARE the expansion flow, and the
+         caps that bound them; drawn beneath the pipe where the coefficient sat */
+      aux(190, yExp+52, 200, 'price · usage · adoption', rn(mmo.priceARR)+' · '+rn(mmo.usageARR)+' · '+rn(mmo.adoptionARR), '#22303a');
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.fillText('bounded by the usage cap ('+Math.round(expA.monetization.components[1].unitsCap)+' units) and the penetration cap ('+pct(expA.monetization.components[1].penetrationCap,0)+')', 190, yExp+84);
+    }
     ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
     ctx.fillText('FLOW · Expansion '+basis, 190, yExp-34);
     ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
@@ -3414,8 +3888,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     flatLine(xLeak, xLeak, 0, d.leakage, aBot, 648);
     arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(143,160,170,.9)'));
     var cuOnMap = expRes.mechanisms.customerPhysics;
-    valve(xLeak, 580, cuOnMap ? 'persistence · derived L(1−C)' : 'persistence coefficient',
-          cuOnMap ? pct(expRes.derived.persistenceAnnualEffective,1) : fmtF('pct', expA.persistenceAnnual), cuOnMap ? null : 'persistenceAnnual', -216, -10);
+    var Pmap = expRes.derived.persistenceAnnualEffective;
+    valve(xLeak, 580, cuOnMap ? (Pmap===null ? 'persistence · emergent (mix)' : 'persistence · derived L(1−C)') : 'persistence coefficient',
+          cuOnMap ? (Pmap===null ? 'emergent' : pct(Pmap,1)) : fmtF('pct', expA.persistenceAnnual), cuOnMap ? null : 'persistenceAnnual', -216, -10);
     /* v2 Gate A — the customer laws sit beneath the persistence valve and feed
        it: an information link from each to the (now derived) persistence. */
     if(cuOnMap){
@@ -3895,7 +4370,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var host=document.getElementById('side');
       if(!activeScenario){
         host.innerHTML='<div class="sgrp"><div class="eyebrow">Scenarios</div>'+
-          '<div class="hint" style="margin-top:7px;line-height:1.7">Ten canonical scenarios. Each changes one declared '+
+          '<div class="hint" style="margin-top:7px;line-height:1.7">Twelve canonical scenarios. Each changes one declared '+
           'assumption against a frozen Base and reports only the consequences that scenario actually bears on.</div></div>'+
           SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard">'+
             '<h4>'+sc.n+' · '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
@@ -3947,9 +4422,29 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         row('Customers lost · this month', cu.logoChurn.toFixed(1)) +
         row('Leakage from lost logos · this month', reur(cu.logoChurnARR)) +
         row('Leakage from contraction · this month', reur(cu.contractionARR)) +
-        row('Persistence in force', pct(expRes.derived.persistenceAnnualEffective,1)+' = '+pct(expA.logoRetentionAnnual,1)+' × (1 − '+pct(expA.contractionAnnual,1)+')') +
+        row('Persistence in force', expRes.derived.persistenceAnnualEffective===null
+              ? 'emergent — contraction '+pct(expA.contractionAnnual,1)+' reaches usage revenue only'
+              : pct(expRes.derived.persistenceAnnualEffective,1)+' = '+pct(expA.logoRetentionAnnual,1)+' × (1 − '+pct(expA.contractionAnnual,1)+')') +
         (cmo ? row('R12M logo retention', pct(cmo.logoRetentionR12M,1)) : '') +
         '<div class="hint" style="margin-top:7px">Customers are a continuous cohort count, not individual accounts. ARPA is ARR ÷ customers — a readout, never a stock. Persistence is no longer an input here: it is what logo survival and contraction produce.</div></div>';
+    }
+
+    /* v2 Gate B — where the revenue comes from, only when the layer is on.
+       Every figure is engine state (months[].monetization, cohort rows) or
+       K.monetizationMeasures. */
+    if(em.monetization){
+      var mo = em.monetization, dm = expRes.derived.monetization, baseRow = K.rowAt(expRes.cohorts[0], m);
+      var hr = baseRow && baseRow.monetization ? baseRow.monetization.headroom[1] : null;
+      h+='<div class="sgrp" id="observe-monetization"><div class="eyebrow">Where the '+basis+' comes from</div>'+
+        row('Platform (fixed)', reur(mo.fixedARR)+' · '+pct(1-mo.variableShare)) +
+        row('Usage (variable)', reur(mo.variableARR)+' · '+pct(mo.variableShare)) +
+        row('Price effect · this month', reur(mo.priceARR)) +
+        row('Usage effect · this month', reur(mo.usageARR)) +
+        row('Adoption effect · this month', reur(mo.adoptionARR)) +
+        row('Contraction · this month', reur(mo.contractionARR)+' · usage only') +
+        (baseRow && baseRow.monetization ? row('Opening base · per customer', eur(baseRow.monetization.perCustomerClosing)+'/yr' + (hr && hr.units!==null ? ' · usage '+pct(hr.units,0)+' of cap' : '') + (hr ? ' · adoption '+pct(hr.penetration,0)+' of cap' : '')) : '') +
+        row('Opening '+basis+' derived', reur(dm.openingARRDerived)+' = customers × '+eur(dm.newLogoRevenuePerCustomer)) +
+        '<div class="hint" style="margin-top:7px">Revenue is customers × per-customer components, recomputed every month — one source of truth. The expansion coefficient ('+pct(dm.expansionCoefficientIgnored,1)+') is bypassed: expansion IS price + usage + adoption, and it saturates at the usage and penetration caps.</div></div>';
     }
 
     var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition;
@@ -3975,6 +4470,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        KPI layer actually supports, and it says so. */
     if(kpi){
       var cmd = em.customers ? K.customerMeasures(expRes, m) : null;
+      var mmd = em.monetization ? K.monetizationMeasures(expRes, m) : null;
       h+='<div class="sgrp"><div class="eyebrow">Installed-base evolution &middot; R12M</div>'+
         '<div class="recon" style="margin-top:5px">'+
         '<span>Opening cohort</span><b class="tot">100.0%</b>'+
@@ -3982,9 +4478,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           ? '<span>&minus; Lost logos</span><b class="down">&minus;'+pct(cmd.dollarChurnFromLogosR12M,1)+'</b>'+
             '<span>&minus; Contraction</span><b class="down">&minus;'+pct(cmd.dollarChurnFromContractionR12M,1)+'</b>'
           : '<span>&minus; Gross leakage impact</span><b class="down">&minus;'+pct(1-kpi.grr,1)+'</b>')+
-        '<span>+ Expansion impact</span><b class="up">+'+pct(kpi.expansionRate,1)+'</b>'+
+        (mmd
+          ? '<span>+ Price</span><b class="up">+'+pct(mmd.priceEffectR12M,1)+'</b>'+
+            '<span>+ Usage</span><b class="up">+'+pct(mmd.usageEffectR12M,1)+'</b>'+
+            '<span>+ Adoption</span><b class="up">+'+pct(mmd.adoptionEffectR12M,1)+'</b>'
+          : '<span>+ Expansion impact</span><b class="up">+'+pct(kpi.expansionRate,1)+'</b>')+
         '<span>= NRR</span><b class="tot">'+pct(kpi.nrr,1)+'</b>'+
-        '</div><div class="hint" style="margin-top:7px">'+(cmd
+        '</div><div class="hint" style="margin-top:7px">'+(mmd
+          ? 'With Monetization on, expansion separates into price, usage and adoption effects — three flows the engine produces from the component state, measured on the same frozen R12M cohort; contraction is the usage that survivors gave up.'
+          : '')+(cmd
           ? 'With Customer Physics on, gross leakage separates into euros that left with departing customers and euros that stayed customers but shrank — two flows the engine now produces, measured on the same frozen R12M cohort.'
           : 'With the customer layer off the engine combines churn and contraction in Gross Leakage — it cannot say how much of the loss was lost logos versus shrinking accounts. Switch Logo retention on to separate them.')+'</div></div>';
     }
@@ -4006,6 +4508,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           (snap.customers!==null ? row('Customers now', snap.customers.toFixed(1)+' of '+snap.initialCustomers.toFixed(1)+' acquired · '+pct(snap.customers/snap.initialCustomers)+' survive') +
                                    row('ARPA now', reur(snap.arpa)) +
                                    row('Leakage this month', reur(snap.logoChurnARR)+' lost logos · '+reur(snap.contractionARR)+' contraction') : '') +
+          (snap.perCustomerRevenue!==null ? row('Per customer', eur(snap.perCustomerRevenue)+'/yr · '+reur(snap.fixedARR)+' platform + '+reur(snap.variableARR)+' usage') +
+                                             row('Expansion this month', reur(snap.priceARR)+' price · '+reur(snap.usageARR)+' usage · '+reur(snap.adoptionARR)+' adoption') +
+                                             (snap.headroom && snap.headroom[1] ? row('Headroom used', (snap.headroom[1].units!==null ? pct(snap.headroom[1].units,0)+' of the usage cap · ' : '')+pct(snap.headroom[1].penetration,0)+' of the penetration cap') : '') : '') +
           provenanceRows(c) +
           capitalRows(c, m)
           : '<div class="hint">Not yet born at this moment.</div>')+
@@ -4100,8 +4605,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     h+='<div class="sgrp"><div class="eyebrow">The stock sets its own rates</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
-      'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-Math.pow(expA.persistenceAnnual,1/12),3)+
-      '</b>. Expansion is the retained balance × '+pct(Math.pow(1+expA.expansionCoefficientAnnual,1/12)-1,3)+
+      (expRes.derived.monthlyPersistence===null
+        ? 'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-expRes.derived.customers.monthlyLogoRetention,3)+' (departing customers) + '+pct(expRes.derived.customers.monthlyContraction,3)+' of usage revenue</b>. '+
+          'Expansion is the surviving customers\' component state repriced, used more and adopted more — not a coefficient on the balance'
+        : 'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-expRes.derived.monthlyPersistence,3)+
+          '</b>. Expansion is the retained balance × '+pct(expRes.derived.monthlyExpansion,3))+
       '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
       'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
 
@@ -4111,6 +4619,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var qx = expRes.derived.acquisition;
     var satOn2 = E.saturationEnabled(expA), lagOn2 = expRes.derived.acquisitionLagMonths>0, costOn2 = expA.expansionCostPerARR>0;
     var cuOn2 = expRes.mechanisms.customerPhysics, mcu2 = expRes.months[m-1].customers;
+    var monOn2 = expRes.mechanisms.monetization, mmo2 = expRes.months[m-1].monetization;
     h+='<div class="sgrp"><div class="eyebrow">Mechanisms on the map</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
       '<b style="color:'+(satOn2?'var(--exp)':'var(--ink-3)')+'">Acquisition capacity · '+(satOn2?fmtF('cap',expA.maxMonthlyNewARR):'off')+'.</b> '+
@@ -4130,10 +4639,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         : 'Expansion is free. The line is drawn dim because it is €0.')+
       '<br><br><b style="color:'+(cuOn2?'var(--exp)':'var(--ink-3)')+'">Customer physics · '+(cuOn2?'logo retention '+pct(expA.logoRetentionAnnual,1)+', contraction '+pct(expA.contractionAnnual,1):'off')+'.</b> '+
       (cuOn2
-        ? 'The persistence valve is no longer set: it reads <b style="color:var(--ink)">'+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)</b>, generated by the two customer valves beneath it. '+
+        ? 'The persistence valve is no longer set: it reads <b style="color:var(--ink)">'+(expRes.derived.persistenceAnnualEffective===null ? 'emergent' : pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)')+'</b>, generated by the two customer valves beneath it. '+
           'Leakage this month is '+reur(mcu2.logoChurnARR)+' from '+mcu2.logoChurn.toFixed(1)+' departing customers and '+reur(mcu2.contractionARR)+' from survivors shrinking; '+mcu2.closing.toFixed(0)+' customers remain. '+
           'Same pipes, same stock: the layer explains the leakage flow, it does not add one.'
         : 'Persistence is an input. Switch Logo retention on (Company layer) and persistence becomes what customer survival and contraction produce.')+
+      '<br><br><b style="color:'+(monOn2?'var(--exp)':'var(--ink-3)')+'">Monetization physics · '+(monOn2?'on':'off')+'.</b> '+
+      (monOn2
+        ? 'The expansion valve is bypassed: the expansion pipe carries <b style="color:var(--ink)">price + usage + adoption</b> — '+reur(mmo2.priceARR)+' + '+reur(mmo2.usageARR)+' + '+reur(mmo2.adoptionARR)+' this month — produced by per-customer components (platform '+reur(mmo2.fixedARR)+', usage '+reur(mmo2.variableARR)+'). '+
+          'Usage and adoption are bounded by their caps, so this is the first version of the map on which expansion can saturate. Contraction reaches usage only, so persistence is emergent.'
+        : 'Expansion is one coefficient with no price, usage or adoption inside it. Switch Monetization on (Company layer) and the expansion pipe is fed by named, bounded effects.')+
       '</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
@@ -4167,7 +4681,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        (Customer Physics) rather than input, and the regime must follow what is in force */
     var gm2 = res.derived.monthlyPersistence;
     var em2 = res.derived.monthlyExpansion;
-    var g2 = gm2 * (1 + em2);
+    /* v2 Gate B — under Monetization neither is a law; the run reports the
+       opening base's emergent first-month multiplier instead */
+    var g2 = (gm2===null || em2===null) ? res.derived.emergentMonthlyMultiplier : gm2 * (1 + em2);
     return { g:g2, band: g2 < 1 - 1e-12 ? 'shrink' : (g2 > 1 + 1e-12 ? 'grow' : 'hold') };
   }
   function consequencePanel(sc){
@@ -4186,6 +4702,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var rows = [], has = function(t){ return sc.shows.indexOf(t)>=0; };
     var qb = baseRes.derived.acquisition, qx = expRes.derived.acquisition;
     if(has('arr'))     rows.push(row('M60 '+basis, x.finalARR - b.finalARR, undefined, true));
+    /* v2 Gate B — monetization rows */
+    if(has('moneffects') && x.cumPriceARR!==null){
+      var mx12 = K.monetizationMeasures(expRes, H);
+      rows.push(row('Cumulative price effect (Experiment)', reur(x.cumPriceARR), 1));
+      rows.push(row('Cumulative usage effect (Experiment)', reur(x.cumUsageARR), 1));
+      rows.push(row('Cumulative adoption effect (Experiment)', reur(x.cumAdoptionARR), 1));
+      rows.push(row('R12M expansion at M60', (b.cumPriceARR===null ? pct(K.measureR12M(baseRes,H).expansionRate,1)+' (coefficient)' : pct(K.measureR12M(baseRes,H).expansionRate,1))+' → '+pct(mx12.expansionR12M,1)+' = '+pct(mx12.priceEffectR12M,1)+' price + '+pct(mx12.usageEffectR12M,1)+' usage + '+pct(mx12.adoptionEffectR12M,1)+' adoption', mx12.expansionR12M - K.measureR12M(baseRes,H).expansionRate));
+      if(mx12.baseHeadroom && mx12.baseHeadroom[1]) rows.push(row('Opening base headroom used at M60', pct(mx12.baseHeadroom[1].units,0)+' of the usage cap · '+pct(mx12.baseHeadroom[1].penetration,0)+' of the penetration cap', 0));
+    }
     /* v2 Gate A — customer rows, only when both worlds carry the layer */
     if(has('customers') && b.finalCustomers!==null && x.finalCustomers!==null){
       var cb10 = K.customerMeasures(baseRes, H), cx10 = K.customerMeasures(expRes, H);
@@ -4269,6 +4794,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span>max |ΔNRR| over all measurement dates</span><b>'+wNRR.toExponential(1)+'</b>'+
         '<span>expansion realisation cost</span><b>'+expA.expansionCostPerARR.toFixed(2)+'× both</b>'+
         '</div><div class="hint" style="margin-top:8px">The recurring state is identical to floating-point precision. Only the realisation cost line differs, because one world realises more expansion to reach the same ARR.</div></div>';
+    }
+
+    /* Scenario 12 proves its own premise on screen: same start, different GRR. */
+    if(has('mixmatch')){
+      var kb12 = K.measureR12M(baseRes, 12), kx12 = K.measureR12M(expRes, 12), b1 = baseRes.months[0], x1 = expRes.months[0];
+      h += '<div class="sgrp"><div class="eyebrow">Same start, different dollar retention</div><div class="recon" style="margin-top:5px">'+
+        '<span>opening '+basis+'</span><b>'+reur(b1.openingARR)+' · '+reur(x1.openingARR)+'</b>'+
+        '<span>customers · ARPA</span><b>'+b1.customers.opening.toFixed(0)+' · '+reur(b1.customers.arpaOpening)+' both</b>'+
+        '<span>logo retention · contraction law</span><b>'+pct(baseA.logoRetentionAnnual,0)+' · '+pct(baseA.contractionAnnual,0)+' both</b>'+
+        '<span>M1 lost-logo leakage</span><b>'+reur(b1.customers.logoChurnARR)+' · '+reur(x1.customers.logoChurnARR)+'</b>'+
+        '<span>M1 contraction</span><b style="color:var(--warn)">'+reur(b1.monetization.contractionARR)+' · '+reur(x1.monetization.contractionARR)+'</b>'+
+        '<span>R12M GRR at M12</span><b style="color:var(--warn)">'+pct(kb12.grr,2)+' · '+pct(kx12.grr,2)+'</b>'+
+        '</div><div class="hint" style="margin-top:8px">Identical customers and customer laws; the mix alone moves GRR, because contraction can only reach usage revenue.</div></div>';
     }
 
     /* Scenario 10 proves its own premise on screen: same ARR, GRR and NRR. */
@@ -4378,6 +4916,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0 || keys.indexOf('maxMonthlyNewARR')>=0) bounds.push('acq');
     if(keys.indexOf('acquisitionLagMonths')>=0) bounds.push('lag');
     if(keys.indexOf('expansionCoefficientAnnual')>=0 || keys.indexOf('expansionCostPerARR')>=0) bounds.push('exp');
+    if(keys.indexOf('logoRetentionAnnual')>=0 || keys.indexOf('contractionAnnual')>=0 || keys.indexOf('newLogoARPA')>=0) bounds.push('cust');
+    if(keys.some(function(k3){ return k3.indexOf('monetization')===0; })) bounds.push('mon');
     if(keys.indexOf('rd')>=0) bounds.push('rd');
     bounds.push('fcf');            // relevant whenever a financial consequence is displayed
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>Model boundaries</summary><ul>'+
@@ -4421,10 +4961,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var LABEL={sm:'S&M', cacPerARR:'CAC coefficient', persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
-             logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo'};
+             logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization'};
   var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur',
                  expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo',
-                 logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa'};
+                 logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa', monetization:'onoff'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */
@@ -4446,8 +4986,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return;
     }
     var rows = changed.map(function(c){
-      var f = LABEL_FMT[c.key]||'eur';
-      return '<div class="exp-row"><span>'+esc(LABEL[c.key]||c.key)+'</span>'+
+      var Fk = forceOf(c.key) || {};                       /* v2: nested monetization keys label from their force */
+      var f = LABEL_FMT[c.key]||Fk.f||'eur';
+      return '<div class="exp-row"><span>'+esc(LABEL[c.key]||Fk.label||c.key)+'</span>'+
         '<b>'+fmtF(f,c.from)+' \u2192 '+fmtF(f,c.to)+'</b></div>';
     }).join('');
     host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+

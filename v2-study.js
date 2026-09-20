@@ -13,6 +13,7 @@ var K = require('./kpi.js');
 var A = E.DEFAULT_ASSUMPTIONS;
 
 var m = function (v) { return '€' + (v / 1e6).toFixed(2) + 'm'; };
+var sm = function (v) { return (v >= 0 ? '+' : '−') + '€' + Math.abs(v / 1e6).toFixed(2) + 'm'; };
 var pc = function (v, d) { return (v * 100).toFixed(d === undefined ? 1 : d) + '%'; };
 var L = function (w) { return '─'.repeat(w || 96); };
 function pad(s, n) { s = String(s); return s + ' '.repeat(Math.max(0, n - s.length)); }
@@ -77,4 +78,79 @@ console.log('\n  ARR per new logo (world X): €20,000 (opening ARPA) vs €10,0
   console.log('    ' + pad(k === null ? 'opening ARPA €20,000' : '€' + k, 22) + ' M60 ARR ' + m(r.months[59].closingARR) + ' (Δ vs X €' + maxOver(runs[2].r, r, function (mm) { return mm.closingARR; }).toExponential(1) + ')' +
               ' · customers ' + c.companyCustomersClosing.toFixed(0) + ' · ARPA €' + c.arpaClosing.toFixed(0) + ' · logo retention ' + pc(c.logoRetentionR12M, 1));
 });
+console.log('\n' + L());
+
+/* ================================================================== *
+ * B. MONETIZATION PHYSICS — where survivor revenue change comes from
+ * ================================================================== */
+console.log('\nB. MONETIZATION PHYSICS — revenue derived from per-customer components');
+console.log(L());
+var MSPEC = { components: [
+  { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0.03 },
+  { name: 'usage', kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0.02, usageGrowthAnnual: 0.15, unitsCap: 300, adoptionAnnual: 0.10, penetrationCap: 0.95 } ] };
+var CUW = { logoRetentionAnnual: 0.92, contractionAnnual: 0.05 };
+var rB = E.run(Object.assign({}, A, CUW, { monetization: MSPEC }));
+console.log('  Opening base 1,000 customers × (platform €12,000 + usage 80% × 100 units × €100) = €20.0m ARR (derived; the €20m input is not read).');
+console.log('  Laws: L 92%, C 5% (variable units only); platform price +3%/yr; usage price +2%/yr, usage +15%/yr to a 300-unit cap, adoption 10%/yr of the remaining non-adopters to 95%.');
+console.log('  The generic expansion coefficient (10%) is bypassed.\n');
+console.log('  R12M decomposition on the frozen eligible cohort (K.monetizationMeasures):');
+console.log('  ' + pad('T', 6) + rpad('opening ARR', 13) + rpad('− logos', 9) + rpad('− contr.', 10) + rpad('+ price', 9) + rpad('+ usage', 9) + rpad('+ adopt.', 9) + rpad('= NRR', 9) + rpad('GRR', 9) + rpad('residual', 10) + rpad('var. share', 12));
+console.log('  ' + L(105));
+[12, 24, 36, 48, 60].forEach(function (T) {
+  var mm = K.monetizationMeasures(rB, T);
+  console.log('  ' + pad(T, 6) + rpad(m(mm.openingARR), 13) + rpad(pc(mm.logoChurnR12M, 2), 9) + rpad(pc(mm.contractionR12M, 2), 10) + rpad(pc(mm.priceEffectR12M, 2), 9) + rpad(pc(mm.usageEffectR12M, 2), 9) + rpad(pc(mm.adoptionEffectR12M, 2), 9) +
+              rpad(pc(mm.nrrR12M, 2), 9) + rpad(pc(mm.grrR12M, 2), 9) + rpad(mm.identityResidual.toExponential(1), 10) + rpad(pc(mm.companyVariableShare, 1), 12));
+});
+var b60 = rB.months[59];
+console.log('\n  M60: ARR ' + m(b60.closingARR) + ' = fixed ' + m(b60.monetization.fixedARR) + ' + variable ' + m(b60.monetization.variableARR) + ' · cumulative expansion: price ' + m(b60.monetization.cumulative.priceARR) +
+            ' + usage ' + m(b60.monetization.cumulative.usageARR) + ' + adoption ' + m(b60.monetization.cumulative.adoptionARR) + ' = ' + m(b60.cumulative.expansion));
+var hb = rB.cohorts[0].rows[59].monetization.headroom[1];
+console.log('  Opening base at M60: per-customer revenue €' + rB.cohorts[0].rows[59].monetization.perCustomerClosing.toFixed(0) + ' · usage headroom used ' + pc(hb.units, 1) + ' of the cap · penetration ' + pc(hb.penetration, 1) + ' of its cap.');
+
+/* --- B.2 the matched-start pair: mix alone changes dollar retention --- */
+console.log('\n  B.2  Same opening ARR, customers, ARPA, L and C — only the fixed/variable MIX differs (no growth drivers):');
+var pairs = [
+  ['all fixed  (platform €20,000)',            { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000 }] }],
+  ['60 / 40    (€12,000 + 80% × 100 × €100)',  { components: [{ kind: 'fixed', units: 1, priceAnnual: 12000 }, { kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, penetrationCap: 0.8 }] }],
+  ['all variable (100% × 200 × €100)',         { components: [{ kind: 'variable', penetration: 1, units: 200, priceAnnual: 100, penetrationCap: 1 }] }]
+];
+console.log('  ' + pad('mix', 44) + rpad('M1 logo churn', 15) + rpad('M1 contraction', 16) + rpad('GRR R12M @24', 14) + rpad('NRR R12M @24', 14) + rpad('M60 ARR', 12) + rpad('M60 cash', 12));
+console.log('  ' + L(127));
+pairs.forEach(function (pr) {
+  var rr = E.run(Object.assign({}, A, CUW, { monetization: pr[1] })), k = K.measureR12M(rr, 24), m1 = rr.months[0];
+  console.log('  ' + pad(pr[0], 44) + rpad(m(m1.customers.logoChurnARR), 15) + rpad(m(m1.monetization.contractionARR), 16) + rpad(pc(k.grr, 2), 14) + rpad(pc(k.nrr, 2), 14) + rpad(m(rr.months[59].closingARR), 12) + rpad(m(rr.months[59].cashClosing), 12));
+});
+console.log('  Contraction reaches variable revenue only: the same 5% contraction law costs the all-fixed world nothing and the all-variable world 5% a year.');
+console.log('  Dollar persistence is emergent here — L(1 − C) = 87.4% is what it WOULD be if every euro were variable.');
+
+/* --- B.3 saturation: a closed cohort converges to its ceiling --- */
+console.log('\n  B.3  A closed cohort (no acquisition, no churn, no contraction): usage 30%/yr to a 300-unit cap, adoption 25%/yr to 95%, no price growth:');
+var closed = E.run(Object.assign({}, A, { sm: 0, logoRetentionAnnual: 1, contractionAnnual: 0,
+  monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 12000 }, { kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, usageGrowthAnnual: 0.30, unitsCap: 300, adoptionAnnual: 0.25, penetrationCap: 0.95 }] } }), {}, 120);
+var ceiling = 12000 + 0.95 * 300 * 100;
+console.log('  ' + pad('month', 8) + rpad('per-customer €', 16) + rpad('units', 8) + rpad('penetration', 13) + rpad('expansion €/mo', 16) + rpad('of ceiling', 12));
+console.log('  ' + L(73));
+[1, 12, 24, 36, 48, 60, 84, 120].forEach(function (t) {
+  var rw = closed.cohorts[0].rows[t - 1], st = rw.monetization.state[1];
+  console.log('  ' + pad(t, 8) + rpad(rw.monetization.perCustomerClosing.toFixed(0), 16) + rpad(st.units.toFixed(1), 8) + rpad(pc(st.penetration, 1), 13) + rpad('€' + rw.expansion.toFixed(0), 16) + rpad(pc(rw.monetization.perCustomerClosing / ceiling, 2), 12));
+});
+console.log('  Ceiling = fixed + penetration cap × units cap × price = €' + ceiling + '. Expansion saturates: FINDINGS #13 / #30 are bounded under this layer, by the caps, not by a coefficient.');
+
+/* --- B.4 price or usage? two worlds with the same year-1 NRR --- */
+console.log('\n  B.4  "How much of the revenue change came from price?" — two worlds matched on R12M NRR at T = 12:');
+var specPrice = { components: [{ kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0.06 }, { kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0.06, penetrationCap: 0.8 }] };
+var rP = E.run(Object.assign({}, A, CUW, { monetization: specPrice })), targetNRR = K.measureR12M(rP, 12).nrr;
+function usageWorld(u) { return E.run(Object.assign({}, A, CUW, { monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 12000 }, { kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, usageGrowthAnnual: u, unitsCap: 250, penetrationCap: 0.8 }] } })); }
+var lo = 0, hi = 3, rU;
+for (var it = 0; it < 80; it++) { var mid = (lo + hi) / 2; rU = usageWorld(mid); if (K.measureR12M(rU, 12).nrr < targetNRR) lo = mid; else hi = mid; }
+var uStar = (lo + hi) / 2; rU = usageWorld(uStar);
+console.log('  P · price +6%/yr on every component, no usage growth        vs   U · usage +' + pc(uStar, 1) + '/yr to a 250-unit cap, no price growth');
+console.log('  ' + pad('T', 6) + rpad('NRR P', 9) + rpad('NRR U', 9) + rpad('price P', 9) + rpad('usage U', 9) + rpad('ARR P', 11) + rpad('ARR U', 11) + rpad('U − P', 10) + rpad('headroom U', 12));
+console.log('  ' + L(86));
+[12, 24, 36, 48, 60].forEach(function (T) {
+  var mp = K.monetizationMeasures(rP, T), mu = K.monetizationMeasures(rU, T);
+  console.log('  ' + pad(T, 6) + rpad(pc(mp.nrrR12M, 2), 9) + rpad(pc(mu.nrrR12M, 2), 9) + rpad(pc(mp.priceEffectR12M, 2), 9) + rpad(pc(mu.usageEffectR12M, 2), 9) + rpad(m(rP.months[T - 1].closingARR), 11) + rpad(m(rU.months[T - 1].closingARR), 11) +
+              rpad(sm(rU.months[T - 1].closingARR - rP.months[T - 1].closingARR), 10) + rpad(pc(mu.baseHeadroom[1].units, 1), 12));
+});
+console.log('  Identical at T = 12 by construction; they diverge because usage runs into its cap and price does not. The ARR-only world reports one expansion number for both.');
 console.log('\n' + L());

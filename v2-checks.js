@@ -89,7 +89,7 @@ function maxDiff(r1, r2, f) { var w = 0; for (var q = 0; q < r1.months.length; q
 /* ================================================================== *
  * GATE A — CUSTOMER PHYSICS
  * ================================================================== */
-var CUW = { logoRetentionAnnual: 0.92, contractionAnnual: 0.05 };
+var CUW = { logoRetentionAnnual: 0.92, contractionAnnual: 0.05 };   /* the Gate A world used across gates */
 (function gateA() {
   var r = E.run(Object.assign({}, A, CUW));
   ok('A-ON', 'logoRetentionAnnual set → customerPhysics on; persistence is DERIVED L(1−C) and the persistence input is reported as ignored',
@@ -229,6 +229,140 @@ var CUW = { logoRetentionAnnual: 0.92, contractionAnnual: 0.05 };
   var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8');
   ok('A-MODULE', 'the built product inlines customers.js BEFORE the engine (the browser branch resolves it on the global)',
      built.indexOf('root.SaaSPhysicsCustomers = factory()') > 0 && built.indexOf('root.SaaSPhysicsCustomers = factory()') < built.indexOf("var CU = deps.customers"), '');
+})();
+
+/* ================================================================== *
+ * GATE B — MONETIZATION PHYSICS
+ * ================================================================== */
+var MO = require('./monetization.js');
+var MSPEC = { components: [
+  { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0.03 },
+  { name: 'usage', kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0.02, usageGrowthAnnual: 0.15, unitsCap: 300, adoptionAnnual: 0.10, penetrationCap: 0.95 } ] };
+var MW = Object.assign({}, CUW, { monetization: MSPEC });
+(function gateB() {
+  var r = E.run(Object.assign({}, A, MW));
+  ok('B-ON', 'monetization set (with Customer Physics on) → monetization and genericExpansionBypassed on; persistence and expansion reported as emergent; opening ARR derived = 1,000 × €20,000',
+     r.mechanisms.monetization && r.mechanisms.genericExpansionBypassed && r.derived.persistenceAnnualEffective === null && /emergent/.test(r.derived.persistenceSource) && /emergent/.test(r.derived.expansionSource) &&
+     r.derived.monetization.openingARRDerived === 20000000 && r.derived.monetization.newLogoRevenuePerCustomer === 20000 && r.months[0].openingARR === 20000000, r.derived.persistenceSource);
+  ok('B-REQUIRES-A', 'monetization without Customer Physics is rejected at the boundary (RangeError), never silently run with a carried balance',
+     throws(function () { E.run(Object.assign({}, A, { monetization: MSPEC })); }), '');
+
+  /* --- ONE source of truth: cohort MRR is n × per-customer revenue ÷ 12, every row --- */
+  var worst = 0, where = '', rows = 0;
+  r.cohorts.forEach(function (c) { c.rows.forEach(function (rw) {
+    rows++;
+    var st = rw.customers.closing * rw.monetization.perCustomerClosing / 12;
+    var d = Math.max(Math.abs(st - rw.closingMRR), Math.abs(rw.monetization.fixedARR + rw.monetization.variableARR - rw.closingARR),
+                     Math.abs(MO.revenue(rw.monetization.state, rw.monetization.state.map(function (k) { return { fixed: k.fixed }; })).total - rw.monetization.perCustomerClosing));
+    if (d > worst) { worst = d; where = c.id + ' t=' + rw.t; }
+  }); });
+  ok('B-ONE-SOURCE', 'every cohort row: customers × per-customer revenue ÷ 12 = closing MRR (the balance IS the component state); fixed ARR + variable ARR = closing ARR; the stored state re-prices to the recorded per-customer revenue',
+     worst < EPS, rows + ' rows; worst |Δ| €' + ex(worst) + (worst ? ' at ' + where : ''));
+  worst = 0;
+  r.months.forEach(function (m) {
+    var sf = 0, sv = 0, sp = 0, su = 0, sa = 0, sc = 0;
+    r.cohorts.forEach(function (c) { var rw = K.rowAt(c, m.t); if (!rw) return; sf += rw.monetization.fixedARR; sv += rw.monetization.variableARR; sp += rw.monetization.priceARR; su += rw.monetization.usageARR; sa += rw.monetization.adoptionARR; sc += rw.monetization.contractionARR; });
+    var mo = m.monetization;
+    worst = Math.max(worst, Math.abs(mo.fixedARR - sf), Math.abs(mo.variableARR - sv), Math.abs(mo.priceARR - sp), Math.abs(mo.usageARR - su), Math.abs(mo.adoptionARR - sa), Math.abs(mo.contractionARR - sc),
+                     Math.abs(mo.fixedARR + mo.variableARR - m.closingARR), Math.abs(mo.priceARR + mo.usageARR + mo.adoptionARR - m.expansion), Math.abs(m.customers.contractionARR - mo.contractionARR),
+                     Math.abs(m.leakage - (m.customers.logoChurnARR + mo.contractionARR)));
+  });
+  ok('B-ONE-SOURCE', 'company monetization record = Σ cohort sub-records; fixed + variable = company ARR; price + usage + adoption = the expansion flow; contraction = the customer record\'s contraction; leakage = logo churn + contraction — every month',
+     worst < EPS, 'worst residual €' + ex(worst));
+
+  /* --- the bridge through the four named effects --- */
+  worst = 0;
+  r.cohorts.forEach(function (c) { c.rows.forEach(function (rw, i) {
+    if (c.acquisitionMonth > 0 && i === 0) return;
+    var mo = rw.monetization, cu = rw.customers;
+    worst = Math.max(worst, Math.abs(rw.openingARR - cu.logoChurnARR - mo.contractionARR + mo.priceARR + mo.usageARR + mo.adoptionARR - rw.closingARR),
+                     Math.abs(rw.expansion - (mo.priceARR + mo.usageARR + mo.adoptionARR)), Math.abs(rw.leakage - (cu.logoChurnARR + mo.contractionARR)));
+  }); });
+  ok('B-BRIDGE', 'every ageing row: opening − logo churn − contraction + price + usage + adoption = closing; the generic expansion field IS price + usage + adoption; leakage IS logo churn + contraction',
+     worst < EPS, 'worst residual €' + ex(worst));
+  ok('B-BRIDGE', 'the v1.3 company bridge still closes (opening + new + expansion − leakage = closing) with both layers on', r.months.every(function (m) { return Math.abs(E.bridge(r, m.t).residual) < EPS; }), '');
+
+  /* --- bypass: the generic coefficient, newLogoARPA and start.openingARR are not read --- */
+  var rX = E.run(Object.assign({}, A, MW, { expansionCoefficientAnnual: 0.40, newLogoARPA: 5000, persistenceAnnual: 0.5 }), { openingARR: 5000000 });
+  var acc = { fields: 0, worst: 0, where: '', missing: [] }; walkCompare(r.months, rX.months, 'months', acc);
+  ok('B-BYPASS', 'with Monetization on, expansionCoefficientAnnual 0.10 → 0.40, newLogoARPA → €5,000, persistenceAnnual → 0.50 and start.openingARR → €5m change nothing in any month field (none is read); the ignored values are reported',
+     acc.worst === 0 && acc.missing.length === 0 && rX.derived.monetization.expansionCoefficientIgnored === 0.40 && rX.derived.monetization.newLogoARPAIgnored === 5000 && rX.derived.monetization.openingARRInputIgnored === 5000000 && rX.derived.monetization.openingARRDerived === 20000000,
+     acc.fields + ' fields identical');
+
+  /* --- saturation: caps make expansion converge (FINDINGS #13 / #30 under this layer) --- */
+  var closed = E.run(Object.assign({}, A, { sm: 0, logoRetentionAnnual: 1, contractionAnnual: 0,
+    monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 12000 }, { kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, usageGrowthAnnual: 0.30, unitsCap: 300, adoptionAnnual: 0.25, penetrationCap: 0.95 }] } }), {}, 120);
+  var ceiling = 12000 + 0.95 * 300 * 100, path = closed.cohorts[0].rows.map(function (rw) { return rw.monetization.perCustomerClosing; });
+  var mono = path.every(function (v, i) { return i === 0 || v >= path[i - 1] - 1e-9; }), below = path.every(function (v) { return v <= ceiling + 1e-9; });
+  var lastRow = closed.cohorts[0].rows[119];
+  var m1exp = closed.cohorts[0].rows[0].expansion, capMonth = null;
+  closed.cohorts[0].rows.forEach(function (rw) { if (capMonth === null && rw.monetization.headroom[1].units > 0.999999) capMonth = rw.t; });
+  var declining = closed.cohorts[0].rows.slice(capMonth).every(function (rw, i, arr) { return i === 0 || rw.expansion <= arr[i - 1].expansion + 1e-9; });
+  ok('B-SATURATION', 'a closed cohort (no acquisition, no churn) with usage 30%/yr to a 300-unit cap and adoption 25%/yr to 95%: per-customer revenue rises monotonically, never exceeds the ceiling €' + ceiling + ' (fixed + penCap × cap × price), is within 1% of it by M120 with the usage cap reached and adoption at 99% of its cap, and expansion declines monotonically once the cap binds to < 5% of its M1 value — expansion SATURATES under this layer',
+     mono && below && lastRow.monetization.perCustomerClosing > 0.99 * ceiling && lastRow.monetization.headroom[1].units > 0.999999 && lastRow.monetization.headroom[1].penetration > 0.99 && capMonth !== null && declining && lastRow.expansion < 0.05 * m1exp,
+     'M1 €' + path[0].toFixed(0) + ' → M60 €' + path[59].toFixed(0) + ' → M120 €' + path[119].toFixed(2) + ' (ceiling €' + ceiling + '); M120 expansion €' + lastRow.expansion.toExponential(1));
+
+  /* --- price only: exact compounding --- */
+  var priceOnly = E.run(Object.assign({}, A, { sm: 0, logoRetentionAnnual: 1, contractionAnnual: 0,
+    monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000, priceGrowthAnnual: 0.05 }] } }));
+  var pw = 0; priceOnly.cohorts[0].rows.forEach(function (rw) { pw = Math.max(pw, Math.abs(rw.monetization.perCustomerClosing - 20000 * Math.pow(1.05, rw.t / 12))); });
+  var pk = K.monetizationMeasures(priceOnly, 24);
+  ok('B-PRICE', 'price growth alone (5%/yr, one fixed component, no churn): per-customer revenue = €20,000 × 1.05^(t/12) exactly; R12M NRR = 105% with the whole of it a price effect, usage and adoption 0',
+     pw < 1e-6 && Math.abs(pk.nrrR12M - 1.05) < 1e-9 && Math.abs(pk.priceEffectR12M - 0.05) < 1e-9 && pk.usageEffectR12M === 0 && pk.adoptionEffectR12M === 0, 'worst |Δ| €' + ex(pw) + ' · NRR ' + (pk.nrrR12M * 100).toFixed(4) + '%');
+
+  /* --- the matched-start experiment: mix alone changes GRR --- */
+  var allFixed = Object.assign({}, CUW, { monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000, priceGrowthAnnual: 0 }] } });
+  var mixed = Object.assign({}, CUW, { monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0 }, { kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0, usageGrowthAnnual: 0, unitsCap: null, adoptionAnnual: 0, penetrationCap: 0.8 }] } });
+  var rF = E.run(Object.assign({}, A, allFixed)), rM = E.run(Object.assign({}, A, mixed));
+  var kF = K.customerMeasures(rF, 24), kM = K.customerMeasures(rM, 24), gF = K.measureR12M(rF, 24), gM2 = K.measureR12M(rM, 24);
+  ok('B-MIX-MATCHED', 'same opening ARR (€20m), customers (1,000), ARPA (€20,000), L (92%) and C (5%), no growth drivers: all-fixed vs 60/40 fixed/variable — identical logo churn, but contraction €0 in the all-fixed world (contraction reaches variable revenue only), so GRR differs: the revenue MIX alone changes dollar retention — a result neither the ARR-only nor the customer world can produce',
+     rF.months[0].openingARR === rM.months[0].openingARR && Math.abs(rF.months[0].customers.logoChurn - rM.months[0].customers.logoChurn) < 1e-9 && rF.months[0].monetization.contractionARR === 0 && rM.months[0].monetization.contractionARR > 0 &&
+     Math.abs(kF.logoRetentionR12M - kM.logoRetentionR12M) < 1e-9 && gF.grr > gM2.grr + 0.01 && Math.abs(gF.grr - 0.92) < 1e-9,
+     'R12M GRR ' + (gF.grr * 100).toFixed(2) + '% (all fixed) vs ' + (gM2.grr * 100).toFixed(2) + '% (mixed); logo retention ' + (kF.logoRetentionR12M * 100).toFixed(1) + '% both');
+
+  /* --- measurement identities --- */
+  var mm = K.monetizationMeasures(r, 36), k36 = K.measureR12M(r, 36), c36 = K.customerMeasures(r, 36);
+  ok('B-DECOMPOSITION', 'monetizationMeasures at T=36: 1 − logo churn − contraction + price + usage + adoption = NRR (identity residual < €1e-6); GRR and expansion agree with measureR12M and customerMeasures to 1e-9',
+     Math.abs(mm.identityResidual) < EPS && Math.abs(mm.grrR12M - k36.grr) < 1e-9 && Math.abs(mm.expansionR12M - k36.expansionRate) < 1e-9 && Math.abs(mm.nrrR12M - k36.nrr) < 1e-9 && Math.abs(mm.contractionR12M - c36.dollarChurnFromContractionR12M) < 1e-9,
+     'NRR ' + (mm.nrrR12M * 100).toFixed(2) + '% = 100 − ' + (mm.logoChurnR12M * 100).toFixed(2) + ' − ' + (mm.contractionR12M * 100).toFixed(2) + ' + ' + (mm.priceEffectR12M * 100).toFixed(2) + ' + ' + (mm.usageEffectR12M * 100).toFixed(2) + ' + ' + (mm.adoptionEffectR12M * 100).toFixed(2));
+
+  /* --- provenance: cohorts are born from the per-customer state stamped at spend --- */
+  var rL = E.run(Object.assign({}, A, MW, { acquisitionLagMonths: 6, maxMonthlyNewARR: 2e6 }));
+  var provOK = rL.cohorts.slice(1).every(function (c) {
+    var e = rL.acquisitionLedger.filter(function (x) { return x.cohortId === c.id; })[0];
+    return e && e.perCustomerAtSpend && Math.abs(c.initialCustomers - e.newARR / e.newLogoARPAAtSpend) < 1e-9 && e.newLogoARPAAtSpend === 20000 &&
+           Math.abs(c.rows[0].monetization.perCustomerClosing - 20000) < 1e-9 && rL.acquisitionLedger.every(function (x) { return x.perCustomerAtSpend !== null; });
+  });
+  var stA = [{ penetration: 1, units: 1, price: 9000, fixed: true }, { penetration: 0.5, units: 10, price: 100, fixed: false, unitsCap: 20, penetrationCap: 1 }];
+  var synthB = E.realiseCohort(9, [{ spendMonth: 3, matureMonth: 9, lagMonths: 6, sm: 500000, newARR: 400000, cacPerARRAtSpend: 1.25, maxMonthlyNewARRAtSpend: null, newLogoARPAAtSpend: 9500, perCustomerAtSpend: stA, realised: false, cohortId: null }], 'Early', 0.8);
+  var stB = [{ penetration: 1, units: 1, price: 9500, fixed: true }];
+  var mixedEntries = throws(function () { E.realiseCohort(9, [
+    { spendMonth: 3, matureMonth: 9, lagMonths: 6, sm: 1, newARR: 9500, cacPerARRAtSpend: 1, maxMonthlyNewARRAtSpend: null, newLogoARPAAtSpend: 9500, perCustomerAtSpend: stA, realised: false, cohortId: null },
+    { spendMonth: 4, matureMonth: 9, lagMonths: 5, sm: 1, newARR: 9500, cacPerARRAtSpend: 1, maxMonthlyNewARRAtSpend: null, newLogoARPAAtSpend: 9500, perCustomerAtSpend: stB, realised: false, cohortId: null }], 'Early', 0.8); });
+  ok('B-PROVENANCE', 'lag 6 + capacity: every cohort is born from the per-customer state STAMPED AT SPEND (customers = ARR ÷ €20,000, per-customer revenue €20,000); a synthetic entry with no engine state yields the cohort (42.1 customers at €9,500); entries with different states maturing together are rejected',
+     provOK && synthB.money && Math.abs(synthB.initialCustomers - 400000 / 9500) < 1e-9 && Math.abs(synthB.rows[0].monetization.perCustomerClosing - 9500) < 1e-9 && synthB.rows[0].monetization.fixedARR + synthB.rows[0].monetization.variableARR === 400000 && mixedEntries,
+     rL.cohorts.length + ' cohorts');
+
+  /* --- composition with the v1.x mechanisms --- */
+  var rC = E.run(Object.assign({}, A, MW, { expansionCostPerARR: 0.25 }));
+  var capOK = true; for (var t = 1; t <= 60; t++) { var p = CAPm.portfolioCapital(rL, t); if (Math.abs(p.deployed - t * A.sm) > EPS) capOK = false; }
+  ok('B-COMPOSE', 'expansion realisation cost prices the price + usage + adoption expansion (Σ cost = 0.25 × Σ expansion, revenue state unchanged); capital reconciliation holds under lag and capacity with both layers on',
+     rC.months.every(function (m) { return Math.abs(m.expansionCost - 0.25 * (m.monetization.priceARR + m.monetization.usageARR + m.monetization.adoptionARR)) < EPS; }) && maxDiff(r, rC, function (m) { return m.closingARR; }) < EPS && capOK, '');
+
+  /* --- validation --- */
+  var badB = [{ components: [] }, {}, { components: [{ kind: 'fixed', units: 1, priceAnnual: 100, penetration: 0.5 }] }, { components: [{ kind: 'fixed', units: 1, priceAnnual: 100, usageGrowthAnnual: 0.1 }] },
+              { components: [{ kind: 'variable', units: 10, priceAnnual: 100, unitsCap: 5 }] }, { components: [{ kind: 'variable', units: 10, priceAnnual: 100, adoptionAnnual: 1 }] },
+              { components: [{ kind: 'variable', units: 10, priceAnnual: 100, penetration: 0.9, penetrationCap: 0.5 }] }, { components: [{ kind: 'variable', units: 0, priceAnnual: 100 }] },
+              { components: [{ kind: 'variable', units: 1, priceAnnual: -5 }] }, { components: [{ kind: 'other', units: 1, priceAnnual: 5 }] }, { components: [{ kind: 'fixed', units: 1, priceAnnual: 5, priceGrowthAnnual: -1 }] }];
+  ok('B-VALIDATION', 'RangeError for: no components, a fixed component with penetration ≠ 1 or usage/adoption headroom, unitsCap < units, adoption ≥ 1, penetrationCap < penetration, units ≤ 0, price ≤ 0, an unknown kind, price growth ≤ −100%; and for opening vintages without customers',
+     badB.every(function (b) { return throws(function () { E.run(Object.assign({}, A, CUW, { monetization: b })); }); }) &&
+     throws(function () { E.run(Object.assign({}, A, MW), { openingCohorts: [{ arr: 1e7, age: 0 }] }); }), badB.length + 1 + ' invalid inputs rejected');
+  var v1 = E.run(Object.assign({}, A, MW)), v2 = E.run(Object.assign({}, A, MW));
+  ok('B-DETERMINISM', 'two runs of the same monetization world are identical in every field', JSON.stringify(snapshot(v1)) === JSON.stringify(snapshot(v2)), '');
+  var st0 = MO.initialState(MSPEC), rr = MO.rates(MSPEC), t1 = MO.transition(st0, rr, 0.004), t2 = MO.transition(st0, rr, 0.004);
+  ok('B-MODULE', 'monetization.js keeps no state (same input → same output, input untouched) and the built product inlines it before the engine',
+     JSON.stringify(t1) === JSON.stringify(t2) && JSON.stringify(st0) === JSON.stringify(MO.initialState(MSPEC)) &&
+     (function () { var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8'); var i = built.indexOf('root.SaaSPhysicsMonetization = factory()'); return i > 0 && i < built.indexOf('var MO = deps.monetization'); })(), '');
 })();
 
 console.log('\nSaaS Physics v2 — economic system checks\n' + '='.repeat(96));

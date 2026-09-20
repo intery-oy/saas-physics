@@ -122,6 +122,75 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       nul.A.logoRetentionAnnual === null && nul.mech.customerPhysics === false && nul.tog === 'off' && nul.Pv === '90.0%' && !nul.Pdis && !nulTxt.includes('CUSTOMERS BENEATH') &&
       !nulTxt.includes('− Contraction') && !nulTxt.includes('− Lost logos') && nulTxt.includes('− Gross leakage impact'), '');
 
+  /* ---- B · CONTROLS ---- */
+  await pg.click('#t-monetization'); await pg.waitForTimeout(400);
+  const b0 = await pg.evaluate(() => ({
+    A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent,
+    Lt: document.getElementById('t-logoRetentionAnnual').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled,
+    Kv: document.getElementById('v-newLogoARPA').textContent, Pv: document.getElementById('v-persistenceAnnual').textContent,
+    Uv: document.getElementById('v-monetization.components[1].usageGrowthAnnual').textContent, Udis: document.getElementById('f-monetization.components[1].usageGrowthAnnual').disabled,
+    summary: document.getElementById('experiment-summary').innerText, openingARR: window.__SP_DEBUG.expRes.months[0].openingARR
+  }));
+  rec('B · CONTROLS: the Monetization toggle switches the layer on (and the customer layer it needs); expansion coefficient reads "bypassed" and is disabled, ARR per new logo reads "derived", persistence reads "emergent"; the component sliders enable; opening ARR is derived as €20m',
+      b0.A.monetization && b0.A.logoRetentionAnnual === 0.92 && b0.mech.monetization && b0.mech.genericExpansionBypassed && b0.tog === 'on' && b0.Lt === 'on' && b0.Xv === 'bypassed — price + usage + adoption' && b0.Xdis &&
+      /^derived/.test(b0.Kv) && /^emergent/.test(b0.Pv) && b0.Uv === '15.0%' && !b0.Udis && b0.openingARR === 20000000,
+      JSON.stringify({ Xv: b0.Xv, Kv: b0.Kv, Pv: b0.Pv, Uv: b0.Uv }));
+  rec('B · CONTROLS: the Experiment summary names the layer and the customer layer it switched on', /2 assumptions changed/.test(b0.summary) && /Logo retention\s+off → 92\.0%/.test(b0.summary) && /Monetization\s+off → on/.test(b0.summary), b0.summary.replace(/\n/g, ' | '));
+  await setSlider('f-monetization.components[1].usageGrowthAnnual', 0.30);
+  const b1 = await pg.evaluate(() => ({ u: window.__SP_DEBUG.expA.monetization.components[1].usageGrowthAnnual, summary: document.getElementById('experiment-summary').innerText, base: window.__SP_DEBUG.baseA.monetization }));
+  rec('B · CONTROLS: a nested component slider writes the nested key (usage growth 15% → 30%) without mutating Base; against a Base without the layer the whole layer is the change, so the summary keeps "Monetization off → on"',
+      b1.u === 0.30 && b1.base === null && /Monetization\s+off → on/.test(b1.summary) && !/Usage growth/.test(b1.summary), b1.summary.replace(/\n/g, ' | '));
+  /* nested leaf changes are listed when BOTH worlds carry the layer */
+  const leaf = E.compare(E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000 }] } })),
+                         E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000, priceGrowthAnnual: 0.04 }] } }))).changed;
+  rec('B · CONTROLS: with the layer on in both worlds, compare() lists the changed component leaf by its path (monetization.components[0].priceGrowthAnnual 0 → 0.04)',
+      leaf.length === 1 && leaf[0].key === 'monetization.components[0].priceGrowthAnnual' && leaf[0].from === 0 && leaf[0].to === 0.04, JSON.stringify(leaf));
+  await setSlider('f-monetization.components[1].usageGrowthAnnual', 0.15);
+
+  /* ---- B · OBSERVE ---- */
+  await setScrub(36);
+  const bo = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, mo: D.expRes.months[m - 1].monetization, txt: document.getElementById('side').innerText }; });
+  const indepB = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, contractionAnnual: 0, monetization: { components: [
+    { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0.03 },
+    { name: 'usage', kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0.02, usageGrowthAnnual: 0.15, unitsCap: 300, adoptionAnnual: 0.10, penetrationCap: 0.95 } ] } }));
+  const imB = indepB.months[bo.m - 1].monetization, mmB = K.monetizationMeasures(indepB, bo.m);
+  const fmtK = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
+  rec('B · OBSERVE: the "Where the MRR comes from" block is on screen; fixed/variable ARR and the three effects tie to an independent Node run; the R12M panel decomposes expansion into price, usage and adoption',
+      bo.txt.includes('WHERE THE MRR COMES FROM') && Math.abs(bo.mo.fixedARR - imB.fixedARR) < 1e-6 && Math.abs(bo.mo.usageARR - imB.usageARR) < 1e-6 &&
+      bo.txt.includes('Platform (fixed)\n' + fmtK(imB.fixedARR / 12)) && bo.txt.includes('+ Price\n+' + (mmB.priceEffectR12M * 100).toFixed(1) + '%') && bo.txt.includes('+ Usage\n+' + (mmB.usageEffectR12M * 100).toFixed(1) + '%') && bo.txt.includes('+ Adoption\n+' + (mmB.adoptionEffectR12M * 100).toFixed(1) + '%') &&
+      bo.txt.includes('Opening MRR derived'),
+      bo.txt.slice(bo.txt.indexOf('WHERE THE MRR'), bo.txt.indexOf('WHERE THE MRR') + 260).replace(/\n/g, ' | '));
+
+  /* ---- B · SYSTEM ---- */
+  await pg.click('#nav-system'); await pg.waitForTimeout(500);
+  const bs = await pg.evaluate(() => document.getElementById('side').innerText);
+  rec('B · SYSTEM: the side panel states Monetization on with the three effects and the emergent persistence; the rate sentence no longer quotes a coefficient',
+      bs.includes('Monetization physics · on') && bs.includes('price + usage + adoption') && bs.includes('departing customers') && !bs.includes('Expansion is the retained balance ×'), bs.slice(bs.indexOf('Monetization physics'), bs.indexOf('Monetization physics') + 160).replace(/\n/g, ' | '));
+  await pg.click('#cmp-delta'); await pg.waitForTimeout(400); await pg.click('#cmp-abs'); await pg.waitForTimeout(300);
+
+  /* ---- B · SCENARIOS 11, 12 ---- */
+  await pg.click('#nav-scen'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="monetization"]').click()); await pg.waitForTimeout(500);
+  const s11 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
+  rec('B · SCENARIO 11: Base is the customer world with a coefficient, Experiment the same customers priced as components (same €20m opening); the panel shows cumulative price/usage/adoption effects, the R12M decomposition and the headroom used',
+      !s11.bm.monetization && s11.xm.monetization && s11.b0 === 20000000 && s11.x0 === 20000000 && s11.txt.includes('Cumulative price effect') && /R12M expansion at M60\n[\d.]+% \(coefficient\) → [\d.]+% = [\d.]+% price \+ [\d.]+% usage \+ [\d.]+% adoption/.test(s11.txt) && s11.txt.includes('Opening base headroom used at M60'),
+      s11.txt.slice(s11.txt.indexOf('CONSEQUENCE'), s11.txt.indexOf('CONSEQUENCE') + 200).replace(/\n/g, ' | '));
+  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="mix"]').click()); await pg.waitForTimeout(500);
+  const s12 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
+  const gb12 = await pg.evaluate(() => { const D = window.__SP_DEBUG; return { gb: D.K.measureR12M(D.baseRes, 12).grr, gx: D.K.measureR12M(D.expRes, 12).grr, cb: D.baseRes.months[0].monetization.contractionARR, cx: D.expRes.months[0].monetization.contractionARR, ob: D.baseRes.months[0].openingARR, ox: D.expRes.months[0].openingARR }; });
+  rec('B · SCENARIO 12: same opening ARR, customers and laws; contraction €0 in the all-platform Base and > 0 in the mixed Experiment; GRR differs; the match block is on screen',
+      gb12.ob === gb12.ox && gb12.cb === 0 && gb12.cx > 0 && Math.abs(gb12.gb - 0.92) < 1e-9 && gb12.gx < gb12.gb - 0.01 && s12.txt.includes('SAME START, DIFFERENT DOLLAR RETENTION') && s12.txt.includes('M1 contraction'),
+      'GRR ' + (gb12.gb * 100).toFixed(2) + '% vs ' + (gb12.gx * 100).toFixed(2) + '%');
+  rec('B · SCENARIO 12: the boundary discloses the monetization layer\'s limits (one per-customer state, contraction reaches usage only, caps are the only bounds, no price elasticity)',
+      (await pg.evaluate(() => document.getElementById('side').textContent)).includes('no price elasticity'), '');
+
+  /* ---- B · NULL ---- */
+  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await pg.click('#reset'); await pg.waitForTimeout(300);
+  const bn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled, txt: document.getElementById('side').innerText }));
+  rec('B · NULL-ON-SCREEN: Reset switches Monetization off; the expansion coefficient is an input again (10.0%, enabled); no composition block on screen',
+      bn.A.monetization === null && !bn.mech.monetization && bn.tog === 'off' && bn.Xv === '10.0%' && !bn.Xdis && !bn.txt.includes('WHERE THE MRR COMES FROM'), '');
+
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
 
   let pass = 0;

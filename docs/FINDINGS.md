@@ -271,6 +271,11 @@ should not be refined until there is evidence about the shape.
 
 ### 13. Expansion is unbounded
 
+> **Bounded under v2 Gate B.** With Monetization on, expansion is price + usage + adoption
+> and usage and adoption grow toward explicit caps: a closed cohort converges to
+> `fixed + penCap × unitsCap × price` (B-SATURATION). The generic coefficient, when the layer
+> is off, is still unbounded.
+
 Expansion may now vary by age band, but nothing caps a cohort at any multiple of its initial ARR —
 no seat ceiling, no penetration curve, no product limit. Nothing can ever exhaust an account, so
 expansion headroom stays invisible.
@@ -333,6 +338,13 @@ because it is legible.
 
 > **Blocked CFO question:** *how much of a revenue change came from price versus
 > other drivers?*
+
+> **Resolved in v2 Gate B (Monetization Physics).** With `monetization` set, revenue is
+> derived from per-customer components and survivor revenue change is measured as price,
+> usage and adoption effects on the frozen R12M cohort (`K.monetizationMeasures`). Two
+> worlds matched on NRR at T = 12 — price-only vs usage-only — are told apart by the
+> decomposition and diverge later because usage hits its cap. See #34–#36 and
+> `docs/RN-MONETIZATION-PHYSICS.md`.
 
 
 Expansion and leakage are pure quantity effects. Pricing is the highest-leverage control a CFO
@@ -473,6 +485,37 @@ contraction are only distinguishable by their customer-count footprint, which is
 the layer adds. Any heterogeneity mechanism (a distribution of account sizes, size-dependent
 survival) would be its own named object with its own null; it is the first candidate for a
 Gate A follow-up and is deliberately not built here.
+
+## New in v2 Gate B — Monetization Physics
+
+### 34. Dollar persistence became emergent, and the product had to change what it says a second time
+
+Under Gate A persistence was derived (L(1 − C)); under Gate B it is not even a constant:
+contraction reaches variable revenue only, so a cohort's dollar retention depends on its
+fixed/variable mix. Same customers, same L and C, three mixes: GRR 92.00% / 90.21% / 87.40%
+(B.2). The engine reports `persistenceSource: 'emergent…'` and `persistenceAnnualEffective:
+null`; the slider reads "emergent — set by the revenue mix"; the System map's persistence
+valve reads "emergent". The Gate A lesson (#31) repeated one layer down: every hand-over of
+ownership must be visible on every surface, or the surface lies.
+
+### 35. Attribution of expansion to price / usage / adoption is order-dependent; the identity is not
+
+The four effects are applied in a fixed order (contraction → price → usage → adoption) and
+each is measured as the revenue difference its step produced. `Σ effects = closing − opening`
+holds for any order to €1e-6; the split between price and usage does not — a price step taken
+after a usage step attributes more to price. The order is a stated convention, not a fact
+about the world, and the research note says so. A Shapley-style symmetric split was considered
+and rejected: it would present a modelling choice as neutrality.
+
+### 36. "Requires the layer below" is a boundary the product has to absorb
+
+Monetization needs customers (revenue per customer is meaningless without a count). The engine
+rejects the combination at its boundary; the product cannot, because a user who switches
+Monetization on has not asked to be thrown at. The toggle therefore switches the customer
+layer on with it, the Experiment summary shows both changes, and the attribution treats a
+lone monetization change on a Base without customers as a bundle. Every later layer that
+depends on a lower one (Cash on nothing; Interventions on whichever law they target) has to
+decide the same thing explicitly.
 
 ## What held up
 
