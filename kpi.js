@@ -126,6 +126,7 @@
       cash: res.months[T - 1].cashClosing,
       cacPerARR: res.assumptions.cacPerARR,
       cacPaybackMonths: res.derived.cacPaybackMonths,
+      expansionCost: sum('expansionCost'),
       closingARR: res.months[T - 1].closingARR
     };
   }
@@ -300,12 +301,76 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v1.1–v1.3 MEASUREMENTS. Layer B, so: nothing here creates economics. Each
+   * function reads engine state (month records, the acquisition ledger, the
+   * response the engine derived from its own law) and reports it. The
+   * analytical marginal CAC is NOT recomputed here — it is a property of the
+   * acquisition law and lives in engine.js (acquisitionResponse); this layer
+   * only reads it and MEASURES the realised counterpart from flows.
+   * ------------------------------------------------------------------ */
+
+  /* Acquisition, measured over the trailing window and cumulatively:
+     what was actually spent against what actually entered the stock. Under a
+     lag the two are out of phase — the measured figure carries that, which is
+     the point of measuring rather than quoting the law. */
+  function acquisitionMeasures(res, T) {
+    var start = Math.max(1, T - WINDOW + 1), ms = res.months.slice(start - 1, T);
+    var sum = function (k) { return ms.reduce(function (s, m) { return s + m[k]; }, 0); };
+    var spendR12 = sum('sm'), realisedR12 = sum('newARR');
+    var m = res.months[T - 1], cum = m.cumulative, acq = res.derived.acquisition;
+    return {
+      T: T, windowStart: start,
+      spendR12M: spendR12,
+      realisedNewARRR12M: realisedR12,
+      measuredCACR12M: realisedR12 > 0 ? spendR12 / realisedR12 : null,   // spend ÷ ARR that actually arrived
+      cumulativeSpend: cum.sm,
+      cumulativeRealisedNewARR: cum.newARR,
+      measuredCACCumulative: cum.newARR > 0 ? cum.sm / cum.newARR : null,
+      /* read from the engine's own law — not measured, quoted */
+      lawNewARRPerMonth: res.derived.newARRPerMonth,
+      capacity: acq.capacity,
+      utilisation: acq.utilisation,
+      averageCAC: acq.averageCAC,
+      marginalCAC: acq.marginalCAC,
+      averagePaybackMonths: acq.averagePaybackMonths,
+      marginalPaybackMonths: acq.marginalPaybackMonths,
+      /* the pending stock at T */
+      pendingNewARR: m.pendingNewARR,
+      pendingSpend: m.pendingSpend,
+      pendingCount: m.pendingCount,
+      lagMonths: res.derived.acquisitionLagMonths
+    };
+  }
+
+  /* Expansion realisation cost, measured: the coefficient read back from
+     flows over the window (Σ cost ÷ Σ expansion ARR), and its weight against
+     the gross profit the same window produced. */
+  function expansionCostMeasures(res, T) {
+    var start = Math.max(1, T - WINDOW + 1), ms = res.months.slice(start - 1, T);
+    var sum = function (k) { return ms.reduce(function (s, m) { return s + m[k]; }, 0); };
+    var cost = sum('expansionCost'), exp = sum('expansion'), gp = sum('grossProfit');
+    var m = res.months[T - 1];
+    return {
+      T: T, windowStart: start,
+      costThisMonth: m.expansionCost,
+      costR12M: cost,
+      expansionR12M: exp,
+      measuredCostPerARR: exp > 0 ? cost / exp : null,     // reads back expansionCostPerARR
+      shareOfGrossProfitR12M: gp > 0 ? cost / gp : null,
+      cumulativeCost: m.cumulative.expansionCost,
+      cumulativeExpansion: m.cumulative.expansion
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
     measureR12M: measureR12M,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
+    acquisitionMeasures: acquisitionMeasures,
+    expansionCostMeasures: expansionCostMeasures,
     forwardEconomics: forwardEconomics,
     ageComposition: ageComposition,
     seriesSum: seriesSum,

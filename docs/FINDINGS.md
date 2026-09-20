@@ -4,8 +4,9 @@ Conceptual weaknesses exposed by running the prototype. Nothing here was silentl
 where an equation looked weak it was implemented as specified, and it stays that way until an
 iteration is explicitly chartered to change it.
 
-Updated for **model v0.3**. Ordered by how badly each distorts a CFO's intuition, not by how hard
-it is to fix.
+Updated for **model v1.3** (v0.3 cohort physics + expansion economics, bounded acquisition,
+acquisition timing). Ordered by how badly each distorts a CFO's intuition, not by how hard it is
+to fix.
 
 ---
 
@@ -166,24 +167,33 @@ invertible in closed form (see §D of `MEASUREMENT.md`).
 
 ---
 
-## Still broken
+## Resolved or reclassified in v1.1–v1.3
 
-### 10. Acquisition is linear and unbounded in S&M — the model can always buy growth
+Three findings below were open limitations of the v1.0 physics. Each is now bounded by ONE
+nullable mechanism; none is deleted, because each leaves a residual the mechanism does not
+address. The full record of what was measured is in `RN-EXPANSION-ECONOMICS.md`,
+`RN-ACQUISITION-SATURATION.md` and `RN-ACQUISITION-TIMING.md`.
 
-> **Blocked CFO question:** *when should we stop increasing S&M because marginal
-> acquisition productivity deteriorates?*
+### 10. ✅ BOUNDED in v1.2 — acquisition was linear and unbounded in S&M
 
+> **Was blocked:** *when should we stop increasing S&M because marginal acquisition productivity
+> deteriorates?*
 
-`New ARR = S&M ÷ cacPerARR` has no saturation term at any spend level. v0.2 fixed *which* variables
-drive acquisition; it did not touch the *shape*. Doubling S&M still doubles New ARR, at month 1 and
-at month 60, forever.
+**What changed.** `maxMonthlyNewARR` gives the response a capacity:
+`N = S&M ÷ (cacPerARR + S&M ÷ capacity)`, with `cacPerARR` kept as the low-spend primitive.
+Average CAC (`S&M ÷ N`) and marginal CAC (`1 ÷ dN/dS&M`, closed form) are derived from the same
+law. A bound, admitted under "bounds before benefits"; null (off) reproduces the linear law
+byte-for-byte.
 
-**What it teaches, wrongly:** every growth-investment experiment eventually pays off, and the S&M
-slider has no wrong setting.
+**What it now teaches.** At Base spend under a €2.0m/month capacity, average CAC is 1.65× and
+marginal 2.27×; at €3.6m/month, 3.00× against 7.50×. The S&M sweep is monotone, concave and
+bounded (checks 42–44, SWEEP 39–41).
 
-**Recommended:** a saturating response — `New ARR = A_max × S&M/(S&M+k)`, or a `cacPerARR` that
-rises with spend (marginal worse than average). The single change that would give the model the
-ability to say *stop*.
+**What remains open.** The model can now show *diminishing*; it still cannot say *stop* — it
+has no objective function, and declares none. One hyperbolic shape stands in for market size,
+sales capacity and rep ramp; capacity is static; and cash still never constrains S&M (the capital
+loop is still drawn open). The S&M slider still has no wrong setting in the null world, and the
+product still carries no "spend more" scenario for that reason.
 
 ### 11. ✅ RECLASSIFIED — ARR trajectory alone does not reveal the capital required to produce it
 
@@ -206,6 +216,51 @@ Phase 0/1 research sharpened it further — see finding 22.
 
 Original ID and history preserved.
 
+### 14. ✅ PRICED in v1.1 — expansion was free
+
+> **Was blocked:** *what incremental economic resources are required to generate Expansion?*
+
+**What changed.** `expansionCostPerARR` prices each euro of expansion ARR the transition already
+produced: `expansionCost = expansion ARR × c`, a named P&L line between gross profit and EBITA,
+read by nothing in the ARR recursion. Null (0) reproduces v1.0 exactly.
+
+**What it now teaches.** The matched measured-NRR pair (GRR 96%/exp 9.6% vs GRR 90%/exp 15.6%,
+both NRR 105.6%) keeps identical ARR (max Δ €4.5e-7) and identical NRR (2.4e-15) at every cost,
+and diverges in cash by exactly `c × €13.79m` — the difference in cumulative expansion — with no
+threshold (checks 39–40). The prediction recorded here in v0.2 (`Δending cash = c × Δexpansion`)
+held.
+
+**What remains open.** The cost is a price, not a mechanism: nothing says what it buys or
+whether spending it could raise expansion (that would be a benefit, and #16's objection still
+stands). It is linear in expansion ARR. And because it never touches ARR, the pair is still
+observationally one company to a reader of ARR, GRR and NRR — only the cash line differs.
+
+### 17. ✅ TIMED in v1.3 — there was no acquisition lag
+
+> **Was blocked:** *how does time-to-revenue alter the capital required to create the same
+> eventual economics?*
+
+**What changed.** `acquisitionLagMonths` routes each month's spend through an explicit pending
+stock (a ledger the engine carries and returns) and creates the cohort L months later. S&M is
+expensed on spend; the cohort stamps its spend month, lag and realised cost. Spend maturing
+beyond M60 stays pending and is reported, never pulled forward. Null (0) is byte-identical to
+v1.0.
+
+**What it now teaches.** At Base, a 6-month lag leaves New ARR per month of spend at €0.750m
+and R12M NRR at 99.0000%, shifts the realised series by exactly six months, and moves the cash
+trough from €6.10m (M13) to €2.29m (M19); at 12 months the trough is €−1.55m (M25). Measured
+CAC (spend ÷ realised ARR) reads 3.60× at T = 9 and 1.44× cumulative at T = 36 while the law
+says 1.20× — the timing shows up in the measurement, as it should (checks 47–51).
+
+**What remains open.** One fixed delay stands in for a distribution of cycle lengths; pending
+spend carries no risk of not converting and earns nothing while it waits; and with no deferred
+revenue (#15) the lag can only make cash worse — the up-front-billing offset a real company
+would see cannot appear here.
+
+---
+
+## Still broken
+
 ### 12. Retention age structure exists now, but is coarse
 
 v0.3 added three age bands — the minimum structure capable of expressing an age effect — and the
@@ -219,17 +274,6 @@ should not be refined until there is evidence about the shape.
 Expansion may now vary by age band, but nothing caps a cohort at any multiple of its initial ARR —
 no seat ceiling, no penetration curve, no product limit. Nothing can ever exhaust an account, so
 expansion headroom stays invisible.
-
-### 14. Expansion is free
-
-> **Blocked CFO question:** *what incremental economic resources are required to
-> generate Expansion?*
-
-
-There is no cost attached to generating expansion ARR — no CSM capacity, account management,
-implementation or upsell effort. This is now the most consequential single omission, because it is
-the cheapest defensible way to break the matched-NRR tie: one coefficient, no ARR effect, and the
-separation is exactly linear in it (`Δending cash = c × €15.12m`).
 
 ### 15. `FCF = EBITA` inverts the cash reality of subscription businesses
 
@@ -255,10 +299,6 @@ The eventual fix is not a law but an **intervention**: let the user state a hypo
 additional R&D over 12 months → expansion +3pp after a 9-month delay" — and simulate that. A
 management thesis, explicitly owned by the user, not a property of SaaS. Not implemented.
 
-### 17. No acquisition lag
-
-S&M spent in month *t* produces ARR in month *t*. Real sales cycles run 3–9 months, and that lag is
-exactly where the cash pain of a growth push lives.
 
 ### 18. Leakage is a single number, and there are no customers
 
@@ -346,6 +386,45 @@ tenure laws the KPI set may be very nearly sufficient.
 
 See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
+---
+
+## New in v1.1–v1.3
+
+### 27. Three CAC paybacks now exist, and only one of them is the v1.0 number
+
+`cacPaybackMonths = cacPerARR × 12 ÷ GM` (18.0 months at Base) is the coefficient's own payback
+and is unchanged. Under a capacity the realised figure is the *average*-CAC payback
+(24.7 months at Base under €2.0m/month) and the last euro's is the *marginal*-CAC payback
+(34.0 months). The product labels which it shows; the capital-recovery track measures the
+realised one because it works from stamped cost. A reader comparing "payback" across versions
+or across a bound being on and off must say which of the three they mean. The measurement
+layer's `measuredCACR12M` adds a fourth reading under a lag, which is a feature: it carries the
+timing the law hides.
+
+### 28. Pending acquisition is a stock with no economics of its own
+
+The lag introduces a state — spend that has left cash but not yet created ARR — and the engine
+gives it no cost of carry, no conversion risk, no partial revenue and no interaction with the
+bound. That is the minimum mechanism the brief asked for, stated as a boundary: the pending stock
+is a delay line, not a pipeline model. Any future pipeline physics (conversion, ramp, decay of
+stale pipeline) would replace this object, not extend it.
+
+### 29. The three mechanisms are separable, and that separability is itself a modelling choice
+
+Cross-mechanism checks show the expansion cost never moves the acquisition response, the bound
+never moves an existing cohort's expansion, and the lag never moves the response function
+(physics-checks SAT+LAG, COST+SAT). Real companies are not built that way — the CSM capacity
+that realises expansion is often the sales capacity that saturates acquisition, and a long
+sales cycle usually comes with a different CAC. The model keeps the three orthogonal so each can
+be falsified alone. Interactions, if wanted, must be added as their own named mechanism.
+
+### 30. Expansion saturation is still absent, and the expansion cost makes its absence louder
+
+Expansion ARR is still unbounded (#13). With a realisation cost priced per euro, a cohort can
+now be made to *pay* indefinitely for expansion it can never exhaust. Nothing caps a cohort at
+any multiple of its initial ARR, so the cost line grows with expansion forever. Explicitly out of
+scope for this release; recorded here because the new mechanism exposes it.
+
 ## What held up
 
 - **The cohort spine.** Company ARR and revenue are only ever sums of cohorts, reconciling to ~10⁻⁸
@@ -374,20 +453,22 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 ## Suggested order from here
 
-1. **The observability experiment** — can a 24- or 36-month KPI *history* identify the Time-0
-   state, or is cohort vintage disclosure strictly necessary? No new physics; reuses everything
-   v0.3 built; determines whether forward economic content is knowable from outside a company.
-   **Recommended next.**
-2. **Expansion cost** (`expansionCacPerARR`) — one coefficient, breaks the v0.2 matched-NRR tie
-   without touching ARR, structurally symmetric with `cacPerARR`.
-3. **Customer count and logo retention** — makes matched portfolios observably different with no
-   judgment coefficient, and unlocks ARPA and concentration later.
-3. **Diminishing returns on S&M** — gives the model the ability to say *stop*.
-4. **Expansion saturation** — one parameter, and the first thing that changes the ARR *path*.
-5. **Deferred revenue and billings** → a real FCF line.
-6. Age-dependent retention (with the normalisation constraint in `MATCHED-NRR.md`), split leakage,
-   acquisition lag, efficiency metrics on screen.
-7. R&D as a user-stated intervention with an explicit lag — never as a universal coefficient.
+Done: the observability experiment (Phase 0/1), expansion cost (v1.1), diminishing returns on
+S&M (v1.2), acquisition lag (v1.3).
 
-Valuation, enterprise value and any 3D or final product design stay out until at least items 1–5
+1. **Customer count and logo retention** — the next ontology change. What the v1.1 experiment
+   showed is the case for it: the matched pair is now economically different and still
+   *observationally* identical, because nothing outside cash has changed. Only an object that
+   makes the two installed bases look different — a customer count, a logo survival rate — can
+   close that gap without a judgment coefficient. It also unlocks ARPA and concentration later,
+   and it is the reason #18 stays open. Reserved for v2; must not be smuggled in piecemeal.
+2. **Expansion saturation** — one parameter, the first thing that changes the ARR *path*, and
+   now doubly motivated (#30).
+3. **Deferred revenue and billings** → a real FCF line, which is also what would let the lag
+   (#17) show the offset a real billing cycle provides.
+4. Age-dependent retention (with the normalisation constraint in `MATCHED-NRR.md`), split
+   leakage, efficiency metrics on screen.
+5. R&D as a user-stated intervention with an explicit lag — never as a universal coefficient.
+
+Valuation, enterprise value and any 3D or final product design stay out until at least items 1–3
 are done.

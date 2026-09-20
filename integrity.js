@@ -406,6 +406,197 @@
        'New ARR €' + (withAcq.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo = S&M ÷ cacPerARR; payback ' +
        withAcq.derived.cacPaybackMonths.toFixed(2) + ' months = cacPerARR × 12 ÷ GM');
 
+    /* ================================================================ *
+     * v1.1 — EXPANSION ECONOMICS. One cost line, no ARR effect.
+     * ================================================================ */
+    function maxOver(r1, r2, f) { var w = 0; for (var q = 0; q < r1.months.length; q++) w = Math.max(w, Math.abs(f(r1.months[q]) - f(r2.months[q]))); return w; }
+    var C = 0.25;
+    var costOn = E.run(Object.assign({}, A, { expansionCostPerARR: C }));
+
+    /* X1. The null world carries a zero line, and the P&L identity holds with the line in it */
+    var x1line = 0, x1id = 0;
+    BASE.months.forEach(function (m) {
+      x1line = Math.max(x1line, Math.abs(m.expansionCost));
+      x1id = Math.max(x1id, Math.abs(m.grossProfit - m.sm - m.rd - m.ga - m.expansionCost - m.ebita));
+    });
+    ok('EXP-COST · null world: expansionCostPerARR = 0 carries a €0 realisation-cost line and EBITA = GP − S&M − R&D − G&A − cost',
+       A.expansionCostPerARR === 0 && x1line === 0 && x1id < EPS,
+       'max cost line €' + x1line.toExponential(1) + ', max P&L residual €' + x1id.toExponential(1));
+
+    /* X2. A positive cost touches no ARR state and no retention measure */
+    var x2arr = Math.max(maxOver(BASE, costOn, function (m) { return m.closingARR; }),
+                         maxOver(BASE, costOn, function (m) { return m.expansion; }),
+                         maxOver(BASE, costOn, function (m) { return m.leakage; }),
+                         maxOver(BASE, costOn, function (m) { return m.newARR; }));
+    var x2kpi = 0;
+    for (i = 12; i <= BASE.horizon; i++) {
+      var ka = K.measureR12M(BASE, i), kb = K.measureR12M(costOn, i);
+      x2kpi = Math.max(x2kpi, Math.abs(ka.grr - kb.grr), Math.abs(ka.expansionRate - kb.expansionRate), Math.abs(ka.nrr - kb.nrr));
+    }
+    ok('EXP-COST · a positive realisation cost leaves closing ARR, New, Expansion, Leakage and every R12M measure untouched',
+       x2arr === 0 && x2kpi === 0,
+       'max ARR-state delta €' + x2arr.toExponential(1) + ', max KPI delta ' + x2kpi.toExponential(1) + ' at cost ' + C + '× per €1 of expansion ARR');
+
+    /* X3. The line is exactly expansion ARR × coefficient, company = Σ cohorts, and cash moves by exactly that */
+    var x3line = 0, x3sum = 0, x3cash = 0, cumCost = 0;
+    costOn.months.forEach(function (m, q) {
+      x3line = Math.max(x3line, Math.abs(m.expansionCost - m.expansion * C));
+      var s = 0; costOn.cohorts.forEach(function (c) { var r = K.rowAt(c, m.t); if (r) s += r.expansionCost; });
+      x3sum = Math.max(x3sum, Math.abs(s - m.expansionCost));
+      cumCost += m.expansionCost;
+      x3cash = Math.max(x3cash, Math.abs((BASE.months[q].cashClosing - m.cashClosing) - cumCost));
+    });
+    ok('EXP-COST · cost line = expansion ARR × expansionCostPerARR = Σ cohort cost, and Cash falls by exactly the cumulative line',
+       x3line < EPS && x3sum < EPS && x3cash < EPS,
+       'max |line − exp×c| €' + x3line.toExponential(1) + ', max cohort-sum residual €' + x3sum.toExponential(1) +
+       ', max cash residual €' + x3cash.toExponential(1) + '; cumulative cost €' + (cumCost / 1e6).toFixed(2) + 'm');
+
+    /* X4. THE REQUIRED PROOF — matched measured-NRR pair. Same ARR path, same NRR;
+       with c = 0 the v0.2 equivalence holds, with c > 0 only the economics diverge. */
+    var TNx = 0.96 * 1.10;
+    var cRx = K.calibrate(0.96, TNx - 0.96), cXx = K.calibrate(0.90, TNx - 0.90);
+    var aR = { persistenceAnnual: cRx.persistenceAnnual, expansionCoefficientAnnual: cRx.expansionCoefficientAnnual };
+    var aX = { persistenceAnnual: cXx.persistenceAnnual, expansionCoefficientAnnual: cXx.expansionCoefficientAnnual };
+    var R0 = E.run(Object.assign({}, A, aR)), X0 = E.run(Object.assign({}, A, aX));
+    var Rc = E.run(Object.assign({}, A, aR, { expansionCostPerARR: C })), Xc = E.run(Object.assign({}, A, aX, { expansionCostPerARR: C }));
+    var tie0 = Math.max(maxOver(R0, X0, function (m) { return m.closingARR; }), maxOver(R0, X0, function (m) { return m.cashClosing; }));
+    var arrC = maxOver(Rc, Xc, function (m) { return m.closingARR; });
+    var nrrC = 0; for (i = 12; i <= Rc.horizon; i++) nrrC = Math.max(nrrC, Math.abs(K.measureR12M(Rc, i).nrr - K.measureR12M(Xc, i).nrr));
+    var cashC = Rc.months[Rc.horizon - 1].cashClosing - Xc.months[Xc.horizon - 1].cashClosing;
+    var costR = Rc.months[Rc.horizon - 1].cumulative.expansionCost, costX = Xc.months[Xc.horizon - 1].cumulative.expansionCost;
+    var expR = Rc.months[Rc.horizon - 1].cumulative.expansion, expX = Xc.months[Xc.horizon - 1].cumulative.expansion;
+    var linear = Math.abs(cashC - C * (expX - expR));
+    ok('EXP-COST · MATCHED-NRR: with cost 0 the pair stays identical (ARR and cash); with cost > 0 ARR and NRR stay identical while cash diverges',
+       tie0 < EPS && arrC < EPS && nrrC < 1e-12 && cashC > 1e5 && costX > costR,
+       'c=0: max |R−X| €' + tie0.toExponential(1) + ' · c=' + C + ': max ΔARR €' + arrC.toExponential(1) + ', max ΔNRR ' + nrrC.toExponential(1) +
+       ', X ends €' + (cashC / 1e6).toFixed(2) + 'm poorer; realisation cost R €' + (costR / 1e6).toFixed(2) + 'm vs X €' + (costX / 1e6).toFixed(2) + 'm');
+    ok('EXP-COST · MATCHED-NRR: the cash gap is exactly linear in the cost — Δending cash = c × Δcumulative expansion',
+       linear < EPS, 'residual €' + linear.toExponential(1) + ' on a gap of €' + (cashC / 1e6).toFixed(2) + 'm');
+
+    /* ================================================================ *
+     * v1.2 — BOUNDED ACQUISITION. A saturating response, one parameter.
+     * ================================================================ */
+    var CAP = 2000000;
+    /* B1. Null reproduces the linear law, byte-for-byte and by formula */
+    var nullRun = E.run(Object.assign({}, A, { maxMonthlyNewARR: null }));
+    var b1same = JSON.stringify(nullRun.months) === JSON.stringify(BASE.months);
+    var b1f = 0;
+    [[A.sm, A.cacPerARR], [A.sm * 3, A.cacPerARR], [500000, 1.5], [2500000, 0.8]].forEach(function (pr) {
+      b1f = Math.max(b1f, Math.abs(E.newARRPerMonth(Object.assign({}, A, { sm: pr[0], cacPerARR: pr[1], maxMonthlyNewARR: null })) - pr[0] / pr[1]));
+    });
+    ok('ACQ-BOUND · null (maxMonthlyNewARR = null) reproduces the linear law: run byte-identical, New ARR = S&M ÷ cacPerARR at every probe',
+       A.maxMonthlyNewARR === null && b1same && b1f < EPS, 'byte-identical: ' + b1same + ', max formula deviation €' + b1f.toExponential(1));
+
+    /* B2/B3/B4. Monotone, concave, bounded — on a sweep */
+    var sweep = [], mono = true, concave = true, bounded = true, margWorse = true;
+    for (var sm2 = 0; sm2 <= 10e6; sm2 += 250000) sweep.push(E.acquisitionResponse(Object.assign({}, A, { sm: sm2, maxMonthlyNewARR: CAP })));
+    for (i = 1; i < sweep.length; i++) {
+      if (sweep[i].newARR < sweep[i - 1].newARR - 1e-9) mono = false;
+      if (sweep[i].dNewARRdSM > sweep[i - 1].dNewARRdSM + 1e-15) concave = false;
+      if (sweep[i].newARR > CAP + 1e-6) bounded = false;
+      if (sweep[i].marginalCAC <= sweep[i].averageCAC) margWorse = false;
+    }
+    var atInf = E.acquisitionResponse(Object.assign({}, A, { sm: 1e12, maxMonthlyNewARR: CAP })).newARR;
+    ok('ACQ-BOUND · New ARR is monotonic in S&M and never exceeds the capacity; at extreme spend it approaches the capacity',
+       mono && bounded && atInf > 0.999 * CAP && atInf <= CAP,
+       'sweep €0–10m/mo in 40 steps: monotone ' + mono + ', bounded ' + bounded + '; N(€1e12) = ' + (atInf / CAP * 100).toFixed(4) + '% of capacity');
+    ok('ACQ-BOUND · marginal acquisition productivity dN/dS&M declines with spend, so marginal CAC exceeds average CAC at every S&M > 0',
+       concave && margWorse,
+       'dN/dS&M ' + sweep[1].dNewARRdSM.toFixed(4) + ' at €0.25m → ' + sweep[sweep.length - 1].dNewARRdSM.toFixed(4) + ' at €10m; ' +
+       'at €' + (A.sm / 1e6).toFixed(2) + 'm: average CAC ' + sweep[Math.round(A.sm / 250000)].averageCAC.toFixed(3) + '×, marginal ' + sweep[Math.round(A.sm / 250000)].marginalCAC.toFixed(3) + '×');
+
+    /* B5. Low-spend limit is the v1.0 law; the analytical derivative is the law's own derivative */
+    var lowSm = 1000, low = E.acquisitionResponse(Object.assign({}, A, { sm: lowSm, maxMonthlyNewARR: CAP }));
+    var lowRel = Math.abs(low.newARR - lowSm / A.cacPerARR) / (lowSm / A.cacPerARR);
+    var fdWorst = 0;
+    [300000, 900000, 2700000, 8100000].forEach(function (s) {
+      var h = 1, up = E.newARRPerMonth(Object.assign({}, A, { sm: s + h, maxMonthlyNewARR: CAP })), dn = E.newARRPerMonth(Object.assign({}, A, { sm: s - h, maxMonthlyNewARR: CAP }));
+      var fd = (up - dn) / (2 * h), an = E.acquisitionResponse(Object.assign({}, A, { sm: s, maxMonthlyNewARR: CAP })).dNewARRdSM;
+      fdWorst = Math.max(fdWorst, Math.abs(fd - an) / an);
+    });
+    ok('ACQ-BOUND · as S&M → 0 the response is S&M ÷ cacPerARR (the v1.0 law); the closed-form dN/dS&M matches a central difference',
+       lowRel < 1e-3 && fdWorst < 1e-6,
+       'at €1k/mo the response is within ' + (lowRel * 100).toFixed(4) + '% of the linear law; derivative vs finite difference worst rel err ' + fdWorst.toExponential(2));
+
+    /* B6/B7. The bound changes new-cohort creation only; retention measures are unmoved by S&M under it */
+    var capRun = E.run(Object.assign({}, A, { maxMonthlyNewARR: CAP })), capTen = E.run(Object.assign({}, A, { sm: A.sm * 10, maxMonthlyNewARR: CAP }));
+    var baseRowsSame = JSON.stringify(capRun.cohorts[0].rows) === JSON.stringify(BASE.cohorts[0].rows);
+    var b7 = 0;
+    for (i = 12; i <= BASE.horizon; i++) {
+      var k1 = K.measureR12M(capRun, i), k2 = K.measureR12M(capTen, i);
+      b7 = Math.max(b7, Math.abs(k1.grr - k2.grr), Math.abs(k1.expansionRate - k2.expansionRate), Math.abs(k1.nrr - k2.nrr));
+    }
+    var stampOK = capRun.cohorts.slice(1).every(function (c) {
+      return Math.abs(c.cacPerARRAtCreation - capRun.derived.acquisition.averageCAC) < 1e-9 && c.cacCoefficientAtCreation === A.cacPerARR &&
+             Math.abs(c.acquisitionCost - c.initialARR * c.cacPerARRAtCreation) < EPS;
+    });
+    ok('ACQ-BOUND · the bound changes only new-cohort creation: the opening cohort\'s rows are byte-identical, and 10× S&M under the bound leaves GRR/expansion/NRR unchanged',
+       baseRowsSame && b7 < 1e-12 && capRun.derived.newARRPerMonth < BASE.derived.newARRPerMonth,
+       'opening cohort identical: ' + baseRowsSame + '; max KPI delta ' + b7.toExponential(1) + '; New ARR €' +
+       (capRun.derived.newARRPerMonth / 1e6).toFixed(3) + 'm/mo under a €' + (CAP / 1e6).toFixed(1) + 'm capacity vs €' + (BASE.derived.newARRPerMonth / 1e6).toFixed(3) + 'm linear');
+    ok('ACQ-BOUND · cohort provenance stamps the REALISED cost per €1 of ARR (= average CAC) and the coefficient separately; cost = initial ARR × realised CAC',
+       stampOK, capRun.cohorts[1].cacPerARRAtCreation.toFixed(4) + '× realised vs ' + A.cacPerARR + '× coefficient');
+
+    /* ================================================================ *
+     * v1.3 — ACQUISITION TIMING. Explicit pending state, one lag parameter.
+     * ================================================================ */
+    var LAGM = 3, lagRun = E.run(Object.assign({}, A, { acquisitionLagMonths: LAGM }));
+    /* L1. Lag 0 reproduces the prior world */
+    var zeroLag = E.run(Object.assign({}, A, { acquisitionLagMonths: 0 }));
+    var l1 = JSON.stringify(zeroLag.months) === JSON.stringify(BASE.months) && JSON.stringify(zeroLag.cohorts) === JSON.stringify(BASE.cohorts);
+    ok('ACQ-LAG · null (acquisitionLagMonths = 0) reproduces the same-month world byte-for-byte',
+       A.acquisitionLagMonths === 0 && l1, 'months and cohorts byte-identical: ' + l1);
+
+    /* L2. No cohort before maturity; provenance records the spend month */
+    var early = lagRun.months.slice(0, LAGM).every(function (m) { return m.newARR === 0; });
+    var prov = lagRun.cohorts.slice(1).every(function (c) {
+      return c.acquisitionMonth <= LAGM ? (c.initialARR === 0 && c.spendMonth === null)
+                                        : (c.spendMonth === c.acquisitionMonth - LAGM && c.lagMonths === LAGM);
+    });
+    ok('ACQ-LAG · no New ARR enters the stock before its maturity date; each cohort records the month its spend was incurred and the lag it waited',
+       early && prov && lagRun.months[LAGM].newARR > 0,
+       'months 1–' + LAGM + ' realise €0; month ' + (LAGM + 1) + ' realises €' + (lagRun.months[LAGM].newARR / 1e6).toFixed(3) + 'm from month-1 spend');
+
+    /* L3. S&M is expensed in the spend month — the only P&L difference vs no-lag is the missing gross profit */
+    var l3sm = 0, l3 = 0;
+    for (i = 0; i < BASE.horizon; i++) {
+      l3sm = Math.max(l3sm, Math.abs(lagRun.months[i].sm - BASE.months[i].sm));
+      l3 = Math.max(l3, Math.abs((BASE.months[i].ebita - lagRun.months[i].ebita) - (BASE.months[i].grossProfit - lagRun.months[i].grossProfit)));
+    }
+    ok('ACQ-LAG · S&M hits EBITA and cash in the month it is spent (identical S&M line every month); the lag changes only when gross profit arrives',
+       l3sm === 0 && l3 < EPS, 'S&M line delta €' + l3sm.toExponential(1) + '; (ΔEBITA − ΔGP) residual €' + l3.toExponential(1));
+
+    /* L4/L5. Neither duplicated nor lost; pending reconciles every month; horizon boundary is honest */
+    var lawTotal = lagRun.derived.newARRPerMonth * lagRun.horizon, realisedTotal = lagRun.months[lagRun.horizon - 1].cumulative.newARR;
+    var l4 = Math.abs(lawTotal - realisedTotal - lagRun.pendingAtHorizon.newARR);
+    var l4s = Math.abs(lagRun.months[lagRun.horizon - 1].cumulative.sm - lagRun.cohorts.reduce(function (s, c) { return s + (c.acquisitionCost || 0); }, 0) - lagRun.pendingAtHorizon.spend);
+    var l5 = 0;
+    lagRun.months.forEach(function (m) {
+      var p = 0; lagRun.acquisitionLedger.forEach(function (e) { if (e.spendMonth <= m.t && e.matureMonth > m.t) p += e.newARR; });
+      l5 = Math.max(l5, Math.abs(p - m.pendingNewARR));
+    });
+    var beyond = lagRun.acquisitionLedger.every(function (e) { return e.realised === (e.matureMonth <= lagRun.horizon); });
+    ok('ACQ-LAG · acquisition is neither duplicated nor lost: law output = realised + pending at the horizon (ARR and spend), pending reconciles to the ledger every month',
+       l4 < EPS && l4s < EPS && l5 < EPS && beyond,
+       'ARR residual €' + l4.toExponential(1) + ', spend residual €' + l4s.toExponential(1) + ', max pending residual €' + l5.toExponential(1) +
+       '; ' + lagRun.pendingAtHorizon.entries.length + ' months of spend (€' + (lagRun.pendingAtHorizon.spend / 1e6).toFixed(2) + 'm) mature beyond M' + lagRun.horizon + ' and never appear inside it');
+
+    /* L6/L7. Retention of created cohorts is unchanged, and cohorts still sum to the company */
+    var l6 = 0;
+    for (var kk2 = 1; kk2 + LAGM < BASE.cohorts.length; kk2++) {
+      var cb = BASE.cohorts[kk2], cl2 = lagRun.cohorts[kk2 + LAGM];
+      for (var r2 = 0; r2 < cl2.rows.length && r2 < cb.rows.length; r2++) {
+        l6 = Math.max(l6, Math.abs(cl2.rows[r2].closingARR - cb.rows[r2].closingARR), Math.abs(cl2.rows[r2].leakage - cb.rows[r2].leakage));
+      }
+    }
+    var l7 = 0;
+    for (i = 1; i <= lagRun.horizon; i++) {
+      var s7 = E.cohortSnapshot(lagRun, i).reduce(function (s, c) { return s + c.currentARR; }, 0);
+      l7 = Math.max(l7, Math.abs(s7 - lagRun.months[i - 1].closingARR));
+    }
+    ok('ACQ-LAG · a cohort created after the lag ages exactly as its same-month twin would (rows identical at every age); company ARR = Σ cohorts still',
+       l6 < EPS && l7 < EPS, 'max row delta €' + l6.toExponential(1) + '; max cohort-sum residual €' + l7.toExponential(1));
+
     return out;
   }
 

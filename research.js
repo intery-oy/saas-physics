@@ -122,8 +122,11 @@ function lawSignature(res) {
               b.persistenceAnnual, b.expansionCoefficientAnnual, b.g, b.e];
     }),
     /* every assumption that is a law or a control, but NOT the state */
+    /* v1.1–v1.3 laws are part of the world too: two runs that differ in
+       expansion cost, acquisition capacity or lag are not the same world. */
     scalars: ['cacPerARR', 'persistenceAnnual', 'expansionCoefficientAnnual',
-              'grossMargin', 'sm', 'rd', 'ga'].map(function (k) { return [k, res.assumptions[k]]; })
+              'grossMargin', 'sm', 'rd', 'ga',
+              'expansionCostPerARR', 'maxMonthlyNewARR', 'acquisitionLagMonths'].map(function (k) { return [k, res.assumptions[k]]; })
   });
 }
 function sameWorld(resA, resB) {

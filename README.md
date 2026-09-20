@@ -17,12 +17,38 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 
 | | |
 |---|---|
-| **Engine version** | v0.3 (`kpi.js` / `integrity.js` — 0 diff lines since the last engine change; `engine.js` carries one deliberate, requested exception — the MRR-native unit refactor below) |
+| **Engine version** | v1.3 — the v0.3 cohort physics plus three nullable mechanisms (below). `docs/BASELINE-v1.0.md` records the pre-extension checksums; `docs/BASELINE-v1.3.md` the current frozen ones. |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
-`kpi.js` and `integrity.js` are the economic core: they stay untouched by convention, not by
-schedule — a change to either is deliberate and reviewed, never incidental. `engine.js` follows
-the same discipline with one recorded exception below. Four passes have run since v1 shipped:
+`engine.js`, `kpi.js` and `integrity.js` are the economic core: they stay untouched by
+convention, not by schedule — a change to any of them is deliberate, reviewed and re-frozen,
+never incidental.
+
+**Physics extension v1.1–v1.3 (a deliberate, chartered engine change).** Three mechanisms,
+each with a null setting under which the prior world is reproduced *exactly* — the ALL-NULL
+release gate replays `baseline-v1.0.json` to €0.00e+0:
+
+| Release | Mechanism | Parameter (null) | What it touches | What it never touches |
+|---|---|---|---|---|
+| **v1.1 Expansion Economics** | expansion realisation cost | `expansionCostPerARR` (0) | a named P&L line → EBITA, FCF, cash | any ARR quantity, GRR, NRR, the acquisition response |
+| **v1.2 Bounded Acquisition** | saturating acquisition response `N = S&M ÷ (CAC + S&M ÷ capacity)`, with average and marginal CAC derived analytically | `maxMonthlyNewARR` (null = linear) | how much New ARR each month of spend creates | existing cohorts' transitions, retention KPIs |
+| **v1.3 Acquisition Timing** | S&M at t → explicit pending stock → cohort at t + L | `acquisitionLagMonths` (0) | when ARR appears; the cash path; what is still pending at M60 | how much per euro; retention |
+
+Measured results are in the three research notes — [`docs/RN-EXPANSION-ECONOMICS.md`](docs/RN-EXPANSION-ECONOMICS.md),
+[`docs/RN-ACQUISITION-SATURATION.md`](docs/RN-ACQUISITION-SATURATION.md),
+[`docs/RN-ACQUISITION-TIMING.md`](docs/RN-ACQUISITION-TIMING.md) — and the headline: the matched-NRR pair
+(same ARR, same NRR) now ends `c × €13.79m` apart in cash for a cost `c` per €1 of expansion
+ARR; at Base spend under a €2.0m/month capacity the average CAC is 1.65× and the marginal
+2.27×; a 6-month lag leaves New ARR per euro unchanged and moves the cash trough from €6.10m to
+€2.29m. The product gained three controls (Change), the corresponding rows (Observe), Scenarios
+7–9 (Compare), spend/pending/creation provenance per cohort (Inspect) and the new causal links on
+the System map. `FINDINGS.md` #10, #14 and #17 are reclassified, not deleted; #27–#30 are new.
+Regression suites: `node checks.js` (51 — 16 new, named EXP-COST / ACQ-BOUND / ACQ-LAG),
+`node physics-checks.js` (41 — ALL-NULL, SAT+LAG, COST+SAT, ALL-ON, RETENTION-ISO, DETERMINISM,
+EXTREMES, SWEEP), `node physics-accept.js` (Playwright, 22), `node physics-study.js` (the
+experiments).
+
+Four passes ran between the v1 product shipping and this extension:
 
 **Integrity + Experiment Attribution pass.** Fixed a real trust defect — the Company chart's
 printed Cash and cumulative-leakage figures read a continuously interpolated position while
@@ -86,9 +112,10 @@ FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright
 DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
 scenario matrix).
 
-All 35 economic integrity checks, 19 research checks, 12 MRR/ARR basis-switch regression
-checks, 46 clarity regression checks, 20 MRR-native engine-refactor checks and 22 Integrity +
-Experiment Attribution checks pass.
+All 51 economic integrity checks, 41 physics-extension checks, 19 research checks, 12 MRR/ARR
+basis-switch regression checks, 46 clarity regression checks, 20 MRR-native engine-refactor
+checks and 22 Integrity + Experiment Attribution checks pass; so do the 15 + 14 + 22 Playwright
+acceptance checks.
 
 ## The product
 
@@ -99,7 +126,7 @@ Four actions: **Observe → Change → Compare → Inspect**.
 |---|---|
 | **Company** | Observe the accumulated recurring economic state and where it came from. |
 | **System** | A model audit: the causal topology the engine actually contains, with ⊘ marking the links it does not. |
-| **Scenarios** | Six canonical scenarios. Change one declared assumption against a frozen Base and read the consequence. |
+| **Scenarios** | Nine canonical scenarios. Change one declared assumption against a frozen Base and read the consequence. 7–9 exercise the v1.1–v1.3 mechanisms: same ARR / different economics, linear vs bounded response, same law / later ARR. |
 | **Inspect** | Contextual. Click a cohort for its provenance and capital-recovery history. |
 
 A global **MRR ⇄ ARR** switch (default MRR) sets the reporting basis for every recurring-revenue
@@ -116,8 +143,10 @@ modeled FCF and Cash directly, but v1 models no effect from them on
 recurring-state dynamics.
 
 There is deliberately no "buy more growth" scenario: acquisition is linear and
-unbounded here, and canonising "increase S&M" would teach a known model
-limitation as though it were economic truth.
+unbounded in the null world, and canonising "increase S&M" there would teach a known model
+limitation as though it were economic truth. Scenario 8 switches the bound on instead and shows
+the response curve — diminishing New ARR, worsening average and marginal CAC — without declaring
+where to stop, because the model has no objective function.
 
 ## Research archive
 
@@ -135,7 +164,10 @@ identity, bridge, measurement and integrity check, in numbers.
 ## Run it
 
 ```bash
-node checks.js              # 35 economic, measurement and state integrity checks
+node checks.js              # 51 economic, measurement and state integrity checks (35 + EXP-COST, ACQ-BOUND, ACQ-LAG)
+node physics-checks.js      # v1.1–v1.3: ALL-NULL release gate vs baseline-v1.0.json, cross-mechanism, extremes, S&M sweep
+node physics-study.js       # v1.1–v1.3: the three experiments with measured results (quoted in docs/RN-*.md)
+node physics-accept.js      # v1.1–v1.3 DOM/render checks — needs playwright
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -165,6 +197,9 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
 | TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
 | TRANSITION | Gross margin | 80% |
+| TRANSITION (v1.1) | Expansion realisation cost per €1 of expansion ARR | 0 (free) |
+| TRANSITION (v1.2) | Acquisition capacity (New ARR per month the response approaches) | off (linear) |
+| TRANSITION (v1.3) | Acquisition lag | 0 months |
 | STATE | Opening ARR | €20.0m |
 | STATE | Opening cash | €10.0m |
 
@@ -213,6 +248,13 @@ creates; gross margin decides how fast that investment is recovered.
   all of it
 - [`docs/FINDINGS.md`](docs/FINDINGS.md) — **Where the physics break**: conceptual weaknesses
   this prototype exposed, and what to change next
+- [`docs/RN-EXPANSION-ECONOMICS.md`](docs/RN-EXPANSION-ECONOMICS.md),
+  [`docs/RN-ACQUISITION-SATURATION.md`](docs/RN-ACQUISITION-SATURATION.md),
+  [`docs/RN-ACQUISITION-TIMING.md`](docs/RN-ACQUISITION-TIMING.md) — the three v1.1–v1.3
+  research notes (question · new object · null world · invariants · falsification · result ·
+  boundary), with measured results
+- [`docs/BASELINE-v1.0.md`](docs/BASELINE-v1.0.md), [`docs/BASELINE-v1.3.md`](docs/BASELINE-v1.3.md)
+  — the pre- and post-extension frozen baselines (checksums, suites, the re-freeze discipline)
 
 ## Model version
 

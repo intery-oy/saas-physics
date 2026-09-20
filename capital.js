@@ -12,10 +12,16 @@
  * cost attributed to it.
  *
  * DISCLOSED BOUNDARY: the engine applies one uniform gross margin to every
- * cohort, and models no marginal acquisition cost for expansion. So a cohort's
- * gross profit is exactly its ARR × GM / 12, and "gross profit by vintage" is
- * the ARR mix scaled by a constant. That is a property of the current physics,
- * not of SaaS, and it is surfaced rather than hidden.
+ * cohort, so a cohort's gross profit is exactly its ARR × GM / 12, and "gross
+ * profit by vintage" is the ARR mix scaled by a constant. That is a property of
+ * the current physics, not of SaaS, and it is surfaced rather than hidden.
+ *
+ * v1.1: the engine now carries an expansion realisation cost per cohort
+ * (cohort.rows[].expansionCost). This track deliberately does NOT net it: it
+ * measures the recovery of the ACQUISITION cost only, and the product says so
+ * beside the figures. v1.2/v1.3: acquisitionCost is the spend that created the
+ * cohort (stamped at creation, possibly after a lag), so payback is measured
+ * from the cohort's creation month, not from the spend month.
  */
 ;(function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();

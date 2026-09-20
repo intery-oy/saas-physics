@@ -1,4 +1,17 @@
-# Economic architecture — Prototype 0.3 (model v0.3)
+# Economic architecture — SaaS Physics v1.3 (model v1.3)
+
+> **v1.1 → v1.3.** Three nullable mechanisms on top of the v0.3 cohort physics, one per release,
+> each admitted under the development constitution below (a blocked CFO question, one minimum
+> mechanism, a null setting that reproduces the previous version exactly, a named check, a link
+> on the System Map). **v1.1 Expansion Economics** — `expansionCostPerARR`, a cost line on
+> expansion ARR that reaches EBITA/FCF/cash and never the ARR transition. **v1.2 Bounded
+> Acquisition** — `maxMonthlyNewARR`, a saturating acquisition response with `cacPerARR` kept as
+> the low-spend primitive; a bound, not a benefit. **v1.3 Acquisition Timing** —
+> `acquisitionLagMonths`, S&M spent at t becomes a cohort at t + L through an explicit pending
+> stock. With all three at null the engine reproduces the v1.0 world exactly
+> (`physics-checks.js` ALL-NULL against `baseline-v1.0.json`). Equations in §"v1.1–v1.3
+> mechanisms" below; measured results in `RN-EXPANSION-ECONOMICS.md`,
+> `RN-ACQUISITION-SATURATION.md`, `RN-ACQUISITION-TIMING.md`.
 
 > **v0.3.** One new state dimension: **cohort maturity**. Transition coefficients may vary by the
 > age band a cohort occupies (0–11, 12–23, 24+ months), giving six transition parameters. The
@@ -20,20 +33,21 @@
 
 ```
 CONTROL (S&M, R&D, G&A)  ─┐
-RATE (payback, GM)       ─┴─► New ARR ──► new cohort each month
-                                              │
-RATE (GRR, expansion) ──────────────────► cohort ageing
-                                              │
-                            Σ cohorts ──► ARR (STATE)
-                                              │
-                                   midpoint ──► Revenue (FLOW)
-                                              ├─► Gross profit ──► EBITA ──► FCF ──► Cash (STATE)
-                                              └─► NRR, growth, EBITA margin (emergent)
+RATE (CAC, GM)           ─┴─► acquisition response ──► [capacity bound] ──► [pending, lag L] ──► new cohort at t + L
+                                                                                                   │
+RATE (persistence, expansion) ───────────────────────────────────────────────────────────► cohort ageing
+                                                                                                   │
+                                                                                 Σ cohorts ──► ARR (STATE)
+                                                                                                   │
+                                                                                        midpoint ──► Revenue (FLOW)
+                                                                                                   ├─► Gross profit ──► [− expansion realisation cost] ──► EBITA ──► FCF ──► Cash (STATE)
+                                                                                                   └─► NRR, growth, EBITA margin (emergent)
 ```
 
-Nothing downstream is an input. NRR, growth, EBITA margin, burn and cash are all read off
-the simulation; the only things a user can set are three management controls and four
-coefficients.
+Bracketed elements are the v1.1–v1.3 mechanisms; each is absent at its null setting. Nothing
+downstream is an input. NRR, growth, EBITA margin, burn and cash are all read off the
+simulation; the only things a user can set are three management controls, four transition
+coefficients, and the three nullable mechanism parameters.
 
 ## Time
 
@@ -164,6 +178,59 @@ base. The two errors offset exactly, so NRR is right while each reported compone
 understated. `E.rateDiagnostics()` computes all of this and the interface displays it under the
 ARR anatomy, rather than leaving it as an unstated assumption.
 
+## v1.1–v1.3 mechanisms — exact forms
+
+### v1.1 Expansion realisation cost
+
+```
+expansionCost (cohort, month) = expansionARR (cohort, month) × expansionCostPerARR
+expansionCost (company)       = Σ cohorts
+EBITA                         = grossProfit − S&M − R&D − G&A − expansionCost
+```
+
+Computed after a cohort's closing balance is fixed and read by nothing in the transition.
+Carried as its own P&L line (`months[].expansionCost`, `cohort.rows[].expansionCost`,
+cumulatives); not classified as COGS, S&M or CSM. Null: `expansionCostPerARR = 0`.
+
+### v1.2 Bounded acquisition
+
+```
+N(S&M) = S&M ÷ (cacPerARR + S&M ÷ maxMonthlyNewARR)        bound on
+N(S&M) = S&M ÷ cacPerARR                                    bound off (null / non-finite capacity)
+
+average CAC  = S&M ÷ N = cacPerARR + S&M ÷ capacity
+dN/dS&M      = cacPerARR ÷ (cacPerARR + S&M ÷ capacity)²
+marginal CAC = 1 ÷ (dN/dS&M)
+utilisation  = N ÷ capacity
+payback      = CAC × 12 ÷ GM        (coefficient, average or marginal CAC)
+```
+
+`E.acquisitionResponse(a, sm)` returns all of these analytically. A cohort stamps
+`cacPerARRAtCreation` = realised cost per €1 (= average CAC) and `cacCoefficientAtCreation` =
+`cacPerARR`; `acquisitionCost = initialARR × cacPerARRAtCreation` still holds. A finite capacity
+≤ 0 is not "off": it yields N = 0 with S&M still spent. Null: `maxMonthlyNewARR = null`.
+
+### v1.3 Acquisition timing
+
+```
+month t:
+  age existing cohorts (leak, then expand)                                  unchanged
+  spend: ledger ← { spendMonth: t, matureMonth: t + L, sm, newARR: N(S&M) } S&M expensed now
+  realise: entries with matureMonth = t → cohort M(t)                        after ageing
+  closing = retained + expansion + realised New ARR
+```
+
+State returned: `months[].pendingNewARR / pendingSpend / pendingCount /
+acquisitionLawNewARR / realisedFromSpendMonth`, `res.acquisitionLedger`, `res.pendingAtHorizon`;
+cohorts carry `spendMonth`, `lagMonths`. Spend maturing beyond the horizon stays pending and is
+reported, never realised inside it. Null: `acquisitionLagMonths = 0`.
+
+### Order and separability
+
+The three are orthogonal by construction and checked to be (`physics-checks.js` SAT+LAG,
+COST+SAT): the cost never changes the response, the bound never changes an existing cohort's
+transition, the lag never changes the response function. `res.mechanisms` reports which are on.
+
 ## Scenario architecture
 
 `BASE_A` is a frozen assumption object; the Experiment is a separate object that is copied,
@@ -177,25 +244,29 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 
 | Class | Members |
 |---|---|
-| **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band** |
-| **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, EBITA, FCF |
-| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band |
+| **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band**, **pending acquisition (v1.3)** |
+| **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, **expansion realisation cost (v1.1)**, EBITA, FCF |
+| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band; **expansionCostPerARR (v1.1), maxMonthlyNewARR (v1.2), acquisitionLagMonths (v1.3)** |
 | **CONTROL** | S&M, R&D, G&A investment |
-| **MEASURED** | **R12M GRR / expansion / NRR**, **CAC payback**, ARR growth, EBITA margin, burn — produced by Layer B, never settable |
+| **MEASURED** | **R12M GRR / expansion / NRR**, **CAC payback** (coefficient / average / marginal), measured CAC, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable |
 
 ## Files
 
 | File | Role |
 |---|---|
 | `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. |
-| `kpi.js` | **Layer B** — the KPI measurement engine, plus forward economic content. Contains no economics of its own. UMD. |
-| `integrity.js` | The 35 economic, measurement and state assertions. UMD. |
+| `kpi.js` | **Layer B** — the KPI measurement engine, plus forward economic content and the v1.1–v1.3 measurements (`acquisitionMeasures`, `expansionCostMeasures`). Contains no economics of its own. UMD. |
+| `integrity.js` | The 51 economic, measurement and state assertions (35 original + 16 for v1.1–v1.3). UMD. |
 | `checks.js` | Node CLI for the assertions. |
+| `physics-checks.js` | v1.1–v1.3 cross-mechanism, release-gate (ALL-NULL vs `baseline-v1.0.json`), extreme-probe and sweep checks. |
+| `physics-study.js` | The three v1.1–v1.3 experiments, printed with measured results. |
+| `physics-accept.js` | Playwright acceptance checks for the v1.1–v1.3 product surfaces. |
 | `scenarios.js` | Node CLI for Scenarios A–E and the 0.2/0.2.1 experiments. |
 | `state-sufficiency.js` | Node CLI for the v0.3 State Sufficiency Experiment. |
-| `ui.template.html` | Inspection interface. |
-| `build.js` | Inlines `engine.js` + `integrity.js` into the single-file UI. |
-| `saas-physics-prototype-0.html` | Built artifact. |
+| `v1.template.html` | The product surface (SaaS Physics v1). |
+| `ui.template.html` | Inspection interface (research archive). |
+| `build.js` | Inlines the engine, KPI, integrity and derived modules into the single-file surfaces. |
+| `saas-physics-v1.html` | Built product. |
 
 The browser runs the same `engine.js` and the same `integrity.js` as the Node CLI — the build
 step inlines them rather than reimplementing them, which is what makes integrity check 8
@@ -249,6 +320,13 @@ interpretation, and a named check.
 
 The Phase 0/1 gate ran on v0.3 and returned **PROCEED TO ACQUISITION-NONLINEARITY
 DESIGN** — a bound, not a benefit. See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
+
+v1.1–v1.3 admitted three mechanisms under the criteria above. Two are bounds (capacity, cost);
+one is a timing state (lag). Criterion 7 (rerun the observability gate when hidden state is
+introduced): the pending-acquisition stock is new hidden state, but it is fully determined by
+the S&M history and the lag — a reader with the spend series and L can reconstruct it exactly —
+so it adds no *unobservable* state to the domain the Phase 0/1 study enumerated. Recorded here
+rather than re-run. The expansion cost adds no state; the bound adds none.
 
 ---
 

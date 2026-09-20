@@ -43,6 +43,11 @@
     }
     var newC = cohorts.filter(function(x){ return x.isNew; })[0] || null;
     var otherOpex = m.rd + m.ga;
+    /* v1.1 — the expansion realisation cost line; 0 in the null world, so every
+       pre-existing residual below is unchanged there. v1.3 — the pending
+       acquisition stock and the law's own output, so the SYSTEM view can draw
+       spend → pending → cohort as the engine actually steps it. */
+    var expansionCost = m.expansionCost || 0;
     return {
       t:t, year:m.year, cohorts:cohorts,
       openingARR:m.openingARR, leakage:m.leakage, expansion:m.expansion,
@@ -53,9 +58,12 @@
       midpointARR:(m.openingARR + m.closingARR) / 2,
       revenue:m.revenue, cogs:m.cogs, grossProfit:m.grossProfit,
       sm:m.sm, rd:m.rd, ga:m.ga, otherOpex:otherOpex,
+      expansionCost: expansionCost,
+      acquisitionLawNewARR: m.acquisitionLawNewARR === undefined ? m.newARR : m.acquisitionLawNewARR,
+      pendingNewARR: m.pendingNewARR || 0, pendingSpend: m.pendingSpend || 0, pendingCount: m.pendingCount || 0,
       ebita:m.ebita, fcf:m.fcf, cashOpening:m.cashOpening, cashClosing:m.cashClosing,
       gpResidual: m.revenue - m.cogs - m.grossProfit,
-      fcfResidual: m.grossProfit - m.sm - otherOpex - m.fcf,
+      fcfResidual: m.grossProfit - m.sm - otherOpex - expansionCost - m.fcf,
       cashResidual: m.cashOpening + m.fcf - m.cashClosing,
       newCohortRevenueThisMonth: newC ? newC.revenue : 0,
       newCohortGPThisMonth: newC ? newC.grossProfit : 0,
@@ -67,12 +75,13 @@
   function deltaStateAt(baseRes, expRes, t) {
     var b = stateAt(baseRes, t), x = stateAt(expRes, t);
     var keys = ['openingARR','leakage','expansion','newARR','closingARR','midpointARR',
-                'revenue','cogs','grossProfit','sm','rd','ga','otherOpex','ebita','fcf',
+                'revenue','cogs','grossProfit','sm','rd','ga','otherOpex','expansionCost',
+                'acquisitionLawNewARR','pendingNewARR','pendingSpend','pendingCount','ebita','fcf',
                 'cashOpening','cashClosing'];
     var d = { t:t, base:b, experiment:x };
     keys.forEach(function(kk){ d[kk] = x[kk] - b[kk]; });
     d.arrResidual = d.openingARR + d.newARR + d.expansion - d.leakage - d.closingARR;
-    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.fcf;
+    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.expansionCost - d.fcf;
     d.cashResidual = d.cashOpening + d.fcf - d.cashClosing;
     /* per-cohort deltas, so the delta stays cohort-anchored too */
     d.cohorts = x.cohorts.map(function(xc){

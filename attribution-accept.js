@@ -13,7 +13,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto('file:///home/user/experiments/saas-physics/saas-physics-v1.html');
+  await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + '');
   await pg.waitForTimeout(900);
 
   /* ---- SCREEN-RECONCILIATION: the fix specifically covers FRACTIONAL tau,

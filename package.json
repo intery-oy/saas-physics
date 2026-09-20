@@ -5,10 +5,14 @@
   "description": "Prototype 0 — deterministic SaaS economic engine and inspection interface",
   "scripts": {
     "check": "node checks.js",
+    "physics": "node physics-checks.js",
+    "physics-study": "node physics-study.js",
     "basis": "node basis-checks.js",
     "scenarios": "node scenarios.js",
     "build": "node build.js",
     "state": "node state-sufficiency.js",
+    "all": "node checks.js && node physics-checks.js && node mrr-native-checks.js && node basis-checks.js && node clarity-checks.js && node attribution-checks.js && node research-checks.js",
+    "accept": "node clarity-accept.js && node attribution-accept.js && node physics-accept.js",
     "report": "node checks.js && node basis-checks.js && node state-sufficiency.js && node scenarios.js"
   }
 }
