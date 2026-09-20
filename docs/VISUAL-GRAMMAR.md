@@ -1,3 +1,5 @@
+> Palette and lens marks were revised in the economic-lens pass: see `docs/LENS-VISUAL-GRAMMAR.md` (dark + indigo; Experiment indigo, Base muted indigo, amber only for laws and constraints). The structural rules below still hold.
+
 # Visual grammar — how each kind of economic object looks, everywhere
 
 One grammar for Observe, Change, Compare, Inspect and System. The same kind of object looks

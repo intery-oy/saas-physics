@@ -82,8 +82,9 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   /* ---- P&L through Economics & cash ---- */
   const plOff = await pg.evaluate(() => { const c = document.querySelector('.cascade'); return c ? getComputedStyle(c).display !== 'none' && c.getBoundingClientRect().height > 0 : null; });
   await click(pg, '.lensnav .btn[data-lens="cash"]');
+  await pg.evaluate(() => { document.getElementById('pl-details').open = true; });   /* the waterfall is secondary inspection: one disclosure inside Economics & cash */
   const plOn = await pg.evaluate(() => { const c = document.querySelector('.cascade'); const inSlot = !!c && c.parentElement && c.parentElement.id === 'pl-slot' && c.closest('#lens-cash') !== null; return { inSlot, visible: !!c && c.getBoundingClientRect().height > 0, steps: c ? c.querySelectorAll('#cascade .crow, #cascade > *').length : 0 }; });
-  rec('P&L: the monthly waterfall is not on Growth engine and is inside Economics & cash, visible, with its steps', plOff === false && plOn.inSlot && plOn.visible && plOn.steps > 3, JSON.stringify({ plOff, plOn }));
+  rec('P&L: the monthly waterfall is not on Growth engine and is inside Economics & cash behind one disclosure, with its steps', plOff === false && plOn.inSlot && plOn.visible && plOn.steps > 3, JSON.stringify({ plOff, plOn }));
 
   /* ---- SYSTEM ---- */
   await click(pg, '#nav-system');

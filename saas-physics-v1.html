@@ -5985,6 +5985,7 @@ details.pl .cascade{margin-top:8px}
         (satOn ? responseCurve(qx) : '')+
       '</div></div>';
     if(acqSame) h += same('Acquisition');
+    else if(differs && !CH.some(function(c){ return ['sm','cacPerARR','maxMonthlyNewARR','acquisitionLagMonths'].indexOf(rootKey(c.key))>=0; }) && !near(em.newARR, bm.newARR)) h += same('Acquisition laws');
     /* where the growth came from — acquisition against the installed base */
     var ibParts = moOn ? [{n:'installed base · price + usage + adoption', v:S12(function(x){ return x.monetization.priceARR+x.monetization.usageARR+x.monetization.adoptionARR; }), c:'var(--exp)'}] : [{n:'installed base · expansion', v:expR12, c:'var(--exp)'}];
     var outParts = cuOn ? '− churned '+reur(S12(function(x){ return x.customers.logoChurnARR; }))+' · − contraction '+reur(S12(function(x){ return x.customers.contractionARR; })) : '− leakage '+reur(leakR12);
@@ -6018,7 +6019,7 @@ details.pl .cascade{margin-top:8px}
       var ib = mv.pr+mv.us+mv.ad;
       h += figT('Installed-base growth by cause', w.tag) + comp([{n:'price', v:mv.pr, c:'var(--base)', f:reur(mv.pr)}, {n:'usage', v:mv.us, c:'var(--exp)', f:reur(mv.us)}, {n:'adoption', v:mv.ad, c:'rgba(139,141,240,.45)', f:reur(mv.ad)}]) +
         (mm ? '<div class="comp-l" style="margin-top:2px"><span>of NRR '+pct(kpi?kpi.nrr:0,1)+': price '+pct(mm.priceEffectR12M,1)+' · usage '+pct(mm.usageEffectR12M,1)+' · adoption '+pct(mm.adoptionEffectR12M,1)+'</span><span>'+(ib>0 ? (mv.us/ib>0.5 ? 'usage-led' : mv.pr/ib>0.5 ? 'price-led' : mv.ad/ib>0.5 ? 'adoption-led' : 'mixed') : '—')+'</span></div>' : '')+'</div>';
-      if(differs && moB && near(mv.pr, B12(function(x){return x.monetization.priceARR;})) && near(mv.us, B12(function(x){return x.monetization.usageARR;})) && near(mv.ad, B12(function(x){return x.monetization.adoptionARR;})) && !near(em.closingARR, bm.closingARR)) h += same('Monetization laws');
+      if(differs && moB && !CH.some(function(c){ return rootKey(c.key)==='monetization'; }) && !near(em.closingARR, bm.closingARR)) h += same('Monetization laws')+'<div class="hint" style="margin-top:4px">The laws are Base\'s; the base they act on moved.</div>';
     } else {
       h += lensHead('4', 'What is revenue made of, and why did it change?', Mt, 'monetization');
       var s0b = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
