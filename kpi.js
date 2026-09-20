@@ -363,10 +363,59 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * v2 Gate A — CUSTOMER MEASUREMENT over the same frozen R12M cohort.
+   *
+   * Same eligibility as measureR12M (cohorts acquired on or before T − 12),
+   * same frozen opening. Adds what the ARR-only measurement cannot see:
+   *   R12M logo retention = surviving eligible customers ÷ eligible opening customers
+   *   GRR decomposition   = 1 − logo-churn ARR / opening − contraction ARR / opening
+   *   ARPA                = ARR ÷ customers (company), at T − 12 and at T
+   * Returns null when Customer Physics is off (nothing to measure) or T < 12.
+   * ------------------------------------------------------------------ */
+  function customerMeasures(res, T) {
+    if (T < WINDOW || !res.mechanisms || !res.mechanisms.customerPhysics) return null;
+    var start = T - WINDOW + 1, asOf = T - WINDOW;
+    var eligible = res.cohorts.filter(function (c) { return c.acquisitionMonth <= asOf; });
+    var nOpen = 0, nClose = 0, arrOpen = 0, logoARR = 0, contrARR = 0, expARR = 0, arrClose = 0;
+    eligible.forEach(function (c) {
+      var first = rowAt(c, start); if (!first || !first.customers) return;
+      nOpen += first.customers.opening; arrOpen += first.openingARR;
+      var last = null;
+      for (var t = start; t <= T; t++) {
+        var r = rowAt(c, t); if (!r) break;
+        logoARR += r.customers.logoChurnARR; contrARR += r.customers.contractionARR; expARR += r.expansion; last = r;
+      }
+      if (last) { nClose += last.customers.closing; arrClose += last.closingARR; }
+    });
+    var mo = res.months[start - 1].customers, mc = res.months[T - 1].customers;
+    var grr = arrOpen > 0 ? (arrOpen - logoARR - contrARR) / arrOpen : 1;
+    return {
+      T: T, windowStart: start, asOf: asOf,
+      eligibleCustomersOpening: nOpen, eligibleCustomersClosing: nClose,
+      logoRetentionR12M: nOpen > 0 ? nClose / nOpen : 1,
+      logoChurnRateR12M: nOpen > 0 ? 1 - nClose / nOpen : 0,
+      openingARR: arrOpen,
+      logoChurnARR: logoARR, contractionARR: contrARR, expansionARR: expARR,
+      dollarChurnFromLogosR12M: arrOpen > 0 ? logoARR / arrOpen : 0,
+      dollarChurnFromContractionR12M: arrOpen > 0 ? contrARR / arrOpen : 0,
+      grrR12M: grr,
+      nrrR12M: arrOpen > 0 ? arrClose / arrOpen : 1,
+      identityResidual: arrOpen + expARR - logoARR - contrARR - arrClose,
+      /* company ARPA path (not frozen: it includes new logos, as ARPA does) */
+      companyCustomersOpening: mo.opening, companyCustomersClosing: mc.closing,
+      arpaOpening: mo.arpaOpening, arpaClosing: mc.arpaClosing,
+      arpaChange: (mo.arpaOpening && mc.arpaClosing) ? mc.arpaClosing / mo.arpaOpening - 1 : null,
+      newCustomersR12M: res.months.slice(start - 1, T).reduce(function (q, m) { return q + m.customers.newCustomers; }, 0),
+      newLogoARPA: res.derived.customers.newLogoARPA
+    };
+  }
+
   return {
     WINDOW: WINDOW,
     rowAt: rowAt,
     measureR12M: measureR12M,
+    customerMeasures: customerMeasures,
     measureSeries: measureSeries,
     companyKPIs: companyKPIs,
     acquisitionMeasures: acquisitionMeasures,

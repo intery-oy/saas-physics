@@ -256,6 +256,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Management decisions</b> — S&amp;M, and the fixed operating costs R&amp;D and G&amp;A.</li>
             <li><b>Economic transition assumptions</b> — persistence and expansion (how the installed base evolves), CAC per €1 of New ARR (how spend becomes ARR), gross margin (how revenue becomes gross profit).</li>
             <li><b>Three nullable mechanisms</b> — expansion realisation cost, acquisition capacity, acquisition lag. Each defaults to the setting under which it does nothing.</li>
+            <li><b>Customer physics (v2, nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
             <li>Nothing else. There is no plan, no target, no forecast to hit.</li>
           </ul>
         </div>
@@ -319,6 +320,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Acquisition capacity</b> — New ARR = S&amp;M ÷ (CAC + S&amp;M ÷ capacity). A <b>bound</b> on an optimistic mechanism, not a growth benefit. Off = the linear law.</li>
             <li><b>Acquisition lag</b> — spend at month t creates its cohort at t + lag, through a pending state the engine actually carries. Changes <b>when</b>, never <b>how much per euro</b>.</li>
             <li>With all three at their null setting the engine reproduces the v1.0 world exactly (the ALL-NULL release gate).</li>
+          </ul>
+        </div>
+        <div>
+          <h5>Customer physics (v2 Gate A, nullable)</h5>
+          <ul>
+            <li><b>Logo retention</b> — the share of customers that survive twelve months. Departing customers take the cohort's average revenue with them.</li>
+            <li><b>Contraction</b> — how much surviving customers shrink. Leakage = lost logos + contraction; persistence = L × (1 − C), <b>derived</b>, not set.</li>
+            <li><b>ARR per new logo</b> — how many customers a euro of New ARR brings. Moves customers and ARPA, never ARR.</li>
+            <li>With Logo retention off the engine reproduces the v1.3 world exactly, every field (the ALL-NULL-V13 gate). Scenario 10 shows two worlds with identical ARR and NRR and different customers.</li>
           </ul>
         </div>
         <div>
@@ -551,7 +561,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
          moves no recurring state and sits in neither group by construction. */
       var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR,
                                             maxMonthlyNewARR: expA.maxMonthlyNewARR, acquisitionLagMonths: expA.acquisitionLagMonths });
-      var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual });
+      var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual,
+                                            /* v2 Gate A: the customer laws generate persistence, so they are installed-base levers */
+                                            logoRetentionAnnual: expA.logoRetentionAnnual, contractionAnnual: expA.contractionAnnual, newLogoARPA: expA.newLogoARPA });
       attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
       var changedLevers = E.compare(baseRes, expRes).changed;
       attrCash = changedLevers.map(function(c){
@@ -575,6 +587,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
                {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
+    /* v2 Gate A — CUSTOMER PHYSICS. A layer beneath the installed-base laws:
+       when on, persistence is no longer set — it is GENERATED as L × (1 − C)
+       from logo survival and contraction, and the persistence slider reads
+       "derived". Off (the default) is the v1.3 world exactly. */
+    { kind:'Customer physics', layer:'customers', note:'Beneath the dollar laws: customers survive or leave (logo retention), and survivors spend less (contraction). When on, persistence is derived — L × (1 − C) — and the slider above stops being an input. Off = the ARR-only world.',
+      forces:[ {k:'logoRetentionAnnual', label:'Logo retention', sub:'12-month share of customers that stay · off = no customer layer', min:0.5, max:1, step:0.005, f:'pct', nullable:true, onValue:0.92, measures:['logoRetentionR12M']},
+               {k:'contractionAnnual', label:'Contraction', sub:'12-month revenue shrink among surviving customers · leakage = lost logos + contraction', min:0, max:0.3, step:0.005, f:'pct', measures:['contractionShare']},
+               {k:'newLogoARPA', label:'ARR per new logo', sub:'€ ARR each acquired customer brings · off = the opening ARPA · moves customers, never ARR', min:2000, max:100000, step:1000, f:'arpa', nullable:true, onValue:20000} ] },
     { kind:'Acquisition response', note:'How much recurring state S&M creates, whether that response is bounded, and when the ARR appears. Each has a null setting that is the v1.0 world.',
       forces:[ {k:'cacPerARR', label:'CAC coefficient', sub:'acquisition-law coefficient: € of S&M per €1 of New ARR at low spend', min:0.3, max:3, step:0.05, f:'x'},
                /* v1.2 — a BOUND on the response, never a benefit. null = off = the linear law. */
@@ -596,6 +616,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
   function fmtF(f, v){
     if(f==='cap') return (v===null||v===undefined||!isFinite(v)) ? 'off' : eur(v)+'/mo';
+    if(f==='arpa') return (v===null||v===undefined||!isFinite(v)) ? 'opening ARPA' : eur(v);
+    if(v===null||v===undefined) return 'off';
     if(f==='mo')  return Math.round(v)+' mo';
     return f==='eur'?eur(v):f==='pct'?pct(v,1):v.toFixed(2)+'×';
   }
@@ -604,7 +626,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function sliderValueFor(F, v){ return (F.nullable && (v===null||v===undefined||!isFinite(v))) ? F.onValue : v; }
 
   /* §6 — "underlying law -> measured KPI." kpi.js's own labels for each. */
-  var MEASURED_LABEL = { grr:'measured GRR', expansionRate:'measured Expansion', nrr:'measured NRR' };
+  var MEASURED_LABEL = { grr:'measured GRR', expansionRate:'measured Expansion', nrr:'measured NRR',
+                         logoRetentionR12M:'measured logo retention', contractionShare:'of measured leakage is contraction' };
   function forceRow(F){
     var d=document.createElement('div'); d.className='force';
     d.innerHTML='<div class="force-top"><label for="f-'+F.k+'">'+esc(F.label)+'</label>'+
@@ -643,10 +666,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function syncMeasuredKPI(){
     var m = selectedMonth();
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
+    var cmk = m>=12 ? K.customerMeasures(expRes, m) : null;       /* v2 Gate A; null when the layer is off */
     FORCE_GROUPS.forEach(function(G){ G.forces.forEach(function(F){
       if(!F.measures) return;
       F.measures.forEach(function(mk){
         var el=document.getElementById('mk-'+F.k+'-'+mk); if(!el) return;
+        if(mk==='logoRetentionR12M' || mk==='contractionShare'){
+          if(!expRes.mechanisms.customerPhysics) el.textContent = 'customer layer off';
+          else if(!cmk) el.textContent = 'needs 12 months of history';
+          else el.textContent = mk==='logoRetentionR12M' ? pct(cmk.logoRetentionR12M,1)
+               : ((cmk.dollarChurnFromLogosR12M+cmk.dollarChurnFromContractionR12M)>0 ? pct(cmk.dollarChurnFromContractionR12M/(cmk.dollarChurnFromLogosR12M+cmk.dollarChurnFromContractionR12M),1) : '0.0%');
+          return;
+        }
         el.textContent = kpi ? pct(kpi[mk],1) : 'needs 12 months of history';
       });
     }); });
@@ -691,6 +722,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, expA[F.k]);
       v.className = 'force-val' + (expA[F.k]===baseA[F.k] ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, baseA[F.k]);
+      /* v2 Gate A — with Customer Physics on, persistence is a READOUT: the
+         slider is disabled and shows the derived value and its formula. */
+      if(F.k==='persistenceAnnual'){
+        var cuOn = expRes.mechanisms.customerPhysics, cuOnB = baseRes.mechanisms.customerPhysics;
+        el.disabled = cuOn; el.style.opacity = cuOn ? 0.35 : 1;
+        if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
+        if(cuOnB) document.getElementById('b-'+F.k).textContent = 'base derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+      }
       if(F.nullable){
         var off = expA[F.k]===null || expA[F.k]===undefined || !isFinite(expA[F.k]);
         var tg=document.getElementById('t-'+F.k); tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off);
@@ -799,7 +838,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       teach:'S&M leaves in the month it is spent; the ARR it creates matures six months later. Efficiency is unchanged — what changes is the capital path, and what is still pending when the horizon closes.',
       ch:{acquisitionLagMonths:6},
       shows:['arr','new','first','pending','trough','cash','payback'],
-      bounds:['lag','fcf'] }
+      bounds:['lag','fcf'] },
+
+    /* v2 Gate A — the matched-world pair: two customer worlds with the same
+       derived persistence L(1 − C) = 87.4%. Same ARR path, same GRR and NRR at
+       every measurement date; different customers, logo retention and ARPA. */
+    { id:'customers', n:10, name:'Customers behind the ARR',
+      title:'Same ARR, same NRR, different customers',
+      teach:'Two installed bases that report identical ARR, GRR and NRR can be losing customers at very different rates. The ARR-only world cannot tell them apart; the customer layer can.',
+      pair:function(){
+        return { baseA: Object.assign({}, BASE_A, { logoRetentionAnnual:0.874, contractionAnnual:0 }),
+                 expA:  Object.assign({}, BASE_A, { logoRetentionAnnual:0.92,  contractionAnnual:0.05 }) };
+      },
+      pairLabel:'every lost euro is a lost logo vs fewer logos lost, survivors shrinking',
+      shows:['arr','custmatch','customers','gp','cash'],
+      note:'Base loses 12.6% of customers a year and no survivor shrinks; Experiment loses 8% of customers and survivors shrink 5%. Both derive persistence 87.4%, so ARR, revenue, cash, GRR and NRR are identical to floating-point precision. Only the customer state differs — which is the whole point of the layer.',
+      bounds:['cust','fcf'] }
   ];
 
   /* §10 — the boundary statements are NOT static text any more: three of them
@@ -822,6 +876,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return a.acquisitionLagMonths>0
         ? 'S&M spent in month t creates its cohort in month t + '+Math.round(a.acquisitionLagMonths)+'. The last '+Math.round(a.acquisitionLagMonths)+' months of spend mature beyond M60 and stay pending — never pulled forward. (#17, timed in v1.3)'
         : 'Acquisition is same-month while the lag is 0. (#17)';
+    }
+    if(key==='cust'){
+      return E.run(a).mechanisms.customerPhysics
+        ? 'Customers are a continuous cohort count with one ARPA per cohort: no customer-size heterogeneity, no concentration, no reactivation. Logo retention and contraction are flat laws — age bands cannot be combined with the customer layer. (#18, separated in v2 Gate A)'
+        : 'Leakage is one number while the customer layer is off: the engine cannot separate lost logos from shrinking accounts. Switch Logo retention on to separate them. (#18)';
     }
     if(key==='fcf') return 'FCF = EBITA. No working capital, deferred revenue, tax or capex. (#15)';
     if(key==='rd')  return 'R&D has no modelled effect on retention or expansion. (#16)';
@@ -1456,7 +1515,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,'rgba(59,74,85,.9)','rgba(143,160,170,.55)'));
     flatLine(xLeak, xLeak, 0, d.leakage, aBot, 648);
     arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(143,160,170,.9)'));
-    valve(xLeak, 580, 'persistence coefficient', fmtF('pct', expA.persistenceAnnual), 'persistenceAnnual', -216, -10);
+    var cuOnMap = expRes.mechanisms.customerPhysics;
+    valve(xLeak, 580, cuOnMap ? 'persistence · derived L(1−C)' : 'persistence coefficient',
+          cuOnMap ? pct(expRes.derived.persistenceAnnualEffective,1) : fmtF('pct', expA.persistenceAnnual), cuOnMap ? null : 'persistenceAnnual', -216, -10);
+    /* v2 Gate A — the customer laws sit beneath the persistence valve and feed
+       it: an information link from each to the (now derived) persistence. */
+    if(cuOnMap){
+      var mcu = expRes.months[m-1].customers;
+      valve(xLeak-270, 600, 'logo retention', fmtF('pct', expA.logoRetentionAnnual), 'logoRetentionAnnual', -72, 44);
+      valve(xLeak-150, 660, 'contraction', fmtF('pct', expA.contractionAnnual), 'contractionAnnual', -72, 44);
+      link([[xLeak-256, 600],[xLeak-24, 584]], '', false);
+      link([[xLeak-136, 660],[xLeak-20, 592]], '', false);
+      aux(xLeak-270, 690, 120, 'Customers', mcu ? mcu.closing.toFixed(0) : '—');
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.fillText('customer laws generate persistence', xLeak-200, 560);
+    } else {
+      lawAnchors['logoRetentionAnnual'] = null; lawAnchors['contractionAnnual'] = null;
+    }
     cloud(xLeak, 690, 'leaves the system');
     ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
     ctx.fillText('FLOW · Leakage '+basis, xLeak+62, 548);
@@ -1707,6 +1782,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * ------------------------------------------------------------------ */
   var LAWCHIPS = [
     {k:'persistenceAnnual', label:'persistence', f:'pct', min:0.6, max:0.99, step:0.005},
+    {k:'logoRetentionAnnual', label:'logo retention', f:'pct', min:0.5, max:1, step:0.005, nullable:true, onValue:0.92},
+    {k:'contractionAnnual', label:'contraction', f:'pct', min:0, max:0.3, step:0.005},
     {k:'expansionCoefficientAnnual', label:'expansion', f:'pct', min:0, max:0.4, step:0.005},
     {k:'sm', label:'S&M', f:'eur', min:0, max:2500000, step:25000},
     {k:'cacPerARR', label:'CAC coefficient', f:'x', min:0.3, max:3, step:0.05},
@@ -1920,7 +1997,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var host=document.getElementById('side');
       if(!activeScenario){
         host.innerHTML='<div class="sgrp"><div class="eyebrow">Scenarios</div>'+
-          '<div class="hint" style="margin-top:7px;line-height:1.7">Six canonical scenarios. Each changes one declared '+
+          '<div class="hint" style="margin-top:7px;line-height:1.7">Ten canonical scenarios. Each changes one declared '+
           'assumption against a frozen Base and reports only the consequences that scenario actually bears on.</div></div>'+
           SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard">'+
             '<h4>'+sc.n+' · '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
@@ -1961,6 +2038,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       row('From cohorts acquired since', reur(mix.total-mix.amounts.base)+' · '+pct(1-mix.shares.base)) +
       row('Cohorts alive', String(E.cohortSnapshot(expRes,m).length)) + '</div>';
 
+    /* v2 Gate A — the customer state beneath the ARR, only when the layer is on.
+       Every figure is engine state (months[].customers) or K.customerMeasures. */
+    if(em.customers){
+      var cu = em.customers, cmo = m>=12 ? K.customerMeasures(expRes, m) : null;
+      h+='<div class="sgrp" id="observe-customers"><div class="eyebrow">Customers beneath the '+basis+'</div>'+
+        row('Customers', cu.closing.toFixed(0)+(bm.customers ? ' · Base '+bm.customers.closing.toFixed(0) : '')) +
+        row('ARPA ('+basis+' per customer)', reur(cu.arpaClosing)) +
+        row('New customers · this month', cu.newCustomers.toFixed(1)) +
+        row('Customers lost · this month', cu.logoChurn.toFixed(1)) +
+        row('Leakage from lost logos · this month', reur(cu.logoChurnARR)) +
+        row('Leakage from contraction · this month', reur(cu.contractionARR)) +
+        row('Persistence in force', pct(expRes.derived.persistenceAnnualEffective,1)+' = '+pct(expA.logoRetentionAnnual,1)+' × (1 − '+pct(expA.contractionAnnual,1)+')') +
+        (cmo ? row('R12M logo retention', pct(cmo.logoRetentionR12M,1)) : '') +
+        '<div class="hint" style="margin-top:7px">Customers are a continuous cohort count, not individual accounts. ARPA is ARR ÷ customers — a readout, never a stock. Persistence is no longer an input here: it is what logo survival and contraction produce.</div></div>';
+    }
+
     var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition;
     var satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0;
     var am = K.acquisitionMeasures(expRes, m);
@@ -1983,14 +2076,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        assert a split the engine cannot produce. This is the decomposition the
        KPI layer actually supports, and it says so. */
     if(kpi){
+      var cmd = em.customers ? K.customerMeasures(expRes, m) : null;
       h+='<div class="sgrp"><div class="eyebrow">Installed-base evolution &middot; R12M</div>'+
         '<div class="recon" style="margin-top:5px">'+
         '<span>Opening cohort</span><b class="tot">100.0%</b>'+
-        '<span>&minus; Gross leakage impact</span><b class="down">&minus;'+pct(1-kpi.grr,1)+'</b>'+
+        (cmd
+          ? '<span>&minus; Lost logos</span><b class="down">&minus;'+pct(cmd.dollarChurnFromLogosR12M,1)+'</b>'+
+            '<span>&minus; Contraction</span><b class="down">&minus;'+pct(cmd.dollarChurnFromContractionR12M,1)+'</b>'
+          : '<span>&minus; Gross leakage impact</span><b class="down">&minus;'+pct(1-kpi.grr,1)+'</b>')+
         '<span>+ Expansion impact</span><b class="up">+'+pct(kpi.expansionRate,1)+'</b>'+
         '<span>= NRR</span><b class="tot">'+pct(kpi.nrr,1)+'</b>'+
-        '</div><div class="hint" style="margin-top:7px">Current v1 engine combines churn and contraction in Gross Leakage — '+
-        'it cannot yet say how much of the loss was lost logos versus shrinking accounts.</div></div>';
+        '</div><div class="hint" style="margin-top:7px">'+(cmd
+          ? 'With Customer Physics on, gross leakage separates into euros that left with departing customers and euros that stayed customers but shrank — two flows the engine now produces, measured on the same frozen R12M cohort.'
+          : 'With the customer layer off the engine combines churn and contraction in Gross Leakage — it cannot say how much of the loss was lost logos versus shrinking accounts. Switch Logo retention on to separate them.')+'</div></div>';
     }
 
     h+='<div class="sgrp" id="causal-slot"></div>';
@@ -2007,6 +2105,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           row('Cumulative Leakage '+basis, reur(snap.cumLeakage)) +
           row('Cumulative gross profit', eur(snap.cumGrossProfit)) +
           (snap.cumExpansionCost>0 ? row('Cumulative expansion realisation cost', eur(snap.cumExpansionCost)) : '') +
+          (snap.customers!==null ? row('Customers now', snap.customers.toFixed(1)+' of '+snap.initialCustomers.toFixed(1)+' acquired · '+pct(snap.customers/snap.initialCustomers)+' survive') +
+                                   row('ARPA now', reur(snap.arpa)) +
+                                   row('Leakage this month', reur(snap.logoChurnARR)+' lost logos · '+reur(snap.contractionARR)+' contraction') : '') +
           provenanceRows(c) +
           capitalRows(c, m)
           : '<div class="hint">Not yet born at this moment.</div>')+
@@ -2030,6 +2131,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(c.cacPerARRAtCreation!==null)
         out += row('Cohort CAC (realised)', c.cacPerARRAtCreation.toFixed(2)+'× · CAC coefficient '+c.cacCoefficientAtCreation.toFixed(2)+'×'+
                    (c.capacityAtSpend!==null ? ' · capacity '+eur(c.capacityAtSpend)+'/mo at spend' : ''));
+      /* v2 Gate A — customers realised from the ARR-per-logo stamped on the pending entry at spend */
+      if(c.initialCustomers!==null && c.initialCustomers!==undefined){
+        var ents = expRes.acquisitionLedger.filter(function(e){ return e.cohortId===c.id; });
+        if(ents.length) out += row('Customers acquired', c.initialCustomers.toFixed(1)+' = '+reur(c.initialARR)+' ÷ '+reur(ents[0].newLogoARPAAtSpend)+' per logo, stamped at spend');
+      }
       return out;
     }
     function capitalRows(c, mm){
@@ -2106,7 +2212,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        words are fixed, the numbers are the run's. */
     var qx = expRes.derived.acquisition;
     var satOn2 = E.saturationEnabled(expA), lagOn2 = expRes.derived.acquisitionLagMonths>0, costOn2 = expA.expansionCostPerARR>0;
-    h+='<div class="sgrp"><div class="eyebrow">Three mechanisms on the map</div>'+
+    var cuOn2 = expRes.mechanisms.customerPhysics, mcu2 = expRes.months[m-1].customers;
+    h+='<div class="sgrp"><div class="eyebrow">Mechanisms on the map</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
       '<b style="color:'+(satOn2?'var(--exp)':'var(--ink-3)')+'">Acquisition capacity · '+(satOn2?fmtF('cap',expA.maxMonthlyNewARR):'off')+'.</b> '+
       (satOn2
@@ -2123,6 +2230,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         ? 'A P&amp;L line fed by the expansion flow: '+n(d.expansionCost)+' this month. It reaches EBITA and Cash and touches <b style="color:var(--ink)">no ARR quantity</b> — the expansion pipe is the same width with or without it. '+
           'It is an economic realisation cost, deliberately not classified as COGS, S&amp;M or CSM.'
         : 'Expansion is free. The line is drawn dim because it is €0.')+
+      '<br><br><b style="color:'+(cuOn2?'var(--exp)':'var(--ink-3)')+'">Customer physics · '+(cuOn2?'logo retention '+pct(expA.logoRetentionAnnual,1)+', contraction '+pct(expA.contractionAnnual,1):'off')+'.</b> '+
+      (cuOn2
+        ? 'The persistence valve is no longer set: it reads <b style="color:var(--ink)">'+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)</b>, generated by the two customer valves beneath it. '+
+          'Leakage this month is '+reur(mcu2.logoChurnARR)+' from '+mcu2.logoChurn.toFixed(1)+' departing customers and '+reur(mcu2.contractionARR)+' from survivors shrinking; '+mcu2.closing.toFixed(0)+' customers remain. '+
+          'Same pipes, same stock: the layer explains the leakage flow, it does not add one.'
+        : 'Persistence is an input. Switch Logo retention on (Company layer) and persistence becomes what customer survival and contraction produce.')+
       '</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
@@ -2151,9 +2264,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var REGIME = {           /* pre-written, versioned, tied to g = (1−ℓ)(1+e) */
     shrink: 'net-shrinking', hold: 'self-sustaining', grow: 'self-growing'
   };
-  function regimeOf(a){
-    var gm2 = Math.pow(a.persistenceAnnual, 1/12);
-    var em2 = Math.pow(1 + a.expansionCoefficientAnnual, 1/12) - 1;
+  function regimeOf(res){
+    /* reads the run's own derived monthly rates — persistence may be derived
+       (Customer Physics) rather than input, and the regime must follow what is in force */
+    var gm2 = res.derived.monthlyPersistence;
+    var em2 = res.derived.monthlyExpansion;
     var g2 = gm2 * (1 + em2);
     return { g:g2, band: g2 < 1 - 1e-12 ? 'shrink' : (g2 > 1 + 1e-12 ? 'grow' : 'hold') };
   }
@@ -2173,6 +2288,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var rows = [], has = function(t){ return sc.shows.indexOf(t)>=0; };
     var qb = baseRes.derived.acquisition, qx = expRes.derived.acquisition;
     if(has('arr'))     rows.push(row('M60 '+basis, x.finalARR - b.finalARR, undefined, true));
+    /* v2 Gate A — customer rows, only when both worlds carry the layer */
+    if(has('customers') && b.finalCustomers!==null && x.finalCustomers!==null){
+      var cb10 = K.customerMeasures(baseRes, H), cx10 = K.customerMeasures(expRes, H);
+      rows.push(row('Customers at M60', x.finalCustomers - b.finalCustomers, undefined));
+      rows.push(row('R12M logo retention at M60', pct(cb10.logoRetentionR12M,1)+' → '+pct(cx10.logoRetentionR12M,1), cx10.logoRetentionR12M - cb10.logoRetentionR12M));
+      rows.push(row('ARPA at M60', b.finalARPA===null?'—':reur(b.finalARPA)+' → '+reur(x.finalARPA), x.finalARPA - b.finalARPA));
+      rows.push(row('Cumulative leakage from lost logos', x.cumLogoChurnARR - b.cumLogoChurnARR, -(x.cumLogoChurnARR - b.cumLogoChurnARR), true));
+      rows.push(row('Cumulative leakage from contraction', x.cumContractionARR - b.cumContractionARR, -(x.cumContractionARR - b.cumContractionARR), true));
+    }
     if(has('new'))     rows.push(row('New '+basis+' per month of spend', qx.newARR - qb.newARR, undefined, true));
     if(has('first'))   rows.push(row('First cohort created', 'M'+b.firstCohortMonth+' → M'+x.firstCohortMonth, -(x.firstCohortMonth - b.firstCohortMonth)));
     if(has('pending')) rows.push(row('Pending '+basis+' at M60 (spent, not yet realised)', x.pendingNewARRAtHorizon - b.pendingNewARRAtHorizon, -(x.pendingNewARRAtHorizon - b.pendingNewARRAtHorizon), true));
@@ -2249,6 +2373,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '</div><div class="hint" style="margin-top:8px">The recurring state is identical to floating-point precision. Only the realisation cost line differs, because one world realises more expansion to reach the same ARR.</div></div>';
     }
 
+    /* Scenario 10 proves its own premise on screen: same ARR, GRR and NRR. */
+    if(has('custmatch')){
+      var wARR10 = 0, wNRR10 = 0;
+      for(var t10=1; t10<=H; t10++){
+        wARR10 = Math.max(wARR10, Math.abs(expRes.months[t10-1].closingARR - baseRes.months[t10-1].closingARR));
+        if(t10>=12){ var kb10 = K.measureR12M(baseRes,t10), kx10 = K.measureR12M(expRes,t10);
+          wNRR10 = Math.max(wNRR10, Math.abs(kx10.nrr - kb10.nrr), Math.abs(kx10.grr - kb10.grr)); }
+      }
+      h += '<div class="sgrp"><div class="eyebrow">The two worlds agree on everything ARR can show</div><div class="recon" style="margin-top:5px">'+
+        '<span>derived persistence</span><b>'+pct(baseRes.derived.persistenceAnnualEffective,2)+' · '+pct(expRes.derived.persistenceAnnualEffective,2)+'</b>'+
+        '<span>max |Δ'+basis+'| over 60 months</span><b>'+reur(wARR10)+'</b>'+
+        '<span>max |ΔGRR|, |ΔNRR| over all measurement dates</span><b>'+wNRR10.toExponential(1)+'</b>'+
+        '<span>logo retention</span><b style="color:var(--warn)">'+pct(baseA.logoRetentionAnnual,1)+' · '+pct(expA.logoRetentionAnnual,1)+'</b>'+
+        '<span>contraction</span><b style="color:var(--warn)">'+pct(baseA.contractionAnnual,1)+' · '+pct(expA.contractionAnnual,1)+'</b>'+
+        '</div><div class="hint" style="margin-top:8px">Persistence is derived as L × (1 − C) in both. Identical dollar physics; different customer physics.</div></div>';
+    }
+
     if(rows.length){
       h += '<div class="sgrp"><div class="eyebrow">Consequence · Experiment − Base</div>'+
         '<div class="recon" style="margin-top:5px">' + rows.join('') + '</div></div>';
@@ -2274,7 +2415,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     /* §9 — regime statement. Explanatory text only; no new visualisation. */
     if(!sc.world){
-      var rb2 = regimeOf(baseRes.assumptions), rx2 = regimeOf(expRes.assumptions);
+      var rb2 = regimeOf(baseRes), rx2 = regimeOf(expRes);
       var txt;
       if(rb2.band === rx2.band){
         txt = 'The installed base stays <b>'+REGIME[rb2.band]+'</b> under the model\'s transition laws '+
@@ -2381,9 +2522,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   var LABEL={sm:'S&M', cacPerARR:'CAC coefficient', persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
-             expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag'};
+             expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
+             logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo'};
   var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur',
-                 expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo'};
+                 expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo',
+                 logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa'};
 
   /* §7 — instant "why is Experiment different from Base", top of rail.
      Only assumptions that actually differ; a click expands the full set. */

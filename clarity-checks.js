@@ -107,38 +107,49 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
  *
  * A code COMMENT documenting that a mechanism is deliberately absent (e.g.
  * "no Reactivation") is compliance, not a violation — it is scanned OUT
- * before the check runs. What must never survive that strip is Reactivation,
- * Contraction or a standalone Churn used as a PRODUCT-FACING label, row or
- * field the user would read as something the engine calculates.
+ * before the check runs. What must never survive that strip is a movement the
+ * engine does not compute used as a PRODUCT-FACING label, row or field.
+ *
+ * v2 Gate A: the engine now DOES compute logo churn and contraction — when
+ * Customer Physics is on. The rule is unchanged (no movement on screen that
+ * the engine did not produce); what changed is the set of movements the engine
+ * produces. So "Churn"/"Contraction" may appear (a) inside the disclosed
+ * combined-metric sentence (the layer-off case), or (b) in customer-layer
+ * context — text that names logos or customers, or reads a customers.* field.
+ * Reactivation is still not modelled: it may appear only in a sentence that
+ * says so. v2-accept.js checks the rendered page shows no Contraction row
+ * with the layer off.
  * ------------------------------------------------------------------ */
 (function noFakeMovements() {
   /* strip /* ... *\/ block comments and // line comments so only strings the
      browser can actually render remain */
   var noComments = tpl.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+  var DISCLOSED = /combines churn and contraction|so churn and contraction cannot be separated/;
+  var CUSTOMER_CTX = /[Ll]ogo|[Cc]ustomer|[Cc]ontractionA(nnual|RR)|logoChurn|dollarChurnFrom|contractionShare|cmd\b|cmo\b|cu\.|mcu2?\./;
+  function mentions(src, re, allow) {
+    var all = [], allowed = 0, m4, r2 = new RegExp(re.source, 'g');
+    while ((m4 = r2.exec(src)) !== null) { all.push(m4.index); }
+    var bad = [];
+    all.forEach(function (idx) {
+      var ctx = src.slice(Math.max(0, idx - 110), idx + 110);
+      if (allow(ctx)) allowed++; else bad.push(ctx.replace(/\s+/g, ' ').slice(60, 170));
+    });
+    return { total: all.length, allowed: allowed, bad: bad };
+  }
 
-  ok('NO-FAKE-MOVEMENTS', 'no "Reactivation" outside a code comment (i.e. never product-facing)',
-     !/[Rr]eactivation/.test(noComments), '');
+  var re1 = mentions(noComments, /[Rr]eactivation/, function (ctx) { return /no reactivation/i.test(ctx); });
+  ok('NO-FAKE-MOVEMENTS', '"Reactivation" appears outside a code comment only in a sentence that says it is NOT modelled (never as a row or field)',
+     re1.bad.length === 0, re1.total + ' mentions, ' + re1.allowed + ' inside an absence statement' + (re1.bad.length ? '; BAD: ' + re1.bad.join(' | ') : ''));
 
   /* --churn is a CSS custom-property NAME (a color token), never a metric
-     value; strip that one declaration line before scanning for the word as
-     content. Also permit it inside the one honest disclosure sentence and
-     inside finding #18's text — both explicitly describe the ABSENCE. */
-  var scan = noComments.replace(/--churn:[^;]*;/g, ' ');
-  var churnMentions = scan.match(/[Cc]hurn/g) || [];
-  var allowed = churnMentions.filter(function (m2) {
-    var idx = scan.indexOf(m2);
-    var ctx = scan.slice(Math.max(0, idx - 100), idx + 100);
-    return /combines churn and contraction|so churn and contraction cannot be separated/.test(ctx);
-  });
-  ok('NO-FAKE-MOVEMENTS', '"Churn" appears only inside the disclosed combined-metric sentence(s), never as its own row',
-     churnMentions.length === allowed.length,
-     churnMentions.length + ' mentions, ' + allowed.length + ' inside an allowed disclosure');
-  ok('NO-FAKE-MOVEMENTS', 'no standalone "Contraction" row/field distinct from the disclosed combined term',
-     !/row\(.Contraction/i.test(noComments) && !/label:.Contraction/i.test(noComments) &&
-     (noComments.match(/[Cc]ontraction/g)||[]).every(function(m3){
-       var idx=noComments.indexOf(m3); var ctx=noComments.slice(Math.max(0,idx-100),idx+100);
-       return /combines churn and contraction|so churn and contraction cannot be separated/.test(ctx);
-     }), '');
+     value; strip that one declaration line before scanning for the word. */
+  var scan = noComments.replace(/--churn:[^;]*;/g, ' ').replace(/var\(--churn\)/g, ' ');
+  var re2 = mentions(scan, /[Cc]hurn/, function (ctx) { return DISCLOSED.test(ctx) || CUSTOMER_CTX.test(ctx); });
+  ok('NO-FAKE-MOVEMENTS', '"Churn" appears only inside the disclosed combined-metric sentence(s) or in customer-layer context (logo churn the engine now produces), never as a bare row',
+     re2.bad.length === 0, re2.total + ' mentions, ' + re2.allowed + ' allowed' + (re2.bad.length ? '; BAD: ' + re2.bad.join(' | ') : ''));
+  var re3 = mentions(noComments, /[Cc]ontraction/, function (ctx) { return DISCLOSED.test(ctx) || CUSTOMER_CTX.test(ctx); });
+  ok('NO-FAKE-MOVEMENTS', '"Contraction" appears only inside the disclosed combined term or in customer-layer context (a flow the engine now produces), never as a bare row',
+     re3.bad.length === 0, re3.total + ' mentions, ' + re3.allowed + ' allowed' + (re3.bad.length ? '; BAD: ' + re3.bad.join(' | ') : ''));
   ok('NO-FAKE-MOVEMENTS', 'no time-varying glide-path / policy-rule / Trajectory surface reintroduced',
      !/glide.?path/i.test(tpl) && !/nav-trajectory/i.test(tpl) && !/Roadmap/i.test(tpl), '');
 })();

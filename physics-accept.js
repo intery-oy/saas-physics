@@ -137,7 +137,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.click('#nav-system'); await pg.waitForTimeout(500);
   const sysAbs = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, pending: window.__SP_DEBUG.SS.stateAt(window.__SP_DEBUG.expRes, window.__SP_DEBUG.selectedMonth()).pendingNewARR }));
   rec('SYSTEM (absolute): the side panel states all three mechanisms with their live settings and what each does not touch',
-      sysAbs.txt.includes('Three mechanisms on the map') && sysAbs.txt.includes('Acquisition capacity · €2.00m/mo') && sysAbs.txt.includes('Acquisition lag · 6 months') &&
+      sysAbs.txt.includes('Mechanisms on the map') && sysAbs.txt.includes('Acquisition capacity · €2.00m/mo') && sysAbs.txt.includes('Acquisition lag · 6 months') &&
       sysAbs.txt.includes('Expansion realisation cost · 0.25× per €1') && sysAbs.txt.includes('touches no ARR quantity') && sysAbs.txt.includes('never how much per euro'), '');
   rec('SYSTEM: systemstate.stateAt exposes the engine\'s pending stock at the selected month, equal to the month record',
       Math.abs(sysAbs.pending - indep.months[19].pendingNewARR) < 1e-6, sysAbs.pending + ' vs ' + indep.months[19].pendingNewARR);

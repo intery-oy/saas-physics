@@ -2,7 +2,12 @@
 'use strict';
 var fs = require('fs');
 var tpl = fs.readFileSync('ui.template.html', 'utf8');
-var engine = fs.readFileSync('engine.js', 'utf8');
+/* v2: the layer modules are inlined BEFORE the engine, in dependency order, so
+   the engine's browser branch finds them on the global. One engine string is
+   used by every surface below. */
+var LAYER_MODULES = ['customers.js'];
+var engine = LAYER_MODULES.map(function (f) { return fs.readFileSync(f, 'utf8'); }).join('\n')
+           + '\n' + fs.readFileSync('engine.js', 'utf8');
 var kpi = fs.readFileSync('kpi.js', 'utf8');
 var integrity = fs.readFileSync('integrity.js', 'utf8');   // browser branch resolves via globals
 var out = tpl.replace('/*__ENGINE__*/', function () { return engine; })

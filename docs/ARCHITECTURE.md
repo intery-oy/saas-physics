@@ -257,6 +257,32 @@ The three are orthogonal by construction and checked to be (`physics-checks.js` 
 COST+SAT): the cost never changes the response, the bound never changes an existing cohort's
 transition, the lag never changes the response function. `res.mechanisms` reports which are on.
 
+## v2 — the Economic System layers
+
+v2 turns the ARR-first engine into a layered economic system; the ontology and the
+source-of-truth hierarchy are fixed in [`ARCHITECTURE-V2.md`](ARCHITECTURE-V2.md) and each
+layer's mechanics in its research note. Every layer has a null under which the layer below is
+reproduced exactly; with all at null the engine reproduces the complete frozen v1.3 state
+(`baseline-v1.3-full.json.gz`, ALL-NULL-V13 in `v2-checks.js`).
+
+### Gate A — Customer Physics (`customers.js`)
+
+```
+l = L^(1/12)   cM = 1 − (1 − C)^(1/12)   e = (1 + X)^(1/12) − 1
+n₁          = n₀ × l
+logo churn  = openingMRR × (1 − l)
+contraction = openingMRR × l × cM
+retained    = openingMRR × l(1 − cM)              g = l(1 − cM):  P = L(1 − C), DERIVED
+expansion   = retained × e
+closing     = retained + expansion               (the v1.3 identity, with g generated)
+```
+
+`persistenceAnnual` is not read while the layer is on. A new cohort's customers are
+`Σ entry.newARR ÷ entry.newLogoARPAAtSpend`, stamped on the pending entry at spend. ARPA is
+ARR ÷ customers everywhere and never a stock. Age bands cannot be combined with the layer
+(rejected at the boundary). Measured: `K.customerMeasures` — R12M logo retention, the GRR
+decomposition into lost-logo and contraction euros, ARPA path.
+
 ## Scenario architecture
 
 `BASE_A` is a frozen assumption object; the Experiment is a separate object that is copied,
@@ -270,23 +296,27 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 
 | Class | Members |
 |---|---|
-| **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band**, **pending acquisition (v1.3)** |
+| **STATE** | ARR (opening/closing), cash, cohort balances, **cohort age / maturity band**, **pending acquisition (v1.3)**, **cohort customers (v2 Gate A)** |
 | **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, **expansion realisation cost (v1.1)**, EBITA, FCF |
-| **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band; **expansionCostPerARR (v1.1), maxMonthlyNewARR (v1.2), acquisitionLagMonths (v1.3)** |
+| **TRANSITION** | persistence coefficient (an input only while Customer Physics is off; derived L(1 − C) when on), expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band; **expansionCostPerARR (v1.1), maxMonthlyNewARR (v1.2), acquisitionLagMonths (v1.3)**; **logoRetentionAnnual, contractionAnnual (v2 Gate A)** |
 | **CONTROL** | S&M, R&D, G&A investment |
-| **MEASURED** | **R12M GRR / expansion / NRR**, **Coefficient / Average / Marginal payback**, **Cohort CAC (realised)**, **Measured CAC · trailing 12**, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable. Every CAC is € of S&M per €1 of ARR, in either display basis. |
+| **MEASURED** | **R12M GRR / expansion / NRR**, **R12M logo retention and the lost-logo / contraction decomposition of GRR, ARPA (v2 Gate A)**, **Coefficient / Average / Marginal payback**, **Cohort CAC (realised)**, **Measured CAC · trailing 12**, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable. Every CAC is € of S&M per €1 of ARR, in either display basis. |
 
 ## Files
 
 | File | Role |
 |---|---|
-| `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. |
+| `engine.js` | **Layer A** — the economic engine. Pure, deterministic, no DOM, no I/O. UMD. Orchestrates one monthly loop and owns every stock; v2 layer transitions are pure functions in their own modules. |
+| `customers.js` | **v2 Gate A** — Customer Physics transition (logo survival · contraction · survivor expansion). Pure, stateless, UMD; inlined before the engine by `build.js`. |
 | `kpi.js` | **Layer B** — the KPI measurement engine, plus forward economic content and the v1.1–v1.3 measurements (`acquisitionMeasures`, `expansionCostMeasures`). Contains no economics of its own. UMD. |
 | `integrity.js` | The 51 economic, measurement and state assertions (35 original + 16 for v1.1–v1.3). UMD. |
 | `checks.js` | Node CLI for the assertions. |
 | `physics-checks.js` | v1.1–v1.3 cross-mechanism, release-gate (ALL-NULL vs `baseline-v1.0.json`), extreme-probe and sweep checks. |
 | `physics-study.js` | The three v1.1–v1.3 experiments, printed with measured results. |
 | `physics-accept.js` | Playwright acceptance checks for the v1.1–v1.3 product surfaces. |
+| `v2-checks.js` | v2 release gate (ALL-NULL-V13 vs `baseline-v1.3-full.json.gz`, the complete v1.3 state for twelve worlds) and the per-gate law checks. |
+| `v2-study.js` | The v2 experiments, printed with measured results. |
+| `v2-accept.js` | Playwright acceptance checks for the v2 product surfaces. |
 | `scenarios.js` | Node CLI for Scenarios A–E and the 0.2/0.2.1 experiments. |
 | `state-sufficiency.js` | Node CLI for the v0.3 State Sufficiency Experiment. |
 | `v1.template.html` | The product surface (SaaS Physics v1). |
