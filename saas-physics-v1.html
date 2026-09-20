@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>SaaS Physics v1</title>
+<title>SaaS Physics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Spectral:wght@300;400&display=swap">
@@ -75,6 +75,7 @@ button,input{font:inherit;color:inherit}
 .illus{background:rgba(201,151,63,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
 .illus b{color:var(--warn);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
 .scenidx{display:grid;margin-top:12px;border-top:1px solid var(--line-soft)}
+@media (max-width:760px){.exphead{flex-wrap:wrap}.exphead .lens-n{flex-basis:100%}.scenrow{grid-template-columns:24px minmax(0,1fr)}.scenrow .stitle{grid-column:2}}
 .scenrow{display:grid;grid-template-columns:24px minmax(130px,200px) minmax(0,1fr);gap:6px 12px;align-items:baseline;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
 .scenrow:hover{background:var(--sunk)}
 .scenrow .sn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
@@ -453,12 +454,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <div>
         <h5>The portal</h5>
         <ol>
-          <li><b>Company</b> &middot; the figure and five lenses: what kind of company this is, its customers, its growth engine, what its revenue is made of, what it earned and what cash it needed.</li>
-          <li><b>Change</b> &middot; the rail on the left. Pick a world, then set laws, constraints, inputs and one hypothesis. Measurements read beneath the law they observe and are never set.</li>
-          <li><b>Compare</b> &middot; move one control and, beneath the lenses, read what you changed &rarr; what the system did &rarr; what company emerged, against the unchanged Base.</li>
-          <li><b>System</b> &middot; the company as an economic machine: capital &rarr; acquisition &rarr; customers &rarr; monetization &rarr; ARR &rarr; P&amp;L &rarr; billing &rarr; cash. Click a node to open its layer.</li>
-          <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR from the company down to the cash it recovered.</li>
-          <li><b>Scenarios</b> &middot; fourteen canonical experiments, each changing one declared assumption.</li>
+          <li><b>Company</b> &middot; one company at a time: a hero line, then five lenses &mdash; Company, Customers, Growth engine, Monetization, Economics &amp; cash &mdash; with the sixty-month figure beneath as context.</li>
+          <li><b>Change</b> &middot; the button in the header opens the model-building drawer: pick a world, then set laws, constraints, inputs and one hypothesis. Close it to read the company.</li>
+          <li><b>Compare</b> &middot; when the Experiment differs from Base, one line beneath the lens says so; Compare reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
+          <li><b>System</b> &middot; the company as an economic machine. Click a node to open its layer; Notes reads the map.</li>
+          <li><b>Scenarios</b> &middot; fourteen experiments, each answering what changed, what stayed the same, what emerged and why it matters.</li>
+          <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR down to the cash it recovered; &lsaquo; Company returns.</li>
         </ol>
       </div>
       <div>
@@ -478,9 +479,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
     <h5>Three ways to start</h5>
     <div class="wstart">
-      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>Choose <b>A &middot; Enterprise</b> under World, press play, stop around month 36 and read the first lens.</div>
-      <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>Move <b>S&amp;M investment</b> or <b>Logo retention</b> and read the comparison that appears beneath the lenses.</div>
-      <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, then click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
+      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>Open <b>Change</b>, choose <b>A &middot; Enterprise</b> under World, close the drawer, press play and stop around month 36.</div>
+      <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>In <b>Change</b>, move <b>S&amp;M investment</b> or <b>Logo retention</b>, close the drawer and open <b>Compare</b>.</div>
+      <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
     </div>
     <p class="wnote">Illustrative model, deterministic, no randomness; the same engine runs the browser and the command-line checks. Nothing you set is sent anywhere. The page keeps only your MRR/ARR preference and whether you have seen this screen, in this browser.</p>
   </div>
@@ -575,7 +576,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           <ul>
             <li>A <b>deterministic cohort simulation</b> over 60 months. No randomness, no probability, no fitted parameters.</li>
             <li>Company ARR is only ever the <b>sum of its cohorts</b>. Aggregates are never asserted; they are summed.</li>
-            <li>The same engine runs the browser and the command-line checks — one source of truth, 35 integrity checks.</li>
+            <li>The same engine runs the browser and the command-line checks — one source of truth. Every layer beneath cohort ARR is <b>nullable</b>: off, it reproduces the world beneath it exactly.</li>
           </ul>
         </div>
         <div>
@@ -584,10 +585,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Management decisions</b> — S&amp;M, and the fixed operating costs R&amp;D and G&amp;A.</li>
             <li><b>Economic transition assumptions</b> — persistence and expansion (how the installed base evolves), CAC per €1 of New ARR (how spend becomes ARR), gross margin (how revenue becomes gross profit).</li>
             <li><b>Three nullable mechanisms</b> — expansion realisation cost, acquisition capacity, acquisition lag. Each defaults to the setting under which it does nothing.</li>
-            <li><b>Customer physics (v2, nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
-            <li><b>Monetization physics (v2, nullable)</b> — a platform fee and a usage component per customer, with price growth, usage growth and adoption to caps. When on, revenue is derived from the components; the expansion coefficient, ARR per new logo and opening ARR are not read.</li>
-            <li><b>Cash physics (v2, nullable)</b> — billing term and timing (deferred revenue or contract asset) and a collection delay (receivables). When on, cash FCF = collections − cash costs; EBITA is untouched.</li>
-            <li><b>Hypotheses (v2, none by default)</b> — a costed, lagged, temporary move of one law, resolved into the law in force month by month. Never a coefficient.</li>
+            <li><b>Customer physics (nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
+            <li><b>Monetization physics (nullable)</b> — a platform fee and a usage component per customer, with price growth, usage growth and adoption to caps. When on, revenue is derived from the components; the expansion coefficient, ARR per new logo and opening ARR are not read.</li>
+            <li><b>Cash physics (nullable)</b> — billing term and timing (deferred revenue or contract asset) and a collection delay (receivables). When on, cash FCF = collections − cash costs; EBITA is untouched.</li>
+            <li><b>Hypotheses (none by default)</b> — a costed, lagged, temporary move of one law, resolved into the law in force month by month. Never a coefficient.</li>
             <li>Nothing else. There is no plan, no target, no forecast to hit.</li>
           </ul>
         </div>
@@ -596,13 +597,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           <ul>
             <li>ARR and its cohort composition, revenue, gross profit, EBITA, FCF, cash.</li>
             <li>R12M GRR, expansion and NRR — <b>measured</b>, never entered.</li>
-            <li><b>Coefficient payback</b>, an output of CAC coefficient × 12 ÷ GM. In the first version it was an input; inverting that was the most important correction this project has made. Under a capacity the product also shows <b>average</b> and <b>marginal payback</b> (the same construction on average and marginal CAC); the capital track shows each cohort's <b>realised payback</b>. Every CAC is € of S&amp;M per €1 of ARR, in either display basis.</li>
+            <li><b>Coefficient payback</b>, an output of CAC coefficient × 12 ÷ GM — never an input. Under a capacity the product also shows <b>average</b> and <b>marginal payback</b> (the same construction on average and marginal CAC); the capital track shows each cohort's <b>realised payback</b>. Every CAC is € of S&amp;M per €1 of ARR, in either display basis.</li>
           </ul>
         </div>
         <div>
           <h5>Reporting basis — MRR ⇄ ARR</h5>
           <ul>
-            <li>SaaS Physics stores recurring state internally in <b>ARR</b> in v1. <b>MRR is an exact presentation transformation</b> (<span style="font-family:var(--mono);font-size:11px">ARR / 12</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
+            <li>SaaS Physics stores recurring state internally in <b>ARR</b>. <b>MRR is an exact presentation transformation</b> (<span style="font-family:var(--mono);font-size:11px">ARR / 12</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
             <li><b>MRR/ARR are recurring run-rate state measures.</b> Revenue, gross profit and FCF are period financial flows and therefore do not toggle — they stay labelled <span style="font-family:var(--mono);font-size:11px">· this month</span> in both bases.</li>
             <li>The default is <b>MRR</b>: the engine steps monthly, and New/Expansion/Leakage are monthly state movements, so a monthly basis matches the simulation's own resolution.</li>
           </ul>
@@ -633,37 +634,37 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           </ul>
         </div>
         <div>
-          <h5>Major current boundaries</h5>
+          <h5>Boundaries of the current model</h5>
           <ul>
-            <li><b>#10</b> Acquisition is linear and unbounded in S&amp;M <em>while acquisition capacity is off</em>. With a capacity set (v1.2) the response saturates and the model shows average and marginal CAC — but it still declares no optimum. This is why no scenario here is "spend more".</li>
-            <li><b>#14</b> Expansion carries no separately modelled cost <em>while expansion realisation cost is 0</em>. With a cost set (v1.1) expansion ARR is priced; what the cost buys is not modelled.</li>
-            <li><b>#15</b> FCF = EBITA. No working capital, deferred revenue, tax or capex.</li>
-            <li><b>#16</b> R&amp;D has no modelled effect on retention or expansion — which is why it is a fixed cost here, not a lever.</li>
-            <li><b>#17</b> Acquisition is same-month <em>while the lag is 0</em>. With a lag set (v1.3) spend sits in an explicit pending state before its cohort exists; spend whose ARR matures beyond M60 stays pending.</li>
-            <li><b>#18</b> Leakage is one number; there are no customers, so churn and contraction cannot be separated.</li>
-            <li><b>#21</b> There is no price.</li>
+            <li>Every boundary below is stated for the world you are running. The Compare and Scenario surfaces restate them live, reading the Experiment's own settings.</li>
+            <li><b>Acquisition.</b> With acquisition capacity off, acquisition is linear and unbounded in S&amp;M: the model can always buy growth and cannot say stop. With a capacity set, the response saturates and the model shows average and marginal CAC — and still declares no optimum, because it has no objective. With the lag at 0, spend and cohort are same-month; with a lag set, spend sits in a pending state and what matures beyond M60 stays pending.</li>
+            <li><b>Expansion.</b> With expansion realisation cost at 0, expansion carries no separately modelled cost. With a cost set, expansion ARR is priced; what the cost buys is not modelled.</li>
+            <li><b>Customers.</b> With Customer physics off, ARR is modelled without logos: leakage is one number and lost logos cannot be separated from shrinking accounts. Enabling Customer physics separates logo loss from contraction — as a continuous cohort count with one ARPA per cohort, flat laws, no customer-size heterogeneity, concentration or reactivation.</li>
+            <li><b>Price.</b> With Monetization physics off, there is no price: expansion is one coefficient with nothing inside it and no bound. Enabling it prices each customer as components with caps — homogeneous within a cohort, contraction reaching usage only, no price elasticity, discounts, ramps or minimum commitments.</li>
+            <li><b>Cash.</b> With no billing term set, FCF = EBITA: no working capital, deferred revenue, tax or capex. With a billing term set, cash FCF = collections − cash costs, with deferred revenue and receivables in between; still no tax, capex, payables, bad debt or financing, and one billing policy for the whole company.</li>
+            <li><b>Fixed costs.</b> R&amp;D and G&amp;A have no modelled effect on retention, expansion or acquisition in any world — which is why they are inputs here, not levers.</li>
           </ul>
         </div>
         <div>
-          <h5>Three mechanisms, each nullable (v1.1–v1.3)</h5>
+          <h5>Three mechanisms, each nullable</h5>
           <ul>
             <li><b>Expansion realisation cost</b> — € per €1 of expansion ARR. A cost line between gross profit and EBITA. Touches Cash, never ARR, GRR or NRR.</li>
             <li><b>Acquisition capacity</b> — New ARR = S&amp;M ÷ (CAC + S&amp;M ÷ capacity). A <b>bound</b> on an optimistic mechanism, not a growth benefit. Off = the linear law.</li>
             <li><b>Acquisition lag</b> — spend at month t creates its cohort at t + lag, through a pending state the engine actually carries. Changes <b>when</b>, never <b>how much per euro</b>.</li>
-            <li>With all three at their null setting the engine reproduces the v1.0 world exactly (the ALL-NULL release gate).</li>
+            <li>With all three at their null setting the engine reproduces the cohort-ARR world exactly (the all-null release gate).</li>
           </ul>
         </div>
         <div>
-          <h5>Customer physics (v2 Gate A, nullable)</h5>
+          <h5>Customer physics (nullable)</h5>
           <ul>
             <li><b>Logo retention</b> — the share of customers that survive twelve months. Departing customers take the cohort's average revenue with them.</li>
             <li><b>Contraction</b> — how much surviving customers shrink. Leakage = lost logos + contraction; persistence = L × (1 − C), <b>derived</b>, not set.</li>
             <li><b>ARR per new logo</b> — how many customers a euro of New ARR brings. Moves customers and ARPA, never ARR.</li>
-            <li>With Logo retention off the engine reproduces the v1.3 world exactly, every field (the ALL-NULL-V13 gate). Scenario 10 shows two worlds with identical ARR and NRR and different customers.</li>
+            <li>With Logo retention off the engine reproduces the ARR-physics world exactly, every field (the all-null gate). Scenario 10 shows two worlds with identical ARR and NRR and different customers.</li>
           </ul>
         </div>
         <div>
-          <h5>Monetization physics (v2 Gate B, nullable)</h5>
+          <h5>Monetization physics (nullable)</h5>
           <ul>
             <li><b>Components</b> — each customer pays a platform fee (fixed) plus usage (penetration × units × price). Revenue is customers × components, recomputed every month: one source of truth.</li>
             <li><b>Expansion</b> — price growth, usage growth to a cap, adoption to a cap. The generic coefficient is bypassed; expansion saturates.</li>
@@ -672,16 +673,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           </ul>
         </div>
         <div>
-          <h5>Cash physics (v2 Gate C, nullable)</h5>
+          <h5>Cash physics (nullable)</h5>
           <ul>
             <li><b>Billings</b> = revenue + Δdeferred revenue, by construction. Contracts are invoiced per billing term, in advance or in arrears; acquisition cohorts at birth, the opening book staggered.</li>
             <li><b>Collections</b> = billings shifted by the collection delay; receivables in between. Costs are cash when incurred.</li>
             <li><b>Cash FCF</b> = collections − cash costs = EBITA + Δdeferred − Δreceivables. EBITA never changes; only the cash path does.</li>
-            <li>Off = FCF = EBITA, the v1 world exactly. Scenario 13 shows the same P&amp;L billed annually in advance.</li>
+            <li>Off = FCF = EBITA exactly. Scenario 13 shows the same P&amp;L billed annually in advance.</li>
           </ul>
         </div>
         <div>
-          <h5>Hypotheses (v2 Gate D, none by default)</h5>
+          <h5>Hypotheses (none by default)</h5>
           <ul>
             <li><b>An intervention is an object</b> — target, effect, value, decision month, lag, duration, one-off and monthly cost — never a coefficient. The engine reads the law in force each month from lawAt(t).</li>
             <li><b>Its cost is its own P&amp;L line</b>, booked from the decision month; cash when incurred.</li>
@@ -696,6 +697,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
             <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
             <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
             <li>A fourth candidate, an intra-month bridge animation, established no unique percept and was rejected. It is preserved in the research archive, not shipped.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>History</h5>
+          <ul>
+            <li><b>1.0</b> — cohort ARR: one persistence coefficient, one expansion coefficient, linear same-month acquisition, FCF = EBITA. Coefficient payback was an input; inverting it into an output was the most important correction this project made.</li>
+            <li><b>1.1–1.3</b> — three nullable mechanisms: expansion realisation cost (finding #14), acquisition capacity (#10), acquisition lag (#17). All three null reproduces 1.0 exactly.</li>
+            <li><b>2</b> — the Economic System: four nullable layers beneath cohort ARR — Customer physics (#18), Monetization physics (#13, #21), Cash physics (#15), Hypotheses. Each off reproduces the world beneath it exactly; the frozen Base is the ARR-physics world.</li>
+            <li><b>Legibility and hierarchy passes</b> — five lenses, the causal Compare, the ontology, provenance, the experiment grammar and the drawer changed how the same run is read. No economic quantity changed: the baseline checksums in <span style="font-family:var(--mono);font-size:11px">docs/BASELINE-v2.md</span> are unchanged.</li>
+            <li>Finding numbers refer to <span style="font-family:var(--mono);font-size:11px">docs/FINDINGS.md</span>.</li>
           </ul>
         </div>
       </div>
@@ -3726,7 +3737,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   var CUST_PACK = { logoRetentionAnnual:0.92, contractionAnnual:0.05 };
   var PACKS = [
     { id:'arr',       name:'ARR physics',    a:function(){ return {}; },
-      note:'The frozen v1.3 world: cohort ARR, one persistence coefficient, one expansion coefficient, FCF = EBITA.' },
+      note:'Cohort ARR alone: one persistence coefficient, one expansion coefficient, FCF = EBITA. The frozen Base.' },
     { id:'customers', name:'+ Customers',    a:function(){ return Object.assign({}, CUST_PACK); },
       note:'Customer Physics on: logo retention 92%, contraction 5%; persistence derived as 87.4%.' },
     { id:'priced',    name:'+ Monetization', a:function(){ return Object.assign({}, CUST_PACK, { monetization: monDefault() }); },
@@ -4261,35 +4272,35 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var a = expA;
     if(key==='acq'){
       return E.saturationEnabled(a)
-        ? 'Acquisition saturates toward the set capacity ('+fmtF('cap', a.maxMonthlyNewARR)+' of New '+basis+'). The model shows the response curve; it declares no optimum and no stopping rule — those need an objective it does not have. (#10, bounded in v1.2)'
+        ? 'Acquisition saturates toward the set capacity ('+fmtF('cap', a.maxMonthlyNewARR)+' of New '+basis+'). The model shows the response curve; it declares no optimum and no stopping rule — those need an objective it does not have. (#10)'
         : 'Acquisition is linear and unbounded in S&M while acquisition capacity is off — the model can always buy growth and cannot say stop. Switch the capacity on to bound it. (#10)';
     }
     if(key==='exp'){
       return a.expansionCostPerARR>0
-        ? 'Expansion ARR costs '+a.expansionCostPerARR.toFixed(2)+'× per €1 to realise; the cost reaches EBITA and Cash, never ARR, GRR or NRR. What that cost buys — CSM, account management, implementation — is not modelled, only priced. (#14, priced in v1.1)'
+        ? 'Expansion ARR costs '+a.expansionCostPerARR.toFixed(2)+'× per €1 to realise; the cost reaches EBITA and Cash, never ARR, GRR or NRR. What that cost buys — CSM, account management, implementation — is not modelled, only priced. (#14)'
         : 'Expansion carries no separately modelled marginal cost while expansion realisation cost is 0. (#14)';
     }
     if(key==='lag'){
       return a.acquisitionLagMonths>0
-        ? 'S&M spent in month t creates its cohort in month t + '+Math.round(a.acquisitionLagMonths)+'. The last '+Math.round(a.acquisitionLagMonths)+' months of spend mature beyond M60 and stay pending — never pulled forward. (#17, timed in v1.3)'
+        ? 'S&M spent in month t creates its cohort in month t + '+Math.round(a.acquisitionLagMonths)+'. The last '+Math.round(a.acquisitionLagMonths)+' months of spend mature beyond M60 and stay pending — never pulled forward. (#17)'
         : 'Acquisition is same-month while the lag is 0. (#17)';
     }
     if(key==='cust'){
       return E.run(a).mechanisms.customerPhysics
-        ? 'Customers are a continuous cohort count with one ARPA per cohort: no customer-size heterogeneity, no concentration, no reactivation. Logo retention and contraction are flat laws — age bands cannot be combined with the customer layer. (#18, separated in v2 Gate A)'
+        ? 'Customers are a continuous cohort count with one ARPA per cohort: no customer-size heterogeneity, no concentration, no reactivation. Logo retention and contraction are flat laws — age bands cannot be combined with the customer layer. (#18)'
         : 'Leakage is one number while the customer layer is off: the engine cannot separate lost logos from shrinking accounts. Switch Logo retention on to separate them. (#18)';
     }
     if(key==='mon'){
       return E.run(a).mechanisms.monetization
-        ? 'Components are homogeneous within a cohort (one per-customer state); contraction reaches variable usage only; usage and penetration caps are the only bounds on expansion; price growth loses no customers and no usage (no price elasticity); no discounts, ramps or minimum commitments. (#21, priced in v2 Gate B)'
+        ? 'Components are homogeneous within a cohort (one per-customer state); contraction reaches variable usage only; usage and penetration caps are the only bounds on expansion; price growth loses no customers and no usage (no price elasticity); no discounts, ramps or minimum commitments. (#21)'
         : 'Expansion is a generic coefficient with no price, usage or adoption inside it, and it is unbounded. Switch Monetization on to price it and bound it. (#13, #21)';
     }
     if(key==='hyp'){
-      return 'A hypothesis moves one law by a stated factor for a stated window and books a stated cost; it models no mechanism for WHY the law moves and no uncertainty about whether it will. Two hypotheses on one law apply in declaration order. It cannot switch a layer on or off or change the billing policy, and it is rejected up front if any month\'s resolved law leaves the engine\'s domain. (v2 Gate D)';
+      return 'A hypothesis moves one law by a stated factor for a stated window and books a stated cost; it models no mechanism for WHY the law moves and no uncertainty about whether it will. Two hypotheses on one law apply in declaration order. It cannot switch a layer on or off or change the billing policy, and it is rejected up front if any month\'s resolved law leaves the engine\'s domain.';
     }
     if(key==='fcf'){
       return E.run(a).mechanisms.cashPhysics
-        ? 'Cash FCF = collections − cash costs, with revenue billed per the '+a.billingTermMonths+'-month term in '+a.billingTiming+(a.collectionDelayMonths>0?' and collected '+a.collectionDelayMonths+' months later':'')+'. Costs are cash when incurred (no payables); no tax, capex, bad debt, refunds or financing; one billing policy for the whole company; the opening book\'s stagger is uniform by construction. (#15, timed in v2 Gate C)'
+        ? 'Cash FCF = collections − cash costs, with revenue billed per the '+a.billingTermMonths+'-month term in '+a.billingTiming+(a.collectionDelayMonths>0?' and collected '+a.collectionDelayMonths+' months later':'')+'. Costs are cash when incurred (no payables); no tax, capex, bad debt, refunds or financing; one billing policy for the whole company; the opening book\'s stagger is uniform by construction. (#15)'
         : 'FCF = EBITA. No working capital, deferred revenue, tax or capex. Switch a billing term on to separate cash from the P&L. (#15)';
     }
     if(key==='rd')  return 'R&D has no modelled effect on retention or expansion. (#16)';
@@ -5671,7 +5682,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<span class="cv" style="color:var(--exp)">'+eur(expRes.months[m-1].cashClosing)+'</span></div>'+
     '<div class="hint" style="margin-top:8px">'+(expRes.mechanisms.cashPhysics
       ? 'Cash FCF = collections − cash costs: EBITA plus the deferred revenue billed ahead of recognition, less the receivables not yet collected. No tax, capex, payables or financing.'
-      : 'v1 assumes modeled FCF = EBITA; no working capital, tax, capex or financing mechanics.')+
+      : 'With no billing term set, FCF = EBITA: no working capital, tax, capex or financing mechanics. A billing term separates cash from the P&amp;L.')+
     (expRes.derived.acquisitionLagMonths>0 ? ' Under the '+expRes.derived.acquisitionLagMonths+'-month lag, S&amp;M is expensed here in the month it is spent; the ARR it buys is still pending ('+reur(expRes.months[m-1].pendingNewARR)+' of '+basis+' at month '+m+').' : '')+'</div>';
   }
 
@@ -5943,7 +5954,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(layer==='cmp'){
       var hostC=document.getElementById('side');
       hostC.dataset.active='compare';
-      hostC.innerHTML = '<div class="lens herolens" style="padding-bottom:6px"><div class="lens-head"><span class="lens-n">Compare</span><span class="lens-q">Why does the Experiment differ from Base?</span><span class="basis">Base → Experiment</span></div></div>'+
+      hostC.innerHTML = '<div class="lens herolens" style="padding-bottom:6px"><div class="lens-head exphead"><span class="lens-n">Compare</span><span class="lens-q">Why does the Experiment differ from Base?</span><span class="basis">Base → Experiment</span></div></div>'+
         '<div class="sgrp" id="compare-panel" style="padding-left:2px;padding-right:2px;max-width:640px"></div>';
       renderCausal(null, true);
       return;
@@ -5951,7 +5962,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(layer==='scen'){
       var host=document.getElementById('side');
       if(!activeScenario){
-        host.innerHTML='<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head"><span class="lens-n">Experiments</span><span class="lens-q">What does one declared change do to the company?</span><span class="basis">14 canonical</span></div></div>'+
+        host.innerHTML='<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head exphead"><span class="lens-n">Experiments</span><span class="lens-q">What does one declared change do to the company?</span><span class="basis">14 canonical</span></div></div>'+
           '<div class="sgrp exp"><div class="hint" style="line-height:1.7">Each experiment changes one declared assumption against the frozen Base and reads what changed, what stayed the same, what emerged and why it matters. The full mechanism stays one step away.</div>'+
           '<div class="scenidx">'+SCENARIOS.map(function(sc){ return '<button class="scenrow" data-id="'+sc.id+'"><span class="sn">'+sc.n+'</span><span class="sname">'+esc(sc.name)+'</span><span class="stitle">'+esc(sc.title)+'</span></button>'; }).join('')+'</div></div>';
         [].forEach.call(host.querySelectorAll('.scenrow'), function(b2){ b2.addEventListener('click', function(){ var sc2 = SCENARIOS.filter(function(x){ return x.id===b2.dataset.id; })[0]; if(sc2) applyScenario(sc2); }); });
@@ -6465,7 +6476,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* The experiment grammar: what changed · what stayed the same · what emerged ·
        why it matters. The full mechanism spine, the response curve and the
        boundaries stay available behind disclosure. */
-    var h = '<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head"><span class="lens-n">Experiment '+sc.n+' · '+esc(sc.name)+'</span><span class="lens-q">'+esc(sc.title)+'</span><span class="basis">Base → Experiment</span></div></div>';
+    var h = '<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head exphead"><span class="lens-n">Experiment '+sc.n+' · '+esc(sc.name)+'</span><span class="lens-q">'+esc(sc.title)+'</span><span class="basis">Base → Experiment</span></div></div>';
     var same = '';
 
     if(sc.illustrative){
@@ -6907,11 +6918,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     document.getElementById('guidebtn').addEventListener('click', function(){ endTour(); showWelcome(); });
     /* the tour: six stops, each one region of the portal, in the order a first reading takes */
     var STEPS = [
-      { sel:'.head .nav', t:'Three surfaces', x:'<b>Company</b> is where you observe and change a company. <b>System</b> draws it as an economic machine. <b>Scenarios</b> are canonical experiments. Compare and Basis change how the same run is read, not the run.' },
+      { sel:'.head .nav', t:'Four surfaces', x:'<b>Company</b> reads one company. <b>Compare</b> reads why the Experiment differs from Base. <b>System</b> draws the economic machine. <b>Scenarios</b> are canonical experiments. Basis changes how the same run is read, not the run.' },
       { sel:'#packs', t:'World', x:'Which layers the Base world carries: ARR physics alone, customers beneath it, monetization, cash, a hypothesis \u2014 or one of three illustrative company shapes. Reset returns to the chosen world.', rail:true },
-      { sel:'#rail-change', t:'Change', x:'Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis \u2014 with its unit and direction. Move one and the whole future recalculates against the unchanged Base.', rail:true },
+      { sel:'#rail-change', t:'Change', x:'A drawer over the company. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
       { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
-      { sel:'#side', t:'The five lenses', x:'Company, Customers, Growth engine, Monetization, Economics & cash \u2014 each a question, a hero figure and readouts with their time basis. When Experiment differs from Base, the causal comparison appears beneath them.' },
+      { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Economics & cash \u2014 each a question and its readouts with their time basis. When Experiment differs from Base, one line beneath the lens says so and opens Compare.' },
       { sel:'.transport', t:'Time', x:'Play, or drag the scrubber. Every basis tag on every lens follows the selected month. Month 36 is a good place to read a mature company.' }
     ];
     var step = -1, hl = null, card = document.getElementById('tourcard');
