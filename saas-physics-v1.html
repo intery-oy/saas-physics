@@ -4370,7 +4370,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * and the two absences are marked, because an absent feedback is a finding.
    * ==================================================================== */
   var SYS = { W:1260, H:770 };
-  var valveHits = [];
+  var valveHits = [], nodeHits = [];   /* nodeHits: the ontology's clickable nodes {x,y,w,h,view} */
   /* Cheap per-frame test: is the Experiment the same run as Base? Comparing the
      assumption objects directly avoids re-summarising 60 months twice a frame. */
   function sameAsBase(){
@@ -4395,9 +4395,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     /* v2 — a layer sub-view instead of the company map. The drawing helpers
        below are function declarations, hoisted, so they are usable here. */
+    nodeHits = [];
     if(sysView!=='company'){ drawSubView(sysView); endFit(); positionLawChips(); return; }
+    /* the Flows view is a layer too: it keeps the same way back to the ontology */
+    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5a8fd6'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
     function drawSubView(v){
       var mm = expRes.months[m-1];
+      if(v==='ontology'){ drawOntology(mm); return; }
+      /* breadcrumb back to the ontology on every layer view */
+      ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5a8fd6'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
       ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
       var titles = { customers:'CUSTOMER PHYSICS · beneath the ARR', monetization:'MONETIZATION PHYSICS · where the revenue comes from', cash:'CASH PHYSICS · beneath EBITA', hypotheses:'HYPOTHESES · the laws in force, month by month' };
       ctx.fillText('SYSTEM · '+titles[v]+'   ·   month '+m+(isD?'   ·   Experiment (delta compare shows the company view only)':''), 30, 26);
@@ -4501,6 +4507,107 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         note(30, SYS.H-58, ivm.changes.length ? 'In force this month: '+ivm.changes.map(function(ch){ return ch.id+' — '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. Cost this month '+eur(ivm.cost)+', to date '+eur(ivm.cumulativeCost)+'.' : 'No hypothesis in force this month: every law is at its base setting. Cost to date '+eur(ivm.cumulativeCost)+'.');
         note(30, SYS.H-40, 'Orange dot: the decision (cost starts). Dashed: the lag. Solid: the window in which lawAt(t) carries the hypothesis. Outside it every cohort runs on the base law. The effect is Experiment − Base.');
       }
+    }
+
+    /* ------------------------------------------------------------------ *
+     * THE ONTOLOGY — the company as an economic machine (VISUAL-GRAMMAR §9):
+     * capital → acquisition → customers → monetization → ARR/revenue → P&L →
+     * billing/collection → cash, left to right. Stocks are containers, flows
+     * are arrows, laws (⋈) attach above the mechanism they govern, constraints
+     * (⌈⌉) beside them, measurements (→) sit beneath the object they observe,
+     * hypotheses (↯) enter from outside at the top. A node that is off is drawn
+     * dotted with the word off. Click a node to open its layer view.
+     * ------------------------------------------------------------------ */
+    function drawOntology(mm){
+      var cuOn=!!mm.customers, moOn=!!mm.monetization, caOn=!!mm.cash, ivOn=!!mm.interventions;
+      var qx=expRes.derived.acquisition, satOn=E.saturationEnabled(expA), lagOn=expRes.derived.acquisitionLagMonths>0;
+      var kpi = m>=12 ? K.measureR12M(expRes, m) : null, cm = cuOn&&m>=12 ? K.customerMeasures(expRes,m) : null, mo12 = moOn&&m>=12 ? K.monetizationMeasures(expRes,m) : null;
+      ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+      ctx.fillText('SYSTEM · the company as an economic machine   ·   month '+m, 30, 26);
+      ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.fillText('Containers are stocks. Arrows are this month\'s flows. ⋈ laws attach above the mechanism they govern, ⌈⌉ constraints beside it, → measurements beneath the object they observe, ↯ hypotheses enter from outside. Dotted = off. Click a node to open its layer.', 30, 42);
+      var NW=128, NH=112, GAP=22, X0=30, Y=330;
+      /* text never leaves its container: shrink the font until it fits the node width */
+      function fitText(t, cx, cy, maxW, px, fam, col){
+        var sz=px; ctx.font=sz+'px "'+fam+'",monospace';
+        while(sz>7.5 && ctx.measureText(t).width>maxW){ sz-=0.5; ctx.font=sz+'px "'+fam+'",monospace'; }
+        ctx.fillStyle=col; ctx.textAlign='center'; ctx.fillText(t, cx, cy);
+      }
+      var nodes=[
+        { id:'capital', title:'CAPITAL · SPEND', lines:['S&M '+eur(mm.sm)+' /mo','R&D '+eur(mm.rd)+' · G&A '+eur(mm.ga)], kind:'source', view:'company',
+          laws:[], meas:[] },
+        { id:'acq', title:'ACQUISITION', lines:[reur(mm.acquisitionLawNewARR)+' committed', lagOn ? reur(mm.pendingNewARR)+' pending · '+expRes.derived.acquisitionLagMonths+' mo' : 'no lag'], kind:'flow', view:'company',
+          laws:['⋈ CAC coefficient '+lawNow('cacPerARR').toFixed(2)+'×', satOn ? '⌈⌉ capacity '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : '⌈⌉ capacity off', lagOn ? '⋈ lag '+expRes.derived.acquisitionLagMonths+' mo' : null],
+          meas:['→ Average CAC '+qx.averageCAC.toFixed(2)+'×', '→ Marginal CAC '+qx.marginalCAC.toFixed(2)+'×', '→ payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo'] },
+        { id:'cust', title:'CUSTOMERS', lines: cuOn ? [mm.customers.closing.toFixed(0)+' customers', '+'+mm.customers.newCustomers.toFixed(1)+' · −'+mm.customers.logoChurn.toFixed(1)+' this month'] : ['no customer layer','leakage is one number'], kind: cuOn?'stock':'off', view:'customers',
+          laws: cuOn ? ['⋈ logo retention '+pct(lawNow('logoRetentionAnnual'),0), '⋈ contraction '+pct(lawNow('contractionAnnual'),0)] : ['⋈ persistence '+pct(lawNow('persistenceAnnual'),0)],
+          meas: cuOn ? ['→ logo retention '+(cm?pct(cm.logoRetentionR12M,1):'—'), '→ ARPA '+eurF(mm.closingARR/mm.customers.closing)] : [] },
+        { id:'mon', title:'MONETIZATION', lines: moOn ? [reur(mm.monetization.fixedARR)+' fixed', reur(mm.monetization.variableARR)+' variable'] : ['one balance per cohort','expansion ⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)], kind: moOn?'mech':'off', view:'monetization',
+          laws: moOn ? ['⋈ price +'+pct(lawNow('monetization.components[0].priceGrowthAnnual'),0)+' · '+pct(lawNow('monetization.components[1].priceGrowthAnnual'),0), '⋈ usage +'+pct(lawNow('monetization.components[1].usageGrowthAnnual'),0)+' ⌈⌉ '+Math.round(lawNow('monetization.components[1].unitsCap'))+' units', '⋈ adoption '+pct(lawNow('monetization.components[1].adoptionAnnual'),0)+' ⌈⌉ '+pct(lawNow('monetization.components[1].penetrationCap'),0)] : [],
+          meas: moOn ? ['→ price · usage · adoption', (mo12 ? pct(mo12.priceEffectR12M,1)+' · '+pct(mo12.usageEffectR12M,1)+' · '+pct(mo12.adoptionEffectR12M,1) : 'needs 12 mo')+' R12M'] : [] },
+        { id:'arr', title:'ARR · REVENUE', lines:[reur(mm.closingARR)+' '+basis, 'revenue '+eur(mm.revenue)+' /mo'], kind:'stock', view:'company',
+          laws:[], meas:['→ GRR '+(kpi?pct(kpi.grr,1):'—')+' · NRR '+(kpi?pct(kpi.nrr,1):'—'), '→ growth '+(mm.arrGrowthYoY===null?'—':pct(mm.arrGrowthYoY,1)+' y/y')] },
+        { id:'pl', title:'P&L', lines:['gross profit '+eur(mm.grossProfit), 'EBITA '+eur(mm.ebita)], kind:'flow', view:'company',
+          laws:['⋈ gross margin '+pct(lawNow('grossMargin'),0), mm.expansionCost>0 ? '⋈ expansion cost '+lawNow('expansionCostPerARR').toFixed(2)+'×' : null], meas:['→ EBITA margin '+(mm.revenue>0?pct(mm.ebita/mm.revenue,0):'—')] },
+        { id:'bill', title:'BILLING · COLLECTION', lines: caOn ? ['billed '+eur(mm.cash.billings), 'collected '+eur(mm.cash.collections)] : ['no cash layer','cash = EBITA'], kind: caOn?'mech':'off', view:'cash',
+          laws: caOn ? ['⋈ '+expRes.derived.cash.billingTermMonths+' mo in '+expRes.derived.cash.billingTiming, expRes.derived.cash.collectionDelayMonths>0 ? '⋈ collected +'+expRes.derived.cash.collectionDelayMonths+' mo' : '⋈ collected on invoice'] : [],
+          meas: caOn ? ['deferred '+eur(Math.abs(mm.cash.deferredClosing)), 'receivables '+eur(mm.cash.receivablesClosing)] : [] },
+        { id:'cash', title:'CASH', lines:[eur(mm.cashClosing), 'FCF '+eurS(mm.fcf)+' /mo'], kind:'stock', view:'company',
+          laws:[], meas:['→ trough '+eur(E.summarise(expRes).cashTrough)+' M'+E.summarise(expRes).cashTroughMonth] }
+      ];
+      nodes.forEach(function(nd, i){
+        var x = X0 + i*(NW+GAP), y = Y;
+        nd.x=x; nd.y=y;
+        ctx.save();
+        if(nd.kind==='off') ctx.setLineDash([3,3]);
+        ctx.fillStyle = nd.kind==='stock' ? '#131b20' : '#0e1418';
+        ctx.strokeStyle = nd.kind==='stock' ? '#c9722f' : nd.kind==='off' ? '#3d4952' : '#3b4a55';
+        ctx.lineWidth = nd.kind==='stock' ? 1.6 : 1.1;
+        ctx.beginPath(); ctx.roundRect(x, y, NW, NH, 5); ctx.fill(); ctx.stroke(); ctx.restore();
+        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = nd.kind==='off' ? '#3d4952' : '#8fa0aa';
+        ctx.fillText(nd.title, x+NW/2, y+16);
+        fitText(nd.lines[0], x+NW/2, y+48, NW-10, nd.kind==='stock'?12:10.5, 'JetBrains Mono', nd.kind==='off' ? '#5d6c75' : '#e2e9ec');
+        fitText(nd.lines[1], x+NW/2, y+66, NW-10, 9, 'JetBrains Mono', nd.kind==='off' ? '#3d4952' : '#8fa0aa');
+        if(nd.kind==='off'){ ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('off', x+NW/2, y+92); }
+        else { ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText(nd.kind==='stock' ? 'stock' : nd.kind==='source' ? 'source' : 'mechanism', x+NW/2, y+92); }
+        /* laws above, measurements beneath */
+        ctx.textAlign='center';
+        nd.laws.filter(Boolean).forEach(function(l, k){ ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#c9973f'; ctx.fillText(l, x+NW/2, y-58+k*14); });
+        if(nd.laws.filter(Boolean).length){ ctx.strokeStyle='rgba(201,151,63,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+NW/2, y-14); ctx.lineTo(x+NW/2, y-2); ctx.stroke(); }
+        nd.meas.forEach(function(l, k){ ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa'; ctx.fillText(l, x+NW/2, y+NH+22+k*14); });
+        /* arrow to the next node, labelled with the flow */
+        if(i<nodes.length-1){ var ax1=x+NW, ax2=x+NW+GAP-2, ay=y+NH/2;
+          ctx.strokeStyle='rgba(226,233,236,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax1, ay); ctx.lineTo(ax2-4, ay); ctx.stroke();
+          ctx.fillStyle='rgba(226,233,236,.7)'; ctx.beginPath(); ctx.moveTo(ax2, ay); ctx.lineTo(ax2-7, ay-4); ctx.lineTo(ax2-7, ay+4); ctx.closePath(); ctx.fill(); }
+        nodeHits.push({ x:x, y:y, w:NW, h:NH, view: nd.view });
+      });
+      /* the installed-base loop: leakage leaves ARR, expansion re-enters — drawn beneath ARR */
+      var arrN = nodes[4];
+      ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace';
+      ctx.fillStyle='#b25a5e'; ctx.fillText('− leakage '+reur(mm.leakage), arrN.x+NW/2, Y+NH+68);
+      ctx.fillStyle='#4f9e77'; ctx.fillText('+ expansion '+reur(mm.expansion), arrN.x+NW/2, Y+NH+82);
+      ctx.fillStyle='#4f9e77'; ctx.fillText('+ new '+reur(mm.newARR), arrN.x+NW/2, Y+NH+96);
+      /* hypotheses: from outside, at the top, to the node they move */
+      var hyBox = { x: SYS.W/2-150, y: 92, w: 300, h: 46 };
+      ctx.save(); if(!ivOn) ctx.setLineDash([3,3]);
+      ctx.fillStyle='rgba(139,127,212,'+(ivOn?'.08':'.03')+')'; ctx.strokeStyle= ivOn ? '#8b7fd4' : '#3d4952'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.roundRect(hyBox.x, hyBox.y, hyBox.w, hyBox.h, 5); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = ivOn ? '#8b7fd4' : '#3d4952'; ctx.fillText('MANAGEMENT HYPOTHESES · from outside the system', SYS.W/2, hyBox.y+16);
+      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle = ivOn ? '#e2e9ec' : '#3d4952';
+      ctx.fillText(ivOn ? (mm.interventions.changes.length ? mm.interventions.changes.map(function(ch){ return '↯ '+ch.id+' · '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('   ') : '↯ '+expRes.derived.interventions.length+' hypothesis — not in force this month · cost to date '+eur(mm.interventions.cumulativeCost)) : 'none · every law is at its base setting', SYS.W/2, hyBox.y+34);
+      nodeHits.push({ x:hyBox.x, y:hyBox.y, w:hyBox.w, h:hyBox.h, view:'hypotheses' });
+      if(ivOn){ (expRes.derived.interventions||[]).forEach(function(hh){
+        var target = hh.target.indexOf('monetization')===0 ? nodes[3] : (hh.target==='logoRetentionAnnual'||hh.target==='contractionAnnual'||hh.target==='newLogoARPA') ? nodes[2] : (hh.target==='sm'||hh.target==='rd'||hh.target==='ga') ? nodes[0] : (hh.target==='cacPerARR'||hh.target==='maxMonthlyNewARR'||hh.target==='acquisitionLagMonths') ? nodes[1] : (hh.target==='grossMargin'||hh.target==='expansionCostPerARR') ? nodes[5] : nodes[4];
+        var inForce = mm.interventions.active.indexOf(hh.id)>=0;
+        ctx.save(); ctx.strokeStyle= inForce ? '#8b7fd4' : 'rgba(139,127,212,.45)'; ctx.lineWidth=1.4; ctx.setLineDash(inForce ? [] : [4,4]);
+        ctx.beginPath(); ctx.moveTo(SYS.W/2, hyBox.y+hyBox.h); ctx.lineTo(target.x+NW/2, Y-72); ctx.stroke();
+        ctx.fillStyle= inForce ? '#8b7fd4' : 'rgba(139,127,212,.45)'; ctx.beginPath(); ctx.arc(target.x+NW/2, Y-72, 3.5, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b7fd4';
+        ctx.fillText('↯ '+hh.id+' M'+hh.effectiveFrom+'–'+hh.effectiveTo+(inForce?'':' · not now'), target.x+NW/2, Y-80);
+      }); }
+      /* legend line */
+      ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+      ctx.fillText('LEGEND   ▭ stock (orange border)   ▭ mechanism   ⋈ law   ⌈⌉ constraint   → measurement   ↯ hypothesis   ┄ off', 30, SYS.H-14);
     }
 
     /* ---------- scales, declared ---------- */
@@ -5123,9 +5230,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* v2 — the System map is HIERARCHICAL: the company view (the v1.3 stock-and-
      flow map with each layer's additions in place) and one sub-view per layer
      that is on, drawing that layer's own stocks and flows at its own scale. */
-  var sysView = 'company';
+  var sysView = 'ontology';
   var SYS_VIEWS = [
-    { id:'company', name:'Company', on:function(){ return true; } },
+    { id:'ontology', name:'Ontology', on:function(){ return true; } },
+    { id:'company', name:'Flows', on:function(){ return true; } },
     { id:'customers', name:'Customers', on:function(){ return !!expRes && expRes.mechanisms.customerPhysics; } },
     { id:'monetization', name:'Monetization', on:function(){ return !!expRes && expRes.mechanisms.monetization; } },
     { id:'cash', name:'Cash', on:function(){ return !!expRes && expRes.mechanisms.cashPhysics; } },
@@ -5140,7 +5248,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     });
   }
   function syncSysViews(){
-    SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='company'; });
+    SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='ontology'; });
   }
   function syncPulse(){
     document.getElementById('pulse-law').innerHTML =
@@ -5170,6 +5278,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var rect=cv.getBoundingClientRect();
       var dx=((ev.clientX-rect.left)-fitT.ox)/fitT.s, dy=((ev.clientY-rect.top)-fitT.oy)/fitT.s;
       var hit=null;
+      var nodeHit=null; nodeHits.forEach(function(nd){ if(dx>=nd.x && dx<=nd.x+nd.w && dy>=nd.y && dy<=nd.y+nd.h) nodeHit=nd.view; });
+      if(nodeHit){ var VV = SYS_VIEWS.filter(function(V){ return V.id===nodeHit; })[0]; if(VV && VV.on()){ sysView=nodeHit; openChip=null; syncSysViews(); render(); renderSide(); } return; }
       valveHits.forEach(function(v){ if(Math.abs(v.x-dx)<24 && Math.abs(v.y-dy)<24) hit=v.key; });
       openChip = (hit && openChip!==hit) ? hit : null;
       LAWCHIPS.forEach(function(Lc){
