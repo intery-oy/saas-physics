@@ -97,7 +97,7 @@ button,input{font:inherit;color:inherit}
 .scrim{position:fixed;inset:0;background:rgba(8,11,13,.55);z-index:19;display:none}
 .app.rail-open .scrim{display:block}
 .app.rail-open #rail-toggle{border-color:var(--exp);color:var(--exp)}
-#rail-close{display:block;margin:10px 18px 0;width:calc(100% - 36px)}
+#rail-close{font-size:11px}
 /* one scrolling column: hero → lens navigation → the active lens → the figure as context */
 .stage{position:relative;min-width:0;overflow-y:auto;background:var(--scene)}
 .stagecol{max-width:980px;margin:0 auto;padding:0 28px 32px}
@@ -146,9 +146,18 @@ button,input{font:inherit;color:inherit}
 .exp-row span{color:var(--ink-3)}
 .exp-row b{font-family:var(--mono);font-weight:500;color:var(--exp);white-space:nowrap}
 .grp:last-child{border-bottom:none}
-.force{margin-bottom:15px}
+.force{margin-bottom:12px}
 .force:last-child{margin-bottom:0}
 .force-top{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+/* compact grammar: glyph · name · value (Base only when it differs) · slider · measurement. Definitions one level deeper. */
+.rail:not(.detail) .force-sub,.rail:not(.detail) .fgrp-note,.rail:not(.detail) .layerhead small,.rail:not(.detail) .rail-doc,.rail:not(.detail) #rail-change .hint{display:none}
+.rail:not(.detail) .force{margin-bottom:9px}
+.force-top .force-base{margin-left:2px}
+.force-val.same + .force-base{display:none}
+.rail.detail .force-top .force-base{display:none}
+.railbar{display:flex;align-items:center;gap:10px;padding:10px 18px 8px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--panel);z-index:2}
+.railbar .eyebrow{flex-grow:1}
+.rail.detail #rail-detail{border-color:var(--exp);color:var(--exp)}
 .force-top label{font-size:12px;font-weight:500;flex-grow:1;cursor:pointer}
 .force-val{font-family:var(--mono);font-size:12.5px;color:var(--exp)}
 .force-val.same{color:var(--ink)}
@@ -484,18 +493,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   </header>
 
   <aside class="rail">
-    <button class="btn" id="rail-close" aria-label="Close the Change rail">‹ Close</button>
+    <div class="railbar"><button class="btn" id="rail-close" aria-label="Close Change">‹ Close</button><span class="eyebrow">Change · build the model</span><button class="btn" id="rail-detail" title="Show what every object means, its unit and direction">Details</button></div>
     <div class="grp" id="experiment-summary"></div>
     <div class="grp" id="packs">
       <div class="eyebrow" style="margin-bottom:4px">World</div>
-      <div class="hint">Assumption packs: which layers the Base world carries. Assumptions only — no scenario logic. Reset returns to the pack.</div>
+      <div class="hint rail-doc">Assumption packs: which layers the Base world carries. Assumptions only — no scenario logic. Reset returns to the pack.</div>
       <div class="btn-row" id="packlist" style="margin-top:7px"></div>
-      <div class="hint" style="margin-top:9px">Acceptance worlds &middot; three company shapes built from the same laws. Illustrative, not benchmarks.</div>
+      <div class="hint rail-doc" style="margin-top:9px">Acceptance worlds &middot; three company shapes built from the same laws. Illustrative, not benchmarks.</div>
       <div class="btn-row" id="worldlist" style="margin-top:6px"></div>
       <div class="hint" id="packnote" style="margin-top:6px"></div>
     </div>
     <div class="grp" id="rail-change">
-      <div class="eyebrow" style="margin-bottom:4px">Change · build the model</div>
       <div class="hint">Each layer below is a set of objects the engine obeys. They are not equivalent: a law is not an input, a constraint is not a benefit, a hypothesis is not a law. Measurements are read beneath the law they observe and are never set.</div>
       <div class="rail-legend"><span class="inp">▭ input</span><span class="law">⋈ law</span><span class="law">⌈⌉ constraint</span><span class="hyp">↯ hypothesis</span><span>→ measured</span><span>· · off</span></div>
     </div>
@@ -3884,11 +3892,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                          logoRetentionR12M:'measured logo retention', contractionShare:'of measured leakage is contraction' };
   function forceRow(F){
     var d=document.createElement('div'); d.className='force';
+    d.title = (FORCE_UNIT[F.k] ? FORCE_UNIT[F.k]+' · ' : '')+F.sub+(FORCE_DIR[F.k] ? ' · '+FORCE_DIR[F.k] : '');
     d.innerHTML='<div class="force-top">'+kindGlyph(F)+'<label for="f-'+F.k+'">'+esc(F.label)+'</label>'+
       (F.nullable ? '<button class="btn nulltog" id="t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
       ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="t-'+F.k+'" title="Switch between the settings">'+esc(String(getK(expA,F.k)))+'</button>' : '')+
-      '<span class="force-val" id="v-'+F.k+'"></span></div>'+
-      '<div class="force-sub">'+(FORCE_UNIT[F.k] && !F.toggleOnly ? '<span class="force-u">'+esc(FORCE_UNIT[F.k])+'</span> &middot; ' : '')+esc(F.sub)+(FORCE_DIR[F.k] ? ' &middot; <span class="force-dir">'+esc(FORCE_DIR[F.k])+'</span>' : '')+' &middot; <span class="force-base" id="b-'+F.k+'"></span></div>'+
+      '<span class="force-val" id="v-'+F.k+'"></span><span class="force-base" id="b-'+F.k+'"></span></div>'+
+      '<div class="force-sub">'+(FORCE_UNIT[F.k] && !F.toggleOnly ? '<span class="force-u">'+esc(FORCE_UNIT[F.k])+'</span> &middot; ' : '')+esc(F.sub)+(FORCE_DIR[F.k] ? ' &middot; <span class="force-dir">'+esc(FORCE_DIR[F.k])+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
       (F.toggleOnly ? '' : '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
       d.querySelector('[id="t-'+F.k+'"]').addEventListener('click', function(){
@@ -3978,7 +3987,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     function fixedCostsGroup(){
       var fx=document.createElement('div'); fx.className='fgrp';
       fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
-        '<div class="fgrp-note">Affect modeled FCF and Cash directly. v1 models no effect from them on recurring-state dynamics.</div>';
+        '<div class="fgrp-note">Affect EBITA, FCF and cash directly. The model gives them no effect on retention, expansion or acquisition.</div>';
       FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
       return fx;
     }
@@ -4016,6 +4025,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, xv);
       v.className = 'force-val' + (xv===bv ? ' same' : '');
       document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, bv);
+      var b2=document.querySelector('.force-base2[data-for="'+F.k+'"]'); if(b2) b2.textContent = 'base ' + fmtF(F.f, bv);
       /* v2 Gate A — with Customer Physics on, persistence is a READOUT: the
          slider is disabled and shows the derived value and its formula.
          v2 Gate B — under Monetization it is EMERGENT (mix-dependent), and the
@@ -5505,9 +5515,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   function syncPulse(){
     document.getElementById('pulse-law').innerHTML =
-      '<b style="color:var(--ink-2)">Acquisition adds recurring state. The installed base expands or leaks. Finance records the consequence.</b> &nbsp; '+
-      'A model audit, not a dashboard: the causal topology the engine actually contains, with \u2298 marking the links it does not. '+
-      'Click any bowtie valve to set the assumption where it acts.';
+      '<b style="color:var(--ink-2)">Capital buys acquisition; acquisition adds customers; customers monetize into ARR; ARR becomes revenue, P&amp;L and cash.</b> &nbsp; '+
+      'Click a node to open its layer. Notes reads each law and mechanism on the map.';
     render(); renderSide();
   }
 
@@ -6812,6 +6821,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* narrow screens: the Change rail is a drawer over the stage */
   document.getElementById('rail-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('rail-open'); });
   document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
+  document.getElementById('rail-detail').addEventListener('click', function(){ document.querySelector('.rail').classList.toggle('detail'); });
   document.getElementById('scrim').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ document.querySelector('.app').classList.remove('rail-open'); document.querySelector('.app').classList.remove('notes'); } });
   buildPacks(); buildSysViews(); syncPackButtons(); syncSysViews();
