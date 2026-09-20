@@ -127,3 +127,22 @@ The two-plane stage (ARR mass over cash), the P&L waterfall's bar grammar, the s
 the bowtie valve as the mark for a law, the `.recon` two-column proof blocks, the typography
 (Archivo / JetBrains Mono / Spectral), the dark indigo surface and the orange/blue pair for
 Experiment/Base.
+
+## Status after the Legibility pass
+
+| # | Finding | Status | Where |
+|---|---|---|---|
+| 1 | equal-weight cards | resolved — five lenses, one hero each, descriptors, readouts | Observe (commit 2) |
+| 2 | duplicated quantities | resolved — each quantity lives in one lens; Compare states it once per level | Observe, Compare |
+| 3 | composition vs movement conflated | resolved — composition bar above a movement ladder, never the same mark | Monetization lens |
+| 4 | laws vs measurements alike | resolved — `⋈` / `→` / `⌈⌉` / `↯` on every surface, colour reserved | all |
+| 5 | implicit time basis | resolved — basis tag on every lens, figure and provenance step; tested | all (`v2-legibility-accept` TIME, GRAMMAR) |
+| 6 | stocks drawn as flows | resolved — the ladder form: stock = container bar, flow = delta with hairline; negative ranges scale with a zero line | Customers, Monetization, Economics & cash |
+| 7 | no growth-engine representation | resolved — acquisition chain, three CACs as three objects, growth by source, response curve | Growth engine lens |
+| 8 | Compare as a delta list | resolved — causal spine, three levels, grouped by layer; "same output, different system" | Compare (commit 3) |
+| 9 | System as a schematic | resolved — economic ontology first, layers by drill-down, breadcrumb back | System (commit 4) |
+| 10 | Inspect as a field dump | resolved — provenance chain from company ARR to cash, off-layer steps stated | Inspect (commit 5) |
+| 11 | Change as a settings panel | resolved — kinds, units, direction; measurements beneath laws; grouped summary | Change (commit 5) |
+| 12 | nothing reflows below ~1200px | resolved — drawer ≤ 1180, one column ≤ 760, ontology in a scroll frame; tested at five widths | shell (commit 6) |
+| 13 | colour overloaded | resolved — one meaning per token (`docs/VISUAL-GRAMMAR.md` §6) | all |
+| 14 | legacy chrome | largely resolved — the leakage-shadow toggle and Method key remain in the header (kept on purpose: both are product functions) | header |

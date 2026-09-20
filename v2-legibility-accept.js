@@ -201,7 +201,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     /* one change → Compare reads; System ontology draws every node on */
     await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = Math.round(parseFloat(i.value) * 1.3 / 25000) * 25000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400);
     const cmp = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); return s ? s.innerText : ''; });
-    rec('WORLD ' + name + ': one change to S&M reads as a causal comparison (changed → system → company) in this world', /S&M/.test(cmp) && /new ARR per month/.test(cmp) && /ARR M60|MRR M60/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' | '));
+    rec('WORLD ' + name + ': one change to S&M reads as a causal comparison (changed → system → company) in this world', /S&M/.test(cmp) && /new (MRR|ARR) per month/.test(cmp) && /(MRR|ARR) M60/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' | '));
     await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
     await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(500);
     const onto = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, side: document.getElementById('side').innerText.slice(0, 80) }));

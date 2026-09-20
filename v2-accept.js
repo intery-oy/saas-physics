@@ -67,8 +67,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       obs.txt.includes('logo retention · R12M\n→ ' + (icm.logoRetentionR12M * 100).toFixed(1) + '%') && obs.txt.includes('persistence in force\n⋈ 87.4% = L × (1 − C)') && obs.txt.includes(Math.round(im.closing > 0 ? 0 : 0) === 0 ? 'customers' : ''),
       obs.txt.slice(obs.txt.indexOf('LOGOS'), obs.txt.indexOf('LOGOS') + 200).replace(/\n/g, ' | '));
   const ikpi = K.measureR12M(indep, obs.m);
-  rec('A · OBSERVE: the ARR ladder separates churned ARR from contraction as two outflows (the month\'s flows), and the readouts print GRR and NRR beside logo retention',
-      obs.txt.includes('− churned ARR') && obs.txt.includes('− contraction') && obs.txt.includes('gross dollar retention · R12M\n→ ' + (ikpi.grr * 100).toFixed(1) + '%') && obs.txt.includes('net dollar retention · R12M\n→ ' + (ikpi.nrr * 100).toFixed(1) + '%') &&
+  rec('A · OBSERVE: the MRR ladder (on the MRR basis) separates churned MRR from contraction as two outflows (the month\'s flows), and the readouts print GRR and NRR beside logo retention',
+      obs.txt.includes('− churned MRR') && obs.txt.includes('− contraction') && obs.txt.includes('gross dollar retention · R12M\n→ ' + (ikpi.grr * 100).toFixed(1) + '%') && obs.txt.includes('net dollar retention · R12M\n→ ' + (ikpi.nrr * 100).toFixed(1) + '%') &&
       Math.abs((icm.dollarChurnFromLogosR12M + icm.dollarChurnFromContractionR12M) - (1 - ikpi.grr)) < 1e-9, '');
 
   /* ---- A · INSPECT: pin a cohort ---- */
@@ -120,7 +120,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const nulTxt = await side();
   rec('NULL-ON-SCREEN: Reset switches the layer off; persistence is an input again (90.0%, enabled); no logo ladder, no contraction or churned-ARR row on screen, leakage is one row (NO-FAKE-MOVEMENTS holds with the layer off)',
       nul.A.logoRetentionAnnual === null && nul.mech.customerPhysics === false && nul.tog === 'off' && nul.Pv === '90.0%' && !nul.Pdis && !nulTxt.includes('LOGOS') &&
-      !nulTxt.includes('− contraction') && !nulTxt.includes('− churned ARR') && nulTxt.includes('− leakage') && nulTxt.includes('No customer layer'), '');
+      !nulTxt.includes('− contraction') && !nulTxt.includes('− churned MRR') && nulTxt.includes('− leakage') && nulTxt.includes('No customer layer'), '');
 
   /* ---- B · CONTROLS ---- */
   await pg.click('#t-monetization'); await pg.waitForTimeout(400);

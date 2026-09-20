@@ -6,29 +6,41 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 ## 1. Where is the company at month 36, and what do the ARR-only KPIs say?
 
-- World: ARR physics (the frozen v1.3 base). Company layer, month 36, MRR basis.
-- Revenue run rate: €45.66m
-- Gross profit · this month: €3.04m
-- EBITA / FCF · this month: €1.09m
-- Cash: €19.17m
-- R12M GRR: 89.6%
-- R12M NRR: 99.0%
-- Cohorts alive: 37
-- − Gross leakage impact · −10.4% · + Expansion impact · +9.4% · = NRR
+- World: ARR physics (the frozen v1.3 base). Company lens, month 36, MRR basis.
+- MRR: €3.83m
+- cash: €19.17m
+- cash trough · M13 of 60: €6.10m
+- EBITA margin · R12M: → 23.9%
+- gross margin · law: ⋈ 80%
+- Opening: €3.78m
+- + new MRR: +€63k
+- − leakage⋈ 90%: −€33k
+- + expansion⋈ 10%: +€30k
+- Closing: €3.83m
+- gross dollar retention · R12M: → 89.6%
+- net dollar retention · R12M: → 99.0%
+- persistence: ⋈ 90.0%
+- Revenue: €41.73m
+- Gross profit: €33.38m
+- EBITA: €9.98m
+- cohort M36 · 37 alive: €63k
 
 ## 2. How much of the loss is customers leaving, and how much is customers shrinking?
 
-- World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail.
-- Customers: 1977 · Base 1977
-- ARPA (MRR per customer): €2k
-- Customers lost · this month: 13.5
-- Leakage from lost logos · this month: €25k
-- Leakage from contraction · this month: €15k
-- Persistence in force: 87.4% = 92.0% × (1 − 5.0%)
-- R12M logo retention: 92.0%
-- − Lost logos: −8.2%
-- − Contraction: −5.0%
-- = NRR: 96.1%
+- World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail; the Customers lens shows the logo ladder above the MRR ladder.
+- MRR: €3.61m
+- customers: 1977
+- ARPA · ARR per customer: €21,890
+- + new logos: +37.5
+- − churn⋈ 92%: −13.5
+- − churned MRR: −€25k
+- − contraction⋈ 5%: −€15k
+- logo retention · R12M: → 92.0%
+- gross dollar retention · R12M: → 86.8%
+- net dollar retention · R12M: → 96.1%
+- persistence in force: ⋈ 87.4% = L × (1 − C)
+- Installed-base net · month: → −€12k · net-shrinking
+- Customers stay more than dollars do: 5.2% of the gap is contraction inside surviving accounts. Net retention above logo retention: expansion is carrying the base. R12M · 3 · 
 
 ## 3. Could two companies with identical ARR, GRR and NRR be losing customers at different rates?
 
@@ -36,24 +48,29 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - derived persistence: 87.40% · 87.40%
 - max |ΔMRR| over 60 months: €0
 - max |ΔGRR|, |ΔNRR| over all measurement dates: 4.4e-16
-- Customers at M60: +€349
-- R12M logo retention at M60: 87.4% → 92.0%
-- ARPA at M60: €2k → €2k
+- logo retention: 87.4% · 92.0%
+- contraction: 0.0% · 5.0%
+- customers M60: 2157 → 2505
+- churned MRR CUM: €2.17m → €1.35m
+- contraction CUM: €0 → €825k
+- ARPA M60: €26,590 → €22,888
+- Same ARR, different system · M60 ARR agrees within 0.5%. The systems that produced it do not: customers 2157 → 2505. The headline is not a sufficient statistic. · Base loses 12.6% of customers a year and 
 
 ## 4. How much of the revenue change is price, how much usage, how much adoption — and where does expansion stop?
 
 - World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.
-- Platform (fixed): €2.06m · 54.1%
-- Usage (variable): €1.75m · 45.9%
-- Price effect · this month: €8k
-- Usage effect · this month: €20k
-- Adoption effect · this month: €2k
-- Contraction · this month: €7k · usage only
-- Opening base · per customer: €25k/yr · usage 43% of cap · adoption 88% of cap
-- + Price: +2.5%
-- + Usage: +6.2%
-- + Adoption: +0.7%
-- = NRR: 98.8%
+- platform · fixed €2.06m 54% · usage · variable €1.75m 46% · open
+- usage · variable €1.75m 46% · opening-base customer €24,745/yr
+- opening-base customer €24,745/yr · usage 43% of cap · adoption
+- usage · variable €1.75m 46% · opening-base customer €24,745/yr
+- + price⋈ 3% · 2%: +€86k
+- + usage⋈ 15%: +€211k
+- + adoption⋈ 10%: +€24k
+- − churn: −€285k
+- − contraction: −€77k
+- of NRR, price · usage · adoption · R12M: → 2.5% · 6.2% · 0.7%
+- expansion coefficient: ⋈ bypassed
+- persistence in force: ⋈ emergent from the mix
 
 ## 5. Same customers, same laws — does the revenue mix alone change dollar retention?
 
@@ -62,19 +79,24 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - customers · ARPA: 1000 · €2k both
 - M1 contraction: €0 · €3k
 - R12M GRR at M12: 92.00% · 90.16%
+- variable share M60: 1.5% → 37.4%
+- gross dollar retention R12M: 92.0% → 90.3%
+- MRR M60: €4.18m → €3.94m
+- ending cash M60: €37.39m → €32.20m
 
 ## 6. When does the cash arrive, and how far is cash FCF from EBITA?
 
 - World: + Cash (billed 12 months in advance, collected one month after invoice). The waterfall continues below EBITA.
-- EBITA · this month: €1.08m
-- Cash FCF · this month: €1.07m
-- Cash: €27.47m
-- Billings · this month: €3.78m vs revenue €3.78m
-- Deferred revenue: €21.56m · 5.7 months of revenue
-- Receivables: €3.78m
-- EBITA → cash FCF: €1.08m → €1.07m (−€3k)
-- Cash conversion · trailing 12: 1.33× EBITA
-- Billing policy: 12-month term, in advance, collected 1 mo later
+- EBITA: €9.81m
+- + Δ deferred⋈ 12 mo advance: +€3.93m
+- − Δ receivables⋈ +1 mo: −€710k
+- Cash FCF: €13.03m
+- cash · M36: €27.47m
+- deferred revenue · M36: €21.56m
+- receivables · M36: €3.78m
+- cash FCF ÷ EBITA · R12M: → 1.33×
+- cash trough · M1: €7.71m
+- capital drawn from opening cash: €2.29m
 
 ## 7. Same P&L — how different can the cash path be?
 
@@ -83,31 +105,38 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - max |Δrevenue|, |ΔEBITA| over 60 months: €0
 - cash trough: €6.10m (M13) · €7.71m (M1)
 - ending cash: €59.57m · €74.66m
-- Cumulative EBITA: +€0
-- Cumulative cash FCF: +€15.09m
-- Deferred revenue at M60 (Experiment): +€29.47m
+- cash conversion · trailing 12 at M60: 1.14× EBITA
+- billings CUM: as revenue → €228.52m
+- deferred revenue M60: — → €29.47m
+- receivables M60: — → €5.21m
+- cash FCF − EBITA CUM: +€0 → +€15.09m
+- ending cash M60: €59.57m → €74.66m
 
 ## 8. What does a retention programme cost, when does it work, and what is it worth?
 
 - World: + Hypothesis (every layer on; logo retention × 1.03 decided M6, in force M9–M32, €200k + €50k/month).
-- Retention programme · in force · logo retention 92.0% → 94.8% · decided M6
-- decided M6, effect from M9 to M32, cost to date €950k of €1.55m · 12 months in force · Hypothesis cost · this mont
-- Hypothesis cost · this month: €50k
+- hypothesis ret in force · logo retention 92.0% → 94.8% · cost €50k this month · 2 · What installed base produces the revenue
+- − hypothesis cost: −€600k
+- EBITA: €418k
+- Cash FCF: €3.84m
 
 ## 9. Against the same company without it — net of its cost — when does the programme pay back?
 
 - Scenario 14 · A retention programme (Base: no hypothesis; Experiment: persistence × 1.05 from M9 for 24 months, €1.55m).
-- M60 MRR: +€281k
-- Cumulative Leakage MRR: −€192k
-- Cumulative FCF: +€7.33m
-- Hypothesis window: decided M6 · in force M9–M32
-- Hypothesis cost (Experiment): −€1.55m
-- Cash overtakes Base: month 26
-- Ending cash: +€7.33m
+- Hypothesis · ↯ Retention programme · persistence × 1.05 · M6 +3 lag · 24 mo · €200k + €50k/mo · WHAT THE SYSTEM DID · BASE →
+- leakage CUM: €1.80m → €1.61m
+- expansion CUM: €1.63m → €1.72m
+- Retention programme · persistence: 90.0% → 94.5% · M9–M32
+- hypothesis cost CUM: €0 → €1.55m
+- MRR M60: €5.24m → €5.53m
+- EBITA CUM: €49.57m → €56.90m
+- cash trough: €6.10m M13 → €5.59m M13
+- ending cash M60: €59.57m → €66.90m
+- cash overtakes Base: — → month 26
 
 ## 10. Can I see each layer as its own system?
 
-- System layer, world + Hypothesis, month 20. Sub-views drawn without error: company ✓, customers ✓, monetization ✓, cash ✓, hypotheses ✓.
+- System layer, world + Hypothesis, month 20. Sub-views drawn without error: ontology ✓, company ✓, customers ✓, monetization ✓, cash ✓, hypotheses ✓.
 - Customer physics · logo retention 92.0%, contraction 5.0%. The persistence valve is no longer set: it reads emergent, ge
 - Monetization physics · on. The expansion valve is bypassed: the expansion pipe carries price + usage + adoption — €6k + 
 - Cash physics · 12-month term in advance, +1 mo to collect. The FCF box is cash FCF: EBITA €326k + €254k of timing this m
@@ -116,7 +145,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 11. And back to the frozen ARR world — is every layer off again?
 
 - Pack: ARR physics. Mechanisms: {"expansionCost":false,"acquisitionSaturation":false,"acquisitionLag":false,"customerPhysics":false,"monetization":false,"genericExpansionBypassed":false,"cashPhysics":false,"interventions":false}
-- Cash: €19.17m
-- R12M NRR: 99.0%
+- cash: €19.17m
+- net dollar retention · R12M: → 99.0%
 
 Page errors during the walkthrough: none.

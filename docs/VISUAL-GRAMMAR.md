@@ -109,6 +109,52 @@ arrows, laws as valves attached to the flow they govern, measurements as readout
 object they observe, interventions as arrows from outside. Each node opens its layer view; a
 breadcrumb keeps orientation.
 
+## 9a. Inspect — the provenance chain
+
+A pinned cohort is one euro of company ARR traced down the ontology: **Company ARR** (this
+cohort's share) → **Cohort** (vintage, original → now with cumulative expansion and leakage, and what
+it was *bought under*: spend month, lag, acquisition cost, realised CAC, hypotheses at spend) →
+**Customer economics** → **Monetization components** → **Contract · billing** → **Cash** (capital
+recovery). Each step is one dot on a vertical rule with its own basis tag (`M20`, `age 11`,
+`M20 · month`, `CUM · M1–M20`). A step whose layer is off is drawn hollow and says what the cohort
+is instead ("no customer layer · the cohort is one balance") — never omitted. Method notes are
+disclosed behind a `▸` summary.
+
+## 9b. Change — model construction
+
+Every control is one **kind** of object, marked before its name: `▭` input (set externally),
+`⋈` law, `⌈⌉` constraint, `⏻` switch (a layer on or off), `↯` hypothesis. Each carries its
+**unit** (`€ / mo`, `% / yr`, `€ per € ARR`, `months`) and, where it is unambiguous, the
+**direction** a reader can state without running the model (`↑ less leakage`). A measurement
+(`→ measured GRR · R12M`) reads beneath the law it observes and is never a control. A switched-off
+control shows its switch once, not "off" twice; a permanent programme says *permanent*. The
+experiment summary is *what you changed*, grouped by the causal layer the change enters at, in the
+same words Compare uses. Layer tags speak the ontology (*beneath ARR*, *beneath P&L*, *from
+outside*), not development gates.
+
+## 9c. Time
+
+Every figure names its basis (§4). Lenses 1–4 are at the selected month; lens 5 is on the trailing
+window (`R12M`, or `CUM · M1–Mn` before month 12). Moving the playhead moves every tag together.
+The transport label is the only clock.
+
+## 9d. Breakpoints — reflow, never shrink
+
+| Width | Layout |
+|---|---|
+| > 1180 | three columns: Change rail · figure · lenses |
+| ≤ 1180 | the rail is a drawer (a *Change* toggle in the header; close button; tap the figure to close); figure and lenses side by side |
+| ≤ 760 | one column, the page scrolls: header · figure with waterfall · the five lenses stacked · transport pinned; the System ontology keeps its drawn size inside a horizontally scrolling frame |
+
+## 9e. Acceptance worlds
+
+Three packs of the existing laws, illustrative and never benchmarks, so the representation can
+be read against economies a CFO recognises: **A · Enterprise** (few large customers, platform fee
+plus metered usage, annual billing in advance, sales lag, capacity), **B · Usage / AI** (material
+metered usage with falling unit price, monthly in arrears, 60% gross margin, contraction),
+**C · SMB** (many small customers, monthly in advance, cheap capacity-bound acquisition, high
+churn). Each pack's note says so on the rail.
+
 ## 10. What is never done
 
 No dual axes. No colour as the only encoding. No number on every point. No decorative gradient

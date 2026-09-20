@@ -20,6 +20,17 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 | **Engine version** | v2.0 (`v2-economic-system`) — the frozen v1.3 ARR physics (`docs/BASELINE-v1.3.md`, `44f7652`) plus the Economic System layers, each nullable, each reproducing the layer below exactly: A Customer Physics, B Monetization Physics, C Cash Physics, D Interventions. `docs/BASELINE-v2.md` records the frozen checksums. |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
+**Economic Legibility (branch `v2-economic-legibility`).** The same engine, re-represented so a CFO can
+read a scenario's economic structure in about thirty seconds: Observe is five lenses (Company ·
+Customers · Growth engine · Monetization · Economics & cash), Compare is a causal spine (what you
+changed → what the system did → what company emerged), System opens on the economic ontology
+(capital → acquisition → customers → monetization → ARR → P&L → billing → cash), Inspect is a
+provenance chain from company ARR to cash, Change is model construction (input · law · constraint ·
+switch · hypothesis, each with unit and direction; measurements read beneath the law, never set).
+Three illustrative acceptance worlds (enterprise, usage/AI, SMB) are packs of the existing laws. The
+page reflows to tablet and phone. `docs/VISUAL-GRAMMAR.md` is the contract; `docs/LEGIBILITY-REPORT.md`
+the report. No engine or module changed.
+
 `engine.js`, `kpi.js` and `integrity.js` are the economic core: they stay untouched by
 convention, not by schedule — a change to any of them is deliberate, reviewed and re-frozen,
 never incidental.
@@ -176,6 +187,7 @@ node v2-checks.js           # v2: ALL-NULL-V13 gate vs the complete v1.3 snapsho
 node v2-study.js            # v2: the experiments with measured results (quoted in docs/RN-*-PHYSICS.md)
 node v2-accept.js           # v2 DOM/render checks — needs playwright
 node v2-walkthrough.js      # drives the product through a CFO's questions and regenerates docs/WALKTHROUGH-V2.md — needs playwright
+node v2-legibility-accept.js # Economic Legibility checks — lenses, grammar, values, time, causal hierarchy, drill-down, provenance, the three acceptance worlds, container/overlap integrity at five widths — needs playwright
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
 node basis-checks.js        # MRR/ARR reporting-basis regression checks (BASIS-12X, FINANCIAL-INVARIANCE, SCENARIO-INVARIANCE)
 node clarity-checks.js      # Clarity pass regression checks (TWO-PLANE-UNITS, INSTALLED-BASE-NET, FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS)
@@ -291,6 +303,16 @@ creates; gross margin decides how fast that investment is recovered.
 - [`docs/REVIEW-V2.md`](docs/REVIEW-V2.md) — **the adversarial review** of the programme: what was
   found and fixed before each gate, the deliberate limits, the open items
 - [`docs/BASELINE-v2.md`](docs/BASELINE-v2.md) — the frozen v2 baseline (checksums, suites)
+- [`docs/VISUAL-AUDIT.md`](docs/VISUAL-AUDIT.md) — **the visual audit** of the v2 product as it stood: fourteen
+  representation defects, each with the design consequence taken, and the status after the pass
+- [`docs/VISUAL-GRAMMAR.md`](docs/VISUAL-GRAMMAR.md) — **the visual grammar**: how each kind of economic object
+  (stock, flow, law, derived law, constraint, measurement, hypothesis, absence) looks on every surface;
+  the ladder form, composition vs movement, the time-basis tags, the five lenses, the Compare spine,
+  the System ontology, the provenance chain, the Change kinds, the breakpoints
+- [`docs/LEGIBILITY-REPORT.md`](docs/LEGIBILITY-REPORT.md) — **the Economic Legibility programme report**:
+  thesis, the five-lens architecture, each surface before and after, the acceptance worlds with
+  screenshots (`docs/screens/`), responsive behaviour, visual QA, physics integrity, tests, repository
+  state, the five strongest remaining weaknesses
 
 ## Model version
 

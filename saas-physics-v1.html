@@ -5613,8 +5613,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         {k:'out', n:'− churn', v:-cu.logoChurn, f:cu.logoChurn.toFixed(1), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
         {k:'stock', n:'Closing', v:cu.closing, f:cu.closing.toFixed(0)}]) + '</div>';
       var arrRows = [{k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
-        {k:'in', n:'+ new ARR', v:em.newARR, f:reur(em.newARR)},
-        {k:'out', n:'− churned ARR', v:-cu.logoChurnARR, f:reur(cu.logoChurnARR)},
+        {k:'in', n:'+ new '+basis, v:em.newARR, f:reur(em.newARR)},
+        {k:'out', n:'− churned '+basis, v:-cu.logoChurnARR, f:reur(cu.logoChurnARR)},
         {k:'out', n:'− contraction', v:-cu.contractionARR, f:reur(cu.contractionARR), law:'⋈ '+pct(lawNow('contractionAnnual'),0)}];
       if(moOn) arrRows = arrRows.concat([{k:'in', n:'+ price', v:em.monetization.priceARR, f:reur(em.monetization.priceARR)}, {k:'in', n:'+ usage', v:em.monetization.usageARR, f:reur(em.monetization.usageARR)}, {k:'in', n:'+ adoption', v:em.monetization.adoptionARR, f:reur(em.monetization.adoptionARR)}]);
       else arrRows.push({k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)});
@@ -5630,7 +5630,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     } else {
       h += figT(basis, Mt+' · month') + ladder([
         {k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
-        {k:'in', n:'+ new ARR', v:em.newARR, f:reur(em.newARR)},
+        {k:'in', n:'+ new '+basis, v:em.newARR, f:reur(em.newARR)},
         {k:'out', n:'− leakage', v:-em.leakage, f:reur(em.leakage), law:'⋈ '+pct(lawNow('persistenceAnnual'),0)},
         {k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)},
         {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
@@ -5659,7 +5659,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '</div>'+
       (lagOn ? (function(){ var am = K.acquisitionMeasures(expRes, m); return '<div class="readouts">'+ro('Measured CAC · trailing 12', am.measuredCACR12M===null ? 'nothing realised yet' : am.measuredCACR12M.toFixed(2)+'× on '+reur(am.realisedNewARRR12M)+' realised')+'</div>'; })() : '')+
       figT('Where the growth came from', w.tag) +
-      comp([{n:'new ARR', v:newR12, c:'var(--in)', f:reur(newR12)}, {n:'expansion', v:expR12, c:'rgba(79,158,119,.55)', f:reur(expR12)}]) +
+      comp([{n:'new '+basis, v:newR12, c:'var(--in)', f:reur(newR12)}, {n:'expansion', v:expR12, c:'rgba(79,158,119,.55)', f:reur(expR12)}]) +
       '<div class="comp-l" style="margin-top:2px"><span>− leakage <b>'+reur(leakR12)+'</b></span><span>net <b>'+reurS(newR12+expR12-leakR12)+'</b> on '+reur(arrPrev)+'</span></div></div>'+
       (cuOn && w.from>1 ? (function(){ var c0=expRes.months[w.from-2].customers, c1=em.customers, a0=expRes.months[w.from-2].closingARR/c0.closing, a1=em.closingARR/c1.closing;
           return '<div class="readouts"><span>customers</span><b>'+c0.closing.toFixed(0)+' → '+c1.closing.toFixed(0)+' · '+relS(c1.closing/c0.closing-1)+'</b><span>ARPA</span><b>'+eurF(a0)+' → '+eurF(a1)+' · '+relS(a1/a0-1)+'</b></div>'; })() : '')+
@@ -6039,7 +6039,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       return '<span class="hyp">'+(to.length ? to.join('<br>') : 'no hypothesis')+'</span>'+(c.from && c.from.length ? ' <span style="color:var(--ink-4)">(Base: '+esc(c.from.join(', '))+')</span>' : '');
     }
     if(c.key==='monetization' && (c.from===null || c.to===null)) return (c.from===null?'off':'on')+' → <b>'+(c.to===null?'off':'on')+'</b>';
-    if((c.from!==null && typeof c.from==='object') || (c.to!==null && typeof c.to==='object')) return '<b>changed</b>';
+    if((c.from!==null && typeof c.from==='object') || (c.to!==null && typeof c.to==='object')){
+      /* a component object: state each field that moved, in its own unit */
+      var UF = { priceAnnual:'eur', priceGrowthAnnual:'pct', usageGrowthAnnual:'pct', adoptionAnnual:'pct', penetration:'pct', penetrationCap:'pct', units:'units', unitsCap:'units' };
+      var UN = { priceAnnual:'price', priceGrowthAnnual:'price growth', usageGrowthAnnual:'usage growth', adoptionAnnual:'adoption', penetration:'penetration', penetrationCap:'penetration cap', units:'units', unitsCap:'usage cap' };
+      var fmt = function(k, v){ return v===null||v===undefined ? '—' : typeof v==='number' ? fmtF(UF[k]||'x', v) : String(v); };
+      /* a component present on one side only: say what it is, in one line */
+      function describe(o){ var d = [ o.kind==='variable' ? 'variable' : 'fixed' ];
+        if(o.kind==='variable'){ d.push(pct(o.penetration||0,0)+' of customers × '+Math.round(o.units)+' units × '+eur(o.priceAnnual)); if(o.usageGrowthAnnual) d.push('usage +'+pct(o.usageGrowthAnnual,0)+(o.unitsCap ? ' ⌈⌉ '+Math.round(o.unitsCap) : '')); if(o.adoptionAnnual) d.push('adoption '+pct(o.adoptionAnnual,0)+' ⌈⌉ '+pct(o.penetrationCap||1,0)); }
+        else d.push(eur(o.priceAnnual)+' / customer / yr');
+        if(o.priceGrowthAnnual) d.push('price '+(o.priceGrowthAnnual>0?'+':'')+pct(o.priceGrowthAnnual,0)); return d.join(' · '); }
+      if(!c.from && c.to) return '<span class="law">⋈ </span>off → <b>'+esc(describe(c.to))+'</b>';
+      if(c.from && !c.to) return '<span class="law">⋈ </span>'+esc(describe(c.from))+' → <b>off</b>';
+      var parts = [];
+      Object.keys(Object.assign({}, c.from, c.to)).forEach(function(k){ if(c.from[k]===c.to[k] || k==='name' || k==='kind') return;
+        parts.push('<span class="law">⋈ </span>'+esc(UN[k]||k)+' '+esc(fmt(k, c.from[k]))+' → <b>'+esc(fmt(k, c.to[k]))+'</b>'); });
+      return parts.length ? parts.join('<br>') : '<b>changed</b>';
+    }
     var glyph = changeKind(c.key)==='law' ? '<span class="law">⋈ </span>' : '';
     return glyph+esc(fmtF(f, c.from))+' → <b>'+esc(fmtF(f, c.to))+'</b>';
   }
@@ -6076,14 +6092,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var rows = [];
     if(touched.acquisition || touched.intervention){
       rows.push('<span class="mh">acquisition</span>');
-      rows.push(num('new ARR per month · law', qb.newARR, qx.newARR, reur, +1));
+      rows.push(num('new '+basis+' per month · law', qb.newARR, qx.newARR, reur, +1));
       var mo1 = function(v){return v.toFixed(1)+' mo';}, xx = function(v){return v.toFixed(2)+'×';};
       rows.push(num('Coefficient payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, mo1, -1));
       if(E.saturationEnabled(baseA)||E.saturationEnabled(expA)){
         rows.push(num('Average CAC', qb.averageCAC, qx.averageCAC, xx, -1)); rows.push(num('Average payback', qb.averagePaybackMonths, qx.averagePaybackMonths, mo1, -1));
         rows.push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, xx, -1)); rows.push(num('Marginal payback', qb.marginalPaybackMonths, qx.marginalPaybackMonths, mo1, -1));
       }
-      rows.push(num('new ARR realised', b.cumNewARR, x.cumNewARR, reur, +1, 'CUM'));
+      rows.push(num('new '+basis+' realised', b.cumNewARR, x.cumNewARR, reur, +1, 'CUM'));
       if(baseRes.derived.acquisitionLagMonths>0||expRes.derived.acquisitionLagMonths>0){
         rows.push(mrow('first cohort', 'M'+b.firstCohortMonth, 'M'+x.firstCohortMonth, x.firstCohortMonth===b.firstCohortMonth ? '=' : (x.firstCohortMonth>b.firstCohortMonth?'+':'−')+Math.abs(x.firstCohortMonth-b.firstCohortMonth)+' mo', x.firstCohortMonth-b.firstCohortMonth, -1));
         rows.push(num('pending at M60', b.pendingNewARRAtHorizon, x.pendingNewARRAtHorizon, reur, -1));
@@ -6095,7 +6111,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(anyCu){ var cb=b.finalCustomers!==null?K.customerMeasures(baseRes,T):null, cx=x.finalCustomers!==null?K.customerMeasures(expRes,T):null;
         rows.push(numO('customers', b.finalCustomers, x.finalCustomers, function(v){return v.toFixed(0);}, +1, 'M60'));
         rows.push(pctO('logo retention', cb?cb.logoRetentionR12M:null, cx?cx.logoRetentionR12M:null, +1, 'R12M'));
-        rows.push(numO('churned ARR', b.cumLogoChurnARR, x.cumLogoChurnARR, reur, -1, 'CUM'));
+        rows.push(numO('churned '+basis, b.cumLogoChurnARR, x.cumLogoChurnARR, reur, -1, 'CUM'));
         rows.push(numO('contraction', b.cumContractionARR, x.cumContractionARR, reur, -1, 'CUM'));
         rows.push(numO('ARPA', b.finalARPA, x.finalARPA, eurF, +1, 'M60'));
       } else rows.push(num('leakage', b.cumLeakage, x.cumLeakage, reur, -1, 'CUM'));
@@ -6125,8 +6141,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* ---- Layer 3: what company emerged ---- */
     var payback = null; for(var t3=1;t3<=H;t3++) if(payback===null && expRes.months[t3-1].cashClosing > baseRes.months[t3-1].cashClosing + 1) payback = t3;
     var l3 = [];
-    l3.push(num('ARR', b.finalARR, x.finalARR, reur, +1, 'M60'));
-    l3.push(pctr('ARR growth y/y', b.finalGrowthYoY, x.finalGrowthYoY, +1, 'M60'));
+    l3.push(num(basis, b.finalARR, x.finalARR, reur, +1, 'M60'));
+    l3.push(pctr(basis+' growth y/y', b.finalGrowthYoY, x.finalGrowthYoY, +1, 'M60'));
     l3.push(pctr('net dollar retention', kb.nrr, kx.nrr, +1, 'R12M'));
     if(anyCu) l3.push(mrow('customers', b.finalCustomers===null?'—':b.finalCustomers.toFixed(0), x.finalCustomers===null?'—':x.finalCustomers.toFixed(0), bothCu && Math.abs(x.finalCustomers-b.finalCustomers)>0.5 ? (x.finalCustomers-b.finalCustomers>=0?'+':'−')+Math.abs(x.finalCustomers-b.finalCustomers).toFixed(0) : '=', bothCu ? x.finalCustomers-b.finalCustomers : 0, +1, 'M60'));
     l3.push(num('EBITA', b.cumEbita, x.cumEbita, eur, +1, 'CUM'));
@@ -6466,7 +6482,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
              logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization',
-             billingTermMonths:'Billing term', billingTiming:'Billing timing', collectionDelayMonths:'Collection delay', interventions:'Hypothesis'};
+             billingTermMonths:'Billing term', billingTiming:'Billing timing', collectionDelayMonths:'Collection delay', interventions:'Hypothesis',
+             'monetization.components[0]':'Platform component', 'monetization.components[1]':'Usage component'};
   var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur',
                  expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo',
                  logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa', monetization:'onoff',

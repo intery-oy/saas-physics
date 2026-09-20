@@ -64,3 +64,12 @@ discipline: capture (this file becomes the "before"), one mechanism with a null 
 checks, a full-state replay against a captured snapshot of the world it must reproduce, then a
 new baseline note. `baseline-v1.3-full.json.gz` stays as the witness until a release
 deliberately changes the null world — which none of v2 A–D did.
+
+## Addendum — the Economic Legibility pass (`v2-economic-legibility`)
+
+Seven commits above `da4b1c7` re-represented the product (`docs/LEGIBILITY-REPORT.md`,
+`docs/VISUAL-GRAMMAR.md`). Every protected file above is **byte-identical** at the end of that
+pass — `engine.js`, `kpi.js`, `integrity.js`, `capital.js`, `systemstate.js`, `basis.js`,
+`customers.js`, `monetization.js`, `cash.js`, `interventions.js`, `build.js` keep the checksums in
+the table. Only `v1.template.html` and the built page changed. The suites above pass unchanged;
+`v2-legibility-accept.js` (38 checks) is added, for 484 in total.
