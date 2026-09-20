@@ -229,6 +229,30 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .hyprow b{color:var(--hyp);font-family:var(--mono);font-weight:500}
 .curve{margin-top:8px;display:block}
 
+/* ---------- Compare: the causal spine (docs/VISUAL-GRAMMAR.md §8) ---------- */
+.spine{position:relative;padding-left:14px;margin-top:6px}
+.spine::before{content:"";position:absolute;left:3px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.cause{position:relative;padding:8px 0 10px}
+.cause::before{content:"";position:absolute;left:-14px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--panel);border:1px solid var(--ink-3)}
+.cause.l1::before{border-color:var(--exp);background:var(--exp)}
+.cause.l3::before{border-color:var(--ink);background:var(--ink)}
+.cause+.cause::after{content:"↓";position:absolute;left:-16px;top:-9px;font-size:10px;color:var(--ink-4)}
+.cause .ct{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+.cause .ct .eyebrow{flex-grow:1;color:var(--ink-2)}
+.chg{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px;align-items:baseline}
+.chg .ck{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);padding-top:2px}
+.chg .cv{color:var(--ink-2)} .chg .cv b{font-family:var(--mono);font-weight:500;color:var(--exp)}
+.chg .cv .law{color:var(--law)} .chg .cv .hyp{color:var(--hyp)}
+.mech{display:grid;grid-template-columns:minmax(72px,1fr) auto auto;gap:4px 8px;font-size:11px;align-items:baseline}
+.mech .mk{color:var(--ink-3);line-height:1.3}
+.mech .mv{font-family:var(--mono);color:var(--ink-2);white-space:nowrap;text-align:right;font-size:10.5px}
+.mech .md{font-family:var(--mono);font-weight:500;white-space:nowrap;text-align:right;min-width:52px;font-size:10.5px}
+.causal:has(.spine){border-left:none;padding-left:0}
+.mech .mh{grid-column:1/-1;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);margin-top:4px}
+.same{border:1px solid var(--line);border-radius:3px;padding:9px 11px;margin-top:8px;background:var(--sunk)}
+.same h5{margin:0 0 5px;font-size:11px;font-weight:600;color:var(--ink)}
+.same .hint{line-height:1.55}
+
 /* ---------- §4/§5 experiment attribution ---------- */
 .attrib-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
 .attrib-tbl td,.attrib-tbl th{padding:4px 0;text-align:right}
@@ -3004,6 +3028,134 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var g2 = (gm2===null || em2===null) ? res.derived.emergentMonthlyMultiplier : gm2 * (1 + em2);
     return { g:g2, band: g2 < 1 - 1e-12 ? 'shrink' : (g2 > 1 + 1e-12 ? 'grow' : 'hold') };
   }
+  /* ------------------------------------------------------------------ *
+   * COMPARE — the causal comparison (docs/VISUAL-GRAMMAR.md §8):
+   *   what you changed  →  what the system did  →  what company emerged.
+   * Layer 1 lists only the assumptions that differ, grouped by causal layer.
+   * Layer 2 lists the mechanisms that moved, chosen by the layers touched
+   * (never every metric). Layer 3 is the Company lens, Base → Experiment.
+   * A "same output, different system" block appears when the headline
+   * agrees and the mechanisms do not. Every figure is engine output.
+   * ------------------------------------------------------------------ */
+  var CAUSAL_LAYER = { sm:'acquisition', cacPerARR:'acquisition', maxMonthlyNewARR:'acquisition', acquisitionLagMonths:'acquisition',
+    persistenceAnnual:'installed base', expansionCoefficientAnnual:'installed base', bands:'installed base',
+    logoRetentionAnnual:'customers', contractionAnnual:'customers', newLogoARPA:'customers',
+    monetization:'monetization', grossMargin:'economics', expansionCostPerARR:'economics', rd:'economics', ga:'economics',
+    billingTermMonths:'cash', billingTiming:'cash', collectionDelayMonths:'cash', interventions:'intervention' };
+  var LAYER_ORDER_C = ['acquisition','installed base','customers','monetization','economics','cash','intervention'];
+  function changeKind(key){ var r = key.split('.')[0].split('[')[0]; return r==='interventions' ? 'hyp' : (r==='sm'||r==='rd'||r==='ga'||r==='billingTermMonths'||r==='billingTiming'||r==='collectionDelayMonths') ? 'policy' : 'law'; }
+  function fmtChange(c){
+    var Fk = forceOf(c.key)||{}, f = LABEL_FMT[c.key]||Fk.f||'eur';
+    if(c.key==='interventions'){
+      var to = (expA.interventions||[]).map(function(h){ var ff=(forceOf(h.target)||{}).f||'x'; return '↯ '+esc(h.name||h.id)+' · '+esc(hypTargetLabel(h.target))+' '+(h.effect==='multiply'?'× '+h.value:h.effect==='add'?'+ '+h.value:'= '+h.value)+' · M'+h.startMonth+(h.lagMonths?' +'+h.lagMonths+' lag':'')+(h.durationMonths?' · '+h.durationMonths+' mo':' · permanent')+(h.cost.oneOff||h.cost.monthly?' · '+eur(h.cost.oneOff)+' + '+eur(h.cost.monthly)+'/mo':''); });
+      return '<span class="hyp">'+(to.length ? to.join('<br>') : 'no hypothesis')+'</span>'+(c.from && c.from.length ? ' <span style="color:var(--ink-4)">(Base: '+esc(c.from.join(', '))+')</span>' : '');
+    }
+    if(c.key==='monetization' && (c.from===null || c.to===null)) return (c.from===null?'off':'on')+' → <b>'+(c.to===null?'off':'on')+'</b>';
+    if((c.from!==null && typeof c.from==='object') || (c.to!==null && typeof c.to==='object')) return '<b>changed</b>';
+    var glyph = changeKind(c.key)==='law' ? '<span class="law">⋈ </span>' : '';
+    return glyph+esc(fmtF(f, c.from))+' → <b>'+esc(fmtF(f, c.to))+'</b>';
+  }
+  function causalCompare(changed, opts){
+    opts = opts||{};
+    var b = E.summarise(baseRes), x = E.summarise(expRes), T = H;
+    var touched = {}; changed.forEach(function(c){ touched[CAUSAL_LAYER[c.key.split('.')[0].split('[')[0]]||'other'] = true; });
+    var bothCu = b.finalCustomers!==null && x.finalCustomers!==null, anyCu = b.finalCustomers!==null || x.finalCustomers!==null;
+    var bothMo = b.cumPriceARR!==null && x.cumPriceARR!==null, anyMo = b.cumPriceARR!==null || x.cumPriceARR!==null;
+    var anyCa = b.cumBillings!==null || x.cumBillings!==null, anyIv = b.cumInterventionCost!==null || x.cumInterventionCost!==null;
+    var kb = K.measureR12M(baseRes, T), kx = K.measureR12M(expRes, T), qb = baseRes.derived.acquisition, qx = expRes.derived.acquisition;
+    /* a mechanism row: label · Base → Experiment · Δ. `good` says which way is an economic
+       inflow (+1), an outflow (−1) or neutral (0) so the Δ colour follows the economics, not the sign */
+    function mrow(k, fb, fx, dText, dSign, good, basisTag){
+      var cl = (good===0 || !dText || dText==='=') ? 'flat' : (dSign*good>0 ? 'up' : 'down');
+      return '<span class="mk">'+esc(k)+(basisTag?' <span class="basis">'+esc(basisTag)+'</span>':'')+'</span><span class="mv">'+fb+' → '+fx+'</span><span class="md '+cl+'">'+(dText===undefined?'=':dText)+'</span>';
+    }
+    function num(k, vb, vx, fmt, good, basisTag){ var dl = vx-vb; var z = Math.abs(dl) < 1e-9 || (Math.abs(dl) < 0.5 && Math.abs(vb) > 1e3); return mrow(k, fmt(vb), fmt(vx), z ? '=' : (dl>=0?'+':'−')+fmt(Math.abs(dl)), dl, good, basisTag); }
+    function pctr(k, vb, vx, good, basisTag){ return mrow(k, pct(vb,1), pct(vx,1), Math.abs(vx-vb)<5e-4 ? '=' : pp(vx-vb,1), vx-vb, good, basisTag); }
+    /* a row where one side may lack the layer (null → —); the Δ is stated only when both sides have it */
+    function numO(k, vb, vx, fmt, good, basisTag){ if(vb!==null && vx!==null) return num(k, vb, vx, fmt, good, basisTag); return mrow(k, vb===null?'—':fmt(vb), vx===null?'—':fmt(vx), vx===null ? 'off' : 'new', 0, 0, basisTag); }
+    function pctO(k, vb, vx, good, basisTag){ if(vb!==null && vx!==null) return pctr(k, vb, vx, good, basisTag); return mrow(k, vb===null?'—':pct(vb,1), vx===null?'—':pct(vx,1), vx===null ? 'off' : 'new', 0, 0, basisTag); }
+    var h = '<div class="spine">';
+
+    /* ---- Layer 1: what you changed ---- */
+    var byLayer = {}; changed.forEach(function(c){ var L = CAUSAL_LAYER[c.key.split('.')[0].split('[')[0]]||'other'; (byLayer[L]=byLayer[L]||[]).push(c); });
+    h += '<div class="cause l1"><div class="ct"><span class="eyebrow">What you changed</span><span class="basis">'+changed.length+' assumption'+(changed.length===1?'':'s')+'</span></div>';
+    if(!changed.length) h += '<div class="hint">Nothing — Experiment equals Base.</div>';
+    else h += '<div class="chg">'+LAYER_ORDER_C.concat(['other']).filter(function(L){ return byLayer[L]; }).map(function(L){
+      return byLayer[L].map(function(c,i){ var Fk=forceOf(c.key)||{}; return '<span class="ck">'+(i===0?esc(L):'')+'</span><span class="cv">'+esc(LABEL[c.key]||Fk.label||c.key)+' · '+fmtChange(c)+'</span>'; }).join(''); }).join('')+'</div>';
+    h += '</div>';
+
+    /* ---- Layer 2: what the system did ---- */
+    var rows = [];
+    if(touched.acquisition || touched.intervention){
+      rows.push('<span class="mh">acquisition</span>');
+      rows.push(num('new ARR per month · law', qb.newARR, qx.newARR, reur, +1));
+      if(E.saturationEnabled(baseA)||E.saturationEnabled(expA)){ rows.push(num('Average CAC', qb.averageCAC, qx.averageCAC, function(v){return v.toFixed(2)+'×';}, -1)); rows.push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, function(v){return v.toFixed(2)+'×';}, -1)); }
+      else rows.push(num('CAC coefficient → payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, function(v){return v.toFixed(1)+' mo';}, -1));
+      rows.push(num('new ARR realised', b.cumNewARR, x.cumNewARR, reur, +1, 'CUM'));
+      if(baseRes.derived.acquisitionLagMonths>0||expRes.derived.acquisitionLagMonths>0) rows.push(num('first cohort · pending at M60', b.firstCohortMonth, x.firstCohortMonth, function(v){return 'M'+v;}, -1)+num('pending at M60', b.pendingNewARRAtHorizon, x.pendingNewARRAtHorizon, reur, -1, 'M60'));
+      rows.push(num('acquisition capital', b.cumSM, x.cumSM, eur, -1, 'CUM'));
+    }
+    if(touched['installed base'] || touched.customers || touched.monetization || touched.intervention || touched.acquisition){
+      rows.push('<span class="mh">installed base</span>');
+      if(anyCu){ var cb=b.finalCustomers!==null?K.customerMeasures(baseRes,T):null, cx=x.finalCustomers!==null?K.customerMeasures(expRes,T):null;
+        rows.push(numO('customers', b.finalCustomers, x.finalCustomers, function(v){return v.toFixed(0);}, +1, 'M60'));
+        rows.push(pctO('logo retention', cb?cb.logoRetentionR12M:null, cx?cx.logoRetentionR12M:null, +1, 'R12M'));
+        rows.push(numO('churned ARR', b.cumLogoChurnARR, x.cumLogoChurnARR, reur, -1, 'CUM'));
+        rows.push(numO('contraction', b.cumContractionARR, x.cumContractionARR, reur, -1, 'CUM'));
+        rows.push(numO('ARPA', b.finalARPA, x.finalARPA, eurF, +1, 'M60'));
+      } else rows.push(num('leakage', b.cumLeakage, x.cumLeakage, reur, -1, 'CUM'));
+      if(anyMo){ rows.push(numO('price effect', b.cumPriceARR, x.cumPriceARR, reur, +1, 'CUM')); rows.push(numO('usage effect', b.cumUsageARR, x.cumUsageARR, reur, +1, 'CUM')); rows.push(numO('adoption effect', b.cumAdoptionARR, x.cumAdoptionARR, reur, +1, 'CUM')); rows.push(pctO('variable share', b.finalVariableShare, x.finalVariableShare, 0, 'M60')); if(!bothMo) rows.push(num('expansion', b.cumExpansion, x.cumExpansion, reur, +1, 'CUM')); }
+      else rows.push(num('expansion', b.cumExpansion, x.cumExpansion, reur, +1, 'CUM'));
+      rows.push(pctr('gross dollar retention', kb.grr, kx.grr, +1, 'R12M'));
+      if(b.cumExpansionCost>0||x.cumExpansionCost>0) rows.push(num('expansion realisation cost', b.cumExpansionCost, x.cumExpansionCost, eur, -1, 'CUM'));
+    }
+    if(touched.cash || anyCa){
+      rows.push('<span class="mh">billing &amp; collection</span>');
+      var fb2 = b.cumBillings===null ? 'as revenue' : eur(b.cumBillings), fx2 = x.cumBillings===null ? 'as revenue' : eur(x.cumBillings);
+      var bb2 = b.cumBillings===null?b.cumRevenue:b.cumBillings, xb2 = x.cumBillings===null?x.cumRevenue:x.cumBillings;
+      rows.push(mrow('billings', fb2, fx2, Math.abs(xb2-bb2)<1 ? '=' : eurS(xb2-bb2), xb2-bb2, 0, 'CUM'));
+      rows.push(mrow('deferred revenue', b.finalDeferredRevenue===null?'—':eur(b.finalDeferredRevenue), x.finalDeferredRevenue===null?'—':eur(x.finalDeferredRevenue), (b.finalDeferredRevenue!==null&&x.finalDeferredRevenue!==null&&Math.abs(x.finalDeferredRevenue-b.finalDeferredRevenue)>1) ? eurS(x.finalDeferredRevenue-b.finalDeferredRevenue) : '=', 0, 0, 'M60'));
+      rows.push(mrow('receivables', b.finalReceivables===null?'—':eur(b.finalReceivables), x.finalReceivables===null?'—':eur(x.finalReceivables), (b.finalReceivables!==null&&x.finalReceivables!==null&&Math.abs(x.finalReceivables-b.finalReceivables)>1) ? eurS(x.finalReceivables-b.finalReceivables) : '=', 0, 0, 'M60'));
+      var fb3 = b.cumFCFMinusEbita||0, fx3 = x.cumFCFMinusEbita||0;
+      rows.push(mrow('cash FCF − EBITA', eurS(fb3), eurS(fx3), Math.abs(fx3-fb3)<1 ? '=' : eurS(fx3-fb3), fx3-fb3, +1, 'CUM'));
+    }
+    if(touched.intervention || anyIv){
+      rows.push('<span class="mh">hypothesis</span>');
+      (expRes.derived.interventions||[]).forEach(function(hh){ var ff=(forceOf(hh.target)||{}).f||'x'; rows.push(mrow(hh.name+' · '+hypTargetLabel(hh.target), fmtF(ff, hh.baseValue), fmtF(ff, hh.valueInForce===null?hh.baseValue:hh.valueInForce)+' · M'+hh.effectiveFrom+'–M'+hh.effectiveTo, '↯', 0, 0)); });
+      rows.push(num('hypothesis cost', b.cumInterventionCost||0, x.cumInterventionCost||0, eur, -1, 'CUM'));
+    }
+    h += '<div class="cause l2"><div class="ct"><span class="eyebrow">What the system did</span><span class="basis">Base → Experiment</span></div>'+
+      (rows.length ? '<div class="mech">'+rows.join('')+'</div>' : '<div class="hint">No mechanism moved.</div>')+(opts.attribution||'')+'</div>';
+
+    /* ---- Layer 3: what company emerged ---- */
+    var payback = null; for(var t3=1;t3<=H;t3++) if(payback===null && expRes.months[t3-1].cashClosing > baseRes.months[t3-1].cashClosing + 1) payback = t3;
+    var l3 = [];
+    l3.push(num('ARR', b.finalARR, x.finalARR, reur, +1, 'M60'));
+    l3.push(pctr('ARR growth y/y', b.finalGrowthYoY, x.finalGrowthYoY, +1, 'M60'));
+    l3.push(pctr('net dollar retention', kb.nrr, kx.nrr, +1, 'R12M'));
+    if(anyCu) l3.push(mrow('customers', b.finalCustomers===null?'—':b.finalCustomers.toFixed(0), x.finalCustomers===null?'—':x.finalCustomers.toFixed(0), bothCu && Math.abs(x.finalCustomers-b.finalCustomers)>0.5 ? (x.finalCustomers-b.finalCustomers>=0?'+':'−')+Math.abs(x.finalCustomers-b.finalCustomers).toFixed(0) : '=', bothCu ? x.finalCustomers-b.finalCustomers : 0, +1, 'M60'));
+    l3.push(num('EBITA', b.cumEbita, x.cumEbita, eur, +1, 'CUM'));
+    l3.push(mrow('cash trough', eur(b.cashTrough)+' M'+b.cashTroughMonth, eur(x.cashTrough)+' M'+x.cashTroughMonth, Math.abs(x.cashTrough-b.cashTrough)<1 ? '=' : eurS(x.cashTrough-b.cashTrough), x.cashTrough-b.cashTrough, +1));
+    l3.push(num('ending cash', b.endingCash, x.endingCash, eur, +1, 'M60'));
+    if(anyIv && x.cumInterventionCost>0) l3.push(mrow('cash overtakes Base', '—', payback===null ? 'not within 60 months' : 'month '+payback, '', 0, 0));
+    h += '<div class="cause l3"><div class="ct"><span class="eyebrow">What company emerged</span><span class="basis">Base → Experiment</span></div><div class="mech">'+l3.join('')+'</div></div>';
+    h += '</div>';
+
+    /* ---- same output, different system ---- */
+    var sameARR = Math.abs(x.finalARR-b.finalARR) < 0.005*Math.max(1,b.finalARR) && changed.length>0;
+    if(sameARR){
+      var diffs = [];
+      if(bothCu && Math.abs(x.finalCustomers-b.finalCustomers)>0.5) diffs.push('customers '+b.finalCustomers.toFixed(0)+' → '+x.finalCustomers.toFixed(0));
+      if(Math.abs(x.cumSM-b.cumSM)>1) diffs.push('acquisition capital '+eur(b.cumSM)+' → '+eur(x.cumSM));
+      if(Math.abs(x.cumLeakage-b.cumLeakage)>1) diffs.push('leakage '+reur(b.cumLeakage)+' → '+reur(x.cumLeakage));
+      if(Math.abs(x.cumExpansion-b.cumExpansion)>1) diffs.push('expansion '+reur(b.cumExpansion)+' → '+reur(x.cumExpansion));
+      if(Math.abs(x.endingCash-b.endingCash)>1) diffs.push('ending cash '+eur(b.endingCash)+' → '+eur(x.endingCash));
+      if(bothMo && Math.abs(x.finalVariableShare-b.finalVariableShare)>0.005) diffs.push('variable share '+pct(b.finalVariableShare,0)+' → '+pct(x.finalVariableShare,0));
+      if(diffs.length) h += '<div class="same"><h5>Same ARR, different system</h5><div class="hint">M60 ARR agrees within 0.5%. The systems that produced it do not: '+esc(diffs.join(' · '))+'. The headline is not a sufficient statistic.</div></div>';
+    }
+    return h;
+  }
+
   function consequencePanel(sc){
     var b = E.summarise(baseRes), x = E.summarise(expRes);
     var last = H - 1;
@@ -3178,10 +3330,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '</div><div class="hint" style="margin-top:8px">Persistence is derived as L × (1 − C) in both. Identical dollar physics; different customer physics.</div></div>';
     }
 
-    if(rows.length){
-      h += '<div class="sgrp"><div class="eyebrow">Consequence · Experiment − Base</div>'+
-        '<div class="recon" style="margin-top:5px">' + rows.join('') + '</div></div>';
-    }
+    /* the causal comparison — what you changed → what the system did → what company emerged */
+    var chg = E.compare(baseRes, expRes).changed;
+    if(sc.world==='state-dependent') chg = [{ key:'bands', from:'one opening cohort', to:'two vintages' }];
+    h += '<div class="sgrp"><div class="eyebrow">Why the Experiment differs from Base</div>'+causalCompare(chg, { attribution: attributionBlock(chg) })+'</div>';
 
     /* Scenario 8 — the response curve itself, from the engine's own law at
        several spend levels, in this Experiment's world. A curve, not a verdict. */
@@ -3241,6 +3393,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var satAny = E.saturationEnabled(baseA) || E.saturationEnabled(expA);
     var costAny = b.cumExpansionCost>0 || x.cumExpansionCost>0;
     var lagAny = baseRes.derived.acquisitionLagMonths>0 || expRes.derived.acquisitionLagMonths>0;
+    slot.innerHTML='<div class="causal"><h4>'+esc(title)+'</h4><div class="msg">'+esc(msg)+'</div>'+
+      causalCompare(c.changed, { attribution: attributionBlock(c.changed) })+'</div>' + boundaryDisclosure(c.changed);
+    return;
     slot.innerHTML='<div class="causal"><h4>'+esc(title)+'</h4><div class="msg">'+esc(msg)+'</div>'+
       '<div class="cz">'+
       cz('Year-5 '+basis, reur(b.finalARR)+' → '+reur(x.finalARR), d.finalARR) +
