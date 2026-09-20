@@ -337,6 +337,30 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const dn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, txt: document.getElementById('side').innerText, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent) }));
   rec('D · NULL-ON-SCREEN: Reset removes the hypothesis; no Hypotheses block, no cost step', dn.A.interventions.length === 0 && !dn.mech.interventions && dn.tog === 'off' && !dn.txt.includes('HYPOTHESES') && !dn.wf.includes('− Hypothesis cost'), '');
 
+  /* ---- FINAL · rail by layer, restraint, packs, hierarchical map ---- */
+  const rail = await pg.evaluate(() => ({ heads: [...document.querySelectorAll('.layerhead .lh-name')].map(e => e.textContent), kinds: [...document.querySelectorAll('#forces .fgrp-kind')].map(e => e.textContent),
+    hidden: ['f-collectionDelayMonths', 'f-interventions[0].value', 'f-monetization.components[1].usageGrowthAnnual'].map(id => document.getElementById(id).closest('.force').style.display === 'none') }));
+  rec('FINAL · RAIL: the Change surface is grouped by layer in order (ARR physics → Customer → Monetization → Cash → Hypotheses) with a header per layer stating on/off; the financial levers sit inside the ARR layer; a layer that is off shows only its switch',
+      rail.heads.length === 5 && /ARR physics/.test(rail.heads[0]) && /Customer physics.*off/.test(rail.heads[1]) && /Monetization physics.*off/.test(rail.heads[2]) && /Cash physics.*off/.test(rail.heads[3]) && /Hypotheses.*off/.test(rail.heads[4]) &&
+      rail.kinds.indexOf('Financial levers') < rail.kinds.indexOf('Customer physics') && rail.hidden.every(Boolean), JSON.stringify(rail.heads));
+  await pg.click('#pack-full'); await pg.waitForTimeout(500);
+  const pk = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.activePack, mech: window.__SP_DEBUG.expRes.mechanisms, bmech: window.__SP_DEBUG.baseRes.mechanisms, summary: document.getElementById('experiment-summary').innerText,
+    heads: [...document.querySelectorAll('.layerhead .lh-name')].map(e => e.textContent), shown: document.getElementById('f-collectionDelayMonths').closest('.force').style.display !== 'none' }));
+  rec('FINAL · PACKS: "+ Hypothesis" sets Base = Experiment = every layer on with a costed programme (0 assumptions changed); every layer header reads on; the dependent controls appear',
+      pk.pack === 'full' && pk.mech.customerPhysics && pk.mech.monetization && pk.mech.cashPhysics && pk.mech.interventions && pk.bmech.interventions && /0 assumptions changed/.test(pk.summary) && pk.heads.every(h => !/off/.test(h)) && pk.shown, JSON.stringify(pk.mech));
+  await setSlider('f-sm', 1200000);
+  await pg.click('#reset'); await pg.waitForTimeout(400);
+  const pk2 = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.activePack, sm: window.__SP_DEBUG.expA.sm, mech: window.__SP_DEBUG.expRes.mechanisms }));
+  rec('FINAL · PACKS: Reset returns to the active pack\'s world (S&M back to €900k, every layer still on), not to the v1.3 Base', pk2.pack === 'full' && pk2.sm === 900000 && pk2.mech.cashPhysics && pk2.mech.interventions, JSON.stringify(pk2));
+  await pg.click('#nav-system'); await pg.waitForTimeout(400);
+  const viewsOK = [];
+  for (const v of ['customers', 'monetization', 'cash', 'hypotheses', 'company']) { await pg.click('#sysview-' + v); await pg.waitForTimeout(350); viewsOK.push(await pg.evaluate(() => window.__SP_DEBUG.sysView)); }
+  rec('FINAL · SYSTEM MAP: the hierarchical map offers a sub-view per layer that is on; each renders without a page error and the company view returns', viewsOK.join(',') === 'customers,monetization,cash,hypotheses,company' && errs.length === 0, viewsOK.join(','));
+  await pg.click('#nav-company'); await pg.waitForTimeout(200);
+  await pg.click('#pack-arr'); await pg.waitForTimeout(400);
+  const disabled = await pg.evaluate(() => ['customers', 'monetization', 'cash', 'hypotheses'].map(v => document.getElementById('sysview-' + v).disabled));
+  rec('FINAL · SYSTEM MAP: with the ARR pack the layer sub-views are disabled (nothing to draw) and the map is the v1.3 company view', disabled.every(Boolean) && (await pg.evaluate(() => window.__SP_DEBUG.sysView)) === 'company', '');
+
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
 
   let pass = 0;

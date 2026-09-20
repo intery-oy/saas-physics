@@ -531,6 +531,52 @@ var RET = { id: 'ret', name: 'Retention programme', target: 'persistenceAnnual',
      (function () { var built = fs.readFileSync(__dirname + '/saas-physics-v1.html', 'utf8'); var i = built.indexOf('root.SaaSPhysicsInterventions = factory()'); return i > 0 && i < built.indexOf('var IV = deps.interventions'); })(), '');
 })();
 
+/* ================================================================== *
+ * FINAL — the whole system on, adversarial probes
+ * ================================================================== */
+(function finalProbes() {
+  var FULL = Object.assign({}, MW, { billingTermMonths: 12, collectionDelayMonths: 1, acquisitionLagMonths: 6, maxMonthlyNewARR: 2e6, expansionCostPerARR: 0.25,
+    interventions: [{ id: 'ret', target: 'logoRetentionAnnual', effect: 'multiply', value: 1.03, startMonth: 6, lagMonths: 3, durationMonths: 24, cost: { oneOff: 200000, monthly: 50000 } },
+                    { id: 'px', target: 'monetization.components[1].priceGrowthAnnual', effect: 'set', value: 0.08, startMonth: 18 }] });
+  var r = E.run(Object.assign({}, A, FULL));
+  var worst = 0;
+  r.months.forEach(function (m, i) {
+    var cu = m.customers, mo = m.monetization, ca = m.cash;
+    worst = Math.max(worst,
+      Math.abs(E.bridge(r, m.t).residual),
+      Math.abs(mo.fixedARR + mo.variableARR - m.closingARR), Math.abs(mo.priceARR + mo.usageARR + mo.adoptionARR - m.expansion), Math.abs(m.leakage - (cu.logoChurnARR + mo.contractionARR)),
+      Math.abs(cu.arpaClosing * cu.closing - m.closingARR),
+      Math.abs(ca.billings - (m.revenue + ca.deferredClosing - ca.deferredOpening)), Math.abs(m.fcf - (m.ebita + (ca.deferredClosing - ca.deferredOpening) - (ca.receivablesClosing - ca.receivablesOpening))),
+      Math.abs(m.ebita - (m.grossProfit - m.sm - m.rd - m.ga - m.expansionCost - m.interventionCost)), Math.abs(m.expansionCost - 0.25 * m.expansion),
+      i > 0 ? Math.abs(m.cashClosing - (r.months[i - 1].cashClosing + m.fcf)) : Math.abs(m.cashClosing - (r.start.openingCash + m.fcf)));
+  });
+  var capOK = true; for (var t = 1; t <= 60; t++) if (Math.abs(CAPm.portfolioCapital(r, t).deployed - t * A.sm) > EPS) capOK = false;
+  ok('FINAL-ALL-ON', 'every layer and every v1.x mechanism on at once (customers, monetization, cash, two hypotheses, lag 6, capacity, expansion cost): every identity of every layer holds every month, and capital reconciles',
+     worst < EPS && capOK && r.mechanisms.customerPhysics && r.mechanisms.monetization && r.mechanisms.cashPhysics && r.mechanisms.interventions && r.mechanisms.acquisitionLag && r.mechanisms.acquisitionSaturation && r.mechanisms.expansionCost,
+     'worst residual €' + ex(worst));
+  var r120 = E.run(Object.assign({}, A, FULL), {}, 120);
+  ok('FINAL-HORIZON', 'the same world over 120 months runs, reconciles at the horizon and keeps a permanent hypothesis in force to M120',
+     r120.months.length === 120 && Math.abs(E.bridge(r120, 120).residual) < EPS && r120.months[119].interventions.active.indexOf('px') >= 0 && r120.derived.interventions[1].effectiveTo === 120, '');
+  var json = JSON.parse(JSON.stringify(snapshot(r)));
+  ok('FINAL-SERIALISABLE', 'the full result serialises to JSON and back without loss of any finite field (Infinity only at the open band edge)',
+     (function () { var acc = { fields: 0, worst: 0, where: '', missing: [] }; walkCompare(json, snapshot(r), 'run', acc); return acc.worst === 0 && acc.missing.length === 0; })(), '');
+  var t0 = Date.now(); for (var k = 0; k < 20; k++) E.run(Object.assign({}, A, FULL)); var ms = (Date.now() - t0) / 20;
+  ok('FINAL-PERFORMANCE', 'a full-system run costs well under the interactive budget (the product re-runs the engine on every slider move, plus attribution variants)', ms < 150, ms.toFixed(1) + ' ms per run');
+  /* extremes */
+  var ext = [
+    ['zero S&M, every layer on', Object.assign({}, FULL, { sm: 0 })],
+    ['no logo churn, no contraction (the retention hypothesis dropped: × 1.03 on L = 1 is outside the domain and is rightly rejected)', Object.assign({}, FULL, { logoRetentionAnnual: 1, contractionAnnual: 0, interventions: FULL.interventions.slice(1) })],
+    ['monthly arrears billing, 6-month delay', Object.assign({}, FULL, { billingTermMonths: 1, billingTiming: 'arrears', collectionDelayMonths: 6 })],
+    ['gross margin 0', Object.assign({}, FULL, { grossMargin: 0 })],
+    ['hypothesis decided in the last month', Object.assign({}, FULL, { interventions: [{ target: 'sm', effect: 'multiply', value: 2, startMonth: 60, cost: { oneOff: 1e6 } }] })]
+  ];
+  var extOK = ext.every(function (e) { try { var rr = E.run(Object.assign({}, A, e[1])); return rr.months.every(function (m) { return isFinite(m.closingARR) && isFinite(m.cashClosing) && isFinite(m.fcf); }); } catch (err) { return false; } });
+  ok('FINAL-EXTREMES', 'extreme but legal worlds run to finite results: ' + ext.map(function (e) { return e[0]; }).join('; '), extOK, '');
+  /* the null world one last time, through the public surface every caller uses */
+  var d0 = E.run(), dN = E.run({ logoRetentionAnnual: null, monetization: null, billingTermMonths: null, collectionDelayMonths: 0, interventions: [] });
+  ok('FINAL-NULL', 'spelling every layer\'s null explicitly is the same world as spelling none (bit-identical summary and months)', JSON.stringify(E.summarise(d0)) === JSON.stringify(E.summarise(dN)) && JSON.stringify(d0.months) === JSON.stringify(dN.months), '');
+})();
+
 console.log('\nSaaS Physics v2 — economic system checks\n' + '='.repeat(96));
 var pass = 0;
 out.forEach(function (r, i) {

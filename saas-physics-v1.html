@@ -49,6 +49,13 @@ button,input{font:inherit;color:inherit}
 .fgrp-kind{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--exp)}
 .fgrp-note{font-size:10px;color:var(--ink-4);line-height:1.45;margin-bottom:10px}
 .fgrp.inert .fgrp-kind{color:var(--ink-4)}
+.layerhead{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);border-top:1px solid var(--line);padding:12px 0 2px;margin:6px 0 8px}
+.layerhead b{color:var(--exp);font-weight:600}
+.layerhead .off{color:var(--ink-4);font-weight:400}
+.layerhead small{display:block;font-family:var(--ui);font-size:10px;letter-spacing:0;text-transform:none;color:var(--ink-4);margin-top:3px;line-height:1.45}
+#packlist .btn.on{border-color:var(--exp);color:var(--exp)}
+#sysviews .btn{font-size:10.5px}
+#sysviews .btn[disabled]{opacity:.35}
 .fgrp.inert .force-val{color:var(--ink-2)}
 .bnd{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
 .bnd summary{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;list-style:none}
@@ -206,6 +213,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   <aside class="rail">
     <div class="grp" id="experiment-summary"></div>
+    <div class="grp" id="packs">
+      <div class="eyebrow" style="margin-bottom:4px">World</div>
+      <div class="hint">Assumption packs: which layers the Base world carries. Assumptions only — no scenario logic. Reset returns to the pack.</div>
+      <div class="btn-row" id="packlist" style="margin-top:7px"></div>
+      <div class="hint" id="packnote" style="margin-top:6px"></div>
+    </div>
     <div class="grp" id="rail-change">
       <div class="eyebrow" style="margin-bottom:4px">Change</div>
       <div class="hint">Controls are grouped by <b style="color:var(--ink-2)">what kind of thing</b> they are. They are not equivalent.</div>
@@ -226,6 +239,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <button class="btn" id="scen-clear">Clear</button>
     </div>
     <div class="pulsebar" id="pulsebar" hidden>
+      <div class="btn-row" id="sysviews"></div>
       <span class="lawnote" id="pulse-law"></span>
     </div>
     <div class="cascade">
@@ -3393,10 +3407,52 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   ];
   function hypTargetLabel(k){ var t = HYP_TARGETS.filter(function(x){ return x.k===k; })[0]; return t ? t.label : k; }
 
+  /* v2 — ASSUMPTION PACKS. Which layers the Base world carries, nothing else:
+     no scenario logic, no targets. Applying a pack sets Base = Experiment =
+     the pack world; Reset returns to the pack. The canonical scenarios stay
+     anchored to the v1.3 Base (BASE_A) by design. */
+  var CUST_PACK = { logoRetentionAnnual:0.92, contractionAnnual:0.05 };
+  var PACKS = [
+    { id:'arr',       name:'ARR physics',    a:function(){ return {}; },
+      note:'The frozen v1.3 world: cohort ARR, one persistence coefficient, one expansion coefficient, FCF = EBITA.' },
+    { id:'customers', name:'+ Customers',    a:function(){ return Object.assign({}, CUST_PACK); },
+      note:'Customer Physics on: logo retention 92%, contraction 5%; persistence derived as 87.4%.' },
+    { id:'priced',    name:'+ Monetization', a:function(){ return Object.assign({}, CUST_PACK, { monetization: monDefault() }); },
+      note:'Plus Monetization: platform €12,000 + usage 80% × 100 units × €100; price, usage and adoption drivers with caps.' },
+    { id:'cash',      name:'+ Cash',         a:function(){ return Object.assign({}, CUST_PACK, { monetization: monDefault(), billingTermMonths:12, collectionDelayMonths:1 }); },
+      note:'Plus Cash Physics: billed 12 months in advance, collected one month after invoice.' },
+    { id:'full',      name:'+ Hypothesis',   a:function(){ var h = JSON.parse(JSON.stringify(HYP_DEFAULT)); h.id='ret'; h.name='Retention programme'; h.target='logoRetentionAnnual'; h.value=1.03;
+                                                            return Object.assign({}, CUST_PACK, { monetization: monDefault(), billingTermMonths:12, collectionDelayMonths:1, interventions:[h] }); },
+      note:'Every layer on, plus a costed retention programme (logo retention × 1.03 from M9 for 24 months) as the hypothesis in the Base world.' }
+  ];
+  var packA = BASE_A, activePack = 'arr';
+  function applyPack(id){
+    var P = PACKS.filter(function(p){ return p.id===id; })[0]; if(!P) return;
+    exitPair(); clearScenario();
+    packA = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS, P.a())); activePack = id;
+    baseA = packA; expA = Object.assign({}, packA);
+    baseStart = undefined; expStart = undefined;
+    lastMsg = null; pinned = null; capitalMode = anatomy = false;
+    resize(); recompute(); render();
+  }
+  function buildPacks(){
+    var host=document.getElementById('packlist'); host.innerHTML='';
+    PACKS.forEach(function(P){
+      var b=document.createElement('button'); b.className='btn'; b.id='pack-'+P.id; b.textContent=P.name; b.title=P.note;
+      b.addEventListener('click', function(){ applyPack(P.id); });
+      host.appendChild(b);
+    });
+  }
+  function syncPackButtons(){
+    PACKS.forEach(function(P){ var b=document.getElementById('pack-'+P.id); if(b) b.classList.toggle('on', activePack===P.id); });
+    var P = PACKS.filter(function(p){ return p.id===activePack; })[0];
+    var n=document.getElementById('packnote'); if(n && P) n.textContent = P.note;
+  }
+
   var FORCE_GROUPS = [
-    { kind:'Management input', note:'Set externally. Nothing in the engine constrains it.',
+    { kind:'Management input', layer:'arr', note:'Set externally. Nothing in the engine constrains it.',
       forces:[ {k:'sm', label:'S&M investment', sub:'commercial investment per month', min:0, max:2500000, step:25000, f:'eur'} ] },
-    { kind:'Installed-base laws', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
+    { kind:'Installed-base laws', layer:'arr', note:'12-month compounded coefficients, converted to a monthly multiplier the engine actually applies. Not the same object as the R12M KPI measured below it.',
       forces:[ {k:'persistenceAnnual', label:'Persistence coefficient', sub:'annual survival factor of installed ARR, before expansion', min:0.6, max:0.99, step:0.005, f:'pct', measures:['grr']},
                {k:'expansionCoefficientAnnual', label:'Expansion coefficient', sub:'annual growth factor applied to retained ARR', min:0, max:0.4, step:0.005, f:'pct', measures:['expansionRate','nrr'] } ] },
     /* v2 Gate A — CUSTOMER PHYSICS. A layer beneath the installed-base laws:
@@ -3420,7 +3476,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                {k:'monetization.components[1].unitsCap', label:'Usage cap', sub:'units per customer the usage component cannot exceed · the bound on expansion', min:100, max:1000, step:10, f:'units', needs:'monetization'},
                {k:'monetization.components[1].adoptionAnnual', label:'Adoption', sub:'share of the remaining non-adopters who adopt usage each year', min:0, max:0.5, step:0.01, f:'pct', needs:'monetization'},
                {k:'monetization.components[1].penetrationCap', label:'Penetration cap', sub:'share of a cohort\'s customers usage can reach', min:0.8, max:1, step:0.01, f:'pct', needs:'monetization'} ] },
-    { kind:'Acquisition response', note:'How much recurring state S&M creates, whether that response is bounded, and when the ARR appears. Each has a null setting that is the v1.0 world.',
+    { kind:'Acquisition response', layer:'arr', note:'How much recurring state S&M creates, whether that response is bounded, and when the ARR appears. Each has a null setting that is the v1.0 world.',
       forces:[ {k:'cacPerARR', label:'CAC coefficient', sub:'acquisition-law coefficient: € of S&M per €1 of New ARR at low spend', min:0.3, max:3, step:0.05, f:'x'},
                /* v1.2 — a BOUND on the response, never a benefit. null = off = the linear law. */
                {k:'maxMonthlyNewARR', label:'Acquisition capacity', sub:'New ARR per month the response approaches as S&M grows · off = linear, unbounded', min:250000, max:5000000, step:50000, f:'cap', nullable:true, onValue:2000000},
@@ -3444,7 +3500,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                {k:'interventions[0].durationMonths', label:'Duration', sub:'months in force · off = permanent', min:1, max:48, step:1, f:'mo', nullable:true, onValue:24, needs:'hyp'},
                {k:'interventions[0].cost.oneOff', label:'One-off cost', sub:'booked in the decision month', min:0, max:2000000, step:25000, f:'eur', needs:'hyp'},
                {k:'interventions[0].cost.monthly', label:'Monthly cost', sub:'booked every month the programme runs', min:0, max:500000, step:5000, f:'eur', needs:'hyp'} ] },
-    { kind:'Economic conversion', note:'How revenue becomes gross profit, and what realising expansion costs. Creates no ARR.',
+    { kind:'Economic conversion', layer:'arr', note:'How revenue becomes gross profit, and what realising expansion costs. Creates no ARR.',
       forces:[ {k:'grossMargin', label:'Gross margin', sub:'economic content of each euro of revenue', min:0.4, max:0.95, step:0.005, f:'pct'},
                /* v1.1 — a cost line, priced on expansion ARR the transition already produced. 0 = free. */
                {k:'expansionCostPerARR', label:'Expansion realisation cost', sub:'€ of cost per €1 of expansion ARR · reaches EBITA and Cash, never ARR · 0 = free', min:0, max:1.5, step:0.05, f:'x'} ] }
@@ -3456,6 +3512,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     {k:'rd', label:'R&D', sub:'no modelled effect on retention or expansion', min:0, max:2000000, step:25000, f:'eur'},
     {k:'ga', label:'G&A', sub:'period cost', min:0, max:1500000, step:25000, f:'eur'}
   ];
+  /* v2 — the Change surface is grouped BY LAYER, bottom-up: the ARR physics
+     first (the frozen v1.3 world), then each Economic System layer beneath it.
+     A layer that is off shows only its switch (restrained). */
+  var LAYER_ORDER = ['arr','customers','monetization','cash','interventions'];
+  var LAYER_META = {
+    arr:           { name:'ARR physics', tag:'v1.3 · the frozen base', on:function(){ return true; }, note:'Cohort ARR physics: acquisition, persistence, expansion, economics. Always on.' },
+    customers:     { name:'Customer physics', tag:'Gate A', on:function(){ return !!expRes && expRes.mechanisms.customerPhysics; }, note:'Customers beneath the ARR. Persistence becomes derived.' },
+    monetization:  { name:'Monetization physics', tag:'Gate B', on:function(){ return !!expRes && expRes.mechanisms.monetization; }, note:'Revenue from per-customer components. Expansion becomes price + usage + adoption.' },
+    cash:          { name:'Cash physics', tag:'Gate C', on:function(){ return !!expRes && expRes.mechanisms.cashPhysics; }, note:'Billings, deferred revenue, receivables. FCF stops being EBITA.' },
+    interventions: { name:'Hypotheses', tag:'Gate D', on:function(){ return !!expRes && expRes.mechanisms.interventions; }, note:'Costed, lagged, temporary moves of one law. Never coefficients.' }
+  };
+  FORCE_GROUPS = LAYER_ORDER.reduce(function(acc, l){ return acc.concat(FORCE_GROUPS.filter(function(g){ return (g.layer||'arr')===l; })); }, []);
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
   function fmtF(f, v){
     if(f==='cap') return (v===null||v===undefined||!isFinite(v)) ? 'off' : eur(v)+'/mo';
@@ -3568,20 +3636,40 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   function buildForces(){
     var host = document.getElementById('forces'); host.innerHTML='';
+    var lastLayer = null;
+    function fixedCostsGroup(){
+      var fx=document.createElement('div'); fx.className='fgrp';
+      fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
+        '<div class="fgrp-note">Affect modeled FCF and Cash directly. v1 models no effect from them on recurring-state dynamics.</div>';
+      FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
+      return fx;
+    }
     FORCE_GROUPS.forEach(function(G){
-      var g=document.createElement('div'); g.className='fgrp';
+      var L = G.layer||'arr';
+      if(L!==lastLayer){
+        if(lastLayer==='arr') host.appendChild(fixedCostsGroup());
+        var hd=document.createElement('div'); hd.className='layerhead'; hd.id='layer-'+L;
+        hd.innerHTML='<span class="lh-name"></span> <small>'+esc(LAYER_META[L].note)+'</small>';
+        host.appendChild(hd); lastLayer = L;
+      }
+      var g=document.createElement('div'); g.className='fgrp'; g.dataset.layer = L;
       g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">'+esc(G.kind)+'</span></div>'+
                   '<div class="fgrp-note">'+esc(G.note)+'</div>';
       G.forces.forEach(function(F){ g.appendChild(forceRow(F)); });
       host.appendChild(g);
     });
-    var fx=document.getElementById('fixedcosts');
-    fx.className='fgrp';
-    fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
-      '<div class="fgrp-note">Affect modeled FCF and Cash directly. v1 models no effect from them on recurring-state dynamics.</div>';
-    FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
+    if(lastLayer==='arr') host.appendChild(fixedCostsGroup());
+    document.getElementById('fixedcosts').innerHTML='';
+  }
+  function syncLayerHeads(){
+    LAYER_ORDER.forEach(function(L){
+      var hd=document.getElementById('layer-'+L); if(!hd) return;
+      var on = LAYER_META[L].on();
+      hd.querySelector('.lh-name').innerHTML = 'Layer · <b>'+esc(LAYER_META[L].name)+'</b> · '+esc(LAYER_META[L].tag)+(L==='arr' ? '' : ' · <span class="'+(on?'':'off')+'">'+(on?'on':'off')+'</span>');
+    });
   }
   function syncForces(){
+    syncLayerHeads(); syncPackButtons(); syncSysViews();
     var monOn = expRes.mechanisms.monetization, monOnB = baseRes.mechanisms.monetization;
     FORCES.forEach(function(F){
       var el=document.getElementById('f-'+F.k); if(!el && !F.toggleOnly) return;
@@ -3607,6 +3695,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         if(monOn){ v.textContent = 'bypassed — price + usage + adoption'; v.className='force-val'; }
       }
       if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(expRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
+      if(F.needs){
+        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? expRes.mechanisms.cashPhysics : F.needs==='hyp' ? expRes.mechanisms.interventions : true;
+        var rowEl = (el || document.getElementById('t-'+F.k)); rowEl = rowEl && rowEl.closest ? rowEl.closest('.force') : null;
+        if(rowEl) rowEl.style.display = layerOn ? '' : 'none';         /* restrained: a layer that is off shows only its switch */
+      }
       if(F.needs==='monetization'){
         el.disabled = !monOn; el.style.opacity = monOn ? 1 : 0.35;
         if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = monOnB ? 'base '+fmtF(F.f, bv) : 'monetization off'; }
@@ -3870,7 +3963,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     exitPair();
     var prev = Object.assign({}, expA);
     activeScenario = sc; lastMsg = null; pinned = null;
-    baseA = BASE_A; baseStart = undefined; expStart = undefined;
+    baseA = BASE_A; baseStart = undefined; expStart = undefined;   /* canonical scenarios run from the v1.3 Base */
     /* §9 — the capital-recovery track expands automatically for the two
        scenarios that are actually about acquisition/payback, without
        requiring a cohort click; it stays collapsed (compact payback summary
@@ -4210,6 +4303,116 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var bm = baseRes.months[m-1];
     ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
     beginFit(SYS.W, SYS.H);
+
+    /* v2 — a layer sub-view instead of the company map. The drawing helpers
+       below are function declarations, hoisted, so they are usable here. */
+    if(sysView!=='company'){ drawSubView(sysView); endFit(); positionLawChips(); return; }
+    function drawSubView(v){
+      var mm = expRes.months[m-1];
+      ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+      var titles = { customers:'CUSTOMER PHYSICS · beneath the ARR', monetization:'MONETIZATION PHYSICS · where the revenue comes from', cash:'CASH PHYSICS · beneath EBITA', hypotheses:'HYPOTHESES · the laws in force, month by month' };
+      ctx.fillText('SYSTEM · '+titles[v]+'   ·   month '+m+(isD?'   ·   Experiment (delta compare shows the company view only)':''), 30, 26);
+      ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.fillText('Same engine month as the company view, drawn at this layer\'s own scale. Rectangles are stocks, pipes are this month\'s flows, bowties are the laws you set.', 30, 42);
+      function box(x,y,w,h,label,value,tone){
+        ctx.fillStyle='#0e1418'; ctx.strokeStyle=tone||'#3b4a55'; ctx.lineWidth=1.3;
+        ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(label, x, y-h/2+16);
+        ctx.font='13px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec'; ctx.fillText(value, x, y+6);
+      }
+      function flow(x1,y1,x2,y2,label,value,col){
+        ctx.strokeStyle=col||'rgba(247,221,196,.6)'; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        var a=Math.atan2(y2-y1,x2-x1); ctx.fillStyle=col||'rgba(247,221,196,.9)'; ctx.beginPath();
+        ctx.moveTo(x2,y2); ctx.lineTo(x2-12*Math.cos(a-0.45), y2-12*Math.sin(a-0.45)); ctx.lineTo(x2-12*Math.cos(a+0.45), y2-12*Math.sin(a+0.45)); ctx.closePath(); ctx.fill();
+        var vert = Math.abs(x2-x1) < 1, lx = vert ? x1+16 : (x1+x2)/2, ly = (y1+y2)/2;
+        ctx.textAlign = vert ? 'left' : 'center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(label, lx, vert ? ly-6 : ly-14);
+        ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec'; ctx.fillText(value, lx, vert ? ly+12 : ly+20);
+      }
+      function note(x,y,text){ ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(text, x, y); }
+      if(v==='customers'){
+        var cu = mm.customers, P = expRes.derived.persistenceAnnualEffective;
+        cloud(110, 330, 'market / acquisition');
+        flow(160, 330, 300, 330, 'new customers · this month', cu.newCustomers.toFixed(1));
+        box(430, 330, 240, 170, 'STOCK · customers', cu.closing.toFixed(0), '#c9722f');
+        note(320, 430, 'opening '+cu.opening.toFixed(0)+' + new '+cu.newCustomers.toFixed(1)+' − lost '+cu.logoChurn.toFixed(1)+' = '+cu.closing.toFixed(0));
+        flow(430, 415, 430, 560, 'lost logos · this month', cu.logoChurn.toFixed(1), 'rgba(143,160,170,.7)');
+        valve(430, 620, 'logo retention', fmtF('pct', lv('logoRetentionAnnual')), 'logoRetentionAnnual', -72, 44);
+        cloud(430, 700, 'leaves the system');
+        flow(550, 300, 700, 300, '× ARPA', reur(cu.arpaClosing)+' per customer');
+        box(820, 300, 200, 90, 'STOCK · '+basis, reur(mm.closingARR), '#c9722f');
+        box(820, 430, 200, 80, 'leakage from lost logos', reur(cu.logoChurnARR), '#22303a');
+        box(820, 530, 200, 80, 'leakage from contraction', reur(cu.contractionARR), '#22303a');
+        valve(1010, 530, 'contraction', fmtF('pct', lv('contractionAnnual')), 'contractionAnnual', -72, 44);
+        link([[430+14, 620],[720, 530]], '', false);
+        box(1090, 300, 220, 90, 'persistence in force', P===null ? 'emergent (mix)' : pct(P,1)+' = L × (1 − C)', '#22303a');
+        link([[520, 620],[1000, 345]], '', false);
+        note(30, SYS.H-40, 'Departing customers take the cohort\'s average revenue; survivors shrink by the contraction law. Persistence is no longer set: it is what these two produce.'+(P===null ? ' Under Monetization contraction reaches usage only, so it is emergent.' : ''));
+      }
+      if(v==='monetization'){
+        var mo = mm.monetization, spec = expA.monetization, br = K.rowAt(expRes.cohorts[0], m), st = br && br.monetization ? br.monetization.state : null;
+        var c0 = spec.components[0], c1 = spec.components[1];
+        box(200, 200, 260, 110, 'platform (fixed) · per customer', st ? eur(st[0].price)+'/yr' : eur(c0.priceAnnual)+'/yr', '#3b4a55');
+        note(80, 270, 'price growth '+pct(c0.priceGrowthAnnual,1)+'/yr');
+        box(200, 420, 260, 150, 'usage (variable) · per customer', st ? pct(st[1].penetration,0)+' × '+st[1].units.toFixed(0)+' units × '+eur(st[1].price) : pct(c1.penetration,0)+' × '+c1.units+' × '+eur(c1.priceAnnual), '#3b4a55');
+        note(80, 508, 'price +'+pct(c1.priceGrowthAnnual,1)+'/yr · usage +'+pct(c1.usageGrowthAnnual,0)+'/yr to '+(c1.unitsCap===null?'no cap':c1.unitsCap+' units')+' · adoption '+pct(c1.adoptionAnnual,0)+'/yr to '+pct(c1.penetrationCap,0));
+        flow(330, 200, 480, 300, 'fixed', st ? eur(st[0].penetration*st[0].units*st[0].price)+'/yr' : '');
+        flow(330, 420, 480, 330, 'variable', st ? eur(st[1].penetration*st[1].units*st[1].price)+'/yr' : '');
+        box(600, 315, 220, 100, 'per-customer revenue · opening base', br && br.monetization ? eur(br.monetization.perCustomerClosing)+'/yr' : '—', '#c9722f');
+        flow(710, 315, 850, 315, '× customers', mm.customers.closing.toFixed(0));
+        box(980, 315, 230, 110, 'STOCK · '+basis, reur(mm.closingARR), '#c9722f');
+        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(pct(1-mo.variableShare,0)+' fixed · '+pct(mo.variableShare,0)+' variable', 980, 355);
+        var fx = [['price effect', mo.priceARR], ['usage effect', mo.usageARR], ['adoption effect', mo.adoptionARR], ['− contraction (usage only)', -mo.contractionARR]];
+        fx.forEach(function(f,i){ box(230+i*250, 620, 220, 80, f[0]+' · this month', reur(Math.abs(f[1])), f[1]>=0?'#4f9e77':'#c9973f'); });
+        note(30, 560, 'Survivor revenue moves only through these four named effects, in this order, every month. The generic expansion coefficient ('+pct(expRes.derived.monetization.expansionCoefficientIgnored,0)+') is bypassed.');
+        var hr = br && br.monetization && br.monetization.headroom[1] ? br.monetization.headroom[1] : null;
+        if(hr) note(30, SYS.H-40, 'Opening base headroom used: '+(hr.units!==null?pct(hr.units,0)+' of the usage cap · ':'')+pct(hr.penetration,0)+' of the penetration cap. Expansion saturates at the caps — the first version of this map on which it can.');
+      }
+      if(v==='cash'){
+        var ca = mm.cash, dc = expRes.derived.cash;
+        box(140, 300, 190, 90, 'revenue · recognised', eur(mm.revenue), '#3b4a55');
+        flow(235, 300, 355, 300, '+ Δ deferred', (ca.deferredClosing-ca.deferredOpening>=0?'+':'−')+eur(Math.abs(ca.deferredClosing-ca.deferredOpening)));
+        box(450, 300, 190, 90, 'billings · invoiced', eur(ca.billings), '#3b4a55');
+        box(450, 470, 190, 80, ca.deferredClosing>=0?'deferred revenue':'contract asset (unbilled)', eur(Math.abs(ca.deferredClosing)), '#22303a');
+        link([[450, 430],[450, 350]], '', false);
+        flow(545, 300, 665, 300, '− Δ receivables', (ca.receivablesClosing-ca.receivablesOpening>0?'−':'+')+eur(Math.abs(ca.receivablesClosing-ca.receivablesOpening)));
+        box(760, 300, 190, 90, 'collections · cash in', eur(ca.collections), '#3b4a55');
+        box(760, 470, 190, 80, 'receivables', eur(ca.receivablesClosing), '#22303a');
+        link([[760, 430],[760, 350]], '', false);
+        flow(855, 300, 975, 300, '− cash costs', eur(ca.cashCosts), 'rgba(143,160,170,.7)');
+        box(1070, 300, 190, 90, 'cash FCF', eur(ca.cashFCF), ca.cashFCF>=0?'#4f9e77':'#c9973f');
+        box(1070, 470, 190, 90, 'STOCK · cash', eur(mm.cashClosing), '#c9722f');
+        flow(1070, 345, 1070, 425, '', '');
+        box(1070, 610, 190, 70, 'EBITA · unchanged', eur(mm.ebita), '#22303a');
+        note(30, 400, 'Policy: '+dc.billingTermMonths+'-month term, billed in '+dc.billingTiming+(dc.collectionDelayMonths>0?', collected '+dc.collectionDelayMonths+' month'+(dc.collectionDelayMonths>1?'s':'')+' after invoice':'')+'. Opening book: '+eur(Math.abs(dc.openingDeferredRevenue))+' of '+(dc.openingDeferredRevenue>=0?'deferred revenue':'contract asset')+', derived from a staggered book.');
+        note(30, SYS.H-40, 'billings = revenue + Δdeferred (by construction) · collections = billings shifted by the delay · cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. Costs are cash when incurred.');
+      }
+      if(v==='hypotheses'){
+        var sch = expRes.derived.interventions, x0 = 120, x1 = SYS.W-80, mx = function(t){ return x0 + (t-1)/(H-1)*(x1-x0); };
+        ctx.strokeStyle='#3b4a55'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, 130); ctx.lineTo(x1, 130); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+        for(var yy=1; yy<=5; yy++){ ctx.fillText('Y'+yy, mx(yy*12-6), 120); ctx.beginPath(); ctx.moveTo(mx(yy*12), 124); ctx.lineTo(mx(yy*12), 136); ctx.stroke(); }
+        sch.forEach(function(h, i){
+          var y = 190 + i*110;
+          ctx.textAlign='left'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#e2e9ec';
+          ctx.fillText(h.name+' · '+hypTargetLabel(h.target)+' '+(h.effect==='multiply'?'× '+h.value:h.effect==='add'?'+ '+h.value:'= '+h.value), x0, y-28);
+          ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+          ctx.fillText('decided M'+h.startMonth+' · lag '+h.lagMonths+' · in force M'+h.effectiveFrom+'–M'+h.effectiveTo+(h.durationMonths===null?' (permanent)':'')+' · '+eur(h.cost.oneOff)+' one-off + '+eur(h.cost.monthly)+'/mo = '+eur(h.totalCost), x0, y-12);
+          /* decision → effect (lag): dashed; in force: solid; cost runs from the decision */
+          ctx.strokeStyle='rgba(90,143,214,.6)'; ctx.setLineDash([4,4]); ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(mx(h.startMonth), y+10); ctx.lineTo(mx(Math.min(H,h.effectiveFrom)), y+10); ctx.stroke(); ctx.setLineDash([]);
+          if(h.effectiveFrom<=H){ ctx.strokeStyle='rgba(90,143,214,.95)'; ctx.beginPath(); ctx.moveTo(mx(h.effectiveFrom), y+10); ctx.lineTo(mx(h.effectiveTo), y+10); ctx.stroke(); }
+          ctx.fillStyle='#c9722f'; ctx.beginPath(); ctx.arc(mx(h.startMonth), y+10, 5, 0, Math.PI*2); ctx.fill();
+          var km = K.interventionMeasures(expRes, m).hypotheses.filter(function(q){ return q.id===h.id; })[0];
+          ctx.textAlign='right'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+          ctx.fillText(km.status+' · '+km.monthsInForce+' mo in force · cost to date '+eur(km.costToDate), x1, y+36);
+        });
+        /* the current month */
+        ctx.strokeStyle='rgba(201,114,47,.9)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(mx(m), 110); ctx.lineTo(mx(m), 190+sch.length*110); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f'; ctx.fillText('month '+m, mx(m), 104);
+        var ivm = mm.interventions;
+        note(30, SYS.H-58, ivm.changes.length ? 'In force this month: '+ivm.changes.map(function(ch){ return ch.id+' — '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. Cost this month '+eur(ivm.cost)+', to date '+eur(ivm.cumulativeCost)+'.' : 'No hypothesis in force this month: every law is at its base setting. Cost to date '+eur(ivm.cumulativeCost)+'.');
+        note(30, SYS.H-40, 'Orange dot: the decision (cost starts). Dashed: the lag. Solid: the window in which lawAt(t) carries the hypothesis. Outside it every cohort runs on the base law. The effect is Experiment − Base.');
+      }
+    }
 
     /* ---------- scales, declared ---------- */
     var arrMax = 1, cashHi = 1, cashLo = 0, rateMax = 1;
@@ -4828,6 +5031,28 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   /* SYSTEM law line — the Pulse stepper is gone with the prototype, but the
      SYSTEM view still needs its one-line framing. */
+  /* v2 — the System map is HIERARCHICAL: the company view (the v1.3 stock-and-
+     flow map with each layer's additions in place) and one sub-view per layer
+     that is on, drawing that layer's own stocks and flows at its own scale. */
+  var sysView = 'company';
+  var SYS_VIEWS = [
+    { id:'company', name:'Company', on:function(){ return true; } },
+    { id:'customers', name:'Customers', on:function(){ return !!expRes && expRes.mechanisms.customerPhysics; } },
+    { id:'monetization', name:'Monetization', on:function(){ return !!expRes && expRes.mechanisms.monetization; } },
+    { id:'cash', name:'Cash', on:function(){ return !!expRes && expRes.mechanisms.cashPhysics; } },
+    { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && expRes.mechanisms.interventions; } }
+  ];
+  function buildSysViews(){
+    var host=document.getElementById('sysviews'); host.innerHTML='';
+    SYS_VIEWS.forEach(function(V){
+      var b=document.createElement('button'); b.className='btn'; b.id='sysview-'+V.id; b.textContent=V.name;
+      b.addEventListener('click', function(){ if(!V.on()) return; sysView = V.id; openChip = null; render(); renderSide(); });
+      host.appendChild(b);
+    });
+  }
+  function syncSysViews(){
+    SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='company'; });
+  }
   function syncPulse(){
     document.getElementById('pulse-law').innerHTML =
       '<b style="color:var(--ink-2)">Acquisition adds recurring state. The installed base expands or leaks. Finance records the consequence.</b> &nbsp; '+
@@ -5735,7 +5960,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   }
   function exitPair(){
     if(!pairMode) return;
-    pairMode=false; baseA=BASE_A;
+    pairMode=false; baseA=packA;
     document.getElementById('mode-chip').textContent='base vs experiment';
     document.getElementById('mode-chip').classList.remove('on');
     var pn=document.getElementById('paired-note'); if(pn) pn.hidden = true;
@@ -5796,12 +6021,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   document.getElementById('keyclose').addEventListener('click', function(){ document.getElementById('key').classList.remove('on'); });
   function resetAll(){
     exitPair(); clearScenario();
-    baseA = BASE_A; expA = Object.assign({}, BASE_A);
+    baseA = packA; expA = Object.assign({}, packA);          /* v2: back to the active pack's world */
     baseStart = undefined; expStart = undefined;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     resize(); recompute(); render();
   }
   document.getElementById('reset').addEventListener('click', resetAll);
+  buildPacks(); buildSysViews(); syncPackButtons(); syncSysViews();
   window.addEventListener('resize', function(){ resize(); });
 
   /* ---------- loop ---------- */
@@ -5833,7 +6059,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     selectedMonth: selectedMonth,
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
-    attributionValid: attributionValid
+    attributionValid: attributionValid,
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS
   };
 })();
 </script>

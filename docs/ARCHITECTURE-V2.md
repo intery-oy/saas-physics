@@ -127,3 +127,21 @@ Per-customer simulation (customers are continuous cohort counts — no fake prec
 customer-size heterogeneity and concentration (recorded as a Gate A boundary); a general
 pricing taxonomy; refunds, breakage, bad debt, payables, tax, debt, capex; causal inference
 for interventions; valuation.
+
+## 7. Status at the end of the programme
+
+All four gates are in, one commit each on `v2-economic-system` above the frozen v1.3 baseline,
+plus the foundation commit and the final hardening commit. Departures from this note, recorded
+in the gates' research notes:
+
+- **Contraction under Monetization reaches variable revenue only** (RN-MONETIZATION §Boundary),
+  so persistence is emergent from the mix rather than the constant L(1 − C) §3.1 describes for
+  the Customer layer alone. Ownership rule 1 holds as written for Gate A; under Gate B
+  `derived.persistenceAnnualEffective` is null and the source is reported.
+- **Costs are cash when incurred** under Cash Physics, as §3.4 says; the opening book's deferred
+  balance is a derived convention (RN-CASH §New economic object), not an input.
+- **Interventions may not switch a layer or change the billing policy** (RN-INTERVENTION
+  §Boundary), and their per-month resolved law is validated by the engine's own boundary
+  before the run — a stronger rule than §3.5 required.
+- The modules table (§4) gained `interventions.js`; `v2-checks.js` carries ALL-NULL-V13 and
+  the per-gate checks; `v2-accept.js` and `v2-walkthrough.js` exercise the product.

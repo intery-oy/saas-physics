@@ -9,6 +9,7 @@
     "physics-study": "node physics-study.js",
     "v2": "node v2-checks.js",
     "v2-study": "node v2-study.js",
+    "v2-walkthrough": "node v2-walkthrough.js",
     "basis": "node basis-checks.js",
     "scenarios": "node scenarios.js",
     "build": "node build.js",
