@@ -114,8 +114,8 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
       lenses.length === 5 && lenses.map(l => l.id).join(',') === 'lens-company,lens-customers,lens-growth,lens-monetization,lens-cash' && lenses.every((l, i) => l.n === String(i + 1) && /\?$/.test(l.q) && BASIS.test(l.basis)),
       JSON.stringify(lenses.map(l => [l.id, l.n, l.basis])));
   const chartsPer = await pg.evaluate(() => [...document.querySelectorAll('#side .lens')].map(l => l.querySelectorAll('svg.ch').length));
-  rec('LENSES: Company leads with one hero number and the formation figure; Customers, Growth engine and Economics & cash each carry two 60-month charts (Customers three panes), Monetization one; no lens prints NaN, undefined, null or [object',
-      lenses[0].hero && /^€[\d.]+[km]?$/.test(lenses[0].hero) && chartsPer.join(',') === '0,3,2,1,2' && lenses.every(l => !/NaN|undefined|\[object|(^|\s)null(\s|$)/.test(l.txt)),
+  rec('LENSES: Company leads with one hero number and the formation figure; Customers, Growth engine and Economics & cash each carry two 60-month charts, Monetization one; no lens prints NaN, undefined, null or [object',
+      lenses[0].hero && /^€[\d.]+[km]?$/.test(lenses[0].hero) && chartsPer.join(',') === '0,2,2,1,2' && lenses.every(l => !/NaN|undefined|\[object|(^|\s)null(\s|$)/.test(l.txt)),
       JSON.stringify([lenses[0].hero, chartsPer]));
   const nav = await pg.evaluate(() => [...document.querySelectorAll('#side .lensnav .btn')].map(b => b.textContent));
   rec('LENSES: the lens navigation names the five lenses in CFO words (no engine jargon)', nav.join('|') === 'Company|Customers|Growth engine|Monetization|Economics & cash', nav.join('|'));

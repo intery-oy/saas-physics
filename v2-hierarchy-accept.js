@@ -70,11 +70,11 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   await click(pg, '.lensnav .btn[data-lens="customers"]');
   const lens1 = await pg.evaluate(() => ({ active: document.getElementById('side').dataset.active, shown: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id), on: document.querySelector('.lensnav .btn.on').dataset.lens }));
   rec('LENSES: choosing Customers shows that one lens and marks it in the navigation', lens1.active === 'customers' && lens1.shown.length === 1 && lens1.shown[0] === 'lens-customers' && lens1.on === 'customers', JSON.stringify(lens1));
-  const order = await pg.evaluate(() => { const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), l = document.getElementById('lens-customers').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect(); return { h: h.top, n: n.top, l: l.top, f: f.top, figOpen: document.getElementById('figwrap').open }; });
-  rec('LENSES: hero above navigation above the active lens above the figure; the formation figure collapses to a strip on Customers, which has its own charts', order.h < order.n && order.n < order.l && order.l < order.f && !order.figOpen, JSON.stringify(order));
+  const order = await pg.evaluate(() => { const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), l = document.getElementById('lens-customers').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect(); return { h: h.top, n: n.top, l: l.top, figH: f.height, csH: document.getElementById('causal-slot').getBoundingClientRect().height }; });
+  rec('LENSES: hero above navigation above the active lens; on Customers the formation figure and the Compare strip are not on the page at all (they belong to Company)', order.h < order.n && order.n < order.l && order.figH === 0 && order.csH === 0, JSON.stringify(order));
   await click(pg, '.lensnav .btn[data-lens="growth"]');
-  const figG = await pg.evaluate(() => document.getElementById('figwrap').open);
-  rec('LENSES: on Growth engine the figure collapses to a strip (context, not competition)', figG === false, String(figG));
+  const figG = await pg.evaluate(() => document.getElementById('figwrap').getBoundingClientRect().height);
+  rec('LENSES: on Growth engine the formation figure is not on the page (it belongs to Company)', figG === 0, String(figG));
   await scrub(pg, 40);
   const lensKept = await pg.evaluate(() => document.getElementById('side').dataset.active);
   rec('LENSES: the active lens survives a re-render (moving the month keeps Growth engine open)', lensKept === 'growth', lensKept);
@@ -131,6 +131,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   await click(pg, '#reset'); await click(pg, '#nav-company');
 
   /* ---- INSPECT ---- */
+  await click(pg, '.lensnav .btn[data-lens="company"]');   /* the formation canvas lives on Company only */
   await scrub(pg, 36);
   const pin = await pg.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (22 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.6; y += 2) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return y; } } return null; });
@@ -141,7 +142,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('INSPECT: every step shows at most four defining rows; the bought-under provenance is one closed disclosure whose summary names the spend month and CAC', insp && insp.steps.every(s => s.rows <= 4) && insp.steps[1].more === 1 && !insp.steps[1].moreOpen && insp.bought && !insp.spend && insp.spendAll, JSON.stringify(insp && insp.steps));
   await click(pg, '#inspect-back');
   const backL = await pg.evaluate(() => ({ active: document.getElementById('side').dataset.active, tabs: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').length, chain: !!document.querySelector('.dossier') }));
-  rec('INSPECT: ‹ Company returns to the lens that was open before the cohort was pinned', backL.active === 'cash' && backL.tabs === 1 && !backL.chain, JSON.stringify(backL));
+  rec('INSPECT: ‹ Company returns to the Company lens with its chart', backL.active === 'company' && backL.tabs === 0 && !backL.chain, JSON.stringify(backL));
 
   /* ---- METHOD ---- */
   await click(pg, '#keybtn');

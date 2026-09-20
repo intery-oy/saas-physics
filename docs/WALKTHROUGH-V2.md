@@ -8,22 +8,22 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 - World: ARR physics (the frozen Base). Company lens, month 36, MRR basis.
 - MRR: €3.83m
-- cash · trough €6.10m at M13: €19.17m
+- cash · M36: €19.17m
 - EBITA margin · R12M: → 23.9%
 - gross margin · law: ⋈ 80%
 - gross dollar retention · R12M: → 89.6%
 - net dollar retention · R12M: → 99.0%
 - S&M · month: €900k
 - new MRR · month: €63k
-- average CAC · € per €1 of new ARR: → 1.20×
-- marginal CAC · the next euro: → 1.20×
+- average CAC: → 1.20×
+- marginal CAC: → 1.20×
 - payback · average: → 18.0 mo
 - revenue · R12M: €41.73m
 - EBITA · R12M: €9.98m
 - Installed-base net · month · → −€3k · net-shrinking · Expansion 
 - WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0 · new custome
 - ACQUISITION EFFICIENCY · average CAC · marginal CAC · Measured CAC
-- ECONOMICS · MONTHLY · revenue · gross profit · EBITA · M36 · Y1 · Y2 · Y3 · 
+- ECONOMICS OVER TIME · MONTHLY · revenue · gross profit · EBITA · M36
 
 ## 2. How much of the loss is customers leaving, and how much is customers shrinking?
 
@@ -33,7 +33,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - MRR per customer: €2k+2.5% y/y
 - logo retention · R12M: → 92.0%
 - net dollar retention · R12M: → 96.1%
-- CUSTOMER BASE DEVELOPMENT · customers · MRR per customer · Base · M3
+- CUSTOMER BASE DEVELOPMENT · customers · MRR per customer · right
 - WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0 · new customers · existing base · expansion −
 
 ## 3. Could two companies with identical ARR, GRR and NRR be losing customers at different rates?
@@ -53,10 +53,10 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 4. How much of the revenue change is price, how much usage, how much adoption — and where does expansion stop?
 
 - World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.
-- platform · fixed · 46% · usage · variable · ▭Platform fee · €12k · ⋈Us
-- usage · variable · ▭Platform fee · €12k · ⋈Usage growth · 15.0% · ⋈Ado
-- MRR COMPOSITION · platform · fixed · usage · variable · M36 · Y1 · Y2 · 
+- MRR COMPOSITION OVER TIME · fixed · variable · M36 · Y1 · Y2 · Y3 · Y4 · Y5 · 
 - MRR per customer: €2k+4.3% y/y
+- fixed revenue: 54%
+- variable revenue: 46%
 
 ## 5. Same customers, same laws — does the revenue mix alone change dollar retention?
 
@@ -73,13 +73,12 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 6. When does the cash arrive, and how far is cash FCF from EBITA?
 
 - World: + Cash (billed 12 months in advance, collected one month after invoice). The cash chart marks the trough; the waterfall continues below EBITA.
-- ECONOMICS · MONTHLY · revenue · gross profit · EBITA · M36 · Y1 · Y2 · Y3 · 
-- trough €7.71m at M1 · MODEL · ARR · CUSTOM
+- ECONOMICS OVER TIME · MONTHLY · revenue · gross profit · EBITA · M36
+- trough €7.71m · M1 · €27.47m · CASH · MONTHLY 
 - Δ deferred revenue · −€4k · + Δ receivables · 
 - Δ receivables · €1k · = Cash FCF · €1.07m · Cash
 - cash · M36: €27.47m
 - cash trough · M1: €7.71m
-- capital required · opening cash drawn: €2.29m
 
 ## 7. Same P&L — how different can the cash path be?
 
@@ -126,7 +125,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 11. And back to the frozen ARR world — is every layer off again?
 
 - Pack: ARR physics. Mechanisms: {"expansionCost":false,"acquisitionSaturation":false,"acquisitionLag":false,"customerPhysics":false,"monetization":false,"genericExpansionBypassed":false,"cashPhysics":false,"interventions":false}
-- cash · trough €6.10m at M13: €19.17m
+- cash · M36: €19.17m
 - net dollar retention · R12M: → 99.0%
 
 Page errors during the walkthrough: none.

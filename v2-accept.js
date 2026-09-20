@@ -161,7 +161,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const fmtK = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
   rec('B · OBSERVE: the Monetization lens shows a composition bar (platform · fixed / usage · variable) apart from a movement ladder (new customers, churn, contraction, price, usage, adoption); fixed ARR and the R12M effects tie to an independent Node run',
       /What are customers paying for\?/.test(bo.txt) && bo.txt.includes('MRR COMPOSITION') && !bo.txt.includes('MOVEMENT') && Math.abs(bo.mo.fixedARR - imB.fixedARR) < 1e-6 && Math.abs(bo.mo.usageARR - imB.usageARR) < 1e-6 &&
-      (await pg.evaluate(() => [...document.querySelectorAll('#lens-monetization svg.ch .rv')].map(e => e.textContent))).indexOf(fmtK(imB.fixedARR / 12)) >= 0 && /platform · fixed/.test(bo.txt) && /usage · variable/.test(bo.txt) && Math.abs(mmB.priceEffectR12M + mmB.usageEffectR12M + mmB.adoptionEffectR12M - K.monetizationMeasures(indepB, bo.m).expansionR12M) < 1e-9,
+      (await pg.evaluate(() => [...document.querySelectorAll('#lens-monetization svg.ch .rv')].map(e => e.textContent))).indexOf(fmtK(imB.fixedARR / 12)) >= 0 && /\nfixed\n/.test(bo.txt) && /\nvariable\n/.test(bo.txt) && Math.abs(mmB.priceEffectR12M + mmB.usageEffectR12M + mmB.adoptionEffectR12M - K.monetizationMeasures(indepB, bo.m).expansionR12M) < 1e-9,
       bo.txt.slice(bo.txt.indexOf('COMPOSITION'), bo.txt.indexOf('COMPOSITION') + 260).replace(/\n/g, ' | '));
 
   /* ---- B · SYSTEM ---- */
@@ -221,7 +221,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const icC = indepC.months[co.m - 1].cash;
   const fmtC = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
   rec('C · OBSERVE: the Economics & cash lens shows the economics chart (revenue, gross profit, EBITA) above the cash chart with the trough marked; billings, deferred revenue and cash FCF tie to an independent Node run and the waterfall continues below EBITA',
-      /How does MRR turn into profit and cash\?/.test(co.txt) && co.txt.includes('ECONOMICS · MONTHLY') && /\nCASH\n/.test(co.txt) && /trough €-?[\d.]+[km]? · M\d+/.test(co.txt) && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
+      /How does MRR turn into profit and cash\?/.test(co.txt) && co.txt.includes('ECONOMICS OVER TIME · MONTHLY') && /CASH OVER TIME/.test(co.txt) && /trough €-?[\d.]+[km]? · M\d+/.test(co.txt) && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
       co.wf.some(t => /Δ deferred/.test(t)) && co.wf.some(t => /Δ receivables/.test(t)) && !co.txt.includes('cash physics off'),
       co.txt.slice(co.txt.indexOf('CASH'), co.txt.indexOf('CASH') + 220).replace(/\n/g, ' | '));
   rec('C · WATERFALL: the P&L waterfall continues below EBITA — "= EBITA", "± Δ deferred revenue", "± Δ receivables", "= Cash FCF" (10 steps) — and the printed cash FCF equals the engine\'s fcf',

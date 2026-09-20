@@ -292,7 +292,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
 .lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
 /* ---------- five-lens redesign: one chart grammar, levers, model chip ---------- */
-.chb{margin-top:14px;max-width:780px}
+.chb{margin-top:18px}
+.stagecol[data-lens]:not([data-lens="company"]) #figwrap,.stagecol[data-lens]:not([data-lens="company"]) #causal-slot{display:none}
+.hl{display:flex;flex-wrap:wrap;gap:10px 30px;margin-top:12px}
+.hl>div{min-width:0}
+.hl .dv{font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:-.01em;color:var(--ink);white-space:nowrap;line-height:1.1}
+.hl .dv.law{color:var(--law)} .hl .dv.meas{color:var(--ink)}
+.hl .dl{font-size:10px;color:var(--ink-3);margin-top:3px;white-space:nowrap}
+.hl .yoy{font-size:10.5px;margin-left:5px}
+.ch .ax2{font:8.5px var(--mono);fill:var(--ink-4)}
+.levers{max-width:none}
 .chb .fig-t{margin-bottom:4px}
 .ch{width:100%;height:auto;display:block;cursor:crosshair}
 .ch .ax{font:9.5px var(--mono);fill:var(--ink-4)}
@@ -306,7 +315,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:9.5px;color:var(--ink-3);margin-left:auto;margin-right:12px}
 .lg i{display:inline-block;width:10px;height:3px;margin-right:5px;vertical-align:middle;border-radius:1px}
 .lg i.dash{background:none!important;border-top:2px dashed var(--base);height:0}
-.model{margin-top:12px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
+.model{margin-top:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
 .model .chg{color:var(--exp);text-transform:none;letter-spacing:0}
 .yoy{display:inline-block;margin-left:6px;font-size:10px;color:var(--ink-3);font-weight:400}
 .offnote{margin-top:10px;font-size:11px;color:var(--ink-3);line-height:1.5;border-left:2px dotted var(--ink-4);padding-left:10px;max-width:640px}
@@ -371,7 +380,7 @@ details.pl summary::-webkit-details-marker{display:none}
 details.pl summary::before{content:"▸ ";color:var(--ink-4)} details.pl[open] summary::before{content:"▾ "}
 details.pl .cascade{margin-top:8px}
 .desc .dl .law{color:var(--law);font-family:var(--mono)}
-@media (max-width:760px){ .engine,.paths,.paths.merged{grid-template-columns:minmax(0,1fr)} .ident .it b{font-size:19px} }
+@media (max-width:760px){ .engine,.paths,.paths.merged{grid-template-columns:minmax(0,1fr)} .ident .it b{font-size:19px} .hl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px} .hl .dv{font-size:17px} .levers{grid-template-columns:minmax(0,1fr)} }
 /* ---------- responsive: reflow, never shrink (docs/VISUAL-GRAMMAR.md) ---------- */
 @media (max-width:1180px){
   .head{flex-wrap:wrap;row-gap:8px}
@@ -5890,39 +5899,45 @@ details.pl .cascade{margin-top:8px}
    * ------------------------------------------------------------------ */
   var CHG = { W:640, L:54, R:78, T:10, B:18 };
   function chart(o){
-    var W=CHG.W, L=CHG.L, R=CHG.R, T=CHG.T, B=CHG.B, Hh=o.h||200, pw=W-L-R, ph=Hh-T-B;
-    var vals=[]; o.series.forEach(function(s){ (s.pts||[]).forEach(function(v){ if(v!==null && v!==undefined && isFinite(v)) vals.push(v); }); (s.hi||[]).forEach(function(v){ if(v!==null&&isFinite(v)) vals.push(v); }); (s.lo||[]).forEach(function(v){ if(v!==null&&isFinite(v)) vals.push(v); }); });
-    var lo = o.yMin!==undefined ? o.yMin : Math.min(0, Math.min.apply(null, vals.length?vals:[0])), hi = o.yMax!==undefined ? o.yMax : Math.max.apply(null, vals.length?vals:[1]);
-    if(hi<=lo) hi=lo+1; var span=(hi-lo); hi += span*0.06; if(lo<0) lo -= span*0.06;
-    function x(m){ return L + (m/H)*pw; } function y(v){ return T + ph - ((v-lo)/(hi-lo))*ph; }
+    var W=CHG.W, L=CHG.L, R=CHG.R, T=CHG.T, B=CHG.B, Hh=o.h||220, pw=W-L-R, ph=Hh-T-B;
+    function extent(list, min0){ var vals=[]; list.forEach(function(s){ [].concat(s.pts||[], s.hi||[], s.lo||[]).forEach(function(v){ if(v!==null&&v!==undefined&&isFinite(v)) vals.push(v); }); });
+      var lo = min0!==undefined ? min0 : Math.min(0, Math.min.apply(null, vals.length?vals:[0])), hi = Math.max.apply(null, vals.length?vals:[1]); if(hi<=lo) hi=lo+1; var span=hi-lo; hi+=span*0.06; if(lo<0) lo-=span*0.06; return { lo:lo, hi:hi }; }
+    var leftS = o.series.filter(function(s){ return s.axis!=='right'; }), rightS = o.series.filter(function(s){ return s.axis==='right'; });
+    var e1 = extent(leftS, o.yMin), e2 = rightS.length ? extent(rightS, o.y2Min!==undefined ? o.y2Min : 0) : null;
+    function x(m){ return L + (m/H)*pw; } function y1(v){ return T + ph - ((v-e1.lo)/(e1.hi-e1.lo))*ph; } function y2(v){ return T + ph - ((v-e2.lo)/(e2.hi-e2.lo))*ph; }
     var fmt = o.yFmt||eur, g='';
-    /* grid + axes */
+    /* grid + axes: the same on every chart */
     for(var i=1;i<=5;i++){ g+='<line class="gy" x1="'+x(i*12).toFixed(1)+'" x2="'+x(i*12).toFixed(1)+'" y1="'+T+'" y2="'+(T+ph)+'"/><text class="ax" x="'+x(i*12).toFixed(1)+'" y="'+(Hh-4)+'" text-anchor="middle">Y'+i+'</text>'; }
-    for(var k=0;k<=3;k++){ var v=lo+(hi-lo)*k/3, yy=y(v).toFixed(1); g+='<line class="gx" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax" x="'+(L-6)+'" y="'+(y(v)+3.5).toFixed(1)+'" text-anchor="end">'+esc(fmt(v))+'</text>'; }
-    if(lo<0 && hi>0) g+='<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(0).toFixed(1)+'" y2="'+y(0).toFixed(1)+'"/>';
-    function path(pts, close){ var d='', on=false; for(var m=0;m<=H;m++){ var v=pts[m]; if(v===null||v===undefined||!isFinite(v)){ on=false; continue; } d+=(on?'L':'M')+x(m).toFixed(1)+' '+y(v).toFixed(1); on=true; } return d; }
-    function area(pts){ var first=null,last=null; for(var m=0;m<=H;m++){ if(pts[m]!==null&&pts[m]!==undefined&&isFinite(pts[m])){ if(first===null) first=m; last=m; } } if(first===null) return ''; return path(pts)+'L'+x(last).toFixed(1)+' '+y(Math.max(lo,Math.min(0,hi))).toFixed(1)+'L'+x(first).toFixed(1)+' '+y(Math.max(lo,Math.min(0,hi))).toFixed(1)+'Z'; }
-    function band(lo2, hi2){ var up='', dn='', on=false, first=null; for(var m=0;m<=H;m++){ var a=lo2[m], b=hi2[m]; if(a===null||b===null||a===undefined||b===undefined){ on=false; continue; } if(first===null) first=m; up+=(on?'L':'M')+x(m).toFixed(1)+' '+y(b).toFixed(1); on=true; } for(var m2=H;m2>=0;m2--){ var a2=lo2[m2]; if(a2===null||a2===undefined) continue; dn+='L'+x(m2).toFixed(1)+' '+y(a2).toFixed(1); } return up ? up+dn+'Z' : ''; }
+    for(var k=0;k<=3;k++){ var v=e1.lo+(e1.hi-e1.lo)*k/3, yy=y1(v).toFixed(1); g+='<line class="gx" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax" x="'+(L-6)+'" y="'+(y1(v)+3.5).toFixed(1)+'" text-anchor="end">'+esc(fmt(v))+'</text>'; }
+    if(e1.lo<0 && e1.hi>0) g+='<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y1(0).toFixed(1)+'" y2="'+y1(0).toFixed(1)+'"/>';
+    if(e2){ var f2=o.y2Fmt||fmt; [e2.lo, (e2.lo+e2.hi)/2, e2.hi].forEach(function(v2){ g+='<text class="ax2" x="'+(W-R-4)+'" y="'+(y2(v2)+3).toFixed(1)+'" text-anchor="end">'+esc(f2(v2))+'</text>'; }); }
+    function path(pts, yf){ var d='', on=false; for(var m=0;m<=H;m++){ var v=pts[m]; if(v===null||v===undefined||!isFinite(v)){ on=false; continue; } d+=(on?'L':'M')+x(m).toFixed(1)+' '+yf(v).toFixed(1); on=true; } return d; }
+    function area(pts, yf, e){ var first=null,last=null; for(var m=0;m<=H;m++){ if(pts[m]!==null&&pts[m]!==undefined&&isFinite(pts[m])){ if(first===null) first=m; last=m; } } if(first===null) return ''; var y0=yf(Math.max(e.lo,Math.min(0,e.hi))).toFixed(1); return path(pts, yf)+'L'+x(last).toFixed(1)+' '+y0+'L'+x(first).toFixed(1)+' '+y0+'Z'; }
+    function band(lo2, hi2, yf){ var up='', dn='', on=false; for(var m=0;m<=H;m++){ var a=lo2[m], b=hi2[m]; if(a===null||b===null||a===undefined||b===undefined){ on=false; continue; } up+=(on?'L':'M')+x(m).toFixed(1)+' '+yf(b).toFixed(1); on=true; } for(var m2=H;m2>=0;m2--){ var a2=lo2[m2]; if(a2===null||a2===undefined) continue; dn+='L'+x(m2).toFixed(1)+' '+yf(a2).toFixed(1); } return up ? up+dn+'Z' : ''; }
     var body='';
-    /* Base first (quiet), then Experiment (live) */
+    /* Base first (thin, dashed, subdued), then Experiment (solid, dominant) */
     o.series.slice().sort(function(a,b){ return (a.base?0:1)-(b.base?0:1); }).forEach(function(s){
-      var col=s.color||'var(--exp)';
-      if(s.k==='area') body+='<path class="ar" d="'+area(s.pts)+'" fill="'+col+'" opacity="'+(s.opacity||0.22)+'"/>'+'<path class="ln" d="'+path(s.pts)+'" stroke="'+col+'" stroke-width="'+(s.width||1.6)+'"'+(s.base?' stroke-dasharray="5 4"':'')+'/>';
-      else if(s.k==='band') body+='<path class="ar" d="'+band(s.lo, s.hi)+'" fill="'+col+'" opacity="'+(s.opacity||0.3)+'"/>'+(s.edge ? '<path class="ln" d="'+path(s.hi)+'" stroke="'+col+'" stroke-width="1.2"/>' : '');
-      else if(s.k==='dots'){ for(var m=0;m<=H;m++){ var v=s.pts[m]; if(v===null||v===undefined) continue; body+='<circle cx="'+x(m).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="2.2" fill="'+col+'" opacity=".85"/>'; } }
-      else body+='<path class="ln" d="'+path(s.pts)+'" stroke="'+col+'" stroke-width="'+(s.width||(s.base?1.3:1.8))+'"'+(s.base?' stroke-dasharray="5 4" opacity=".85"':'')+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
+      var col=s.color||'var(--exp)', yf = s.axis==='right' ? y2 : y1, e = s.axis==='right' ? e2 : e1;
+      if(s.k==='area') body+='<path class="ar" d="'+area(s.pts, yf, e)+'" fill="'+col+'" opacity="'+(s.opacity||0.22)+'"/>'+'<path class="ln" d="'+path(s.pts, yf)+'" stroke="'+col+'" stroke-width="'+(s.width||1.6)+'"'+(s.base?' stroke-dasharray="5 4"':'')+'/>';
+      else if(s.k==='band') body+='<path class="ar" d="'+band(s.lo, s.hi, yf)+'" fill="'+col+'" opacity="'+(s.opacity||0.3)+'"/>'+(s.edge ? '<path class="ln" d="'+path(s.hi, yf)+'" stroke="'+col+'" stroke-width="1.2"/>' : '');
+      else if(s.k==='dots'){ for(var m=0;m<=H;m++){ var v=s.pts[m]; if(v===null||v===undefined) continue; body+='<circle cx="'+x(m).toFixed(1)+'" cy="'+yf(v).toFixed(1)+'" r="1.8" fill="'+col+'" opacity=".7"/>'; } }
+      else body+='<path class="ln'+(s.base?' base':'')+'" d="'+path(s.pts, yf)+'" stroke="'+col+'" stroke-width="'+(s.width||(s.base?1.1:1.8))+'"'+(s.base?' stroke-dasharray="5 4" opacity=".8"':'')+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
     });
-    /* marks: {m, v, label} */
-    (o.marks||[]).forEach(function(mk){ body+='<circle cx="'+x(mk.m).toFixed(1)+'" cy="'+y(mk.v).toFixed(1)+'" r="4" fill="none" stroke="'+(mk.color||'var(--ink)')+'" stroke-width="1.2"/><text class="mk" x="'+(x(mk.m)+7).toFixed(1)+'" y="'+(y(mk.v)+(mk.below?12:-6)).toFixed(1)+'">'+esc(mk.label)+'</text>'; });
-    /* selected month: cursor + right-edge values, pushed apart when they collide */
+    (o.marks||[]).forEach(function(mk){ body+='<circle cx="'+x(mk.m).toFixed(1)+'" cy="'+y1(mk.v).toFixed(1)+'" r="4" fill="none" stroke="'+(mk.color||'var(--ink)')+'" stroke-width="1.2"/><text class="mk" x="'+(x(mk.m)+7).toFixed(1)+'" y="'+(y1(mk.v)+(mk.below?12:-6)).toFixed(1)+'">'+esc(mk.label)+'</text>'; });
+    /* selected month: one cursor; right-edge values in 22-unit blocks that never overlap */
     var sel = o.sel, cur='';
     if(sel!==undefined && sel!==null){
       var sx=x(sel).toFixed(1); cur+='<line class="cur" x1="'+sx+'" x2="'+sx+'" y1="'+T+'" y2="'+(T+ph)+'"/>';
-      var labs=[]; o.series.forEach(function(s){ if(!s.label || s.base) return; var v = s.k==='band' ? s.hi[sel] : s.pts[sel]; if(v===null||v===undefined||!isFinite(v)) return; labs.push({ y:y(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label }); });
-      labs.sort(function(a,b){ return a.y-b.y; }); for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<12) labs[j].y=labs[j-1].y+12; } for(var j2=labs.length-2;j2>=0;j2--){ if(labs[j2+1].y>T+ph) labs[j2+1].y=T+ph; if(labs[j2+1].y-labs[j2].y<12) labs[j2].y=labs[j2+1].y-12; }
-      labs.forEach(function(l){ cur+='<text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+esc(l.n)+'</text>'; });
+      var labs=[]; o.series.forEach(function(s){ if(!s.label || s.base) return; var yf = s.axis==='right' ? y2 : y1; var v = s.k==='band' ? s.hi[sel] : s.pts[sel]; if(v===null||v===undefined||!isFinite(v)) return;
+        labs.push({ y:yf(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label }); });
+      labs.sort(function(a,b){ return a.y-b.y; });
+      var GAP=22, top=T+9, bot=T+ph-12;
+      for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<GAP) labs[j].y=labs[j-1].y+GAP; }
+      for(var j2=labs.length-1;j2>=0;j2--){ if(labs[j2].y>bot) labs[j2].y=bot; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<GAP) labs[j2].y=labs[j2+1].y-GAP; }
+      for(var j3=0;j3<labs.length;j3++){ if(labs[j3].y<top) labs[j3].y=top; if(j3>0 && labs[j3].y-labs[j3-1].y<GAP) labs[j3].y=labs[j3-1].y+GAP; }
+      labs.forEach(function(l){ cur+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+esc(l.n)+'</text></g>'; });
     }
-    return '<svg class="ch" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" preserveAspectRatio="none" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+cur+'</svg>';
+    return '<svg class="ch" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+cur+'</svg>';
   }
   /* a chart block: title row (eyebrow · basis), legend, the svg */
   function chartBlock(title, tag, legend, svg){
@@ -5991,12 +6006,13 @@ details.pl .cascade{margin-top:8px}
     var Mt = 'M'+m, w = trailing12(m);
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
-    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || pairMode, eff = differs ? effectFrom() : {arr:null, cash:null};
-    var sx = E.summarise(expRes), sb = E.summarise(baseRes);
+    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || pairMode;
+    var sx = E.summarise(expRes);
     var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
     var S12 = function(f){ return sumM(expRes, w.from, w.to, f); };
     var h = '';
     var model = 'MODEL · ARR'+(cuOn?' · Customers':'')+(moOn?' · Monetization':'')+(caOn?' · Cash':'');
+    var HC = 220;   /* one chart height for the whole instrument */
 
     /* ================= 1. COMPANY ================= */
     var dARR = em.closingARR-bm.closingARR;
@@ -6005,13 +6021,13 @@ details.pl .cascade{margin-top:8px}
       '<div class="hero"><span class="hv">'+reur(em.closingARR)+'</span><span class="hs">'+basis+'</span>'+
         '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
         (Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
-      '<div class="desc">'+
+      '<div class="hl desc">'+
         dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+
         dv('⋈ '+pct(lawNow('grossMargin'),0), 'gross margin · law', 'law')+
         dv('→ '+(revR12>0 ? pct(ebR12/revR12,1) : '—'), 'EBITA margin · '+w.tag, 'meas')+
-        dv(eur(em.cashClosing), 'cash · trough '+eur(sx.cashTrough)+' at M'+sx.cashTroughMonth)+
+        dv(eur(em.cashClosing), 'cash · '+Mt)+
       '</div>'+
-      '<div class="model"><span>'+model+'</span>'+(differs && CH.length ? '<span class="chg">'+CH.slice(0,3).map(function(c){ return esc(chLabel(c))+' '+esc(chText(c)); }).join(' · ')+(CH.length>3 ? ' · +'+(CH.length-3) : '')+(eff.arr ? ' · from M'+eff.arr : '')+'</span>' : '')+'</div>'+
+      '<div class="model"><span>'+model+'</span></div>'+
       (ivOn ? '<div class="hyprow">'+(em.interventions.changes.length
           ? em.interventions.changes.map(function(ch){ return '<b>hypothesis '+esc(ch.id)+'</b> in force · '+esc(hypTargetLabel(ch.target))+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('<br>')
           : '<b>hypothesis</b> not in force this month')+(em.interventionCost>0 ? ' · cost '+eur(em.interventionCost)+' this month' : '')+'</div>' : '')+
@@ -6022,125 +6038,125 @@ details.pl .cascade{margin-top:8px}
     var cumNewX = cumOf(expRes, function(x){ return x.newARR; }), cumExX = cumOf(expRes, function(x){ return x.expansion-x.leakage; });
     var cumNewB = cumOf(baseRes, function(x){ return x.newARR; }), cumExB = cumOf(baseRes, function(x){ return x.expansion-x.leakage; });
     var totX = cumNewX.map(function(v,i){ return v+cumExX[i]; }), totB = cumNewB.map(function(v,i){ return v+cumExB[i]; });
-    var growthChart = chartBlock('Where '+basis+' growth came from · cumulative since M0', Mt, [{n:'new customers', c:'var(--exp)'}, {n:'existing base · expansion − contraction − churn', c:'var(--ink-3)'}, {n:'Base', c:'var(--base)', dash:true}],
-      chart({ h:210, sel:m, yFmt:reur, aria:'cumulative ARR growth split into new customers and the existing base', series:[
+    var totDiff = Math.abs(totX[m]-totB[m])>1;
+    var growthChart = chartBlock('Where '+basis+' growth came from · cumulative since M0', Mt, [{n:'new customers', c:'var(--exp)'}, {n:'existing base · expansion − contraction − churn', c:'var(--ink-3)'}].concat(totDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+      chart({ h:HC, sel:m, yFmt:reur, aria:'cumulative ARR growth split into new customers and the existing base', series:[
         { k:'band', lo:cumNewX.map(function(){ return 0; }), hi:cumNewX, color:'var(--exp)', opacity:0.32, edge:true, label:'new customers', fmt:reurS },
         { k:'band', lo:cumNewX, hi:totX, color:'var(--ink-3)', opacity:0.35, label:'existing base', fmt:reurS },
-        { k:'line', pts:totX, color:'var(--ink)', width:1.2, label:'total', fmt:reurS },
-        { k:'line', pts:totB, color:'var(--base)', base:true } ] }));
+        { k:'line', pts:totX, color:'var(--ink)', width:1.2, label:'total net change', fmt:reurS } ]
+        .concat(totDiff ? [{ k:'line', pts:totB, color:'var(--base)', base:true }] : []) }));
     if(cuOn){
       var cu = em.customers, arpa = em.closingARR/cu.closing;
       var custX = seriesOf(expRes, function(x){ return x.customers.closing; }), custB = bm.customers ? seriesOf(baseRes, function(x){ return x.customers.closing; }) : null;
       var arpaX = seriesOf(expRes, function(x){ return x.closingARR/x.customers.closing; }), arpaB = bm.customers ? seriesOf(baseRes, function(x){ return x.closingARR/x.customers.closing; }) : null;
       custX[0]=expRes.months[0].customers.opening; arpaX[0]=expRes.months[0].openingARR/expRes.months[0].customers.opening;
       if(custB){ custB[0]=baseRes.months[0].customers.opening; arpaB[0]=baseRes.months[0].openingARR/baseRes.months[0].customers.opening; }
+      var cuDiff = custB && (Math.abs(custX[m]-custB[m])>0.05 || Math.abs(arpaX[m]-arpaB[m])>1);
       h += lensHead('2', 'How is the customer base developing?', Mt, 'customers');
-      h += marksFor(CH, ['logoRetentionAnnual','contractionAnnual','newLogoARPA']);
-      h += '<div class="desc">'+
+      h += '<div class="hl desc">'+
         dv(n0(cu.closing)+yoyTag(yoy(expRes, m, function(x){ return x.customers.closing; })), 'customers')+
         dv(reur(arpa)+yoyTag(yoy(expRes, m, function(x){ return x.closingARR/x.customers.closing; })), basis+' per customer')+
         dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+
         dv(cm ? '→ '+pct(cm.logoRetentionR12M,1) : '→ needs 12 mo', 'logo retention · R12M', 'meas')+
         dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+
         '</div>';
-      h += chartBlock('Customer base development', Mt, [{n:'customers', c:'var(--exp)'}, {n:basis+' per customer', c:'var(--ink)'}, {n:'Base', c:'var(--base)', dash:true}],
-        chart({ h:118, sel:m, yFmt:n0s, yMin:0, aria:'customers over 60 months', series:[ { k:'area', pts:custX, color:'var(--exp)', opacity:0.16, label:'customers', fmt:n0 } ].concat(custB ? [{ k:'line', pts:custB, color:'var(--base)', base:true }] : []) })+
-        chart({ h:118, sel:m, yFmt:reurP, yMin:0, aria:'ARR per customer over 60 months', series:[ { k:'line', pts:arpaX, color:'var(--ink)', width:1.6, label:basis+' / customer', fmt:reurP } ].concat(arpaB ? [{ k:'line', pts:arpaB, color:'var(--base)', base:true }] : []) }));
+      h += chartBlock('Customer base development', Mt, [{n:'customers', c:'var(--exp)'}, {n:basis+' per customer · right scale', c:'var(--ink)'}].concat(cuDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+        chart({ h:HC, sel:m, yFmt:n0s, yMin:0, y2Fmt:reurP, aria:'customers and ARR per customer over 60 months', series:[
+          { k:'area', pts:custX, color:'var(--exp)', opacity:0.16, label:'customers', fmt:n0 },
+          { k:'line', pts:arpaX, color:'var(--ink)', width:1.5, axis:'right', label:basis+' / customer', fmt:reurP } ]
+          .concat(cuDiff ? [{ k:'line', pts:custB, color:'var(--base)', base:true }, { k:'line', pts:arpaB, color:'var(--base)', base:true, axis:'right' }] : []) }));
       h += growthChart;
     } else {
       h += lensHead('2', 'How is the customer base developing?', Mt, 'customers');
-      h += '<div class="desc">'+dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+dv(kpi ? '→ '+pct(kpi.grr,1) : '→ needs 12 mo', 'gross dollar retention · R12M', 'meas')+dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+'</div>'+
-        '<div class="offnote"><span class="eyebrow">Customer physics off</span>Customers and '+basis+' per customer are not modelled in this world: recurring revenue is one balance per cohort. The split below is the installed base as a whole.</div>'+
-        installedBaseNet(em);
+      h += '<div class="hl desc">'+dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+dv(kpi ? '→ '+pct(kpi.grr,1) : '→ needs 12 mo', 'gross dollar retention · R12M', 'meas')+dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+'</div>'+
+        '<div class="offnote">Customer physics off — customers and '+basis+' per customer are not modelled; the installed base is one balance.</div>'+installedBaseNet(em);
       h += growthChart;
     }
     h += '</div>';
 
     /* ================= 3. GROWTH ENGINE ================= */
-    var qx = expRes.derived.acquisition, satOn = E.saturationEnabled(expA);
+    var satOn = E.saturationEnabled(expA);
     var avgX=[null], margX=[null], pbAX=[null], pbMX=[null], avgB=[null], margB=[null], pbAB=[null], pbMB=[null], measX=[null];
     for(var t=1;t<=H;t++){ var rx=responseAt(expRes, expA, t), gx=gmAt(expRes, expA, t), rb=responseAt(baseRes, baseA, t), gb=gmAt(baseRes, baseA, t);
       avgX.push(rx.averageCAC); margX.push(rx.marginalCAC); pbAX.push(rx.averageCAC*12/gx); pbMX.push(rx.marginalCAC*12/gx);
       avgB.push(rb.averageCAC); margB.push(rb.marginalCAC); pbAB.push(rb.averageCAC*12/gb); pbMB.push(rb.marginalCAC*12/gb);
-      var am=K.acquisitionMeasures(expRes, t); measX.push(t >= 12 + expRes.derived.acquisitionLagMonths ? am.measuredCACR12M : null); }   /* measured once a full trailing window has realised */
+      var am=K.acquisitionMeasures(expRes, t); measX.push(t >= 12 + expRes.derived.acquisitionLagMonths ? am.measuredCACR12M : null); }
     var realised=[]; for(var i=0;i<=H;i++) realised.push(null);
     expRes.cohorts.forEach(function(c, k){ if(c.acquisitionMonth>0 && c.acquisitionCost!==null){ var cc=CAP.cohortCapital(expRes, k); if(cc.paybackAge!==null) realised[c.acquisitionMonth]=cc.paybackAge; } });
-    var baseDiff = Math.abs(avgX[m]-avgB[m])>1e-6 || Math.abs(margX[m]-margB[m])>1e-6;
+    var acqDiff = Math.abs(avgX[m]-avgB[m])>1e-6 || Math.abs(margX[m]-margB[m])>1e-6 || Math.abs(pbAX[m]-pbAB[m])>1e-6;
+    var moF1 = function(v){ return v.toFixed(1)+' mo'; };
     h += lensHead('3', 'How efficiently is growth investment becoming new '+basis+'?', Mt, 'growth');
-    h += marksFor(CH, ['sm','cacPerARR','maxMonthlyNewARR','acquisitionLagMonths']);
-    h += '<div class="desc">'+
+    h += '<div class="hl desc">'+
       dv(eur(em.sm), 'S&M · month')+
       dv(reur(em.newARR), 'new '+basis+' · month')+
-      dv('→ '+xF(avgX[m]), 'average CAC · € per €1 of new ARR', 'meas')+
-      dv('→ '+xF(margX[m]), 'marginal CAC · the next euro', 'meas')+
-      dv('→ '+pbAX[m].toFixed(1)+' mo', 'payback · average', 'meas')+
+      dv('→ '+xF(avgX[m]), 'average CAC', 'meas')+
+      dv('→ '+xF(margX[m]), 'marginal CAC', 'meas')+
+      dv('→ '+moF1(pbAX[m]), 'payback · average', 'meas')+
       '</div>';
     leverBar('growth', ['sm','cacPerARR','maxMonthlyNewARR']);
     h += '<div class="lever-slot" data-lens="growth"></div>';
-    h += chartBlock('Acquisition efficiency', Mt, [{n:'average CAC', c:'var(--exp)'}, {n:'marginal CAC', c:'var(--law)'}, {n:'Measured CAC · trailing 12', c:'var(--ink-2)'}].concat(baseDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
-      chart({ h:200, sel:m, yFmt:xF, yMin:0, aria:'average and marginal CAC over 60 months', series:[
-        { k:'line', pts:avgX, color:'var(--exp)', label:'average', fmt:xF }, { k:'line', pts:margX, color:'var(--law)', label:'marginal', fmt:xF }, { k:'line', pts:measX, color:'var(--ink-2)', width:1.2, label:'measured', fmt:xF } ]
-        .concat(baseDiff ? [{ k:'line', pts:avgB, color:'var(--base)', base:true }, { k:'line', pts:margB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
-    h += chartBlock('Acquisition payback · average, marginal, realised', Mt, [{n:'average payback', c:'var(--exp)'}, {n:'marginal payback', c:'var(--law)'}, {n:'realised · cohort by vintage', c:'var(--ink)'}].concat(baseDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
-      chart({ h:200, sel:m, yFmt:moF, yMin:0, aria:'payback months over 60 months', series:[
-        { k:'line', pts:pbAX, color:'var(--exp)', label:'average', fmt:function(v){ return v.toFixed(1)+' mo'; } }, { k:'line', pts:pbMX, color:'var(--law)', label:'marginal', fmt:function(v){ return v.toFixed(1)+' mo'; } }, { k:'dots', pts:realised, color:'var(--ink)' } ]
-        .concat(baseDiff ? [{ k:'line', pts:pbAB, color:'var(--base)', base:true }, { k:'line', pts:pbMB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
-    if(!satOn) h += '<div class="offnote"><span class="eyebrow">No capacity</span>Acquisition is linear: average and marginal CAC coincide, and the coefficient is the whole law.</div>';
+    h += chartBlock('Acquisition efficiency', Mt, [{n:'average CAC', c:'var(--exp)'}, {n:'marginal CAC', c:'var(--law)'}, {n:'Measured CAC · trailing 12', c:'var(--ink-3)'}].concat(acqDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+      chart({ h:HC, sel:m, yFmt:xF, yMin:0, aria:'average and marginal CAC over 60 months', series:[
+        { k:'line', pts:measX, color:'var(--ink-3)', width:1, label:'measured', fmt:xF },
+        { k:'line', pts:avgX, color:'var(--exp)', label:'average', fmt:xF }, { k:'line', pts:margX, color:'var(--law)', label:'marginal', fmt:xF } ]
+        .concat(acqDiff ? [{ k:'line', pts:avgB, color:'var(--base)', base:true }, { k:'line', pts:margB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
+    h += chartBlock('Acquisition payback · average, marginal, realised', Mt, [{n:'average payback', c:'var(--exp)'}, {n:'marginal payback', c:'var(--law)'}, {n:'realised · cohort by vintage', c:'var(--ink-3)'}].concat(acqDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+      chart({ h:HC, sel:m, yFmt:moF, yMin:0, aria:'payback months over 60 months', series:[
+        { k:'dots', pts:realised, color:'var(--ink-3)' },
+        { k:'line', pts:pbAX, color:'var(--exp)', label:'average', fmt:moF1 }, { k:'line', pts:pbMX, color:'var(--law)', label:'marginal', fmt:moF1 } ]
+        .concat(acqDiff ? [{ k:'line', pts:pbAB, color:'var(--base)', base:true }, { k:'line', pts:pbMB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
+    if(!satOn) h += '<div class="offnote">No capacity: acquisition is linear, so average and marginal CAC coincide.</div>';
     h += '</div>';
 
     /* ================= 4. MONETIZATION ================= */
     h += lensHead('4', 'What are customers paying for?', Mt, 'monetization');
     if(moOn){
-      var mo = em.monetization, comps = (expA.monetization && expA.monetization.components) || [], fixedName = (comps.filter(function(c){ return c.kind!=='variable'; })[0]||{}).name||'fixed', varName = (comps.filter(function(c){ return c.kind==='variable'; })[0]||{}).name||'usage';
-      var tot = mo.fixedARR+mo.variableARR, vShare = tot>0 ? mo.variableARR/tot : 0;
+      var mo = em.monetization, tot = mo.fixedARR+mo.variableARR, vShare = tot>0 ? mo.variableARR/tot : 0;
       var fixX = seriesOf(expRes, function(x){ return x.monetization.fixedARR; }), varX = seriesOf(expRes, function(x){ return x.monetization.fixedARR+x.monetization.variableARR; });
-      fixX[0]=null; varX[0]=null;
-      var totBm = bm.monetization ? seriesOf(baseRes, function(x){ return x.closingARR; }) : null;
-      h += marksFor(CH, ['monetization']);
-      h += '<div class="desc">'+
+      var totBm = bm.monetization ? seriesOf(baseRes, function(x){ return x.closingARR; }) : null, moDiff = totBm && Math.abs(totBm[m]-varX[m])>1;
+      h += '<div class="hl desc">'+
         dv(reur(tot)+yoyTag(em.arrGrowthYoY), basis)+
         (cuOn ? dv(reur(tot/em.customers.closing), basis+' per customer') : '')+
-        dv(pct(1-vShare,0), esc(fixedName)+' · fixed')+
-        dv(pct(vShare,0), esc(varName)+' · variable')+
+        dv(pct(1-vShare,0), 'fixed revenue')+
+        dv(pct(vShare,0), 'variable revenue')+
         '</div>';
       leverBar('monetization', ['monetization.components[0].priceAnnual','monetization.components[1].usageGrowthAnnual','monetization.components[1].adoptionAnnual']);
       h += '<div class="lever-slot" data-lens="monetization"></div>';
-      h += chartBlock(basis+' composition', Mt, [{n:esc(fixedName)+' · fixed', c:'var(--base)'}, {n:esc(varName)+' · variable', c:'var(--exp)'}].concat(totBm && differs ? [{n:'Base', c:'var(--base)', dash:true}] : []),
-        chart({ h:230, sel:m, yFmt:reur, yMin:0, aria:'ARR composition over 60 months', series:[
-          { k:'band', lo:fixX.map(function(){ return 0; }), hi:fixX, color:'var(--base)', opacity:0.55, edge:true, label:esc(fixedName)+' · '+pct(1-vShare,0), fmt:reur },
-          { k:'band', lo:fixX, hi:varX, color:'var(--exp)', opacity:0.42, edge:true, label:esc(varName)+' · '+pct(vShare,0), fmt:reur } ]
-          .concat(totBm && differs ? [{ k:'line', pts:totBm, color:'var(--base)', base:true }] : []) }));
+      h += chartBlock(basis+' composition over time', Mt, [{n:'fixed', c:'var(--base)'}, {n:'variable', c:'var(--exp)'}].concat(moDiff ? [{n:'Base total', c:'var(--base)', dash:true}] : []),
+        chart({ h:HC, sel:m, yFmt:reur, yMin:0, aria:'ARR composition over 60 months', series:[
+          { k:'band', lo:fixX.map(function(){ return 0; }), hi:fixX, color:'var(--base)', opacity:0.55, edge:true, label:'fixed · '+pct(1-vShare,0), fmt:reur },
+          { k:'band', lo:fixX, hi:varX, color:'var(--exp)', opacity:0.42, edge:true, label:'variable · '+pct(vShare,0), fmt:reur },
+          { k:'line', pts:varX, color:'var(--ink)', width:1, label:'total '+basis, fmt:reur } ]
+          .concat(moDiff ? [{ k:'line', pts:totBm, color:'var(--base)', base:true }] : []) }));
     } else {
       var arrX = seriesOf(expRes, function(x){ return x.closingARR; });
-      h += '<div class="desc">'+dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+(cuOn ? dv(reur(em.closingARR/em.customers.closing), basis+' per customer') : '')+dv('⋈ '+pct(lawNow('expansionCoefficientAnnual'),0), 'expansion · one coefficient', 'law')+'</div>'+
-        '<div class="offnote"><span class="eyebrow">Monetization physics off</span>Revenue is one balance per cohort: no components, no fixed or variable share. Enable Monetization to see what customers pay for.</div>';
+      h += '<div class="hl desc">'+dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+(cuOn ? dv(reur(em.closingARR/em.customers.closing), basis+' per customer') : '')+'</div>'+
+        '<div class="offnote">Monetization physics off — revenue is one balance per cohort, without fixed or variable components.</div>';
       h += chartBlock(basis+' · one balance', Mt, [{n:basis, c:'var(--stock)'}],
-        chart({ h:230, sel:m, yFmt:reur, yMin:0, aria:'ARR over 60 months, one balance', series:[ { k:'area', pts:arrX, color:'var(--stock)', opacity:0.18, label:basis, fmt:reur } ] }));
+        chart({ h:HC, sel:m, yFmt:reur, yMin:0, aria:'ARR over 60 months, one balance', series:[ { k:'area', pts:arrX, color:'var(--stock)', opacity:0.18, label:basis, fmt:reur } ] }));
     }
     h += '</div>';
 
     /* ================= 5. ECONOMICS & CASH ================= */
     var P = function(k){ return S12(function(x){ return x[k]; }); };
-    var rev=P('revenue'), eb=P('ebita'), capReq = Math.max(0, expRes.start.openingCash - sx.cashTrough);
+    var rev=P('revenue'), eb=P('ebita');
     var revX=seriesOf(expRes, function(x){ return x.revenue; }), gpX=seriesOf(expRes, function(x){ return x.grossProfit; }), ebX=seriesOf(expRes, function(x){ return x.ebita; }), ebB=seriesOf(baseRes, function(x){ return x.ebita; });
     var cashX=seriesOf(expRes, function(x){ return x.cashClosing; }), cashB=seriesOf(baseRes, function(x){ return x.cashClosing; }); cashX[0]=expRes.months[0].cashOpening; cashB[0]=baseRes.months[0].cashOpening;
     var ebDiff = Math.abs(ebX[m]-ebB[m])>1, cashDiff = Math.abs(cashX[m]-cashB[m])>1;
     h += lensHead('5', 'How does '+basis+' turn into profit and cash?', w.tag, 'cash');
-    h += marksFor(CH, ['grossMargin','rd','ga','expansionCostPerARR','billingTermMonths','billingTiming','collectionDelayMonths']);
-    h += '<div class="desc">'+
+    h += '<div class="hl desc">'+
       dv(eur(rev), 'revenue · '+w.tag)+
       dv(eur(eb), 'EBITA · '+w.tag)+
       dv('→ '+(rev>0 ? pct(eb/rev,1) : '—'), 'EBITA margin · '+w.tag, 'meas')+
       dv(eur(em.cashClosing), 'cash · '+Mt)+
       dv(eur(sx.cashTrough), 'cash trough · M'+sx.cashTroughMonth)+
-      dv(eur(capReq), 'capital required · opening cash drawn')+
       '</div>';
-    h += chartBlock('Economics · monthly', Mt, [{n:'revenue', c:'var(--ink-2)'}, {n:'gross profit', c:'var(--ink)'}, {n:'EBITA', c:'var(--exp)'}].concat(ebDiff ? [{n:'Base EBITA', c:'var(--base)', dash:true}] : []),
-      chart({ h:200, sel:m, yFmt:eur, aria:'revenue, gross profit and EBITA per month over 60 months', series:[
+    h += chartBlock('Economics over time · monthly', Mt, [{n:'revenue', c:'var(--ink-2)'}, {n:'gross profit', c:'var(--ink)'}, {n:'EBITA', c:'var(--exp)'}].concat(ebDiff ? [{n:'Base EBITA', c:'var(--base)', dash:true}] : []),
+      chart({ h:HC, sel:m, yFmt:eur, aria:'revenue, gross profit and EBITA per month over 60 months', series:[
         { k:'line', pts:revX, color:'var(--ink-2)', width:1.3, label:'revenue' }, { k:'line', pts:gpX, color:'var(--ink)', width:1.3, label:'gross profit' }, { k:'area', pts:ebX, color:'var(--exp)', opacity:0.18, label:'EBITA' } ]
         .concat(ebDiff ? [{ k:'line', pts:ebB, color:'var(--base)', base:true }] : []) }));
-    h += chartBlock('Cash', Mt, [{n:'cash balance', c:'var(--exp)'}].concat(cashDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []).concat(caOn ? [] : [{n:'FCF = EBITA · cash physics off', c:'transparent'}]),
-      chart({ h:200, sel:m, yFmt:eur, aria:'cash balance over 60 months', marks:[{ m:sx.cashTroughMonth, v:sx.cashTrough, label:'trough '+eur(sx.cashTrough)+' · M'+sx.cashTroughMonth, below:true }], series:[
+    h += chartBlock('Cash over time', Mt, [{n:'cash balance', c:'var(--exp)'}].concat(cashDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []).concat(caOn ? [] : [{n:'FCF = EBITA · cash physics off', c:'transparent'}]),
+      chart({ h:HC, sel:m, yFmt:eur, aria:'cash balance over 60 months', marks:[{ m:sx.cashTroughMonth, v:sx.cashTrough, label:'trough '+eur(sx.cashTrough)+' · M'+sx.cashTroughMonth, below:true }], series:[
         { k:'area', pts:cashX, color:'var(--exp)', opacity:0.2, label:'cash' } ].concat(cashDiff ? [{ k:'line', pts:cashB, color:'var(--base)', base:true }] : []) }));
     h += '<details class="bnd pl" id="pl-details"><summary>Monthly P&amp;L waterfall · '+Mt+'</summary><div id="pl-slot"></div></details></div>';
     return h;
@@ -6184,9 +6200,11 @@ details.pl .cascade{margin-top:8px}
   /* the figure is context: open and tall on Company, open on Customers, a strip elsewhere — unless the reader chose otherwise */
   function syncFigure(){
     var fw=document.getElementById('figwrap'), key=layer+':'+(layer==='stock'?activeLens:'');
+    var scol=document.querySelector('.stagecol'); if(layer==='stock' && pinned===null) scol.dataset.lens=activeLens; else delete scol.dataset.lens;
     if(layer==='flow'){ fw.open=true; fw.classList.remove('tall'); return; }
     var inspect = layer==='stock' && pinned!==null;
     var want = figPref[key]!==undefined ? figPref[key] : (layer!=='stock' || activeLens==='company' || inspect);
+    if(layer==='stock' && !inspect && activeLens!=='company') want = true;   /* hidden by CSS off Company; stays open so Company returns to its chart */
     fw.classList.toggle('tall', layer==='stock' && activeLens==='company' && !inspect);
     document.getElementById('fig-title').textContent = layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Company formation · 60 months';
     fw.dataset.silent='1'; fw.open = want; delete fw.dataset.silent;
