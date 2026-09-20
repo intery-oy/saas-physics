@@ -5815,10 +5815,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(touched.acquisition || touched.intervention){
       rows.push('<span class="mh">acquisition</span>');
       rows.push(num('new ARR per month · law', qb.newARR, qx.newARR, reur, +1));
-      if(E.saturationEnabled(baseA)||E.saturationEnabled(expA)){ rows.push(num('Average CAC', qb.averageCAC, qx.averageCAC, function(v){return v.toFixed(2)+'×';}, -1)); rows.push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, function(v){return v.toFixed(2)+'×';}, -1)); }
-      else rows.push(num('CAC coefficient → payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, function(v){return v.toFixed(1)+' mo';}, -1));
+      var mo1 = function(v){return v.toFixed(1)+' mo';}, xx = function(v){return v.toFixed(2)+'×';};
+      rows.push(num('Coefficient payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, mo1, -1));
+      if(E.saturationEnabled(baseA)||E.saturationEnabled(expA)){
+        rows.push(num('Average CAC', qb.averageCAC, qx.averageCAC, xx, -1)); rows.push(num('Average payback', qb.averagePaybackMonths, qx.averagePaybackMonths, mo1, -1));
+        rows.push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, xx, -1)); rows.push(num('Marginal payback', qb.marginalPaybackMonths, qx.marginalPaybackMonths, mo1, -1));
+      }
       rows.push(num('new ARR realised', b.cumNewARR, x.cumNewARR, reur, +1, 'CUM'));
-      if(baseRes.derived.acquisitionLagMonths>0||expRes.derived.acquisitionLagMonths>0) rows.push(num('first cohort · pending at M60', b.firstCohortMonth, x.firstCohortMonth, function(v){return 'M'+v;}, -1)+num('pending at M60', b.pendingNewARRAtHorizon, x.pendingNewARRAtHorizon, reur, -1, 'M60'));
+      if(baseRes.derived.acquisitionLagMonths>0||expRes.derived.acquisitionLagMonths>0){
+        rows.push(mrow('first cohort', 'M'+b.firstCohortMonth, 'M'+x.firstCohortMonth, x.firstCohortMonth===b.firstCohortMonth ? '=' : (x.firstCohortMonth>b.firstCohortMonth?'+':'−')+Math.abs(x.firstCohortMonth-b.firstCohortMonth)+' mo', x.firstCohortMonth-b.firstCohortMonth, -1));
+        rows.push(num('pending at M60', b.pendingNewARRAtHorizon, x.pendingNewARRAtHorizon, reur, -1));
+      }
       rows.push(num('acquisition capital', b.cumSM, x.cumSM, eur, -1, 'CUM'));
     }
     if(touched['installed base'] || touched.customers || touched.monetization || touched.intervention || touched.acquisition){

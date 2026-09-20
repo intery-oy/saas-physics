@@ -78,7 +78,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       gcond.cost && gcond.cap && gcond.lag && gcond.tiles && gcond.paybacks === 3, JSON.stringify(gcond));
   const pb = await pg.evaluate(() => { const q = window.__SP_DEBUG.expRes.derived.acquisition; return { avg: q.averagePaybackMonths, marg: q.marginalPaybackMonths }; });
   rec('OBSERVE: average and marginal payback on screen equal the engine\'s acquisitionResponse (avg CAC × 12 ÷ GM, marginal CAC × 12 ÷ GM)',
-      obs.txt.includes(pb.avg.toFixed(1) + ' months') && obs.txt.includes(pb.marg.toFixed(1) + ' months') &&
+      obs.txt.includes('Average payback ' + pb.avg.toFixed(1) + ' mo') && obs.txt.includes('Marginal payback ' + pb.marg.toFixed(1) + ' mo') &&
       Math.abs(pb.avg - indep.derived.acquisition.averagePaybackMonths) < 1e-9 && Math.abs(pb.marg - indep.derived.acquisition.marginalPaybackMonths) < 1e-9, JSON.stringify(pb));
 
   /* ---- WATERFALL ---- */
@@ -158,7 +158,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       s7.bA.expansionCostPerARR === 0.25 && s7.xA.expansionCostPerARR === 0.25 && s7.dARR < 1e-5 && s7.dCash < -1e6,
       'max ΔARR ' + s7.dARR.toExponential(1) + ', ΔCash M60 ' + s7.dCash.toFixed(0));
   rec('SCENARIO 7: the panel proves the match on screen (GRR 96/90, NRR equal, max |ΔMRR| shown) and lists the cost consequence',
-      s7.txt.includes('The two worlds agree on ARR and NRR') && s7.txt.includes('Cumulative expansion realisation cost') && /R12M NRR at M12105\.6000% · 105\.6000%/.test(s7.txt), s7.txt.slice(0, 160).replace(/\n/g, ' | '));
+      s7.txt.includes('The two worlds agree on ARR and NRR') && s7.txt.includes('expansion realisation cost') && /R12M NRR at M12105\.6000% · 105\.6000%/.test(s7.txt) && s7.txt.includes('Same ARR, different system'), s7.txt.slice(0, 160).replace(/\n/g, ' | '));
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="bounded"]').click()); await pg.waitForTimeout(500);
   const s8 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, cap: window.__SP_DEBUG.expA.maxMonthlyNewARR, q: window.__SP_DEBUG.expRes.derived.acquisition }));
   rec('SCENARIO 8: the bound is on at €2.0m, the panel shows average vs marginal CAC and the response-curve table, and no optimum is declared',
@@ -166,8 +166,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       s8.txt.includes(s8.q.marginalCAC.toFixed(2) + '×') && !/optimal|should stop|should invest/i.test(s8.txt), s8.txt.slice(0, 100).replace(/\n/g, ' | '));
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="lag"]').click()); await pg.waitForTimeout(500);
   const s9 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, lag: window.__SP_DEBUG.expA.acquisitionLagMonths, pend: window.__SP_DEBUG.expRes.pendingAtHorizon.newARR }));
-  rec('SCENARIO 9: lag 6 is on; the panel shows first cohort M1 → M7, the pending MRR at M60 and the cash-trough shift',
-      s9.lag === 6 && /First cohort created\s+M1 → M7/.test(s9.txt) && s9.txt.includes('Pending MRR at M60') && s9.txt.includes('Cash trough') && Math.abs(s9.pend - 6 * 750000) < 1e-6, s9.txt.slice(0, 120).replace(/\n/g, ' | '));
+  rec('SCENARIO 9: lag 6 is on; the spine shows the first cohort M1 → M7 (+6 mo), the pending stock at M60 and the cash-trough shift',
+      s9.lag === 6 && /first cohort\nM1 → M7\n\+6 mo/.test(s9.txt) && /pending at M60\n€0 → €375k/.test(s9.txt) && /cash trough\n€6\.10m M13 → €[\d.]+m M\d+/.test(s9.txt) && Math.abs(s9.pend - 6 * 750000) < 1e-6, s9.txt.slice(s9.txt.indexOf('ACQUISITION'), s9.txt.indexOf('ACQUISITION') + 160).replace(/\n/g, ' | '));
 
   /* ---- boundary text is live ---- */
   const bounds9 = await pg.evaluate(() => document.getElementById('side').textContent);
