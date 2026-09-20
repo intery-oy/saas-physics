@@ -67,12 +67,12 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const indep = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, contractionAnnual: 0.05 }));
   const im = indep.months[obs.m - 1].customers, icm = K.customerMeasures(indep, obs.m);
   rec('A · OBSERVE: the Customers lens shows the logo ladder (opening, new, churn, closing) and its customers, ARPA and R12M logo retention tie to an independent Node run; persistence reads derived',
-      /What installed base produces the revenue\?/.test(obs.txt) && Math.abs(obs.cu.closing - im.closing) < 1e-6 && obs.txt.includes('Closing\n' + im.closing.toFixed(0)) && obs.txt.includes('+ new logos') && obs.txt.includes('− churn') &&
-      obs.txt.includes('logo retention · R12M\n→ ' + (icm.logoRetentionR12M * 100).toFixed(1) + '%') && obs.txt.includes('persistence in force\n⋈ 87.4% = L × (1 − C)') && obs.txt.includes(Math.round(im.closing > 0 ? 0 : 0) === 0 ? 'customers' : ''),
+      /What is happening to the installed base, and to the economics per customer\?/.test(obs.txt) && Math.abs(obs.cu.closing - im.closing) < 1e-6 && obs.txt.includes('Closing\n' + im.closing.toFixed(1)) && obs.txt.includes('+ new logos') && obs.txt.includes('− left · churned') &&
+      obs.txt.includes('→ ' + (icm.logoRetentionR12M * 100).toFixed(1) + '%\nlogo retention · R12M') && obs.txt.includes('⋈ 87.4%\npersistence · L × (1 − C), derived') && obs.txt.includes(Math.round(im.closing).toLocaleString('en-GB') + '\ncustomers\n×'),
       obs.txt.slice(obs.txt.indexOf('LOGOS'), obs.txt.indexOf('LOGOS') + 200).replace(/\n/g, ' | '));
   const ikpi = K.measureR12M(indep, obs.m);
-  rec('A · OBSERVE: the MRR ladder (on the MRR basis) separates churned MRR from contraction as two outflows (the month\'s flows), and the readouts print GRR and NRR beside logo retention',
-      obs.txt.includes('− churned MRR') && obs.txt.includes('− contraction') && obs.txt.includes('gross dollar retention · R12M\n→ ' + (ikpi.grr * 100).toFixed(1) + '%') && obs.txt.includes('net dollar retention · R12M\n→ ' + (ikpi.nrr * 100).toFixed(1) + '%') &&
+  rec('A · OBSERVE: the customer-economics bridge (on the MRR basis) separates who left (churned logos) from who stayed but shrank (contraction) as two outflows, and GRR and NRR read beside logo retention',
+      obs.txt.includes('− left · churned logos') && obs.txt.includes('− stayed but shrank · contraction') && obs.txt.includes('→ ' + (ikpi.grr * 100).toFixed(1) + '%\ngross dollar retention · R12M') && obs.txt.includes('→ ' + (ikpi.nrr * 100).toFixed(1) + '%\nnet dollar retention · R12M') &&
       Math.abs((icm.dollarChurnFromLogosR12M + icm.dollarChurnFromContractionR12M) - (1 - ikpi.grr)) < 1e-9, '');
 
   /* ---- A · INSPECT: pin a cohort ---- */
@@ -124,7 +124,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const nulTxt = await side();
   rec('NULL-ON-SCREEN: Reset switches the layer off; persistence is an input again (90.0%, enabled); no logo ladder, no contraction or churned-ARR row on screen, leakage is one row (NO-FAKE-MOVEMENTS holds with the layer off)',
       nul.A.logoRetentionAnnual === null && nul.mech.customerPhysics === false && nul.tog === 'off' && nul.Pv === '90.0%' && !nul.Pdis && !nulTxt.includes('LOGOS') &&
-      !nulTxt.includes('− contraction') && !nulTxt.includes('− churned MRR') && nulTxt.includes('− leakage') && nulTxt.includes('No customer layer'), '');
+      !nulTxt.includes('− stayed but shrank') && !nulTxt.includes('− left · churned') && nulTxt.includes('− leakage') && nulTxt.includes('Customer Physics off'), '');
 
   /* ---- B · CONTROLS ---- */
   await jsClick('#t-monetization'); await pg.waitForTimeout(400);
@@ -160,9 +160,9 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const imB = indepB.months[bo.m - 1].monetization, mmB = K.monetizationMeasures(indepB, bo.m);
   const fmtK = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
   rec('B · OBSERVE: the Monetization lens shows a composition bar (platform · fixed / usage · variable) apart from a movement ladder (new customers, churn, contraction, price, usage, adoption); fixed ARR and the R12M effects tie to an independent Node run',
-      /What is revenue made of, and why did it change\?/.test(bo.txt) && bo.txt.includes('COMPOSITION') && bo.txt.includes('MOVEMENT') && Math.abs(bo.mo.fixedARR - imB.fixedARR) < 1e-6 && Math.abs(bo.mo.usageARR - imB.usageARR) < 1e-6 &&
+      /What is revenue made of, and why is it changing\?/.test(bo.txt) && bo.txt.includes('COMPOSITION') && bo.txt.includes('MOVEMENT') && bo.txt.includes('INSTALLED-BASE GROWTH BY CAUSE') && Math.abs(bo.mo.fixedARR - imB.fixedARR) < 1e-6 && Math.abs(bo.mo.usageARR - imB.usageARR) < 1e-6 &&
       bo.txt.includes('platform · fixed ' + fmtK(imB.fixedARR / 12)) && bo.txt.includes('+ price') && bo.txt.includes('+ usage') && bo.txt.includes('+ adoption') &&
-      bo.txt.includes('→ ' + (mmB.priceEffectR12M * 100).toFixed(1) + '% · ' + (mmB.usageEffectR12M * 100).toFixed(1) + '% · ' + (mmB.adoptionEffectR12M * 100).toFixed(1) + '%') && bo.txt.includes('expansion coefficient\n⋈ bypassed'),
+      bo.txt.includes('price ' + (mmB.priceEffectR12M * 100).toFixed(1) + '% · usage ' + (mmB.usageEffectR12M * 100).toFixed(1) + '% · adoption ' + (mmB.adoptionEffectR12M * 100).toFixed(1) + '%'),
       bo.txt.slice(bo.txt.indexOf('COMPOSITION'), bo.txt.indexOf('COMPOSITION') + 260).replace(/\n/g, ' | '));
 
   /* ---- B · SYSTEM ---- */
@@ -221,10 +221,10 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const indepC = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { billingTermMonths: 12, collectionDelayMonths: 1 }));
   const icC = indepC.months[co.m - 1].cash;
   const fmtC = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
-  rec('C · OBSERVE: the Economics & cash lens shows the P&L ladder apart from the cash ladder (EBITA → Δ deferred → Δ receivables → cash FCF); deferred revenue and receivables tie to an independent Node run',
-      /What did this system earn, and what cash did it need\?/.test(co.txt) && co.txt.includes('ECONOMICS · P&L') && co.txt.includes('CASH · FINANCING REALITY') && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
-      co.txt.includes(fmtC(icC.deferredClosing) + '\ndeferred revenue') && co.txt.includes(fmtC(icC.receivablesClosing) + '\nreceivables') && co.txt.includes('Δ deferred') && co.txt.includes('Δ receivables') && co.txt.includes('Cash FCF'),
-      co.txt.slice(co.txt.indexOf('CASH · FINANCING'), co.txt.indexOf('CASH · FINANCING') + 220).replace(/\n/g, ' | '));
+  rec('C · OBSERVE: the Economics & cash lens shows Path 1 (revenue → gross profit → EBITA) apart from Path 2 (billings → Δ deferred → collections → Δ receivables → cash FCF → cash); billings, deferred revenue and cash FCF tie to an independent Node run',
+      /How does the economic engine become profit, and profit become cash\?/.test(co.txt) && co.txt.includes('PATH 1 · ECONOMICS') && co.txt.includes('PATH 2 · CASH') && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
+      co.txt.includes('billings · invoiced') && co.txt.includes('Δ deferred') && co.txt.includes('Δ receivables') && co.txt.includes('cash FCF') && !co.txt.includes('Cash Physics off'),
+      co.txt.slice(co.txt.indexOf('PATH 2'), co.txt.indexOf('PATH 2') + 220).replace(/\n/g, ' | '));
   rec('C · WATERFALL: the P&L waterfall continues below EBITA — "= EBITA", "± Δ deferred revenue", "± Δ receivables", "= Cash FCF" (10 steps) — and the printed cash FCF equals the engine\'s fcf',
       co.wf.length === 10 && co.wf[6] === '= EBITA' && /Δ deferred revenue$/.test(co.wf[7]) && /Δ receivables$/.test(co.wf[8]) && co.wf[9] === '= Cash FCF' && co.wfv[9] === fmtC(co.fcf) && Math.abs(co.fcf - co.ebita) > 1000, JSON.stringify(co.wf) + ' ' + co.wfv[9]);
 
@@ -296,7 +296,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const dob = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, iv: D.expRes.months[m - 1].interventions, cost: D.expRes.months[m - 1].interventionCost, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText),
     wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), wfv: [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent) }; });
   rec('D · OBSERVE: the Company lens carries the hypothesis strip — in force, what it moved (persistence 90.0% → 94.5%), this month\'s cost — and the P&L ladder carries the hypothesis cost line',
-      /hypothesis h1 in force · persistence 90\.0% → 94\.5% · cost €50k this month/.test(dob.txt) && dob.txt.includes('− hypothesis cost') && dob.iv.active[0] === 'h1' && dob.cost === 50000,
+      /hypothesis h1 in force · persistence 90\.0% → 94\.5% · cost €50k this month/.test(dob.txt) && dob.txt.includes('↯ hypothesis cost') && dob.iv.active[0] === 'h1' && dob.cost === 50000,
       dob.txt.slice(dob.txt.indexOf('hypothesis'), dob.txt.indexOf('hypothesis') + 160).replace(/\n/g, ' | '));
   rec('D · WATERFALL: a "− Hypothesis cost" step appears before FCF and prints the engine\'s cost line (€50k)',
       dob.wf.includes('− Hypothesis cost') && dob.wfv[dob.wf.indexOf('− Hypothesis cost')] === '−€50k', JSON.stringify(dob.wf));

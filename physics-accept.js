@@ -76,13 +76,13 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('OBSERVE: page expansion cost and pending New ARR at the selected month match an independent Node recomputation',
       Math.abs(obs.expCost - im.expansionCost) < 1e-6 && Math.abs(obs.pending - im.pendingNewARR) < 1e-6, 'page ' + obs.expCost + '/' + obs.pending + ' node ' + im.expansionCost + '/' + im.pendingNewARR);
   const fmtEur = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
-  const gcond = { cost: obs.txt.includes('− expansion cost'), cap: /capacity\n⌈⌉ €2\.00m · \d+% used/.test(obs.txt), lag: /lag\n6 mo · .* pending/.test(obs.txt),
-    tiles: obs.txt.includes('CAC coefficient · law') && obs.txt.includes('Average CAC · at this spend') && obs.txt.includes('Marginal CAC · next euro'), paybacks: (obs.txt.match(/payback [\d.]+ mo/g) || []).length };
-  rec('OBSERVE: the Growth engine lens shows the capacity node in use, the lag node with the pending stock, the three CAC tiles with their paybacks, and the P&L ladder carries the expansion-cost line — only because the mechanisms are on',
-      gcond.cost && gcond.cap && gcond.lag && gcond.tiles && gcond.paybacks === 3, JSON.stringify(gcond));
+  const gcond = { cost: obs.txt.includes('expansion cost'), cap: /⌈⌉ capacity €2\.00m\/mo · \d+% used/.test(obs.txt), lag: /⋈ lag 6 mo · .* committed, not yet arrived/.test(obs.txt),
+    law: obs.txt.includes('⋈ CAC coefficient'), meas: obs.txt.includes('Average CAC') && obs.txt.includes('Marginal CAC · next euro'), paybacks: (obs.txt.match(/Payback · (average|marginal)\n→ [\d.]+ mo/g) || []).length };
+  rec('OBSERVE: the Growth engine flow shows the capacity valve in use, the lag valve with the committed-not-arrived stock, the CAC law apart from the average and marginal measurements with their paybacks, and the P&L path carries the expansion-cost line — only because the mechanisms are on',
+      gcond.cost && gcond.cap && gcond.lag && gcond.law && gcond.meas && gcond.paybacks === 2, JSON.stringify(gcond));
   const pb = await pg.evaluate(() => { const q = window.__SP_DEBUG.expRes.derived.acquisition; return { avg: q.averagePaybackMonths, marg: q.marginalPaybackMonths }; });
   rec('OBSERVE: average and marginal payback on screen equal the engine\'s acquisitionResponse (avg CAC × 12 ÷ GM, marginal CAC × 12 ÷ GM)',
-      obs.txt.includes('Average payback ' + pb.avg.toFixed(1) + ' mo') && obs.txt.includes('Marginal payback ' + pb.marg.toFixed(1) + ' mo') &&
+      obs.txt.includes('Payback · average\n→ ' + pb.avg.toFixed(1) + ' mo') && obs.txt.includes('Payback · marginal\n→ ' + pb.marg.toFixed(1) + ' mo') &&
       Math.abs(pb.avg - indep.derived.acquisition.averagePaybackMonths) < 1e-9 && Math.abs(pb.marg - indep.derived.acquisition.marginalPaybackMonths) < 1e-9, JSON.stringify(pb));
 
   /* ---- WATERFALL ---- */

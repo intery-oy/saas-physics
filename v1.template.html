@@ -11,20 +11,20 @@
  * VERBATIM and unmodified — this file only looks at them.
  * ------------------------------------------------------------------ */
 :root{
-  --ground:#080b0d; --scene:#0b1013; --panel:#0e1418; --raised:#131b20; --sunk:#070a0c;
-  --line:#1c272e; --line-soft:#141d22;
-  --ink:#e2e9ec; --ink-2:#8fa0aa; --ink-3:#5d6c75; --ink-4:#3d4952;
-  --base:#5a8fd6;       /* BASE — the frozen reference future */
-  --exp:#c9722f;        /* EXPERIMENT — the scenario you steer */
-  --leak:#3b4a55;       /* structural / operating-cost context — neutral slate, never a loss signal */
-  --churn:#b25a5e;      /* customer loss: Leakage. Muted rose, not alarm-red — physics, not a warning */
-  --good:#4f9e77; --warn:#c9973f;
+  --ground:#07090f; --scene:#0a0d15; --panel:#0e1219; --raised:#141925; --sunk:#06080d;
+  --line:#1b2233; --line-soft:#131a27;
+  --ink:#e6e9f2; --ink-2:#98a2b8; --ink-3:#66708a; --ink-4:#414a60;
+  --base:#5b68c4;       /* BASE — the frozen reference future */
+  --exp:#8b8df0;        /* EXPERIMENT — the scenario you steer */
+  --leak:#3a4358;       /* structural / operating-cost context — neutral slate, never a loss signal */
+  --churn:#c2606a;      /* customer loss: Leakage. Muted rose, not alarm-red — physics, not a warning */
+  --good:#4fa37d; --warn:#d2a45c;
   /* legibility grammar (docs/VISUAL-GRAMMAR.md §6): semantic, sparse, never the only encoding */
-  --in:#4f9e77;         /* inflow to a stock */
-  --out:#b25a5e;        /* outflow from a stock */
-  --law:#c9973f;        /* a law's valve / chip, a constraint's cap */
-  --hyp:#8b7fd4;        /* an intervention */
-  --stock:#8fa0aa;      /* a stock at rest */
+  --in:#4fa37d;         /* inflow to a stock */
+  --out:#c2606a;        /* outflow from a stock */
+  --law:#d2a45c;        /* a law's valve / chip, a constraint's cap */
+  --hyp:#c885d8;        /* an intervention */
+  --stock:#98a2b8;      /* a stock at rest */
   --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --display:"Spectral",Georgia,"Times New Roman",serif;
@@ -72,7 +72,7 @@ button,input{font:inherit;color:inherit}
 .bnd li{margin-bottom:4px}
 .regime{border-left:2px solid var(--base);padding:8px 0 8px 11px;margin-top:9px;font-size:11.5px;color:var(--ink-2);line-height:1.6;font-family:var(--display);font-style:italic}
 .regime b{font-family:var(--ui);font-style:normal;color:var(--ink);font-weight:600}
-.illus{background:rgba(201,151,63,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
+.illus{background:rgba(210,164,92,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
 .illus b{color:var(--warn);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
 .scenidx{display:grid;margin-top:12px;border-top:1px solid var(--line-soft)}
 @media (max-width:760px){.exphead{flex-wrap:wrap}.exphead .lens-n{flex-basis:100%}.scenrow{grid-template-columns:24px minmax(0,1fr)}.scenrow .stitle{grid-column:2}}
@@ -108,7 +108,7 @@ button,input{font:inherit;color:inherit}
 /* Change is a mode, not furniture: a drawer over the surface at every width */
 .rail{position:fixed;left:0;top:0;bottom:0;width:460px;max-width:100%;z-index:20;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:0 0 16px;transform:translateX(-100%);transition:transform .2s;box-shadow:8px 0 28px rgba(0,0,0,.5)}
 .app.rail-open .rail{transform:none}
-.scrim{position:fixed;inset:0;background:rgba(8,11,13,.55);z-index:19;display:none}
+.scrim{position:fixed;inset:0;background:rgba(7,9,15,.55);z-index:19;display:none}
 .app.rail-open .scrim{display:block}
 .app.rail-open #rail-toggle{border-color:var(--exp);color:var(--exp)}
 #rail-close{font-size:11px}
@@ -188,7 +188,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--exp);border:2px solid var(--panel)}
 .btn{background:var(--raised);border:1px solid var(--line);border-radius:3px;padding:6px 9px;font-size:11px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:border-color .15s,color .15s}
 .btn:hover{border-color:var(--ink-3);color:var(--ink)}
-.btn.on{border-color:var(--exp);color:var(--exp);background:rgba(201,114,47,.09)}
+.btn.on{border-color:var(--exp);color:var(--exp);background:rgba(139,141,240,.09)}
 .btn-row{display:flex;flex-wrap:wrap;gap:6px}
 .btn-wide{width:100%;text-align:left;padding:8px 10px;margin-bottom:5px}
 .btn-wide small{display:block;color:var(--ink-4);font-size:10px;font-weight:400;margin-top:2px;line-height:1.4}
@@ -291,6 +291,61 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .comp-l{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--ink-3);margin-top:4px}
 .comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
 .lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
+/* ---------- lens redesign: marks, deltas, identity, vertical flow, two paths (docs/LENS-VISUAL-GRAMMAR.md) ---------- */
+.marks{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin:2px 0 10px}
+.marks.company{margin-top:12px;padding:9px 12px;border-left:2px solid var(--exp);background:rgba(139,141,240,.05)}
+.marks .eyebrow{color:var(--exp)}
+.marks .hint{flex-basis:100%;margin-top:2px}
+.mark{display:inline-flex;align-items:baseline;gap:8px;font-size:11px}
+.mark .mk-l{font-family:var(--ui);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.mark .mk-v{font-family:var(--mono);color:var(--ink-2)}
+.mark .mk-v b{color:var(--exp);font-weight:500}
+.mark .mk-v .hyp{color:var(--hyp)} .mark .mk-v .law{color:var(--law)}
+.vs{display:block;font-family:var(--mono);font-size:10px;margin-top:2px;letter-spacing:0;text-transform:none}
+.vs.up{color:var(--good)} .vs.down{color:var(--warn)} .vs.flat{color:var(--ink-3)}
+.ident{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 14px;margin:6px 0 4px}
+.ident .it{display:flex;flex-direction:column;min-width:0}
+.ident .it b{font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:-.02em;color:var(--ink);line-height:1.1}
+.ident .it i{font-style:normal;font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.ident .op{font-family:var(--mono);font-size:18px;color:var(--ink-4);line-height:1.3;padding-top:2px}
+.ident.small .it b{font-size:15px} .ident.small .op{font-size:13px;padding-top:0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px 28px;margin-top:6px}
+.decomp{margin-top:14px;padding-top:10px;border-top:1px solid var(--line-soft)}
+.same{margin-top:10px;font-family:var(--ui);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding:6px 0;border-top:1px dotted var(--line);border-bottom:1px dotted var(--line)}
+.reduced{border:1px dotted var(--ink-4);border-radius:3px;padding:12px 14px 14px;margin-top:4px}
+.reduced .eyebrow{color:var(--ink-3)}
+.rule{height:1px;background:var(--line-soft);margin:16px 0 4px}
+.comp.mono{height:14px;margin-top:10px} .comp.mono i{opacity:.35}
+.vflow{position:relative;padding-left:16px;margin-top:8px}
+.vflow::before{content:"";position:absolute;left:4px;top:8px;bottom:8px;width:1px;background:var(--line)}
+.fn,.fv{position:relative;margin:0 0 10px}
+.fn::before{content:"";position:absolute;left:-16px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--panel);border:1.5px solid var(--stock)}
+.fn.input::before{border-color:var(--ink-2)} .fn.stock::before{background:var(--stock)}
+.fn b{display:block;font-family:var(--mono);font-size:16px;font-weight:500;color:var(--ink);letter-spacing:-.01em;line-height:1.15}
+.fn span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.fv{font-size:10.5px;line-height:1.45;padding:4px 8px;border-radius:2px;border:1px solid var(--line);background:var(--sunk);color:var(--ink-2);display:block;width:max-content;max-width:100%}
+.fv::before{content:"↓";position:absolute;left:-15px;top:3px;font-size:10px;color:var(--ink-4)}
+.fv.law{border-color:rgba(210,164,92,.45)} .fv.law b{color:var(--law);font-family:var(--mono);font-weight:500}
+.fv.cons{border-color:var(--law);border-style:dashed} .fv.cons b{color:var(--law);font-family:var(--mono);font-weight:500}
+.fv.off{border-style:dotted;color:var(--ink-4);border-color:var(--ink-4)}
+.fv.cost{color:var(--out);border-color:rgba(194,96,106,.35)} .fv .hyp{color:var(--hyp)}
+.fv .vs{display:inline;margin-left:6px}
+.engine{display:grid;grid-template-columns:minmax(260px,1fr) minmax(240px,1fr);gap:8px 28px;margin-top:4px}
+.engine-side{padding-top:8px}
+.mrow{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line-soft);font-size:11px}
+.mrow span{color:var(--ink-3)} .mrow b{font-family:var(--mono);font-weight:500;color:var(--ink)} .mrow i{grid-column:2;font-style:normal;text-align:right} .mrow i .vs{margin-top:0}
+.engine-side .hint{margin-top:8px}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;margin-top:14px}
+.paths .path{min-width:0}
+.paths.merged{grid-template-columns:3fr 2fr}
+.path.off .vflow::before{border-left:1px dotted var(--ink-4);background:none;width:0}
+.path.off .fn::before{border-style:dotted}
+details.pl{margin-top:14px} details.pl summary{font-family:var(--ui);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;list-style:none}
+details.pl summary::-webkit-details-marker{display:none}
+details.pl summary::before{content:"▸ ";color:var(--ink-4)} details.pl[open] summary::before{content:"▾ "}
+details.pl .cascade{margin-top:8px}
+.desc .dl .law{color:var(--law);font-family:var(--mono)}
+@media (max-width:760px){ .engine,.paths,.paths.merged{grid-template-columns:minmax(0,1fr)} .ident .it b{font-size:19px} }
 /* ---------- responsive: reflow, never shrink (docs/VISUAL-GRAMMAR.md) ---------- */
 @media (max-width:1180px){
   .head{flex-wrap:wrap;row-gap:8px}
@@ -349,7 +404,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .pstep details.more summary::-webkit-details-marker{display:none}
 .pstep details.more summary::before{content:"▸ ";} .pstep details.more[open] summary::before{content:"▾ ";}
 .pstep details.more .hint{margin-top:4px}
-.hyprow{margin-top:10px;padding:7px 9px;border-left:2px solid var(--hyp);font-size:10.5px;color:var(--ink-2);line-height:1.5;background:rgba(139,127,212,.06)}
+.hyprow{margin-top:10px;padding:7px 9px;border-left:2px solid var(--hyp);font-size:10.5px;color:var(--ink-2);line-height:1.5;background:rgba(200,133,216,.06)}
 .hyprow b{color:var(--hyp);font-family:var(--mono);font-weight:500}
 .curve{margin-top:8px;display:block;width:100%;height:auto}
 
@@ -396,7 +451,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .tlabel small{color:var(--ink-4);font-size:10px}
 
 /* ---------- key overlay ---------- */
-.key{position:fixed;inset:0;z-index:40;background:rgba(8,11,13,.96);padding:26px 32px;overflow-y:auto;display:none}
+.key{position:fixed;inset:0;z-index:40;background:rgba(7,9,15,.96);padding:26px 32px;overflow-y:auto;display:none}
 .key.on{display:block}
 .key h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 4px}
 .key p.lede{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
@@ -428,7 +483,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .ws b.t{display:block;color:var(--ink);font-weight:600;margin-bottom:5px;font-size:13px}
 .ws .n{font-family:var(--mono);color:var(--exp);margin-right:7px}
 .wcta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 6px}
-.btn.primary{border-color:var(--exp);color:var(--exp);background:rgba(201,114,47,.09)}
+.btn.primary{border-color:var(--exp);color:var(--exp);background:rgba(139,141,240,.09)}
 .wcta .btn.primary{padding:10px 18px;font-size:13px}
 .wcta .hint{font-size:11px}
 .wnote{font-size:11px;color:var(--ink-4);margin-top:24px;line-height:1.6;max-width:70ch}
@@ -804,7 +859,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   });
 
   /* ---------- validated vintage ramp: oldest darkest → newest lightest ---------- */
-  var RAMP = [[149,86,42],[176,110,60],[203,138,85],[224,166,119],[238,196,158],[247,221,196]];
+  var RAMP = [[44,50,110],[62,70,148],[84,92,184],[110,116,212],[143,148,236],[180,184,250]];   /* indigo: oldest deepest → newest brightest */
   function rampAt(t){                                  // t: 0 = oldest, 1 = newest
     t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
     var i = Math.floor(t), f = t - i, a = RAMP[i], b = RAMP[Math.min(RAMP.length-1, i+1)];
@@ -1718,19 +1773,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.clearRect(0,0,W,HH);
 
     /* --- ground + year grid --- */
-    ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
-    ctx.strokeStyle='#141d22'; ctx.lineWidth=1;
+    ctx.fillStyle='#0a0d15'; ctx.fillRect(0,0,W,HH);
+    ctx.strokeStyle='#131a27'; ctx.lineWidth=1;
     for(var y=1;y<=5;y++){
       var x=X(y*12)+0.5; ctx.beginPath(); ctx.moveTo(x,geo.massTop); ctx.lineTo(x,geo.cashBot); ctx.stroke();
     }
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
     ctx.fillText(basis, geo.L+8, geo.massTop+11);
     /* gridlines, in the chosen basis — the axis geometry is always ARR-native,
        only the printed number changes */
-    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#414a60';
     for(var g=1;g<=3;g++){
       var v=S.arrMax*g/4, yy=Math.round(S.yA(v))+0.5;
-      ctx.beginPath(); ctx.moveTo(geo.L,yy); ctx.lineTo(W-geo.R,yy); ctx.strokeStyle='#111a1f'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(geo.L,yy); ctx.lineTo(W-geo.R,yy); ctx.strokeStyle='#10151f'; ctx.stroke();
       ctx.fillText(reur(v), geo.L-8, yy+3);
     }
 
@@ -1771,7 +1826,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
          boundary only needs to mark where the VINTAGE (quarter) changes */
       var sameQuarterAsPrev = k>0 && !anatomy && quarterOf(k)===quarterOf(k-1);
       if(!sameQuarterAsPrev || isHot){
-        ctx.strokeStyle = anatomy ? 'rgba(11,16,19,.95)' : 'rgba(11,16,19,.55)';
+        ctx.strokeStyle = anatomy ? 'rgba(10,13,21,.95)' : 'rgba(10,13,21,.55)';
         ctx.lineWidth = anatomy ? 1.4 : 0.9; ctx.stroke();
       }
       /* a cohort in its first two months reads as new business entering */
@@ -1779,17 +1834,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(expRes.cohorts[k].acquisitionMonth>0 && ageNow>=0 && ageNow<2){
         ctx.beginPath(); ctx.moveTo(top[Math.max(0,top.length-3)][0], top[Math.max(0,top.length-3)][1]);
         for(var q=Math.max(0,top.length-2);q<top.length;q++) ctx.lineTo(top[q][0],top[q][1]);
-        ctx.strokeStyle = rgba([255,240,225], 0.55*(1-ageNow/2)); ctx.lineWidth=2; ctx.stroke();
+        ctx.strokeStyle = rgba([232,234,255], 0.55*(1-ageNow/2)); ctx.lineWidth=2; ctx.stroke();
       }
-      if(isHot){ ctx.strokeStyle='rgba(247,221,196,.95)'; ctx.lineWidth=2; ctx.stroke();
-                 ctx.fillStyle='rgba(247,221,196,.13)'; ctx.fill(); }
+      if(isHot){ ctx.strokeStyle='rgba(226,228,255,.95)'; ctx.lineWidth=2; ctx.stroke();
+                 ctx.fillStyle='rgba(226,228,255,.13)'; ctx.fill(); }
     }
 
     /* the realised silhouette, so the mass reads as one body made of layers */
     ctx.beginPath();
     for(var sm=0; sm<=mi; sm++){ var sx=X(sm), sy=S.yA(expS.arr[sm]); sm?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy); }
     ctx.lineTo(X(t), S.yA(lerpAt(expS.arr,t)));
-    ctx.strokeStyle='rgba(247,221,196,.75)'; ctx.lineWidth=1.6; ctx.stroke();
+    ctx.strokeStyle='rgba(226,228,255,.75)'; ctx.lineWidth=1.6; ctx.stroke();
 
     /* --- projected future of the Experiment: outline only, it has not happened --- */
     ctx.beginPath();
@@ -1797,7 +1852,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var fm=Math.ceil(t); fm<=H; fm++) ctx.lineTo(X(fm), S.yA(expS.arr[fm]));
     ctx.lineTo(X(H), geo.massBot); ctx.lineTo(X(t), geo.massBot); ctx.closePath();
     var fg = ctx.createLinearGradient(X(t),0,X(H),0);
-    fg.addColorStop(0,'rgba(201,114,47,.20)'); fg.addColorStop(1,'rgba(201,114,47,.05)');
+    fg.addColorStop(0,'rgba(139,141,240,.20)'); fg.addColorStop(1,'rgba(139,141,240,.05)');
     ctx.fillStyle=fg; ctx.fill();
     /* faint vintage banding in the projection: the future is made of cohorts too */
     ctx.save(); ctx.globalAlpha=0.30;
@@ -1815,14 +1870,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.beginPath();
     ctx.moveTo(X(t), S.yA(lerpAt(expS.arr,t)));
     for(var fm2=Math.ceil(t); fm2<=H; fm2++) ctx.lineTo(X(fm2), S.yA(expS.arr[fm2]));
-    ctx.strokeStyle='rgba(201,114,47,.85)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle='rgba(139,141,240,.85)'; ctx.lineWidth=2; ctx.stroke();
 
     /* --- BASE: the frozen reference future, dashed and cool --- */
     ctx.save(); ctx.setLineDash([5,4]);
     ctx.beginPath();
     for(var bm=0; bm<=H; bm++){ var px=X(bm), py=S.yA(baseS.arr[bm]); bm?ctx.lineTo(px,py):ctx.moveTo(px,py); }
-    ctx.strokeStyle='rgba(90,143,214,.78)'; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.strokeStyle='rgba(91,104,196,.78)'; ctx.lineWidth=1.8; ctx.stroke();
     ctx.restore();
+
+    /* --- the experiment's entry, and its accumulated consequence at the selected month
+       (docs/LENS-VISUAL-GRAMMAR.md · CHANGE MARKER, DELTA): one tick, one bracket --- */
+    var chg = E.compare(baseRes, expRes).changed;
+    if(chg.length || pairMode){
+      var ef = effectFrom(), mSel0 = selectedMonth();
+      var lbl = chg.length===1 ? chLabel(chg[0])+' '+chText(chg[0]) : (!chg.length ? 'declared pair' : chg.length+' assumptions changed');
+      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='rgba(139,141,240,.95)';
+      ctx.fillText((lbl+(ef.arr ? ' · effect from M'+ef.arr : ' · '+basis+' on Base')).toUpperCase(), W-geo.R-4, geo.massTop+11);
+      if(ef.arr!==null){
+        var ex = Math.round(X(Math.max(0, ef.arr-1)))+0.5;
+        ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(139,141,240,.75)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(ex, geo.massTop+16); ctx.lineTo(ex, geo.massBot); ctx.stroke(); ctx.restore();
+      }
+      var dSel = expRes.months[mSel0-1].closingARR - baseRes.months[mSel0-1].closingARR;
+      if(Math.abs(dSel)>=1){
+        var bx0 = Math.round(X(mSel0))+0.5, yE = S.yA(expS.arr[mSel0]), yB = S.yA(baseS.arr[mSel0]);
+        ctx.strokeStyle='rgba(230,233,242,.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(bx0, yE); ctx.lineTo(bx0, yB); ctx.moveTo(bx0-4, Math.round(yE)+0.5); ctx.lineTo(bx0+4, Math.round(yE)+0.5); ctx.moveTo(bx0-4, Math.round(yB)+0.5); ctx.lineTo(bx0+4, Math.round(yB)+0.5); ctx.stroke();
+        var right = bx0 < W-160; ctx.textAlign = right ? 'left' : 'right';
+        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle = dSel>=0 ? '#4fa37d' : '#c2606a';
+        ctx.fillText(reurS(dSel)+' vs Base', bx0+(right?9:-9), Math.min(yE,yB)-7);
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        ctx.fillText('M'+mSel0+' · '+reur(expRes.months[mSel0-1].closingARR), bx0+(right?9:-9), Math.min(yE,yB)+5);
+      }
+    }
 
     /* --- MIDDLE REGISTER: capital-recovery track (Inspect), or the optional
        leakage-shadow outline. §4 — default OFF; when on, an OUTLINE only, not
@@ -1833,33 +1912,33 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.beginPath();
       for(var lm=0; lm<=mi; lm++){ var lx0=X(lm), ly0=S.yL(expS.leak[lm]); lm?ctx.lineTo(lx0,ly0):ctx.moveTo(lx0,ly0); }
       ctx.lineTo(X(t), S.yL(lerpAt(expS.leak,t)));
-      ctx.strokeStyle='rgba(178,90,94,.85)'; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.strokeStyle='rgba(194,96,106,.85)'; ctx.lineWidth=1.4; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(X(t), S.yL(lerpAt(expS.leak,t)));
       for(var lf=Math.ceil(t); lf<=H; lf++) ctx.lineTo(X(lf), S.yL(expS.leak[lf]));
-      ctx.strokeStyle='rgba(178,90,94,.4)'; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.strokeStyle='rgba(194,96,106,.4)'; ctx.lineWidth=1.4; ctx.stroke();
       ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
       for(var lb=0; lb<=H; lb++){ var lx=X(lb), ly=S.yL(baseS.leak[lb]); lb?ctx.lineTo(lx,ly):ctx.moveTo(lx,ly); }
-      ctx.strokeStyle='rgba(90,143,214,.42)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
-      ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.strokeStyle='rgba(91,104,196,.42)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+      ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
       ctx.fillText('CUMULATIVE HISTORICAL LEAKAGE', geo.L+8, geo.leakTop+10);
-      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(178,90,94,.9)';
+      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(194,96,106,.9)';
       /* §1 — printed figure from the canonical selected-month object, not the
          continuous lerpAt() the curve position above still (correctly) uses. */
       ctx.fillText(reur(expRes.months[selectedMonth()-1].cumulative.leakage), geo.L+8, geo.leakTop+22);
     }
 
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
     ctx.fillText('MODEL CASH (€M)', geo.L+8, geo.cashTop-8);
     var cScaleLo = S.cLo, cScaleHi = S.cHi;
-    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+    ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#414a60';
     for(var cg=1; cg<=3; cg++){
       var cv=cScaleLo+(cScaleHi-cScaleLo)*cg/4, cyy=Math.round(S.yC(cv))+0.5;
-      ctx.beginPath(); ctx.moveTo(geo.L,cyy); ctx.lineTo(W-geo.R,cyy); ctx.strokeStyle='#111a1f'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(geo.L,cyy); ctx.lineTo(W-geo.R,cyy); ctx.strokeStyle='#10151f'; ctx.stroke();
       ctx.fillText(eur(cv), geo.L-8, cyy+3);
     }
     var y0 = S.yC(0);
-    ctx.strokeStyle='#1c272e'; ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
+    ctx.strokeStyle='#1b2233'; ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
     /* cnow/dNow are the CONTINUOUS, sub-month position — they drive where the
        curve, wedge boundary and playhead sit as tau moves between whole
        months, so the animation stays smooth. The PRINTED Cash/ΔCash text
@@ -1881,38 +1960,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     ctx.lineTo(X(t), S.yC(cnow));
     for(var wm2=mi; wm2>=0; wm2--){ ctx.lineTo(X(wm2), S.yC(baseS.cash[wm2])); }
     ctx.closePath();
-    ctx.fillStyle = dNow>=0 ? 'rgba(79,158,119,.30)' : 'rgba(178,90,94,.30)';
+    ctx.fillStyle = dNow>=0 ? 'rgba(79,163,125,.30)' : 'rgba(194,96,106,.30)';
     ctx.fill();
     ctx.save(); ctx.setLineDash([3,4]); ctx.beginPath();
     for(var wf=Math.ceil(t); wf<=H; wf++){ var wfx=X(wf); wf===Math.ceil(t)?ctx.moveTo(wfx,S.yC(expS.cash[wf])):ctx.lineTo(wfx,S.yC(expS.cash[wf])); }
     for(var wf2=H; wf2>=Math.ceil(t); wf2--) ctx.lineTo(X(wf2), S.yC(baseS.cash[wf2]));
     ctx.closePath();
-    ctx.fillStyle = dNow>=0 ? 'rgba(79,158,119,.12)' : 'rgba(178,90,94,.12)';
+    ctx.fillStyle = dNow>=0 ? 'rgba(79,163,125,.12)' : 'rgba(194,96,106,.12)';
     ctx.fill(); ctx.restore();
 
     ctx.beginPath();
     for(var c2=0; c2<=mi; c2++){ var cx=X(c2), cy=S.yC(expS.cash[c2]); c2?ctx.lineTo(cx,cy):ctx.moveTo(cx,cy); }
     ctx.lineTo(X(t), S.yC(cnow));
-    ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle='rgba(139,141,240,.95)'; ctx.lineWidth=2; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(X(t), S.yC(cnow));
     for(var c3=Math.ceil(t); c3<=H; c3++) ctx.lineTo(X(c3), S.yC(expS.cash[c3]));
-    ctx.strokeStyle='rgba(201,114,47,.4)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle='rgba(139,141,240,.4)'; ctx.lineWidth=2; ctx.stroke();
     ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
     for(var c4=0; c4<=H; c4++){ var bx=X(c4), by=S.yC(baseS.cash[c4]); c4?ctx.lineTo(bx,by):ctx.moveTo(bx,by); }
-    ctx.strokeStyle='rgba(90,143,214,.7)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+    ctx.strokeStyle='rgba(91,104,196,.7)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
     ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, geo.L+8, geo.cashTop+2);
 
     /* --- the playhead: now --- */
     var px2 = X(t);
-    ctx.strokeStyle='rgba(226,233,236,.30)'; ctx.lineWidth=1;
+    ctx.strokeStyle='rgba(230,233,242,.30)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(px2+0.5, geo.massTop); ctx.lineTo(px2+0.5, geo.cashBot); ctx.stroke();
     ctx.beginPath(); ctx.arc(px2, S.yA(lerpAt(expS.arr,t)), 3.5, 0, Math.PI*2);
-    ctx.fillStyle='#c9722f'; ctx.fill();
-    ctx.strokeStyle='#0b1013'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#8b8df0'; ctx.fill();
+    ctx.strokeStyle='#0a0d15'; ctx.lineWidth=2; ctx.stroke();
 
     /* --- year labels --- */
-    ctx.fillStyle='#3d4952'; ctx.textAlign='center'; ctx.font='9.5px "JetBrains Mono",monospace';
+    ctx.fillStyle='#414a60'; ctx.textAlign='center'; ctx.font='9.5px "JetBrains Mono",monospace';
     for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.cashBot+13);
   }
 
@@ -1952,7 +2031,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var d = isD ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
     var abs = isD ? d.experiment : d;          /* the Experiment's own absolute month, in either mode */
     var bm = baseRes.months[m-1];
-    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0b1013'; ctx.fillRect(0,0,W,HH);
+    ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0a0d15'; ctx.fillRect(0,0,W,HH);
     beginFit(SYS.W, SYS.H);
 
     /* v2 — a layer sub-view instead of the company map. The drawing helpers
@@ -1960,111 +2039,111 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     nodeHits = [];
     if(sysView!=='company'){ drawSubView(sysView); endFit(); positionLawChips(); return; }
     /* the Flows view is a layer too: it keeps the same way back to the ontology */
-    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5a8fd6'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
+    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
     function drawSubView(v){
       var mm = expRes.months[m-1];
       if(v==='ontology'){ drawOntology(mm); return; }
       /* breadcrumb back to the ontology on every layer view */
-      ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5a8fd6'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
-      ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+      ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
+      ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
       var titles = { customers:'CUSTOMER PHYSICS · beneath the ARR', monetization:'MONETIZATION PHYSICS · where the revenue comes from', cash:'CASH PHYSICS · beneath EBITA', hypotheses:'HYPOTHESES · the laws in force, month by month' };
       ctx.fillText('SYSTEM · '+titles[v]+'   ·   month '+m+(isD?'   ·   Experiment (delta compare shows the company view only)':''), 30, 26);
-      ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       ctx.fillText('Same engine month as the company view, drawn at this layer\'s own scale. Rectangles are stocks, pipes are this month\'s flows, bowties are the laws you set.', 30, 42);
       function box(x,y,w,h,label,value,tone){
-        ctx.fillStyle='#0e1418'; ctx.strokeStyle=tone||'#3b4a55'; ctx.lineWidth=1.3;
+        ctx.fillStyle='#0e1219'; ctx.strokeStyle=tone||'#3a4358'; ctx.lineWidth=1.3;
         ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
-        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(label, x, y-h/2+16);
-        ctx.font='13px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec'; ctx.fillText(value, x, y+6);
+        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8'; ctx.fillText(label, x, y-h/2+16);
+        ctx.font='13px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText(value, x, y+6);
       }
       function flow(x1,y1,x2,y2,label,value,col){
-        ctx.strokeStyle=col||'rgba(247,221,196,.6)'; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-        var a=Math.atan2(y2-y1,x2-x1); ctx.fillStyle=col||'rgba(247,221,196,.9)'; ctx.beginPath();
+        ctx.strokeStyle=col||'rgba(226,228,255,.6)'; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        var a=Math.atan2(y2-y1,x2-x1); ctx.fillStyle=col||'rgba(226,228,255,.9)'; ctx.beginPath();
         ctx.moveTo(x2,y2); ctx.lineTo(x2-12*Math.cos(a-0.45), y2-12*Math.sin(a-0.45)); ctx.lineTo(x2-12*Math.cos(a+0.45), y2-12*Math.sin(a+0.45)); ctx.closePath(); ctx.fill();
         var vert = Math.abs(x2-x1) < 1, lx = vert ? x1+16 : (x1+x2)/2, ly = (y1+y2)/2;
-        ctx.textAlign = vert ? 'left' : 'center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(label, lx, vert ? ly-6 : ly-14);
-        ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec'; ctx.fillText(value, lx, vert ? ly+12 : ly+20);
+        ctx.textAlign = vert ? 'left' : 'center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8'; ctx.fillText(label, lx, vert ? ly-6 : ly-14);
+        ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText(value, lx, vert ? ly+12 : ly+20);
       }
-      function note(x,y,text){ ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(text, x, y); }
+      function note(x,y,text){ ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8'; ctx.fillText(text, x, y); }
       if(v==='customers'){
         var cu = mm.customers, P = expRes.derived.persistenceAnnualEffective;
         cloud(110, 330, 'market / acquisition');
         flow(160, 330, 300, 330, 'new customers · this month', cu.newCustomers.toFixed(1));
-        box(430, 330, 240, 170, 'STOCK · customers', cu.closing.toFixed(0), '#c9722f');
+        box(430, 330, 240, 170, 'STOCK · customers', cu.closing.toFixed(0), '#8b8df0');
         note(320, 430, 'opening '+cu.opening.toFixed(0)+' + new '+cu.newCustomers.toFixed(1)+' − lost '+cu.logoChurn.toFixed(1)+' = '+cu.closing.toFixed(0));
-        flow(430, 415, 430, 560, 'lost logos · this month', cu.logoChurn.toFixed(1), 'rgba(143,160,170,.7)');
+        flow(430, 415, 430, 560, 'lost logos · this month', cu.logoChurn.toFixed(1), 'rgba(152,162,184,.7)');
         valve(430, 620, 'logo retention', fmtF('pct', lv('logoRetentionAnnual')), 'logoRetentionAnnual', -72, 44);
         cloud(430, 700, 'leaves the system');
         flow(550, 300, 700, 300, '× ARPA', reur(cu.arpaClosing)+' per customer');
-        box(820, 300, 200, 90, 'STOCK · '+basis, reur(mm.closingARR), '#c9722f');
-        box(820, 430, 200, 80, 'leakage from lost logos', reur(cu.logoChurnARR), '#22303a');
-        box(820, 530, 200, 80, 'leakage from contraction', reur(cu.contractionARR), '#22303a');
+        box(820, 300, 200, 90, 'STOCK · '+basis, reur(mm.closingARR), '#8b8df0');
+        box(820, 430, 200, 80, 'leakage from lost logos', reur(cu.logoChurnARR), '#222b3d');
+        box(820, 530, 200, 80, 'leakage from contraction', reur(cu.contractionARR), '#222b3d');
         valve(1010, 530, 'contraction', fmtF('pct', lv('contractionAnnual')), 'contractionAnnual', -72, 44);
         link([[430+14, 620],[720, 530]], '', false);
-        box(1090, 300, 220, 90, 'persistence in force', P===null ? 'emergent (mix)' : pct(P,1)+' = L × (1 − C)', '#22303a');
+        box(1090, 300, 220, 90, 'persistence in force', P===null ? 'emergent (mix)' : pct(P,1)+' = L × (1 − C)', '#222b3d');
         link([[520, 620],[1000, 345]], '', false);
         note(30, SYS.H-40, 'Departing customers take the cohort\'s average revenue; survivors shrink by the contraction law. Persistence is no longer set: it is what these two produce.'+(P===null ? ' Under Monetization contraction reaches usage only, so it is emergent.' : ''));
       }
       if(v==='monetization'){
         var mo = mm.monetization, spec = expA.monetization, br = K.rowAt(expRes.cohorts[0], m), st = br && br.monetization ? br.monetization.state : null;
         var c0 = spec.components[0], c1 = spec.components[1];
-        box(200, 200, 260, 110, 'platform (fixed) · per customer', st ? eur(st[0].price)+'/yr' : eur(c0.priceAnnual)+'/yr', '#3b4a55');
+        box(200, 200, 260, 110, 'platform (fixed) · per customer', st ? eur(st[0].price)+'/yr' : eur(c0.priceAnnual)+'/yr', '#3a4358');
         note(80, 270, 'price growth '+pct(c0.priceGrowthAnnual,1)+'/yr');
-        box(200, 420, 260, 150, 'usage (variable) · per customer', st ? pct(st[1].penetration,0)+' × '+st[1].units.toFixed(0)+' units × '+eur(st[1].price) : pct(c1.penetration,0)+' × '+c1.units+' × '+eur(c1.priceAnnual), '#3b4a55');
+        box(200, 420, 260, 150, 'usage (variable) · per customer', st ? pct(st[1].penetration,0)+' × '+st[1].units.toFixed(0)+' units × '+eur(st[1].price) : pct(c1.penetration,0)+' × '+c1.units+' × '+eur(c1.priceAnnual), '#3a4358');
         note(80, 508, 'price +'+pct(c1.priceGrowthAnnual,1)+'/yr · usage +'+pct(c1.usageGrowthAnnual,0)+'/yr to '+(c1.unitsCap===null?'no cap':c1.unitsCap+' units')+' · adoption '+pct(c1.adoptionAnnual,0)+'/yr to '+pct(c1.penetrationCap,0));
         flow(330, 200, 480, 300, 'fixed', st ? eur(st[0].penetration*st[0].units*st[0].price)+'/yr' : '');
         flow(330, 420, 480, 330, 'variable', st ? eur(st[1].penetration*st[1].units*st[1].price)+'/yr' : '');
-        box(600, 315, 220, 100, 'per-customer revenue · opening base', br && br.monetization ? eur(br.monetization.perCustomerClosing)+'/yr' : '—', '#c9722f');
+        box(600, 315, 220, 100, 'per-customer revenue · opening base', br && br.monetization ? eur(br.monetization.perCustomerClosing)+'/yr' : '—', '#8b8df0');
         flow(710, 315, 850, 315, '× customers', mm.customers.closing.toFixed(0));
-        box(980, 315, 230, 110, 'STOCK · '+basis, reur(mm.closingARR), '#c9722f');
-        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa'; ctx.fillText(pct(1-mo.variableShare,0)+' fixed · '+pct(mo.variableShare,0)+' variable', 980, 355);
+        box(980, 315, 230, 110, 'STOCK · '+basis, reur(mm.closingARR), '#8b8df0');
+        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8'; ctx.fillText(pct(1-mo.variableShare,0)+' fixed · '+pct(mo.variableShare,0)+' variable', 980, 355);
         var fx = [['price effect', mo.priceARR], ['usage effect', mo.usageARR], ['adoption effect', mo.adoptionARR], ['− contraction (usage only)', -mo.contractionARR]];
-        fx.forEach(function(f,i){ box(230+i*250, 620, 220, 80, f[0]+' · this month', reur(Math.abs(f[1])), f[1]>=0?'#4f9e77':'#c9973f'); });
+        fx.forEach(function(f,i){ box(230+i*250, 620, 220, 80, f[0]+' · this month', reur(Math.abs(f[1])), f[1]>=0?'#4fa37d':'#d2a45c'); });
         note(30, 560, 'Survivor revenue moves only through these four named effects, in this order, every month. The generic expansion coefficient ('+pct(expRes.derived.monetization.expansionCoefficientIgnored,0)+') is bypassed.');
         var hr = br && br.monetization && br.monetization.headroom[1] ? br.monetization.headroom[1] : null;
         if(hr) note(30, SYS.H-40, 'Opening base headroom used: '+(hr.units!==null?pct(hr.units,0)+' of the usage cap · ':'')+pct(hr.penetration,0)+' of the penetration cap. Expansion saturates at the caps — the first version of this map on which it can.');
       }
       if(v==='cash'){
         var ca = mm.cash, dc = expRes.derived.cash;
-        box(140, 300, 190, 90, 'revenue · recognised', eur(mm.revenue), '#3b4a55');
+        box(140, 300, 190, 90, 'revenue · recognised', eur(mm.revenue), '#3a4358');
         flow(235, 300, 355, 300, '+ Δ deferred', (ca.deferredClosing-ca.deferredOpening>=0?'+':'−')+eur(Math.abs(ca.deferredClosing-ca.deferredOpening)));
-        box(450, 300, 190, 90, 'billings · invoiced', eur(ca.billings), '#3b4a55');
-        box(450, 470, 190, 80, ca.deferredClosing>=0?'deferred revenue':'contract asset (unbilled)', eur(Math.abs(ca.deferredClosing)), '#22303a');
+        box(450, 300, 190, 90, 'billings · invoiced', eur(ca.billings), '#3a4358');
+        box(450, 470, 190, 80, ca.deferredClosing>=0?'deferred revenue':'contract asset (unbilled)', eur(Math.abs(ca.deferredClosing)), '#222b3d');
         link([[450, 430],[450, 350]], '', false);
         flow(545, 300, 665, 300, '− Δ receivables', (ca.receivablesClosing-ca.receivablesOpening>0?'−':'+')+eur(Math.abs(ca.receivablesClosing-ca.receivablesOpening)));
-        box(760, 300, 190, 90, 'collections · cash in', eur(ca.collections), '#3b4a55');
-        box(760, 470, 190, 80, 'receivables', eur(ca.receivablesClosing), '#22303a');
+        box(760, 300, 190, 90, 'collections · cash in', eur(ca.collections), '#3a4358');
+        box(760, 470, 190, 80, 'receivables', eur(ca.receivablesClosing), '#222b3d');
         link([[760, 430],[760, 350]], '', false);
-        flow(855, 300, 975, 300, '− cash costs', eur(ca.cashCosts), 'rgba(143,160,170,.7)');
-        box(1070, 300, 190, 90, 'cash FCF', eur(ca.cashFCF), ca.cashFCF>=0?'#4f9e77':'#c9973f');
-        box(1070, 470, 190, 90, 'STOCK · cash', eur(mm.cashClosing), '#c9722f');
+        flow(855, 300, 975, 300, '− cash costs', eur(ca.cashCosts), 'rgba(152,162,184,.7)');
+        box(1070, 300, 190, 90, 'cash FCF', eur(ca.cashFCF), ca.cashFCF>=0?'#4fa37d':'#d2a45c');
+        box(1070, 470, 190, 90, 'STOCK · cash', eur(mm.cashClosing), '#8b8df0');
         flow(1070, 345, 1070, 425, '', '');
-        box(1070, 610, 190, 70, 'EBITA · unchanged', eur(mm.ebita), '#22303a');
+        box(1070, 610, 190, 70, 'EBITA · unchanged', eur(mm.ebita), '#222b3d');
         note(30, 400, 'Policy: '+dc.billingTermMonths+'-month term, billed in '+dc.billingTiming+(dc.collectionDelayMonths>0?', collected '+dc.collectionDelayMonths+' month'+(dc.collectionDelayMonths>1?'s':'')+' after invoice':'')+'. Opening book: '+eur(Math.abs(dc.openingDeferredRevenue))+' of '+(dc.openingDeferredRevenue>=0?'deferred revenue':'contract asset')+', derived from a staggered book.');
         note(30, SYS.H-40, 'billings = revenue + Δdeferred (by construction) · collections = billings shifted by the delay · cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. Costs are cash when incurred.');
       }
       if(v==='hypotheses'){
         var sch = expRes.derived.interventions, x0 = 120, x1 = SYS.W-80, mx = function(t){ return x0 + (t-1)/(H-1)*(x1-x0); };
-        ctx.strokeStyle='#3b4a55'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, 130); ctx.lineTo(x1, 130); ctx.stroke();
-        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#5d6c75';
+        ctx.strokeStyle='#3a4358'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, 130); ctx.lineTo(x1, 130); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
         for(var yy=1; yy<=5; yy++){ ctx.fillText('Y'+yy, mx(yy*12-6), 120); ctx.beginPath(); ctx.moveTo(mx(yy*12), 124); ctx.lineTo(mx(yy*12), 136); ctx.stroke(); }
         sch.forEach(function(h, i){
           var y = 190 + i*110;
-          ctx.textAlign='left'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#e2e9ec';
+          ctx.textAlign='left'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#e6e9f2';
           ctx.fillText(h.name+' · '+hypTargetLabel(h.target)+' '+(h.effect==='multiply'?'× '+h.value:h.effect==='add'?'+ '+h.value:'= '+h.value), x0, y-28);
-          ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+          ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
           ctx.fillText('decided M'+h.startMonth+' · lag '+h.lagMonths+' · in force M'+h.effectiveFrom+'–M'+h.effectiveTo+(h.durationMonths===null?' (permanent)':'')+' · '+eur(h.cost.oneOff)+' one-off + '+eur(h.cost.monthly)+'/mo = '+eur(h.totalCost), x0, y-12);
           /* decision → effect (lag): dashed; in force: solid; cost runs from the decision */
-          ctx.strokeStyle='rgba(90,143,214,.6)'; ctx.setLineDash([4,4]); ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(mx(h.startMonth), y+10); ctx.lineTo(mx(Math.min(H,h.effectiveFrom)), y+10); ctx.stroke(); ctx.setLineDash([]);
-          if(h.effectiveFrom<=H){ ctx.strokeStyle='rgba(90,143,214,.95)'; ctx.beginPath(); ctx.moveTo(mx(h.effectiveFrom), y+10); ctx.lineTo(mx(h.effectiveTo), y+10); ctx.stroke(); }
-          ctx.fillStyle='#c9722f'; ctx.beginPath(); ctx.arc(mx(h.startMonth), y+10, 5, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle='rgba(91,104,196,.6)'; ctx.setLineDash([4,4]); ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(mx(h.startMonth), y+10); ctx.lineTo(mx(Math.min(H,h.effectiveFrom)), y+10); ctx.stroke(); ctx.setLineDash([]);
+          if(h.effectiveFrom<=H){ ctx.strokeStyle='rgba(91,104,196,.95)'; ctx.beginPath(); ctx.moveTo(mx(h.effectiveFrom), y+10); ctx.lineTo(mx(h.effectiveTo), y+10); ctx.stroke(); }
+          ctx.fillStyle='#8b8df0'; ctx.beginPath(); ctx.arc(mx(h.startMonth), y+10, 5, 0, Math.PI*2); ctx.fill();
           var km = K.interventionMeasures(expRes, m).hypotheses.filter(function(q){ return q.id===h.id; })[0];
-          ctx.textAlign='right'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+          ctx.textAlign='right'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
           ctx.fillText(km.status+' · '+km.monthsInForce+' mo in force · cost to date '+eur(km.costToDate), x1, y+36);
         });
         /* the current month */
-        ctx.strokeStyle='rgba(201,114,47,.9)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(mx(m), 110); ctx.lineTo(mx(m), 190+sch.length*110); ctx.stroke();
-        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f'; ctx.fillText('month '+m, mx(m), 104);
+        ctx.strokeStyle='rgba(139,141,240,.9)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(mx(m), 110); ctx.lineTo(mx(m), 190+sch.length*110); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText('month '+m, mx(m), 104);
         var ivm = mm.interventions;
         note(30, SYS.H-58, ivm.changes.length ? 'In force this month: '+ivm.changes.map(function(ch){ return ch.id+' — '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. Cost this month '+eur(ivm.cost)+', to date '+eur(ivm.cumulativeCost)+'.' : 'No hypothesis in force this month: every law is at its base setting. Cost to date '+eur(ivm.cumulativeCost)+'.');
         note(30, SYS.H-40, 'Orange dot: the decision (cost starts). Dashed: the lag. Solid: the window in which lawAt(t) carries the hypothesis. Outside it every cohort runs on the base law. The effect is Experiment − Base.');
@@ -2084,9 +2163,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var cuOn=!!mm.customers, moOn=!!mm.monetization, caOn=!!mm.cash, ivOn=!!mm.interventions;
       var qx=expRes.derived.acquisition, satOn=E.saturationEnabled(expA), lagOn=expRes.derived.acquisitionLagMonths>0;
       var kpi = m>=12 ? K.measureR12M(expRes, m) : null, cm = cuOn&&m>=12 ? K.customerMeasures(expRes,m) : null, mo12 = moOn&&m>=12 ? K.monetizationMeasures(expRes,m) : null;
-      ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa';
+      ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
       ctx.fillText('SYSTEM · the company as an economic machine   ·   month '+m, 30, 26);
-      ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       ctx.fillText('Containers are stocks. Arrows are this month\'s flows. ⋈ laws attach above the mechanism they govern, ⌈⌉ constraints beside it, → measurements beneath the object they observe, ↯ hypotheses enter from outside. Dotted = off. Click a node to open its layer.', 30, 42);
       var NW=128, NH=112, GAP=22, X0=30, Y=330;
       /* text never leaves its container: shrink the font until it fits the node width */
@@ -2122,53 +2201,53 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         nd.x=x; nd.y=y;
         ctx.save();
         if(nd.kind==='off') ctx.setLineDash([3,3]);
-        ctx.fillStyle = nd.kind==='stock' ? '#131b20' : '#0e1418';
-        ctx.strokeStyle = nd.kind==='stock' ? '#c9722f' : nd.kind==='off' ? '#3d4952' : '#3b4a55';
+        ctx.fillStyle = nd.kind==='stock' ? '#141925' : '#0e1219';
+        ctx.strokeStyle = nd.kind==='stock' ? '#8b8df0' : nd.kind==='off' ? '#414a60' : '#3a4358';
         ctx.lineWidth = nd.kind==='stock' ? 1.6 : 1.1;
         ctx.beginPath(); ctx.roundRect(x, y, NW, NH, 5); ctx.fill(); ctx.stroke(); ctx.restore();
-        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = nd.kind==='off' ? '#3d4952' : '#8fa0aa';
+        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = nd.kind==='off' ? '#414a60' : '#98a2b8';
         ctx.fillText(nd.title, x+NW/2, y+16);
-        fitText(nd.lines[0], x+NW/2, y+48, NW-10, nd.kind==='stock'?12:10.5, 'JetBrains Mono', nd.kind==='off' ? '#5d6c75' : '#e2e9ec');
-        fitText(nd.lines[1], x+NW/2, y+66, NW-10, 9, 'JetBrains Mono', nd.kind==='off' ? '#3d4952' : '#8fa0aa');
-        if(nd.kind==='off'){ ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('off', x+NW/2, y+92); }
-        else { ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText(nd.kind==='stock' ? 'stock' : nd.kind==='source' ? 'source' : 'mechanism', x+NW/2, y+92); }
+        fitText(nd.lines[0], x+NW/2, y+48, NW-10, nd.kind==='stock'?12:10.5, 'JetBrains Mono', nd.kind==='off' ? '#66708a' : '#e6e9f2');
+        fitText(nd.lines[1], x+NW/2, y+66, NW-10, 9, 'JetBrains Mono', nd.kind==='off' ? '#414a60' : '#98a2b8');
+        if(nd.kind==='off'){ ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('off', x+NW/2, y+92); }
+        else { ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText(nd.kind==='stock' ? 'stock' : nd.kind==='source' ? 'source' : 'mechanism', x+NW/2, y+92); }
         /* laws above, measurements beneath */
         ctx.textAlign='center';
-        nd.laws.filter(Boolean).forEach(function(l, k){ ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#c9973f'; ctx.fillText(l, x+NW/2, y-58+k*14); });
-        if(nd.laws.filter(Boolean).length){ ctx.strokeStyle='rgba(201,151,63,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+NW/2, y-14); ctx.lineTo(x+NW/2, y-2); ctx.stroke(); }
-        nd.meas.forEach(function(l, k){ ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8fa0aa'; ctx.fillText(l, x+NW/2, y+NH+22+k*14); });
+        nd.laws.filter(Boolean).forEach(function(l, k){ ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#d2a45c'; ctx.fillText(l, x+NW/2, y-58+k*14); });
+        if(nd.laws.filter(Boolean).length){ ctx.strokeStyle='rgba(210,164,92,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+NW/2, y-14); ctx.lineTo(x+NW/2, y-2); ctx.stroke(); }
+        nd.meas.forEach(function(l, k){ ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8'; ctx.fillText(l, x+NW/2, y+NH+22+k*14); });
         /* arrow to the next node, labelled with the flow */
         if(i<nodes.length-1){ var ax1=x+NW, ax2=x+NW+GAP-2, ay=y+NH/2;
-          ctx.strokeStyle='rgba(226,233,236,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax1, ay); ctx.lineTo(ax2-4, ay); ctx.stroke();
-          ctx.fillStyle='rgba(226,233,236,.7)'; ctx.beginPath(); ctx.moveTo(ax2, ay); ctx.lineTo(ax2-7, ay-4); ctx.lineTo(ax2-7, ay+4); ctx.closePath(); ctx.fill(); }
+          ctx.strokeStyle='rgba(230,233,242,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax1, ay); ctx.lineTo(ax2-4, ay); ctx.stroke();
+          ctx.fillStyle='rgba(230,233,242,.7)'; ctx.beginPath(); ctx.moveTo(ax2, ay); ctx.lineTo(ax2-7, ay-4); ctx.lineTo(ax2-7, ay+4); ctx.closePath(); ctx.fill(); }
         nodeHits.push({ x:x, y:y, w:NW, h:NH, view: nd.view });
       });
       /* the installed-base loop: leakage leaves ARR, expansion re-enters — drawn beneath ARR */
       var arrN = nodes[4];
       ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace';
-      ctx.fillStyle='#b25a5e'; ctx.fillText('− leakage '+reur(mm.leakage), arrN.x+NW/2, Y+NH+68);
-      ctx.fillStyle='#4f9e77'; ctx.fillText('+ expansion '+reur(mm.expansion), arrN.x+NW/2, Y+NH+82);
-      ctx.fillStyle='#4f9e77'; ctx.fillText('+ new '+reur(mm.newARR), arrN.x+NW/2, Y+NH+96);
+      ctx.fillStyle='#c2606a'; ctx.fillText('− leakage '+reur(mm.leakage), arrN.x+NW/2, Y+NH+68);
+      ctx.fillStyle='#4fa37d'; ctx.fillText('+ expansion '+reur(mm.expansion), arrN.x+NW/2, Y+NH+82);
+      ctx.fillStyle='#4fa37d'; ctx.fillText('+ new '+reur(mm.newARR), arrN.x+NW/2, Y+NH+96);
       /* hypotheses: from outside, at the top, to the node they move */
       var hyBox = { x: SYS.W/2-150, y: 92, w: 300, h: 46 };
       ctx.save(); if(!ivOn) ctx.setLineDash([3,3]);
-      ctx.fillStyle='rgba(139,127,212,'+(ivOn?'.08':'.03')+')'; ctx.strokeStyle= ivOn ? '#8b7fd4' : '#3d4952'; ctx.lineWidth=1.2;
+      ctx.fillStyle='rgba(200,133,216,'+(ivOn?'.08':'.03')+')'; ctx.strokeStyle= ivOn ? '#c885d8' : '#414a60'; ctx.lineWidth=1.2;
       ctx.beginPath(); ctx.roundRect(hyBox.x, hyBox.y, hyBox.w, hyBox.h, 5); ctx.fill(); ctx.stroke(); ctx.restore();
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = ivOn ? '#8b7fd4' : '#3d4952'; ctx.fillText('MANAGEMENT HYPOTHESES · from outside the system', SYS.W/2, hyBox.y+16);
-      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle = ivOn ? '#e2e9ec' : '#3d4952';
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = ivOn ? '#c885d8' : '#414a60'; ctx.fillText('MANAGEMENT HYPOTHESES · from outside the system', SYS.W/2, hyBox.y+16);
+      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle = ivOn ? '#e6e9f2' : '#414a60';
       ctx.fillText(ivOn ? (mm.interventions.changes.length ? mm.interventions.changes.map(function(ch){ return '↯ '+ch.id+' · '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('   ') : '↯ '+expRes.derived.interventions.length+' hypothesis — not in force this month · cost to date '+eur(mm.interventions.cumulativeCost)) : 'none · every law is at its base setting', SYS.W/2, hyBox.y+34);
       nodeHits.push({ x:hyBox.x, y:hyBox.y, w:hyBox.w, h:hyBox.h, view:'hypotheses' });
       if(ivOn){ (expRes.derived.interventions||[]).forEach(function(hh){
         var target = hh.target.indexOf('monetization')===0 ? nodes[3] : (hh.target==='logoRetentionAnnual'||hh.target==='contractionAnnual'||hh.target==='newLogoARPA') ? nodes[2] : (hh.target==='sm'||hh.target==='rd'||hh.target==='ga') ? nodes[0] : (hh.target==='cacPerARR'||hh.target==='maxMonthlyNewARR'||hh.target==='acquisitionLagMonths') ? nodes[1] : (hh.target==='grossMargin'||hh.target==='expansionCostPerARR') ? nodes[5] : nodes[4];
         var inForce = mm.interventions.active.indexOf(hh.id)>=0;
-        ctx.save(); ctx.strokeStyle= inForce ? '#8b7fd4' : 'rgba(139,127,212,.45)'; ctx.lineWidth=1.4; ctx.setLineDash(inForce ? [] : [4,4]);
+        ctx.save(); ctx.strokeStyle= inForce ? '#c885d8' : 'rgba(200,133,216,.45)'; ctx.lineWidth=1.4; ctx.setLineDash(inForce ? [] : [4,4]);
         ctx.beginPath(); ctx.moveTo(SYS.W/2, hyBox.y+hyBox.h); ctx.lineTo(target.x+NW/2, Y-72); ctx.stroke();
-        ctx.fillStyle= inForce ? '#8b7fd4' : 'rgba(139,127,212,.45)'; ctx.beginPath(); ctx.arc(target.x+NW/2, Y-72, 3.5, 0, Math.PI*2); ctx.fill(); ctx.restore();
-        ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b7fd4';
+        ctx.fillStyle= inForce ? '#c885d8' : 'rgba(200,133,216,.45)'; ctx.beginPath(); ctx.arc(target.x+NW/2, Y-72, 3.5, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#c885d8';
         ctx.fillText('↯ '+hh.id+' M'+hh.effectiveFrom+'–'+hh.effectiveTo+(inForce?'':' · not now'), target.x+NW/2, Y-80);
       }); }
       /* legend line */
-      ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+      ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
       ctx.fillText('LEGEND   ▭ stock (orange border)   ▭ mechanism   ⋈ law   ⌈⌉ constraint   → measurement   ↯ hypothesis   ┄ off', 30, SYS.H-14);
     }
 
@@ -2210,7 +2289,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     function dCaption(x,y,v){
       if(!isD) return;
       ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif';
-      ctx.fillStyle = Math.abs(v)<ZERO ? '#3d4952' : (v>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
+      ctx.fillStyle = Math.abs(v)<ZERO ? '#414a60' : (v>0?'rgba(139,141,240,.9)':'rgba(152,162,184,.9)');
       ctx.fillText(Math.abs(v)<ZERO ? 'no change vs Base' : (v>0?'more than Base':'less than Base'), x, y);
     }
     function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
@@ -2229,22 +2308,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.closePath(); ctx.fill();
     }
     function cloud(x,y,label){
-      ctx.strokeStyle='#3d4952'; ctx.lineWidth=1.4; ctx.beginPath();
+      ctx.strokeStyle='#414a60'; ctx.lineWidth=1.4; ctx.beginPath();
       [[-20,0,13],[-2,-7,15],[16,0,13],[0,7,12]].forEach(function(c){ ctx.moveTo(x+c[0]+c[2],y+c[1]); ctx.arc(x+c[0],y+c[1],c[2],0,Math.PI*2); });
       ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#414a60';
       ctx.fillText(label, x, y+34);
     }
     /* the SD valve: a bowtie astride the pipe. It is also the control. */
     function valve(x,y,label,value,key,chipDx,chipDy){
-      ctx.fillStyle='#131b20'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.6;
+      ctx.fillStyle='#141925'; ctx.strokeStyle='#8b8df0'; ctx.lineWidth=1.6;
       ctx.beginPath(); ctx.moveTo(x-13,y-11); ctx.lineTo(x+13,y+11); ctx.lineTo(x+13,y-11); ctx.lineTo(x-13,y+11);
       ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
       ctx.fillText(label, x, y-20);
       ctx.font='10.5px "JetBrains Mono",monospace';
       var moved = key && isD && expA[key]!==baseA[key];
-      ctx.fillStyle = moved ? '#c9722f' : (isD ? '#5d6c75' : '#c9722f');
+      ctx.fillStyle = moved ? '#8b8df0' : (isD ? '#66708a' : '#8b8df0');
       ctx.fillText(value, x, y+31);
       /* A valve setting is a setting, not a difference — so in delta it still reads
          its own value, but the Base it is being compared against is named, and a
@@ -2252,14 +2331,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(key && isD){
         var fm2 = (FORCES.filter(function(F){ return F.k===key; })[0]||{}).f || 'eur';
         ctx.font='8.5px "Archivo",sans-serif';
-        ctx.fillStyle = moved ? 'rgba(90,143,214,.95)' : '#3d4952';
+        ctx.fillStyle = moved ? 'rgba(91,104,196,.95)' : '#414a60';
         ctx.fillText(moved ? 'base '+fmtF(fm2, baseA[key]) : 'unchanged', x, y+43);
       }
       if(key){
         var sp=toScreen(x+(chipDx===undefined?-72:chipDx), y+(chipDy===undefined?44:chipDy));
         lawAnchors[key]={x:sp.x, y:sp.y};
         valveHits.push({key:key, x:x, y:y});
-        if(openChip===key){ ctx.strokeStyle='rgba(247,221,196,.9)'; ctx.lineWidth=1.4;
+        if(openChip===key){ ctx.strokeStyle='rgba(226,228,255,.9)'; ctx.lineWidth=1.4;
           ctx.beginPath(); ctx.arc(x,y,19,0,Math.PI*2); ctx.stroke(); }
       }
     }
@@ -2267,7 +2346,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        absence of a difference is legible as an absence, not as a thin flow. */
     function flatLine(x1,x2,y,v,vy1,vy2){
       if(!isD || Math.abs(v)>=ZERO) return;
-      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(61,73,82,.9)'; ctx.lineWidth=1;
+      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
       ctx.beginPath();
       if(vy1===undefined){ ctx.moveTo(x1,y); ctx.lineTo(x2,y); }
       else { ctx.moveTo(x1,vy1); ctx.lineTo(x1,vy2); }
@@ -2275,25 +2354,25 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
     function aux(x,y,w,label,value,tone){
       var h=38;
-      ctx.fillStyle='#0e1418'; ctx.strokeStyle=tone||'#22303a'; ctx.lineWidth=1.3;
+      ctx.fillStyle='#0e1219'; ctx.strokeStyle=tone||'#222b3d'; ctx.lineWidth=1.3;
       ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
       ctx.fillText(label, x, y-3);
-      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
       ctx.fillText(value, x, y+12);
     }
     function link(pts, label, absent){
       ctx.save(); ctx.setLineDash(absent?[3,4]:[4,4]); ctx.lineWidth=1.2;
-      ctx.strokeStyle = absent ? 'rgba(93,108,117,.7)' : 'rgba(90,143,214,.85)';
+      ctx.strokeStyle = absent ? 'rgba(102,112,138,.7)' : 'rgba(91,104,196,.85)';
       ctx.beginPath(); pts.forEach(function(pt,i){ i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); });
       ctx.stroke(); ctx.restore();
       var e=pts[pts.length-1], q=pts[pts.length-2];
       if(absent){
-        ctx.strokeStyle='rgba(201,151,63,.95)'; ctx.lineWidth=1.5;
+        ctx.strokeStyle='rgba(210,164,92,.95)'; ctx.lineWidth=1.5;
         ctx.beginPath(); ctx.arc(e[0],e[1],7,0,Math.PI*2); ctx.moveTo(e[0]-5,e[1]-5); ctx.lineTo(e[0]+5,e[1]+5); ctx.stroke();
       } else {
         var a=Math.atan2(e[1]-q[1], e[0]-q[0]);
-        ctx.fillStyle='rgba(90,143,214,.9)'; ctx.beginPath();
+        ctx.fillStyle='rgba(91,104,196,.9)'; ctx.beginPath();
         ctx.moveTo(e[0],e[1]); ctx.lineTo(e[0]-8*Math.cos(a-0.4), e[1]-8*Math.sin(a-0.4));
         ctx.lineTo(e[0]-8*Math.cos(a+0.4), e[1]-8*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
       }
@@ -2301,7 +2380,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var at = absent ? [e[0], e[1]] : pts[Math.floor(pts.length/2)];
         ctx.textAlign = absent ? 'left' : 'center';
         ctx.font='8.5px "Archivo",sans-serif';
-        ctx.fillStyle = absent ? 'rgba(201,151,63,.95)' : 'rgba(90,143,214,.8)';
+        ctx.fillStyle = absent ? 'rgba(210,164,92,.95)' : 'rgba(91,104,196,.8)';
         ctx.fillText(label, absent ? at[0]+13 : at[0], absent ? at[1]+3 : at[1]-7);
       }
     }
@@ -2316,7 +2395,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(isD){
       ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
       ctx.moveTo(ax, aZero); ctx.lineTo(ax+aw, aZero);
-      ctx.strokeStyle='rgba(93,108,117,.8)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+      ctx.strokeStyle='rgba(102,112,138,.8)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
     }
     /* The strata are the stock — in BOTH modes. In delta each stratum is that
        vintage's own contribution to the difference, so you can see WHICH cohorts
@@ -2329,21 +2408,21 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(hgt>0){ y=aZero-accUp-hh; accUp+=hh; } else { y=aZero+accDn; accDn+=hh; }
       ctx.fillStyle=rgba(rampAt(c.acquisitionMonth/H), hgt>0?.92:.45);
       ctx.fillRect(ax+2, y, aw-4, hh);
-      ctx.strokeStyle='rgba(11,16,19,.5)'; ctx.lineWidth=0.7;
+      ctx.strokeStyle='rgba(10,13,21,.5)'; ctx.lineWidth=0.7;
       ctx.strokeRect(ax+2, y, aw-4, hh);
     });
-    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
+    ctx.strokeStyle='#414a60'; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
     if(!isD){ var bLvl = aBot - Math.min(1, bm.closingARR/arrMax)*aH;
       ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
       ctx.moveTo(ax-10,bLvl); ctx.lineTo(ax+aw+10,bLvl);
-      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
-    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+      ctx.strokeStyle='rgba(91,104,196,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(91,104,196,.85)';
       ctx.fillText('Base = 0', ax+aw+8, aZero+3); }
-    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
     ctx.fillText('STOCK · '+basis, ax+aw/2, aTop-24);
-    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0';
     ctx.fillText(rn(d.closingARR), ax+aw/2, aTop-6);
-    if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#3d4952';
+    if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#414a60';
       ctx.fillText(d.cohorts.length+' cohort vintages', ax-12, aBot+4); }
 
     /* ---------- CASH STOCK ---------- */
@@ -2360,20 +2439,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       cZero=cBot - (0-Math.min(0,cashLo))/cRange*cH;
       cLvlY=cBot - (d.cashClosing-Math.min(0,cashLo))/cRange*cH;
     }
-    ctx.fillStyle = d.cashClosing>=0 ? 'rgba(201,114,47,.5)' : 'rgba(59,74,85,.75)';
+    ctx.fillStyle = d.cashClosing>=0 ? 'rgba(139,141,240,.5)' : 'rgba(59,74,85,.75)';
     ctx.fillRect(cx+2, Math.min(cLvlY,cZero), cw-4, Math.abs(cZero-cLvlY));
-    ctx.strokeStyle='#3d4952'; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
+    ctx.strokeStyle='#414a60'; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
     ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(cx,cZero); ctx.lineTo(cx+cw,cZero);
-    ctx.strokeStyle='rgba(93,108,117,.7)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    ctx.strokeStyle='rgba(102,112,138,.7)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
     if(!isD){ var bc=cBot-(bm.cashClosing-Math.min(0,cashLo))/cRange*cH;
       ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
       ctx.moveTo(cx-10,bc); ctx.lineTo(cx+cw+10,bc);
-      ctx.strokeStyle='rgba(90,143,214,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
-    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.85)';
+      ctx.strokeStyle='rgba(91,104,196,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
+    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(91,104,196,.85)';
       ctx.fillText('Base = 0', cx+cw+8, cZero+3); }
-    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
     ctx.fillText('STOCK · CASH', cx+cw/2, cTop-24);
-    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#c9722f';
+    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0';
     ctx.fillText(n(d.cashClosing), cx+cw/2, cTop-6);
 
     /* ---------- INFLOWS ---------- */
@@ -2389,61 +2468,61 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* spend → response → pending: the law's own output this month (what this
        month's S&M will create); pending → stock: what actually matured */
     var lawFlow = isD ? d.acquisitionLawNewARR : abs.acquisitionLawNewARR;
-    pipeH(112, xPend-wPend/2, yNew, pipeW(lawFlow), dTone(lawFlow,'rgba(201,114,47,.35)','rgba(93,108,117,.4)'));
+    pipeH(112, xPend-wPend/2, yNew, pipeW(lawFlow), dTone(lawFlow,'rgba(139,141,240,.35)','rgba(102,112,138,.4)'));
     flatLine(112, xPend-wPend/2, yNew, lawFlow);
-    pipeH(xPend+wPend/2, ax, yNew, pipeW(d.newARR), dTone(d.newARR,'rgba(201,114,47,.55)','rgba(93,108,117,.5)'));
+    pipeH(xPend+wPend/2, ax, yNew, pipeW(d.newARR), dTone(d.newARR,'rgba(139,141,240,.55)','rgba(102,112,138,.5)'));
     flatLine(xPend+wPend/2, ax, yNew, d.newARR);
-    arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(201,114,47,.9)','rgba(93,108,117,.85)'));
+    arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(139,141,240,.9)','rgba(102,112,138,.85)'));
     valve(168, yNew, 'S&M per month', fmtF('eur', lv('sm')), 'sm', -72, 44);
     valve(255, yNew, 'CAC coefficient', fmtF('x', lv('cacPerARR')), 'cacPerARR', -72, 44);
     valve(340, yNew, 'capacity / month', satOn ? eur(lv('maxMonthlyNewARR')) : 'off', 'maxMonthlyNewARR', -72, 44);
-    if(!satOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('linear, unbounded', 340, yNew+55); }
+    if(!satOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('linear, unbounded', 340, yNew+55); }
     /* the pending-acquisition stock */
     ctx.save(); if(!lagOn) ctx.setLineDash([3,3]);
-    ctx.fillStyle = lagOn ? 'rgba(201,114,47,.14)' : 'rgba(11,16,19,0)';
-    ctx.strokeStyle = lagOn ? '#c9722f' : '#3d4952'; ctx.lineWidth=1.4;
+    ctx.fillStyle = lagOn ? 'rgba(139,141,240,.14)' : 'rgba(10,13,21,0)';
+    ctx.strokeStyle = lagOn ? '#8b8df0' : '#414a60'; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.roundRect(xPend-wPend/2, yNew-hPend/2, wPend, hPend, 4); ctx.fill(); ctx.stroke(); ctx.restore();
-    ctx.textAlign='center'; ctx.font='7.5px "Archivo",sans-serif'; ctx.fillStyle = lagOn ? '#8fa0aa' : '#3d4952';
+    ctx.textAlign='center'; ctx.font='7.5px "Archivo",sans-serif'; ctx.fillStyle = lagOn ? '#98a2b8' : '#414a60';
     ctx.fillText('PENDING', xPend, yNew-3);
-    ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = lagOn ? '#e2e9ec' : '#3d4952';
+    ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = lagOn ? '#e6e9f2' : '#414a60';
     ctx.fillText(lagOn ? rn(d.pendingNewARR) : '—', xPend, yNew+9);
-    ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle = lagOn ? '#c9722f' : '#3d4952';
+    ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle = lagOn ? '#8b8df0' : '#414a60';
     ctx.fillText(lagOn ? 'lag '+expRes.derived.acquisitionLagMonths+' mo' : 'lag 0 · no wait', xPend, yNew+31);
     var spP=toScreen(xPend-72, yNew+44); lawAnchors['acquisitionLagMonths']={x:spP.x, y:spP.y};
     valveHits.push({key:'acquisitionLagMonths', x:xPend, y:yNew});
-    if(openChip==='acquisitionLagMonths'){ ctx.strokeStyle='rgba(247,221,196,.9)'; ctx.lineWidth=1.4;
+    if(openChip==='acquisitionLagMonths'){ ctx.strokeStyle='rgba(226,228,255,.9)'; ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.arc(xPend,yNew,19,0,Math.PI*2); ctx.stroke(); }
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
     ctx.fillText('FLOW · New '+basis, 255, yNew-52);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
     ctx.fillText(rn(d.newARR), 255, yNew-38);
     dCaption(255, yNew-64, d.newARR);
 
     cloud(80, yExp, 'existing customer demand / budget');
-    pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(247,221,196,.5)','rgba(93,108,117,.5)'));
+    pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(226,228,255,.5)','rgba(102,112,138,.5)'));
     flatLine(112, ax, yExp, d.expansion);
-    arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(247,221,196,.85)','rgba(93,108,117,.85)'));
+    arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(226,228,255,.85)','rgba(102,112,138,.85)'));
     var monOnMap = expRes.mechanisms.monetization, mmo = expRes.months[m-1].monetization;
     valve(300, yExp, monOnMap ? 'expansion · price + usage + adoption' : 'expansion coefficient',
           monOnMap ? 'bypassed' : fmtF('pct', lv('expansionCoefficientAnnual')), monOnMap ? null : 'expansionCoefficientAnnual', -72, 44);
     if(monOnMap){
       /* v2 Gate B — the three named effects that ARE the expansion flow, and the
          caps that bound them; drawn beneath the pipe where the coefficient sat */
-      aux(190, yExp+52, 200, 'price · usage · adoption', rn(mmo.priceARR)+' · '+rn(mmo.usageARR)+' · '+rn(mmo.adoptionARR), '#22303a');
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      aux(190, yExp+52, 200, 'price · usage · adoption', rn(mmo.priceARR)+' · '+rn(mmo.usageARR)+' · '+rn(mmo.adoptionARR), '#222b3d');
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       ctx.fillText('bounded by the usage cap ('+Math.round(expA.monetization.components[1].unitsCap)+' units) and the penetration cap ('+pct(expA.monetization.components[1].penetrationCap,0)+')', 190, yExp+84);
     }
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
     ctx.fillText('FLOW · Expansion '+basis, 190, yExp-34);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
     ctx.fillText(rn(d.expansion), 190, yExp-18);
     dCaption(190, yExp-46, d.expansion);
 
     /* ---------- OUTFLOW ---------- */
     var xLeak=ax+aw/2;
-    pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,'rgba(59,74,85,.9)','rgba(143,160,170,.55)'));
+    pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,'rgba(59,74,85,.9)','rgba(152,162,184,.55)'));
     flatLine(xLeak, xLeak, 0, d.leakage, aBot, 648);
-    arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(143,160,170,.9)'));
+    arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(152,162,184,.9)'));
     var cuOnMap = expRes.mechanisms.customerPhysics;
     var Pmap = expRes.derived.persistenceAnnualEffective;
     valve(xLeak, 580, cuOnMap ? (Pmap===null ? 'persistence · emergent (mix)' : 'persistence · derived L(1−C)') : 'persistence coefficient',
@@ -2457,18 +2536,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       link([[xLeak-256, 600],[xLeak-24, 584]], '', false);
       link([[xLeak-136, 660],[xLeak-20, 592]], '', false);
       aux(xLeak-270, 690, 120, 'Customers', mcu ? mcu.closing.toFixed(0) : '—');
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       ctx.fillText('customer laws generate persistence', xLeak-200, 560);
     } else {
       lawAnchors['logoRetentionAnnual'] = null; lawAnchors['contractionAnnual'] = null;
     }
     cloud(xLeak, 690, 'leaves the system');
-    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
     ctx.fillText('FLOW · Leakage '+basis, xLeak+62, 548);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e2e9ec';
+    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
     ctx.fillText(rn(d.leakage), xLeak+62, 564);
     if(isD){ ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif';
-      ctx.fillStyle = Math.abs(d.leakage)<ZERO ? '#3d4952' : (d.leakage>0?'rgba(201,114,47,.9)':'rgba(143,160,170,.9)');
+      ctx.fillStyle = Math.abs(d.leakage)<ZERO ? '#414a60' : (d.leakage>0?'rgba(139,141,240,.9)':'rgba(152,162,184,.9)');
       ctx.fillText(Math.abs(d.leakage)<ZERO ? 'no change vs Base' : (d.leakage>0?'more leaks than Base':'less leaks than Base'), xLeak+62, 578); }
 
     /* ---------- ARR → economics → cash ---------- */
@@ -2479,8 +2558,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* v1.1 — the realisation cost is a P&L line fed by the EXPANSION FLOW, so
        its valve sits on the P&L column and its information link comes from
        the tank at the height the expansion flow enters it. Drawn dim when 0. */
-    aux(788, 358, 112, 'Expansion realisation cost', n(d.expansionCost), costOn ? '#22303a' : '#141d22');
-    if(!costOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#3d4952'; ctx.fillText('cost 0 · expansion is free', 788, 388); }
+    aux(788, 358, 112, 'Expansion realisation cost', n(d.expansionCost), costOn ? '#222b3d' : '#131a27');
+    if(!costOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('cost 0 · expansion is free', 788, 388); }
     valve(694, 358, 'cost per €1 exp.', lv('expansionCostPerARR')>0 ? lv('expansionCostPerARR').toFixed(2)+'×' : 'off', 'expansionCostPerARR', -72, 44);
     aux(760, 440, 150, 'Other operating', n(d.otherOpex));
     /* v2 Gate D — a hypothesis in force this month rings the valve it moves */
@@ -2488,26 +2567,26 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(ivMap && ivMap.changes.length){
       ivMap.changes.forEach(function(ch){
         var vh = valveHits.filter(function(v){ return v.key===ch.target; })[0]; if(!vh) return;
-        ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(90,143,214,.95)'; ctx.lineWidth=1.6;
+        ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(91,104,196,.95)'; ctx.lineWidth=1.6;
         ctx.beginPath(); ctx.arc(vh.x, vh.y, 24, 0, Math.PI*2); ctx.stroke(); ctx.restore();
-        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(90,143,214,.95)';
+        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(91,104,196,.95)';
         ctx.fillText('hypothesis '+ch.id+' in force', vh.x, vh.y-30);
       });
     }
     var cashOnMap = expRes.mechanisms.cashPhysics, mca = expRes.months[m-1].cash;
-    aux(905, 330, 120, cashOnMap ? 'Cash FCF' : 'FCF', n(d.fcf), d.fcf>=0?'#4f9e77':'#c9973f');
+    aux(905, 330, 120, cashOnMap ? 'Cash FCF' : 'FCF', n(d.fcf), d.fcf>=0?'#4fa37d':'#d2a45c');
     if(cashOnMap){
       /* v2 Gate C — the two balances between the P&L and the cash stock */
-      aux(905, 382, 120, mca.deferredClosing>=0 ? 'Deferred revenue' : 'Contract asset', eur(Math.abs(mca.deferredClosing)), '#22303a');
-      aux(905, 430, 120, 'Receivables', eur(mca.receivablesClosing), '#22303a');
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+      aux(905, 382, 120, mca.deferredClosing>=0 ? 'Deferred revenue' : 'Contract asset', eur(Math.abs(mca.deferredClosing)), '#222b3d');
+      aux(905, 430, 120, 'Receivables', eur(mca.receivablesClosing), '#222b3d');
+      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       ctx.fillText('billed '+expA.billingTermMonths+' mo in '+expA.billingTiming+(expA.collectionDelayMonths>0?', collected +'+expA.collectionDelayMonths+' mo':''), 905, 462);
     }
     var fcfW = (isD && Math.abs(d.fcf)<ZERO) ? 0 : Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26));
-    pipeH(965, cx, 330, fcfW, d.fcf>=0?'rgba(79,158,119,.6)':'rgba(201,151,63,.6)');
+    pipeH(965, cx, 330, fcfW, d.fcf>=0?'rgba(79,163,125,.6)':'rgba(210,164,92,.6)');
     flatLine(965, cx, 330, d.fcf);
-    arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,158,119,1)':'rgba(201,151,63,1)');
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+    arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,163,125,1)':'rgba(210,164,92,1)');
+    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
     ctx.fillText('FLOW · FCF', 993, 300);
 
     /* ---------- INFORMATION LINKS: the stock sets its own future rates ---------- */
@@ -2530,10 +2609,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     link([[700,460],[700,616],[652,616]], 'R&D → retention or expansion', true);
 
     /* ---------- header and scales ---------- */
-    ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
     ctx.fillText((isD?'SYSTEM · DELTA — Experiment − Base':'SYSTEM · stock and flow')+'   ·   month '+m, 30, 26);
     if(isD && flowsAllFlat && !noExperiment){
-      ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#c9973f'; ctx.textAlign='right';
+      ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#d2a45c'; ctx.textAlign='right';
       ctx.fillText('Every ARR flow is identical to Base at every month — this change does not touch ARR physics. The whole effect is downstream, in cash.', SYS.W-30, 26);
       ctx.textAlign='left';
     }
@@ -2542,30 +2621,30 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        but an empty diagram cannot say so, and the Forces rail is hidden on this
        layer, so the way out has to be stated here, on the valves themselves. */
     if(isD && noExperiment){
-      ctx.fillStyle='rgba(11,16,19,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
+      ctx.fillStyle='rgba(10,13,21,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
       valveHits.forEach(function(v){
-        ctx.strokeStyle='rgba(201,114,47,.95)'; ctx.lineWidth=1.6;
+        ctx.strokeStyle='rgba(139,141,240,.95)'; ctx.lineWidth=1.6;
         ctx.beginPath(); ctx.arc(v.x, v.y, 23, 0, Math.PI*2); ctx.stroke();
       });
       var bw=680, bh=132, bx=(SYS.W-bw)/2, by=396;   /* the one band clear of every valve */
-      ctx.fillStyle='#0e1418'; ctx.strokeStyle='#c9722f'; ctx.lineWidth=1.4;
+      ctx.fillStyle='#0e1219'; ctx.strokeStyle='#8b8df0'; ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke();
       ctx.textAlign='center';
-      ctx.font='15px "Archivo",sans-serif'; ctx.fillStyle='#e2e9ec';
+      ctx.font='15px "Archivo",sans-serif'; ctx.fillStyle='#e6e9f2';
       ctx.fillText('Delta is empty because no experiment is set.', SYS.W/2, by+38);
-      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#8fa0aa';
+      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
       ctx.fillText('This view draws Experiment − Base. Right now they are the same run, so every stock and every', SYS.W/2, by+64);
       ctx.fillText('flow is exactly zero. Nothing is broken — there is simply no difference to draw yet.', SYS.W/2, by+81);
-      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#c9722f';
+      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#8b8df0';
       ctx.fillText('Click any circled valve to move an assumption — or switch Compare to Absolute.', SYS.W/2, by+108);
       ctx.textAlign='left';
     }
-    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5d6c75';
+    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
     ctx.fillText('Rectangles accumulate. Pipes fill and drain them. Bowties are the valves you set. Clouds are the model boundary. '+
                  'Dashed blue arrows are information: the stock setting the rate of its own future flows. PENDING is the spend-to-cohort wait; dashed when there is none.', 30, 42);
-    ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#3d4952';
+    ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
     ctx.fillText('SCALES  stock level ∝ € of '+basis+' and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
-    ctx.fillStyle='rgba(201,151,63,.95)';
+    ctx.fillStyle='rgba(210,164,92,.95)';
     ctx.fillText('⊘ marks a link the engine does not model. An absent feedback is a finding, not an omission in the drawing.', 30, SYS.H-30);
     endFit(); positionLawChips();
   }
@@ -2624,7 +2703,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     function yC2(v){ return geo.capBot - ((v-lo)/span)*(geo.capBot-geo.capTop); }
     var y0 = yC2(0), dark=[col[0]*0.36, col[1]*0.36, col[2]*0.42];
 
-    ctx.strokeStyle='#22303a'; ctx.lineWidth=1;
+    ctx.strokeStyle='#222b3d'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(geo.L, y0+0.5); ctx.lineTo(W-geo.R, y0+0.5); ctx.stroke();
 
     if(subj){
@@ -2665,12 +2744,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
         ctx.moveTo(X(bcap.acquisitionMonth), yC2(-bcap.acquisitionCost));
         bcap.series.forEach(function(s){ ctx.lineTo(X(s.t), yC2(s.net)); });
-        ctx.strokeStyle='rgba(90,143,214,.8)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+        ctx.strokeStyle='rgba(91,104,196,.8)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
         if(bcap.paybackMonth!==null && bcap.paybackMonth!==subj.paybackMonth){
           var bx=X(bcap.paybackMonth);
           ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
           ctx.moveTo(bx, geo.capTop+2); ctx.lineTo(bx, geo.capBot);
-          ctx.strokeStyle='rgba(90,143,214,.55)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+          ctx.strokeStyle='rgba(91,104,196,.55)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
         }
       }
       /* §2 — ONE payback sentence, not two independently positioned labels
@@ -2679,14 +2758,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         var pxp=X(subj.paybackMonth), reached=subj.paybackMonth<=t;
         ctx.save(); if(!reached) ctx.setLineDash([3,3]);
         ctx.beginPath(); ctx.moveTo(pxp, geo.capTop+2); ctx.lineTo(pxp, geo.capBot);
-        ctx.strokeStyle= reached ? 'rgba(247,221,196,.8)' : 'rgba(247,221,196,.28)';
+        ctx.strokeStyle= reached ? 'rgba(226,228,255,.8)' : 'rgba(226,228,255,.28)';
         ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
         var paybackLabel = 'COHORT PAYBACK · age '+subj.paybackAge;
         if(bcap && bcap.paybackMonth!==null) paybackLabel += bcap.paybackMonth===subj.paybackMonth ?
           '  (Base: same)' : '  ·  Base age '+bcap.paybackAge;
         else if(bcap && bcap.paybackMonth===null) paybackLabel += '  ·  Base: not reached';
         ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace';
-        ctx.fillStyle= reached ? '#f7ddc4' : '#5d6c75';
+        ctx.fillStyle= reached ? '#f7ddc4' : '#66708a';
         ctx.fillText(paybackLabel, pxp+6, geo.capTop+24);
         if(j<=t){   /* the span that IS the payback time */
           var yb=geo.capBot-5;
@@ -2696,7 +2775,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           ctx.moveTo(pxp,yb-3); ctx.lineTo(pxp,yb+3); ctx.stroke();
         }
       }
-      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.textAlign='left'; ctx.fillStyle='#66708a'; ctx.font='9.5px "JetBrains Mono",monospace';
       ctx.fillText(label+'   deployed '+eur(subj.acquisitionCost)+
         (bcap && bcap.acquisitionCost!==null && bcap.acquisitionCost!==subj.acquisitionCost ? '   (base '+eur(bcap.acquisitionCost)+')' : ''),
         geo.L+8, geo.capTop+11);
@@ -2714,13 +2793,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       ctx.strokeStyle=rgba(dark,1); ctx.lineWidth=1.5; ctx.stroke();
       ctx.beginPath(); for(var m5=mi;m5<=H;m5++){ var gx=X(m5); m5===mi?ctx.moveTo(gx,yC2(capAgg[m5].surplus)):ctx.lineTo(gx,yC2(capAgg[m5].surplus)); }
       ctx.strokeStyle=rgba(col,.75); ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
-      ctx.textAlign='left'; ctx.fillStyle='#5d6c75'; ctx.font='9.5px "JetBrains Mono",monospace';
+      ctx.textAlign='left'; ctx.fillStyle='#66708a'; ctx.font='9.5px "JetBrains Mono",monospace';
       ctx.fillText(label, geo.L+8, geo.capTop+11);
       ctx.fillStyle=rgba(col,.85);
       ctx.fillText('beyond cost  '+eur(capAgg[mi].surplus), geo.L+8, y0-7);
       ctx.fillStyle=rgba([col[0]*0.72,col[1]*0.72,col[2]*0.78],1);
       ctx.fillText('still out  '+eur(capAgg[mi].out)+(capAgg[mi].pend>0 ? '   of which pending acquisition '+eur(capAgg[mi].pend) : ''), geo.L+8, y0+15);
-      ctx.textAlign='right'; ctx.fillStyle='#3d4952';
+      ctx.textAlign='right'; ctx.fillStyle='#414a60';
       ctx.fillText('click a stratum to follow one cohort from deployment to payback', W-geo.R-6, geo.capTop+11);
     }
   }
@@ -3022,33 +3101,75 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '<div class="comp-l">'+parts.map(function(p){ return '<span>'+esc(p.n)+' <b>'+p.f+'</b> '+pct(Math.max(0,p.v)/tot,0)+'</span>'; }).join('')+'</div>'; }
   function trailing12(m){ return { from: Math.max(1, m-11), to: m, tag: m>=12 ? 'R12M' : 'CUM · M1–M'+m }; }
 
+  /* ------------------------------------------------------------------ *
+   * EXPERIMENT PROPAGATION (docs/LENS-VISUAL-GRAMMAR.md). One disturbance,
+   * five views. Every lens shows: the changed assumption at the mechanism it
+   * entered (a MARK), the consequence appropriate to the lens (a DELTA on its
+   * primary state), and — when that is the finding — that its mechanism is
+   * unchanged. Nothing here is computed: every delta is Experiment minus Base
+   * on the engine's own fields at the same month.
+   * ------------------------------------------------------------------ */
+  function rootKey(k){ return String(k).split('.')[0].split('[')[0]; }
+  function chLabel(c){ var Fk=forceOf(c.key)||{}; return (LABEL||{})[c.key]||c.label||Fk.label||c.key; }
+  function chText(c){ var Fk=forceOf(c.key)||{}, f=(LABEL_FMT||{})[c.key]||Fk.f||'eur'; if(c.key==='interventions') return '↯ hypothesis'; if(typeof c.from==='string') return c.from+' → '+c.to; if((c.from!==null&&typeof c.from==='object')||(c.to!==null&&typeof c.to==='object')) return 'components changed'; if(c.from===null||c.to===null) return (c.from===null?'off':'on')+' → '+(c.to===null?'off':'on'); return fmtF(f,c.from)+' → '+fmtF(f,c.to); }
+  function chMark(c){
+    var body = (typeof c.from==='string') ? esc(c.from)+' → <b>'+esc(c.to)+'</b>' : fmtChange(c);
+    return '<div class="mark"><span class="mk-l">'+esc(chLabel(c))+'</span><span class="mk-v">'+body+'</span></div>';
+  }
+  function marksFor(CH, roots){ var mk = CH.filter(function(c){ return roots.indexOf(rootKey(c.key))>=0; }); return mk.length ? '<div class="marks">'+mk.map(chMark).join('')+'</div>' : ''; }
+  /* a delta on a primary state: +€5.5m vs Base · +186 vs Base · +1.2 pp vs Base. `good` = the economic direction of an increase */
+  function vsN(v, b, fmtAbs, good, tol){ if(v===null||v===undefined||b===null||b===undefined) return ''; var d=v-b; if(Math.abs(d) < (tol===undefined?1:tol)) return ''; var cl = !good ? 'flat' : (d*good>0 ? 'up' : 'down'); return '<span class="vs '+cl+'">'+(d>=0?'+':'−')+fmtAbs(Math.abs(d))+' vs Base</span>'; }
+  function vsPP(v, b, good){ return vsN(v, b, function(a){ return (a*100).toFixed(1)+' pp'; }, good, 5e-4); }
+  function n0(v){ return Math.round(v).toLocaleString('en-GB'); }
+  function n1(v){ return v.toFixed(1); }
+  /* the first month the experiment's ARR (or cash) leaves the Base */
+  function effectFrom(){
+    var a=null, c=null;
+    for(var i=0;i<H;i++){ var xm=expRes.months[i], bm=baseRes.months[i];
+      if(a===null && Math.abs(xm.closingARR-bm.closingARR)>1) a=i+1;
+      if(c===null && Math.abs(xm.cashClosing-bm.cashClosing)>1) c=i+1;
+      if(a!==null && c!==null) break; }
+    return { arr:a, cash:c };
+  }
+  /* a vertical flow: nodes (values) and valves (laws, constraints, off mechanisms) on one rail */
+  function fnode(kind, value, label, extra){ return '<div class="fn'+(kind?' '+kind:'')+'"><b>'+value+'</b><span>'+esc(label)+'</span>'+(extra||'')+'</div>'; }
+  function fvalve(kind, text, extra){ return '<div class="fv '+kind+'"><span>'+text+'</span>'+(extra||'')+'</div>'; }
+  function same(label){ return '<div class="same">'+esc(label)+' · unchanged vs Base</div>'; }
+  function near(a, b, tol){ return Math.abs(a-b) < (tol===undefined?1:tol); }
+
   function renderLenses(m, em, bm){
     var cuOn = !!em.customers, moOn = !!em.monetization, caOn = !!em.cash, ivOn = !!em.interventions;
+    var cuB = !!bm.customers, moB = !!bm.monetization, caB = !!bm.cash;
     var Mt = 'M'+m, w = trailing12(m);
-    var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
-    var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
+    var kpi = m>=12 ? K.measureR12M(expRes, m) : null, kpiB = m>=12 ? K.measureR12M(baseRes, m) : null;
+    var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null, cmB = cuB && m>=12 ? K.customerMeasures(baseRes, m) : null;
     var mm = moOn && m>=12 ? K.monetizationMeasures(expRes, m) : null;
+    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || pairMode, eff = differs ? effectFrom() : {arr:null, cash:null};
+    var sx = E.summarise(expRes), sb = E.summarise(baseRes);
     var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
     var h = '';
     var offLayers = [];
     if(!cuOn) offLayers.push('customers'); if(!moOn) offLayers.push('monetization'); if(!caOn) offLayers.push('cash');
+    var S12 = function(f){ return sumM(expRes, w.from, w.to, f); }, B12 = function(f){ return sumM(baseRes, w.from, w.to, f); };
 
-    /* ---- 1. COMPANY ---- */
+    /* ================= 1. COMPANY — what company emerged? ================= */
     var dARR = em.closingARR-bm.closingARR;
-    var revR12 = sumM(expRes, w.from, w.to, function(x){ return x.revenue; }), ebR12 = sumM(expRes, w.from, w.to, function(x){ return x.ebita; });
-    var trough = E.summarise(expRes);
+    var revR12 = S12(function(x){ return x.revenue; }), ebR12 = S12(function(x){ return x.ebita; });
+    var arpa = cuOn ? em.closingARR/em.customers.closing : null, arpaB = cuB ? bm.closingARR/bm.customers.closing : null;
     h += lensHead('1', 'What kind of company is this?', Mt, 'company') +
       '<div class="hero"><span class="hv">'+reur(em.closingARR)+'</span><span class="hs">'+basis+'</span>'+
         '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
         (Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
       '<div class="desc">'+
-        (cuOn ? '<div><div class="dv">'+em.customers.closing.toFixed(0)+'</div><div class="dl">customers</div></div>'+
-                '<div><div class="dv">'+eurF(em.closingARR/em.customers.closing)+'</div><div class="dl">ARPA · ARR per customer</div></div>' : '')+
-        (kpi ? '<div><div class="dv meas">→ '+pct(kpi.nrr,1)+'</div><div class="dl">net dollar retention · R12M</div></div>' : '')+
+        (cuOn ? '<div><div class="dv">'+em.customers.closing.toFixed(0)+'</div><div class="dl">customers'+(cuB ? vsN(em.customers.closing, bm.customers.closing, n0, +1, 0.5) : '')+'</div></div>'+
+                '<div><div class="dv">'+reur(arpa)+'</div><div class="dl">'+basis+' per customer'+(cuB ? vsN(arpa, arpaB, reur, +1, 1) : '')+'</div></div>' : '')+
+        (kpi ? '<div><div class="dv meas">→ '+pct(kpi.nrr,1)+'</div><div class="dl">net dollar retention · R12M'+(kpiB ? vsPP(kpi.nrr, kpiB.nrr, +1) : '')+'</div></div>' : '')+
         '<div><div class="dv law">⋈ '+pct(lawNow('grossMargin'),0)+'</div><div class="dl">gross margin · law</div></div>'+
         '<div><div class="dv meas">→ '+(revR12>0 ? pct(ebR12/revR12,1) : '—')+'</div><div class="dl">EBITA margin · '+w.tag+'</div></div>'+
-        '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · trough '+eur(trough.cashTrough)+' at M'+trough.cashTroughMonth+'</div></div>'+
+        '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · trough '+eur(sx.cashTrough)+' at M'+sx.cashTroughMonth+vsN(em.cashClosing, bm.cashClosing, eur, +1, 1)+'</div></div>'+
       '</div>'+
+      (differs && CH.length ? '<div class="marks company"><span class="eyebrow">Changed</span>'+CH.slice(0,4).map(chMark).join('')+(CH.length>4 ? '<div class="hint">+ '+(CH.length-4)+' more · see Compare</div>' : '')+
+          '<div class="hint">'+(eff.arr ? basis+' leaves Base from M'+eff.arr : basis+' stays on Base')+(eff.cash ? ' · cash from M'+eff.cash : ' · cash on Base')+'</div></div>' : '')+
       (ivOn ? '<div class="hyprow">'+(em.interventions.changes.length
           ? em.interventions.changes.map(function(ch){ return '<b>hypothesis '+esc(ch.id)+'</b> in force · '+esc(hypTargetLabel(ch.target))+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('<br>')
           : '<b>hypothesis</b> not in force this month')+(em.interventionCost>0 ? ' · cost '+eur(em.interventionCost)+' this month' : '')+'</div>' : '')+
@@ -3056,133 +3177,181 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       '</div>';
     h += nav;
 
-    /* ---- 2. CUSTOMERS ---- */
-    h += lensHead('2', 'What installed base produces the revenue?', Mt, 'customers');
+    /* ================= 2. CUSTOMERS — customers × economics per customer = recurring revenue ================= */
     if(cuOn){
       var cu = em.customers;
-      h += figT('Logos', Mt+' · month') + ladder([
-        {k:'stock', n:'Opening', v:cu.opening, f:cu.opening.toFixed(0)},
-        {k:'in', n:'+ new logos', v:cu.newCustomers, f:cu.newCustomers.toFixed(1)},
-        {k:'out', n:'− churn', v:-cu.logoChurn, f:cu.logoChurn.toFixed(1), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
-        {k:'stock', n:'Closing', v:cu.closing, f:cu.closing.toFixed(0)}]) + '</div>';
+      h += lensHead('2', 'What is happening to the installed base, and to the economics per customer?', Mt, 'customers');
+      h += marksFor(CH, ['logoRetentionAnnual','contractionAnnual','newLogoARPA']);
+      h += '<div class="ident">'+
+        '<span class="it"><b>'+n0(cu.closing)+'</b><i>customers</i>'+(cuB ? vsN(cu.closing, bm.customers.closing, n0, +1, 0.5) : '')+'</span><span class="op">×</span>'+
+        '<span class="it"><b>'+reur(arpa)+'</b><i>'+basis+' per customer · derived</i>'+(cuB ? vsN(arpa, arpaB, reur, +1, 1) : '')+'</span><span class="op">=</span>'+
+        '<span class="it"><b>'+reur(em.closingARR)+'</b><i>'+basis+'</i>'+vsN(em.closingARR, bm.closingARR, reur, +1, 1)+'</span></div>';
+      h += '<div class="desc">'+
+        '<div><div class="dv meas">→ '+(cm ? pct(cm.logoRetentionR12M,1) : 'needs 12 mo')+'</div><div class="dl">logo retention · R12M'+(cm && cmB ? vsPP(cm.logoRetentionR12M, cmB.logoRetentionR12M, +1) : '')+'</div></div>'+
+        '<div><div class="dv meas">→ '+(kpi ? pct(kpi.grr,1) : 'needs 12 mo')+'</div><div class="dl">gross dollar retention · R12M'+(kpi && kpiB ? vsPP(kpi.grr, kpiB.grr, +1) : '')+'</div></div>'+
+        '<div><div class="dv meas">→ '+(kpi ? pct(kpi.nrr,1) : 'needs 12 mo')+'</div><div class="dl">net dollar retention · R12M'+(kpi && kpiB ? vsPP(kpi.nrr, kpiB.nrr, +1) : '')+'</div></div>'+
+        '<div><div class="dv derived">⋈ '+(expRes.derived.persistenceAnnualEffective===null ? 'emergent' : pct(expRes.derived.persistenceAnnualEffective,1))+'</div><div class="dl">persistence · '+(expRes.derived.persistenceAnnualEffective===null ? 'from the revenue mix' : 'L × (1 − C), derived')+'</div></div>'+
+        '</div>';
       var arrRows = [{k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
-        {k:'in', n:'+ new '+basis, v:em.newARR, f:reur(em.newARR)},
-        {k:'out', n:'− churned '+basis, v:-cu.logoChurnARR, f:reur(cu.logoChurnARR)},
-        {k:'out', n:'− contraction', v:-cu.contractionARR, f:reur(cu.contractionARR), law:'⋈ '+pct(lawNow('contractionAnnual'),0)}];
-      if(moOn) arrRows = arrRows.concat([{k:'in', n:'+ price', v:em.monetization.priceARR, f:reur(em.monetization.priceARR)}, {k:'in', n:'+ usage', v:em.monetization.usageARR, f:reur(em.monetization.usageARR)}, {k:'in', n:'+ adoption', v:em.monetization.adoptionARR, f:reur(em.monetization.adoptionARR)}]);
-      else arrRows.push({k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)});
-      arrRows.push({k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)});
-      h += figT(basis, Mt+' · month') + ladder(arrRows) + '</div>';
-      h += '<div class="readouts">'+
-        ro('logo retention · R12M', cm ? pct(cm.logoRetentionR12M,1) : 'needs 12 mo') +
-        ro('gross dollar retention · R12M', kpi ? pct(kpi.grr,1) : 'needs 12 mo') +
-        ro('net dollar retention · R12M', kpi ? pct(kpi.nrr,1) : 'needs 12 mo') +
-        ro('persistence in force', expRes.derived.persistenceAnnualEffective===null ? 'emergent from the mix' : pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)', 'derived') +
-        '</div>'+ installedBaseNet(em) +
-        (cm && kpi ? '<div class="lens-off">'+(cm.logoRetentionR12M > kpi.grr+0.002 ? 'Customers stay more than dollars do: '+pct(cm.logoRetentionR12M - kpi.grr,1)+' of the gap is contraction inside surviving accounts.' : 'Dollars stay as well as customers do.')+(kpi.nrr>cm.logoRetentionR12M ? ' Net retention above logo retention: expansion is carrying the base.' : '')+' <span class="basis">R12M</span></div>' : '');
+        {k:'out', n:'− left · churned logos', v:-cu.logoChurnARR, f:reur(cu.logoChurnARR), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
+        {k:'out', n:'− stayed but shrank · contraction', v:-cu.contractionARR, f:reur(cu.contractionARR), law:'⋈ '+pct(lawNow('contractionAnnual'),0)}];
+      if(moOn) arrRows.push({k:'in', n:'+ expanded · price + usage + adoption', v:em.monetization.priceARR+em.monetization.usageARR+em.monetization.adoptionARR, f:reur(em.monetization.priceARR+em.monetization.usageARR+em.monetization.adoptionARR)});
+      else arrRows.push({k:'in', n:'+ expanded', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)});
+      arrRows.push({k:'in', n:'+ new customers', v:em.newARR, f:reur(em.newARR)}, {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)});
+      h += '<div class="two">'+
+        figT('Customer base · logos', Mt+' · month') + ladder([
+          {k:'stock', n:'Opening', v:cu.opening, f:n1(cu.opening)},
+          {k:'in', n:'+ new logos', v:cu.newCustomers, f:n1(cu.newCustomers)},
+          {k:'out', n:'− left · churned', v:-cu.logoChurn, f:n1(cu.logoChurn), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
+          {k:'stock', n:'Closing', v:cu.closing, f:n1(cu.closing)}]) + '</div>'+
+        figT('Customer economics · '+basis, Mt+' · month') + ladder(arrRows) + '</div>'+
+        '</div>';
+      /* ARR growth = customer growth × ARPA development — exact, because ARR = customers × ARPA */
+      var m0 = m>12 ? expRes.months[m-13] : null;
+      if(m0 && m0.customers){
+        var c0=m0.customers.closing, c1=cu.closing, a0=m0.closingARR/c0, a1=em.closingARR/c1, gc=c1/c0-1, ga=a1/a0-1, gA=em.closingARR/m0.closingARR-1;
+        h += '<div class="decomp"><div class="fig-t"><span class="eyebrow">'+basis+' growth = customer growth × ARPA development · M'+(m-12)+' → '+Mt+'</span><span class="basis">R12M</span></div>'+
+          '<div class="ident small"><span class="it"><b>'+relS(gc)+'</b><i>customers · '+n0(c0)+' → '+n0(c1)+'</i></span><span class="op">×</span><span class="it"><b>'+relS(ga)+'</b><i>ARPA · '+reur(a0)+' → '+reur(a1)+'</i></span><span class="op">=</span><span class="it"><b>'+relS(gA)+'</b><i>'+basis+'</i></span></div>'+
+          '<div class="hint">(1 + customers)(1 + ARPA) − 1: exact, because '+basis+' is customers × '+basis+' per customer.</div></div>';
+      }
+      if(differs && cuB && near(cu.closing, bm.customers.closing, 0.05) && near(cu.logoChurn, bm.customers.logoChurn, 0.01) && !near(em.closingARR, bm.closingARR)) h += same('Customer base');
     } else {
-      h += figT(basis, Mt+' · month') + ladder([
-        {k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
-        {k:'in', n:'+ new '+basis, v:em.newARR, f:reur(em.newARR)},
-        {k:'out', n:'− leakage', v:-em.leakage, f:reur(em.leakage), law:'⋈ '+pct(lawNow('persistenceAnnual'),0)},
-        {k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)},
-        {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
-        '<div class="readouts">'+ro('gross dollar retention · R12M', kpi ? pct(kpi.grr,1) : 'needs 12 mo')+ro('net dollar retention · R12M', kpi ? pct(kpi.nrr,1) : 'needs 12 mo')+ro('persistence', pct(lawNow('persistenceAnnual'),1), 'law')+'</div>'+ installedBaseNet(em) +
-        '<div class="lens-off">No customer layer: there are no logos, leakage is one number and persistence is a set law. Switch Logo retention on to see who leaves and who shrinks.</div>';
+      h += lensHead('2', 'What installed base produces the revenue?', Mt, 'customers');
+      h += '<div class="reduced"><div class="eyebrow">Installed base · '+basis+' only</div>'+
+        '<div class="lens-off">Customer Physics off — '+basis+' is modelled without logos: leakage is one number and persistence one law. Enabling Customer Physics separates who left from who stayed but shrank.</div>'+
+        marksFor(CH, ['persistenceAnnual','expansionCoefficientAnnual'])+
+        '<div class="ident"><span class="it"><b>'+reur(em.closingARR)+'</b><i>'+basis+' · one balance per cohort</i>'+vsN(em.closingARR, bm.closingARR, reur, +1, 1)+'</span></div>'+
+        figT('Installed-base movement', Mt+' · month') + ladder([
+          {k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
+          {k:'out', n:'− leakage', v:-em.leakage, f:reur(em.leakage), law:'⋈ '+pct(lawNow('persistenceAnnual'),0)},
+          {k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)},
+          {k:'in', n:'+ new '+basis, v:em.newARR, f:reur(em.newARR)},
+          {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
+        '<div class="readouts">'+ro('gross dollar retention · R12M', kpi ? pct(kpi.grr,1) : 'needs 12 mo')+ro('net dollar retention · R12M', kpi ? pct(kpi.nrr,1) : 'needs 12 mo')+ro('persistence', pct(lawNow('persistenceAnnual'),1), 'law')+'</div>'+
+        installedBaseNet(em)+'</div>';
     }
     h += '</div>';
 
-    /* ---- 3. GROWTH ENGINE ---- */
-    var qx = expRes.derived.acquisition, satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0;
-    var newR12 = sumM(expRes, w.from, w.to, function(x){ return x.newARR; }), expR12 = sumM(expRes, w.from, w.to, function(x){ return x.expansion; }), leakR12 = sumM(expRes, w.from, w.to, function(x){ return x.leakage; });
+    /* ================= 3. GROWTH ENGINE — capital → acquisition → new ARR → cohort ================= */
+    var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition, satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0, lag = expRes.derived.acquisitionLagMonths;
+    var newR12 = S12(function(x){ return x.newARR; }), expR12 = S12(function(x){ return x.expansion; }), leakR12 = S12(function(x){ return x.leakage; });
     var arrPrev = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
-    h += lensHead('3', 'What actually creates growth?', Mt, 'growth') +
-      '<div class="chain">'+
-        '<div class="cn"><div class="cl">S&amp;M · month</div><div class="cv">'+eur(em.sm)+'</div></div>'+
-        '<div class="cn law"><div class="cl">CAC coefficient</div><div class="cv">⋈ '+lawNow('cacPerARR').toFixed(2)+'×</div></div>'+
-        '<div class="cn '+(satOn?'cap':'off')+'"><div class="cl">capacity</div><div class="cv">'+(satOn ? '⌈⌉ '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : 'off · linear')+'</div></div>'+
-        '<div class="cn"><div class="cl">committed new '+basis+'</div><div class="cv">'+reur(em.acquisitionLawNewARR)+'</div></div>'+
-        '<div class="cn '+(lagOn?'':'off')+'"><div class="cl">lag</div><div class="cv">'+(lagOn ? expRes.derived.acquisitionLagMonths+' mo · '+reur(em.pendingNewARR)+' pending' : 'none')+'</div></div>'+
-        '<div class="cn stock"><div class="cl">cohort '+Mt+' · '+E.cohortSnapshot(expRes,m).length+' alive</div><div class="cv">'+reur(em.newARR)+(cuOn ? ' · '+em.customers.newCustomers.toFixed(1)+' logos' : '')+'</div></div>'+
+    var alive = E.cohortSnapshot(expRes,m).length;
+    var acqSame = differs && near(em.sm, bm.sm) && near(em.acquisitionLawNewARR, bm.acquisitionLawNewARR) && near(em.newARR, bm.newARR) && near(qx.averageCAC, qb.averageCAC, 1e-6);
+    h += lensHead('3', 'How is capital becoming new recurring revenue?', Mt, 'growth');
+    h += marksFor(CH, ['sm','cacPerARR','maxMonthlyNewARR','acquisitionLagMonths']);
+    h += '<div class="engine"><div class="vflow">'+
+      fnode('input', eur(em.sm), 'S&M this month · capital in', vsN(em.sm, bm.sm, eur, 0, 1))+
+      fvalve('law', '⋈ CAC coefficient <b>'+lawNow('cacPerARR').toFixed(2)+'×</b> · € of S&amp;M per €1 of new ARR at low spend')+
+      (satOn ? fvalve('cons', '⌈⌉ capacity <b>'+eur(lawNow('maxMonthlyNewARR'))+'/mo</b> · '+pct(qx.utilisation,0)+' used · each extra euro buys less'+(qb.enabled && !near(qx.utilisation, qb.utilisation, 5e-3) ? vsPP(qx.utilisation, qb.utilisation, 0) : ''))
+             : fvalve('off', 'no capacity · linear: every euro buys the same ARR'))+
+      fnode('', reur(em.acquisitionLawNewARR), basis+' committed this month', vsN(em.acquisitionLawNewARR, bm.acquisitionLawNewARR, reur, +1, 1))+
+      (lagOn ? fvalve('law', '⋈ lag <b>'+lag+' mo</b> · '+reur(em.pendingNewARR)+' committed, not yet arrived') : fvalve('off', 'no lag · arrives the month it is bought'))+
+      fnode('stock', reur(em.newARR)+(cuOn ? ' · '+n1(em.customers.newCustomers)+' logos' : ''), basis+' arrives · cohort '+Mt+' · '+alive+' alive', vsN(em.newARR, bm.newARR, reur, +1, 1))+
       '</div>'+
-      '<div class="tiles">'+
-        '<div class="tile law"><div class="tl">CAC coefficient · law</div><div class="tv">⋈ '+lawNow('cacPerARR').toFixed(2)+'×</div><div class="ts">Coefficient payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo</div></div>'+
-        '<div class="tile meas"><div class="tl">Average CAC · at this spend</div><div class="tv">→ '+qx.averageCAC.toFixed(2)+'×</div><div class="ts">Average payback '+qx.averagePaybackMonths.toFixed(1)+' mo</div></div>'+
-        '<div class="tile meas"><div class="tl">Marginal CAC · next euro</div><div class="tv">→ '+qx.marginalCAC.toFixed(2)+'×</div><div class="ts">'+(satOn ? 'Marginal payback '+qx.marginalPaybackMonths.toFixed(1)+' mo' : '= coefficient while capacity is off')+'</div></div>'+
-      '</div>'+
-      (lagOn ? (function(){ var am = K.acquisitionMeasures(expRes, m); return '<div class="readouts">'+ro('Measured CAC · trailing 12', am.measuredCACR12M===null ? 'nothing realised yet' : am.measuredCACR12M.toFixed(2)+'× on '+reur(am.realisedNewARRR12M)+' realised')+'</div>'; })() : '')+
-      figT('Where the growth came from', w.tag) +
-      comp([{n:'new '+basis, v:newR12, c:'var(--in)', f:reur(newR12)}, {n:'expansion', v:expR12, c:'rgba(79,158,119,.55)', f:reur(expR12)}]) +
-      '<div class="comp-l" style="margin-top:2px"><span>− leakage <b>'+reur(leakR12)+'</b></span><span>net <b>'+reurS(newR12+expR12-leakR12)+'</b> on '+reur(arrPrev)+'</span></div></div>'+
-      (cuOn && w.from>1 ? (function(){ var c0=expRes.months[w.from-2].customers, c1=em.customers, a0=expRes.months[w.from-2].closingARR/c0.closing, a1=em.closingARR/c1.closing;
-          return '<div class="readouts"><span>customers</span><b>'+c0.closing.toFixed(0)+' → '+c1.closing.toFixed(0)+' · '+relS(c1.closing/c0.closing-1)+'</b><span>ARPA</span><b>'+eurF(a0)+' → '+eurF(a1)+' · '+relS(a1/a0-1)+'</b></div>'; })() : '')+
-      (satOn ? responseCurve(qx) : '<div class="lens-off">Acquisition is linear and unbounded: every euro of S&amp;M buys the same ARR. Switch the capacity on to see the marginal euro do less.</div>')+
-      '</div>';
+      '<div class="engine-side"><div class="eyebrow">Measured · at this spend</div>'+
+        '<div class="mrow"><span>Average CAC</span><b>→ '+qx.averageCAC.toFixed(2)+'×</b><i>'+vsN(qx.averageCAC, qb.averageCAC, function(a){ return a.toFixed(2)+'×'; }, -1, 5e-3)+'</i></div>'+
+        '<div class="mrow"><span>Marginal CAC · next euro</span><b>→ '+qx.marginalCAC.toFixed(2)+'×</b><i>'+vsN(qx.marginalCAC, qb.marginalCAC, function(a){ return a.toFixed(2)+'×'; }, -1, 5e-3)+'</i></div>'+
+        '<div class="mrow"><span>Payback · average</span><b>→ '+qx.averagePaybackMonths.toFixed(1)+' mo</b><i>'+vsN(qx.averagePaybackMonths, qb.averagePaybackMonths, function(a){ return a.toFixed(1)+' mo'; }, -1, 0.05)+'</i></div>'+
+        (satOn ? '<div class="mrow"><span>Payback · marginal</span><b>→ '+qx.marginalPaybackMonths.toFixed(1)+' mo</b><i>'+vsN(qx.marginalPaybackMonths, qb.marginalPaybackMonths, function(a){ return a.toFixed(1)+' mo'; }, -1, 0.05)+'</i></div>' : '')+
+        (lagOn ? (function(){ var am = K.acquisitionMeasures(expRes, m); return '<div class="mrow"><span>Measured CAC · trailing 12 · realised</span><b>→ '+(am.measuredCACR12M===null ? '—' : am.measuredCACR12M.toFixed(2)+'×')+'</b><i></i></div>'; })() : '')+
+        '<div class="hint">The coefficient is a law you set. Average and marginal CAC are measurements of the response at this spend'+(satOn ? '; under the capacity the marginal euro buys less than the average one.' : '; without a capacity they equal the coefficient.')+'</div>'+
+        (satOn ? responseCurve(qx) : '')+
+      '</div></div>';
+    if(acqSame) h += same('Acquisition');
+    /* where the growth came from — acquisition against the installed base */
+    var ibParts = moOn ? [{n:'installed base · price + usage + adoption', v:S12(function(x){ return x.monetization.priceARR+x.monetization.usageARR+x.monetization.adoptionARR; }), c:'var(--exp)'}] : [{n:'installed base · expansion', v:expR12, c:'var(--exp)'}];
+    var outParts = cuOn ? '− churned '+reur(S12(function(x){ return x.customers.logoChurnARR; }))+' · − contraction '+reur(S12(function(x){ return x.customers.contractionARR; })) : '− leakage '+reur(leakR12);
+    h += figT('Where the growth came from', w.tag) +
+      comp([{n:'acquisition · new '+basis, v:newR12, c:'var(--in)', f:reur(newR12)}].concat(ibParts.map(function(p){ p.f=reur(p.v); return p; }))) +
+      '<div class="comp-l" style="margin-top:2px"><span>'+outParts+'</span><span>net <b>'+reurS(newR12+ibParts[0].v-leakR12)+'</b> on '+reur(arrPrev)+'</span></div></div>';
+    if(!satOn) h += '<div class="lens-off">Acquisition is linear and unbounded: every euro of S&amp;M buys the same ARR. A capacity makes the marginal euro do less.</div>';
+    h += '</div>';
 
-    /* ---- 4. MONETIZATION ---- */
-    h += lensHead('4', 'What is revenue made of, and why did it change?', Mt, 'monetization');
+    /* ================= 4. MONETIZATION — what revenue is made of · why it changed ================= */
     if(moOn){
-      var mo = em.monetization, br = K.rowAt(expRes.cohorts[0], m), st = br && br.monetization ? br.monetization : null;
-      h += figT('Composition', Mt) + comp([{n:'platform · fixed', v:mo.fixedARR, c:'var(--stock)', f:reur(mo.fixedARR)}, {n:'usage · variable', v:mo.variableARR, c:'rgba(143,160,170,.45)', f:reur(mo.variableARR)}]) +
-        (st ? '<div class="comp-l" style="margin-top:2px"><span>opening-base customer <b>'+eurF(st.perCustomerClosing)+'/yr</b></span>'+(st.headroom && st.headroom[1] ? '<span>usage <b>'+(st.headroom[1].units!==null?pct(st.headroom[1].units,0):'—')+'</b> of cap · adoption <b>'+pct(st.headroom[1].penetration,0)+'</b> of cap</span>' : '')+'</div>' : '') + '</div>';
+      var mo = em.monetization, comps = (expA.monetization && expA.monetization.components) || [], fixedName = (comps.filter(function(c){ return c.kind!=='variable'; })[0]||{}).name||'fixed', varName = (comps.filter(function(c){ return c.kind==='variable'; })[0]||{}).name||'usage';
+      var tot = mo.fixedARR+mo.variableARR, vShare = tot>0 ? mo.variableARR/tot : 0, vShareB = moB ? bm.monetization.variableARR/(bm.monetization.fixedARR+bm.monetization.variableARR) : null;
+      h += lensHead('4', 'What is revenue made of, and why is it changing?', Mt, 'monetization');
+      h += marksFor(CH, ['monetization']);
+      h += '<div class="fig-t"><span class="eyebrow">Composition · what '+basis+' is made of</span><span class="basis">'+Mt+'</span></div>'+
+        '<div class="ident small"><span class="it"><b>'+reur(tot)+'</b><i>'+basis+'</i></span><span class="op">=</span><span class="it"><b>'+reur(mo.fixedARR)+'</b><i>'+esc(fixedName)+' · fixed · '+pct(1-vShare,0)+'</i></span><span class="op">+</span><span class="it"><b>'+reur(mo.variableARR)+'</b><i>'+esc(varName)+' · variable · '+pct(vShare,0)+'</i>'+(vShareB!==null ? vsPP(vShare, vShareB, 0) : '')+'</span></div>'+
+        comp([{n:esc(fixedName)+' · fixed', v:mo.fixedARR, c:'var(--base)', f:reur(mo.fixedARR)}, {n:esc(varName)+' · variable', v:mo.variableARR, c:'var(--exp)', f:reur(mo.variableARR)}])+
+        (cuOn ? '<div class="comp-l" style="margin-top:2px"><span>per customer <b>'+reur(tot/em.customers.closing)+'</b> = '+reur(mo.fixedARR/em.customers.closing)+' '+esc(fixedName)+' + '+reur(mo.variableARR/em.customers.closing)+' '+esc(varName)+'</span></div>' : '');
       var s0 = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
-      var f = function(k){ return sumM(expRes, w.from, w.to, k); };
-      var mv = { n:f(function(x){return x.newARR;}), ch:f(function(x){return x.customers.logoChurnARR;}), co:f(function(x){return x.monetization.contractionARR;}), pr:f(function(x){return x.monetization.priceARR;}), us:f(function(x){return x.monetization.usageARR;}), ad:f(function(x){return x.monetization.adoptionARR;}) };
-      h += figT('Movement', w.tag) + ladder([
+      var mv = { n:S12(function(x){return x.newARR;}), ch:S12(function(x){return x.customers.logoChurnARR;}), co:S12(function(x){return x.monetization.contractionARR;}), pr:S12(function(x){return x.monetization.priceARR;}), us:S12(function(x){return x.monetization.usageARR;}), ad:S12(function(x){return x.monetization.adoptionARR;}) };
+      h += '<div class="rule"></div>'+figT('Movement · why '+basis+' changed', w.tag) + ladder([
         {k:'stock', n:basis+' before', v:s0, f:reur(s0)},
         {k:'in', n:'+ new customers', v:mv.n, f:reur(mv.n)},
-        {k:'out', n:'− churn', v:-mv.ch, f:reur(mv.ch)},
-        {k:'out', n:'− contraction', v:-mv.co, f:reur(mv.co)},
+        {k:'out', n:'− churn · logos left', v:-mv.ch, f:reur(mv.ch), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
+        {k:'out', n:'− contraction · usage shrank', v:-mv.co, f:reur(mv.co), law:'⋈ '+pct(lawNow('contractionAnnual'),0)},
         {k:'in', n:'+ price', v:mv.pr, f:reur(mv.pr), law:'⋈ '+pct(lawNow('monetization.components[0].priceGrowthAnnual'),0)+' · '+pct(lawNow('monetization.components[1].priceGrowthAnnual'),0)},
         {k:'in', n:'+ usage', v:mv.us, f:reur(mv.us), law:'⋈ '+pct(lawNow('monetization.components[1].usageGrowthAnnual'),0)},
         {k:'in', n:'+ adoption', v:mv.ad, f:reur(mv.ad), law:'⋈ '+pct(lawNow('monetization.components[1].adoptionAnnual'),0)},
-        {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
-        (mm ? '<div class="readouts">'+ro('of NRR, price · usage · adoption · R12M', pct(mm.priceEffectR12M,1)+' · '+pct(mm.usageEffectR12M,1)+' · '+pct(mm.adoptionEffectR12M,1))+ro('expansion coefficient', 'bypassed', 'derived')+'</div>' : '');
+        {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>';
+      var ib = mv.pr+mv.us+mv.ad;
+      h += figT('Installed-base growth by cause', w.tag) + comp([{n:'price', v:mv.pr, c:'var(--base)', f:reur(mv.pr)}, {n:'usage', v:mv.us, c:'var(--exp)', f:reur(mv.us)}, {n:'adoption', v:mv.ad, c:'rgba(139,141,240,.45)', f:reur(mv.ad)}]) +
+        (mm ? '<div class="comp-l" style="margin-top:2px"><span>of NRR '+pct(kpi?kpi.nrr:0,1)+': price '+pct(mm.priceEffectR12M,1)+' · usage '+pct(mm.usageEffectR12M,1)+' · adoption '+pct(mm.adoptionEffectR12M,1)+'</span><span>'+(ib>0 ? (mv.us/ib>0.5 ? 'usage-led' : mv.pr/ib>0.5 ? 'price-led' : mv.ad/ib>0.5 ? 'adoption-led' : 'mixed') : '—')+'</span></div>' : '')+'</div>';
+      if(differs && moB && near(mv.pr, B12(function(x){return x.monetization.priceARR;})) && near(mv.us, B12(function(x){return x.monetization.usageARR;})) && near(mv.ad, B12(function(x){return x.monetization.adoptionARR;})) && !near(em.closingARR, bm.closingARR)) h += same('Monetization laws');
     } else {
+      h += lensHead('4', 'What is revenue made of, and why did it change?', Mt, 'monetization');
       var s0b = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
-      var g = function(k){ return sumM(expRes, w.from, w.to, k); };
-      var rowsB = [{k:'stock', n:basis+' before', v:s0b, f:reur(s0b)}, {k:'in', n:'+ new customers', v:g(function(x){return x.newARR;}), f:reur(g(function(x){return x.newARR;}))}];
-      if(cuOn) rowsB.push({k:'out', n:'− churn', v:-g(function(x){return x.customers.logoChurnARR;}), f:reur(g(function(x){return x.customers.logoChurnARR;}))}, {k:'out', n:'− contraction', v:-g(function(x){return x.customers.contractionARR;}), f:reur(g(function(x){return x.customers.contractionARR;}))});
-      else rowsB.push({k:'out', n:'− leakage', v:-g(function(x){return x.leakage;}), f:reur(g(function(x){return x.leakage;}))});
-      rowsB.push({k:'in', n:'+ expansion', v:g(function(x){return x.expansion;}), f:reur(g(function(x){return x.expansion;})), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)}, {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)});
-      h += figT('Movement', w.tag) + ladder(rowsB) + '</div>' +
-        '<div class="lens-off">No monetization layer: revenue is one balance per cohort and expansion is one coefficient. Switch Monetization on to see fixed against usage, and price, usage and adoption apart.</div>';
+      var rowsB = [{k:'stock', n:basis+' before', v:s0b, f:reur(s0b)}, {k:'in', n:'+ new customers', v:S12(function(x){return x.newARR;}), f:reur(S12(function(x){return x.newARR;}))}];
+      if(cuOn) rowsB.push({k:'out', n:'− churn', v:-S12(function(x){return x.customers.logoChurnARR;}), f:reur(S12(function(x){return x.customers.logoChurnARR;}))}, {k:'out', n:'− contraction', v:-S12(function(x){return x.customers.contractionARR;}), f:reur(S12(function(x){return x.customers.contractionARR;}))});
+      else rowsB.push({k:'out', n:'− leakage', v:-S12(function(x){return x.leakage;}), f:reur(S12(function(x){return x.leakage;}))});
+      rowsB.push({k:'in', n:'+ expansion · one coefficient', v:S12(function(x){return x.expansion;}), f:reur(S12(function(x){return x.expansion;})), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)}, {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)});
+      h += '<div class="reduced"><div class="eyebrow">Monetization off · one balance</div>'+
+        '<div class="lens-off">Monetization Physics off — revenue is one balance per cohort and expansion one coefficient. Enabling it prices each customer as components and names price, usage and adoption apart.</div>'+
+        marksFor(CH, ['expansionCoefficientAnnual'])+
+        '<div class="comp mono"><i style="width:100%;background:var(--stock)"></i></div><div class="comp-l"><span>'+reur(em.closingARR)+' · no components</span></div>'+
+        figT('Movement', w.tag) + ladder(rowsB) + '</div></div>';
     }
     h += '</div>';
 
-    /* ---- 5. ECONOMICS & CASH ---- */
-    var P = function(k){ return sumM(expRes, w.from, w.to, function(x){ return x[k]; }); };
+    /* ================= 5. ECONOMICS & CASH — two paths ================= */
+    var P = function(k){ return S12(function(x){ return x[k]; }); }, PB = function(k){ return B12(function(x){ return x[k]; }); };
     var rev=P('revenue'), cogs=P('cogs'), gp=P('grossProfit'), smS=P('sm'), rd=P('rd'), ga=P('ga'), xc=P('expansionCost'), ic=P('interventionCost'), eb=P('ebita'), fc=P('fcf');
-    var plRows = [{k:'stock', n:'Revenue', v:rev, f:eur(rev)}, {k:'out', n:'− COGS', v:-cogs, f:eur(cogs), law:'⋈ GM '+pct(lawNow('grossMargin'),0)}, {k:'stock', n:'Gross profit', v:gp, f:eur(gp)},
-      {k:'out', n:'− S&M', v:-smS, f:eur(smS)}, {k:'out', n:'− R&D', v:-rd, f:eur(rd)}, {k:'out', n:'− G&A', v:-ga, f:eur(ga)}];
-    if(xc>0) plRows.push({k:'out', n:'− expansion cost', v:-xc, f:eur(xc)});
-    if(ic>0) plRows.push({k:'out', n:'− hypothesis cost', v:-ic, f:eur(ic)});
-    plRows.push({k:'stock', n:'EBITA', v:eb, f:eur(eb)});
-    h += lensHead('5', 'What did this system earn, and what cash did it need?', w.tag, 'cash') + figT('Economics · P&L', w.tag) + ladder(plRows) + '</div>';
+    var ebB=PB('ebita'), capReq = Math.max(0, expRes.start.openingCash - sx.cashTrough), capReqB = Math.max(0, baseRes.start.openingCash - sb.cashTrough);
+    h += lensHead('5', 'How does the economic engine become profit, and profit become cash?', w.tag, 'cash');
+    h += marksFor(CH, ['grossMargin','rd','ga','expansionCostPerARR','billingTermMonths','billingTiming','collectionDelayMonths']);
+    h += '<div class="desc">'+
+      '<div><div class="dv">'+eur(rev)+'</div><div class="dl">revenue · '+w.tag+'</div></div>'+
+      '<div><div class="dv">'+eur(gp)+'</div><div class="dl">gross profit · <span class="law">⋈ GM '+pct(lawNow('grossMargin'),0)+'</span></div></div>'+
+      '<div><div class="dv">'+eur(eb)+'</div><div class="dl">EBITA · '+(rev>0 ? pct(eb/rev,1) : '—')+' margin'+vsN(eb, ebB, eur, +1, 1)+'</div></div>'+
+      '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · '+Mt+vsN(em.cashClosing, bm.cashClosing, eur, +1, 1)+'</div></div>'+
+      '<div><div class="dv">'+eur(sx.cashTrough)+'</div><div class="dl">cash trough · M'+sx.cashTroughMonth+vsN(sx.cashTrough, sb.cashTrough, eur, +1, 1)+'</div></div>'+
+      '<div><div class="dv">'+eur(capReq)+'</div><div class="dl">capital required · opening cash drawn'+vsN(capReq, capReqB, eur, -1, 1)+'</div></div>'+
+      '</div>';
+    var path1 = '<div class="path"><div class="eyebrow">Path 1 · Economics</div><div class="vflow">'+
+      fnode('input', eur(rev), 'revenue')+
+      fvalve('law', '⋈ gross margin <b>'+pct(lawNow('grossMargin'),0)+'</b> · − COGS '+eur(cogs))+
+      fnode('', eur(gp), 'gross profit')+
+      fvalve('cost', '− S&amp;M '+eur(smS)+' · R&amp;D '+eur(rd)+' · G&amp;A '+eur(ga)+(xc>0 ? ' · expansion cost '+eur(xc) : '')+(ic>0 ? ' · <span class="hyp">↯ hypothesis cost '+eur(ic)+'</span>' : ''))+
+      fnode('stock', eur(eb), 'EBITA · '+(rev>0 ? pct(eb/rev,1) : '—')+' margin', vsN(eb, ebB, eur, +1, 1))+
+      '</div></div>';
+    var path2;
     if(caOn){
-      var c1=em.cash, c0=expRes.months[w.from-1].cash, dDef=c1.deferredClosing-c0.deferredOpening, dRec=c1.receivablesClosing-c0.receivablesOpening, ckm=K.cashMeasures(expRes, m);
-      h += figT('Cash · financing reality', w.tag) + ladder([
-        {k:'stock', n:'EBITA', v:eb, f:eur(eb)},
-        {k: dDef>=0?'in':'out', n:(dDef>=0?'+ ':'− ')+'Δ deferred', v:dDef, f:eur(Math.abs(dDef)), law:'⋈ '+expRes.derived.cash.billingTermMonths+' mo '+expRes.derived.cash.billingTiming},
-        {k: dRec>0?'out':'in', n:(dRec>0?'− ':'+ ')+'Δ receivables', v:-dRec, f:eur(Math.abs(dRec)), law:expRes.derived.cash.collectionDelayMonths>0 ? '⋈ +'+expRes.derived.cash.collectionDelayMonths+' mo' : ''},
-        {k:'stock', n:'Cash FCF', v:fc, f:eur(fc)}]) + '</div>' +
-        '<div class="desc" style="margin-top:11px">'+
-          '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · '+Mt+'</div></div>'+
-          '<div><div class="dv">'+eur(Math.abs(c1.deferredClosing))+'</div><div class="dl">'+(c1.deferredClosing>=0?'deferred revenue':'contract asset')+' · '+Mt+'</div></div>'+
-          '<div><div class="dv">'+eur(c1.receivablesClosing)+'</div><div class="dl">receivables · '+Mt+'</div></div>'+
-          '<div><div class="dv meas">→ '+(ckm && ckm.cashConversion!==null ? ckm.cashConversion.toFixed(2)+'×' : '—')+'</div><div class="dl">cash FCF ÷ EBITA · '+w.tag+'</div></div>'+
-          '<div><div class="dv">'+eur(trough.cashTrough)+'</div><div class="dl">cash trough · M'+trough.cashTroughMonth+'</div></div>'+
-          '<div><div class="dv">'+eur(Math.max(0, expRes.start.openingCash - trough.cashTrough))+'</div><div class="dl">capital drawn from opening cash</div></div>'+
-        '</div>';
+      var c1=em.cash, c0=expRes.months[w.from-1].cash, dDef=c1.deferredClosing-c0.deferredOpening, dRec=c1.receivablesClosing-c0.receivablesOpening;
+      var bill=S12(function(x){ return x.cash.billings; }), coll=S12(function(x){ return x.cash.collections; }), cfcf=S12(function(x){ return x.cash.cashFCF; });
+      path2 = '<div class="path"><div class="eyebrow">Path 2 · Cash</div><div class="vflow">'+
+        fnode('input', eur(bill), 'billings · invoiced')+
+        fvalve('law', '⋈ billed <b>'+expRes.derived.cash.billingTermMonths+' mo '+expRes.derived.cash.billingTiming+'</b> · Δ deferred '+eurS(dDef))+
+        fnode('', eur(coll), 'collections')+
+        fvalve(expRes.derived.cash.collectionDelayMonths>0 ? 'law' : 'off', (expRes.derived.cash.collectionDelayMonths>0 ? '⋈ collected <b>+'+expRes.derived.cash.collectionDelayMonths+' mo</b>' : 'collected on invoice')+' · Δ receivables '+eurS(dRec))+
+        fvalve('cost', '− cash costs '+eur(S12(function(x){ return x.cash.cashCosts; })))+
+        fnode('', eur(cfcf), 'cash FCF · '+(eb!==0 ? (cfcf/eb).toFixed(2)+'× EBITA' : '—'), vsN(cfcf, B12(function(x){ return x.cash ? x.cash.cashFCF : x.fcf; }), eur, +1, 1))+
+        fnode('stock', eur(em.cashClosing), 'cash · '+Mt, vsN(em.cashClosing, bm.cashClosing, eur, +1, 1))+
+        '</div></div>';
     } else {
-      h += '<div class="desc" style="margin-top:11px">'+
-          '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · '+Mt+'</div></div>'+
-          '<div><div class="dv">'+eur(trough.cashTrough)+'</div><div class="dl">cash trough · M'+trough.cashTroughMonth+'</div></div>'+
-          '<div><div class="dv">'+eur(Math.max(0, expRes.start.openingCash - trough.cashTrough))+'</div><div class="dl">capital drawn from opening cash</div></div>'+
-        '</div>'+
-        '<div class="lens-off">No cash layer: cash FCF = EBITA — profit and cash move together. Switch a billing term on to see billings, deferred revenue and receivables come between them.</div>';
+      path2 = '<div class="path off"><div class="eyebrow">Path 2 · Cash</div><div class="vflow">'+
+        fvalve('off', '= EBITA · no billing term, no collection delay')+
+        fnode('stock', eur(fc), 'cash FCF = EBITA', vsN(fc, PB('fcf'), eur, +1, 1))+
+        fnode('stock', eur(em.cashClosing), 'cash · '+Mt, vsN(em.cashClosing, bm.cashClosing, eur, +1, 1))+
+        '</div><div class="lens-off">Cash Physics off — modelled FCF = EBITA. Profit and cash move together; a billing term makes the two paths separate.</div></div>';
     }
-    h += '<div id="pl-slot"></div></div>';
+    h += '<div class="paths'+(caOn ? '' : ' merged')+'">'+path1+path2+'</div>';
+    if(caOn && differs && near(eb, ebB, 1) && !near(em.cashClosing, bm.cashClosing, 1)) h += '<div class="same">P&amp;L · unchanged vs Base — only the cash path moved</div>';
+    h += '<details class="bnd pl" id="pl-details"><summary>Monthly P&amp;L waterfall · '+Mt+'</summary><div id="pl-slot"></div></details></div>';
     return h;
   }
   /* the law in force this month for a flat or nested key (a hypothesis may have moved it) */
@@ -3193,10 +3362,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for(var i=0;i<=40;i++){ var sm=smax*i/40, n=E.acquisitionResponse(Object.assign({}, expA, {sm:sm, maxMonthlyNewARR:cap})).newARR; pts.push([L+(W-L-6)*i/40, Hh-B-(n/cap)*(Hh-B-8)]); }
     var here = E.acquisitionResponse(Object.assign({}, expA, {maxMonthlyNewARR:cap}));
     var hx = L+(W-L-6)*Math.min(1, expA.sm/smax), hy = Hh-B-(here.newARR/cap)*(Hh-B-8);
+    var bq = E.acquisitionResponse(baseA), bx = L+(W-L-6)*Math.min(1, baseA.sm/smax), by = Hh-B-(bq.newARR/cap)*(Hh-B-8);
+    var showB = Math.abs(baseA.sm-expA.sm)>1 || baseA.maxMonthlyNewARR!==cap || Math.abs(baseA.cacPerARR-lawNow('cacPerARR'))>1e-9;
     return '<svg class="curve" width="'+W+'" height="'+Hh+'" viewBox="0 0 '+W+' '+Hh+'">'+
       '<line x1="'+L+'" y1="'+(Hh-B-(Hh-B-8))+'" x2="'+(W-6)+'" y2="'+(Hh-B-(Hh-B-8))+'" stroke="var(--law)" stroke-width="1" stroke-dasharray="3 3"/>'+
       '<text x="'+(W-6)+'" y="'+(Hh-B-(Hh-B-8)-3)+'" text-anchor="end" font-size="8.5" fill="var(--law)" font-family="var(--mono)">⌈⌉ capacity '+eur(cap)+'/mo</text>'+
       '<polyline points="'+pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ')+'" fill="none" stroke="var(--ink-2)" stroke-width="1.5"/>'+
+      (showB ? '<circle cx="'+bx.toFixed(1)+'" cy="'+by.toFixed(1)+'" r="4" fill="none" stroke="var(--base)" stroke-width="1.5" stroke-dasharray="2 2"/>' : '')+
       '<circle cx="'+hx.toFixed(1)+'" cy="'+hy.toFixed(1)+'" r="4" fill="var(--exp)" stroke="var(--panel)" stroke-width="2"/>'+
       '<text x="'+L+'" y="'+(Hh-3)+'" font-size="8.5" fill="var(--ink-3)" font-family="var(--mono)">S&amp;M 0 → '+eur(smax)+'/mo</text>'+
       '<text x="'+Math.min(W-70, hx+7).toFixed(1)+'" y="'+Math.max(10, hy-6).toFixed(1)+'" font-size="8.5" fill="var(--ink-2)" font-family="var(--mono)">here · '+reur(here.newARR)+'</text>'+

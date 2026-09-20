@@ -58,7 +58,7 @@ const OVERFLOW_PROBE = `(function(rootSel, sibSels){
   }));
   return { out: out.slice(0, 8), overlap: overlap.slice(0, 8), n: root.querySelectorAll('*').length };
 })`;
-const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.mech', '.comp-l', '.lens-head', '.fig-t', '.force-top', '.srow', '.pl', '.exp-row', '.lensnav'];
+const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.mech', '.comp-l', '.lens-head', '.fig-t', '.force-top', '.srow', '.pl', '.exp-row', '.lensnav', '.ident', '.vflow', '.mrow', '.marks', '.paths', '.engine', '.two'];
 
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
@@ -124,7 +124,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     const tags = [...document.querySelectorAll('#side .basis')].map(e => e.textContent);
     const laws = [...document.querySelectorAll('#side .dv.law, #side .readouts b.law, #side .tile b.law')].map(e => e.textContent);
     const meas = [...document.querySelectorAll('#side .dv.meas, #side .tile b.meas')].map(e => e.textContent);
-    const ros = [...document.querySelectorAll('#side .readouts b')].map(e => e.textContent);
+    const ros = [...document.querySelectorAll('#side .readouts b, #side .mrow b, #side .desc .dv.meas, #side .desc .dv.law, #side .desc .dv.derived')].map(e => e.textContent);   /* every glyph-carrying value: readout rows, measurement rows, descriptors */
     return { tags, laws, meas, ros };
   });
   rec('GRAMMAR: every basis tag on the Observe surface is one of the grammar\'s forms (M24 · M24 · month · R12M · CUM · M1–Mn · M60 · age n)',
