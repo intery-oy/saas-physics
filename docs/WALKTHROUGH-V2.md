@@ -6,10 +6,9 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 ## 1. Where is the company at month 36, and what do the ARR-only KPIs say?
 
-- World: ARR physics (the frozen v1.3 base). Company lens, month 36, MRR basis.
+- World: ARR physics (the frozen Base). Company lens, month 36, MRR basis.
 - MRR: €3.83m
-- cash: €19.17m
-- cash trough · M13 of 60: €6.10m
+- cash · trough €6.10m at M13: €19.17m
 - EBITA margin · R12M: → 23.9%
 - gross margin · law: ⋈ 80%
 - Opening: €3.78m
@@ -18,7 +17,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - + expansion⋈ 10%: +€30k
 - Closing: €3.83m
 - gross dollar retention · R12M: → 89.6%
-- net dollar retention · R12M: → 99.0%
+- net dollar retention · R12M: ⋈ 80%
 - persistence: ⋈ 90.0%
 - Revenue: €41.73m
 - Gross profit: €33.38m
@@ -37,7 +36,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - − contraction⋈ 5%: −€15k
 - logo retention · R12M: → 92.0%
 - gross dollar retention · R12M: → 86.8%
-- net dollar retention · R12M: → 96.1%
+- net dollar retention · R12M: ⋈ 80%
 - persistence in force: ⋈ 87.4% = L × (1 − C)
 - Installed-base net · month: → −€12k · net-shrinking
 - Customers stay more than dollars do: 5.2% of the gap is contraction inside surviving accounts. Net retention above logo retention: expansion is carrying the base. R12M · 3 · 
@@ -54,7 +53,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - churned MRR CUM: €2.17m → €1.35m
 - contraction CUM: €0 → €825k
 - ARPA M60: €26,590 → €22,888
-- Same ARR, different system · M60 ARR agrees within 0.5%. The systems that produced it do not: customers 2157 → 2505. The headline is not a sufficient statistic. · Base loses 12.6% of customers a year and 
+- Same ARR, different system · M60 ARR agrees within 0.5%. The systems that produced it do not: customers 2157 → 2505. The headline is not a sufficient statistic. · WHY IT MATTERS · Two installed bases that r
 
 ## 4. How much of the revenue change is price, how much usage, how much adoption — and where does expansion stop?
 
@@ -115,7 +114,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 8. What does a retention programme cost, when does it work, and what is it worth?
 
 - World: + Hypothesis (every layer on; logo retention × 1.03 decided M6, in force M9–M32, €200k + €50k/month).
-- hypothesis ret in force · logo retention 92.0% → 94.8% · cost €50k this month · 2 · What installed base produces the revenue
+- hypothesis ret in force · logo retention 92.0% → 94.8% · cost €50k this month · Company · Customers · Growth engine · Monetizati
 - − hypothesis cost: −€600k
 - EBITA: €418k
 - Cash FCF: €3.84m
@@ -123,7 +122,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 9. Against the same company without it — net of its cost — when does the programme pay back?
 
 - Scenario 14 · A retention programme (Base: no hypothesis; Experiment: persistence × 1.05 from M9 for 24 months, €1.55m).
-- Hypothesis · ↯ Retention programme · persistence × 1.05 · M6 +3 lag · 24 mo · €200k + €50k/mo · WHAT THE SYSTEM DID · BASE →
+- Hypothesis · ↯ Retention programme · persistence × 1.05 · M6 +3 lag · 24 mo · €200k + €50k/mo · WHAT STAYED THE SAME · Every
 - leakage CUM: €1.80m → €1.61m
 - expansion CUM: €1.63m → €1.72m
 - Retention programme · persistence: 90.0% → 94.5% · M9–M32
@@ -145,7 +144,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 11. And back to the frozen ARR world — is every layer off again?
 
 - Pack: ARR physics. Mechanisms: {"expansionCost":false,"acquisitionSaturation":false,"acquisitionLag":false,"customerPhysics":false,"monetization":false,"genericExpansionBypassed":false,"cashPhysics":false,"interventions":false}
-- cash: €19.17m
-- net dollar retention · R12M: → 99.0%
+- cash · trough €6.10m at M13: €19.17m
+- net dollar retention · R12M: ⋈ 80%
 
 Page errors during the walkthrough: none.
