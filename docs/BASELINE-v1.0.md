@@ -31,17 +31,46 @@ Total: 183 checks. The two Playwright suites carried a stale absolute path
 (`/home/user/experiments/...`); they now resolve `saas-physics-v1.html` relative to their
 own directory. That is the only change made before capture.
 
-## Trajectory fixture
+## Trajectory fixtures
 
-`baseline-v1.0.json` holds, for Base and the five canonical parameter scenarios
-(retention, expansion, efficiency, margin, pair-spend), every month's closing ARR, New ARR,
-expansion, leakage, revenue, gross profit, EBITA, FCF, cash and chained NRR, plus the final
-per-cohort ARR / cumulative GP / acquisition cost, the month-36 R12M measurement and
-`E.summarise()`. The all-mechanisms-null release gate (`physics-checks.js`, ALL-NULL) replays
-the extended engine against this fixture.
+Two fixtures, both generated from the v1.0 engine (`git show ba98265:engine.js` and
+`kpi.js`), for Base and the five canonical parameter scenarios (retention 0.96, expansion 0.18,
+efficiency 0.80, margin 0.65, pair cac 0.80 + sm 1.35m):
+
+- `baseline-v1.0.json` (168 KB, readable) — a subset: per month `t, closingARR, newARR,
+  expansion, leakage, revenue, grossProfit, ebita, fcf, cashClosing, nrrAnnualised`; final
+  per-cohort ARR / cumulative GP / acquisition cost; R12M at M36; `summarise()`. Regenerating it
+  from the `ba98265` engine reproduces the committed file byte-for-byte.
+- `baseline-v1.0-full.json.gz` (589 KB gzipped, 8.7 MB expanded) — **everything the v1.0
+  engine emitted**: every month field including the `cumulative` object, every cohort scalar and
+  every cohort row, `measureR12M` at every T = 12…60 including per-cohort contributions,
+  `summarise()` including `mix`, `derived`, `bands`. Read with Node's built-in `zlib`.
+
+Generator (run against the v1.0 engine files):
+
+```js
+var out = {}; Object.keys(scen).forEach(function (k) {
+  var r = E0.run(Object.assign({}, E0.DEFAULT_ASSUMPTIONS, scen[k])), r12 = [];
+  for (var T = 12; T <= 60; T++) r12.push(K0.measureR12M(r, T));
+  out[k] = { months: r.months, cohorts: r.cohorts, r12m: r12, summary: E0.summarise(r), derived: r.derived, bands: r.bands };
+});
+fs.writeFileSync('baseline-v1.0-full.json.gz', zlib.gzipSync(Buffer.from(JSON.stringify(out)), { level: 9 }));
+```
+
+**What ALL-NULL-FULL compares** (`physics-checks.js`): it walks the v1.0 object recursively and
+looks up the same path in the v1.3 run at null; numbers must agree within €1e-6, strings /
+booleans / nulls exactly, array lengths exactly; a v1.0 path missing in v1.3 fails. The one
+JSON artefact — `bands[2].maxAgeExclusive`, `Infinity` in the engine and `null` in the file —
+is accepted at that path only. **What is not in the fixture**, because v1.0 did not emit it:
+the v1.3-only fields (`expansionCost`, `acquisitionLawNewARR`, `pendingNewARR`, `pendingSpend`,
+`pendingCount`, `realisedFromSpendMonth`, `cohortCreated`, `cacCoefficientAtCreation`,
+`capacityAtSpend`, `spendMonth`, `lagMonths`, `sourceEntries`, `mechanisms`,
+`derived.acquisition` / `acquisitionLagMonths` / `expansionCostPerARR`, `acquisitionLedger`,
+`pendingAtHorizon`, and the new `summarise` fields). Those are asserted separately to be at
+their null values in the null world. 331,662 fields are compared across the six worlds.
 
 Headline Base figures at capture: M60 ARR €62,926,223.19 · ending cash €59,571,254.64 ·
-cash trough €6,100,740.28 (M18) · New ARR €750,000/mo · CAC payback 18.0 months.
+cash trough €6,100,740.28 (M13) · New ARR €750,000/mo · coefficient payback 18.0 months.
 
 ## The controlled re-freeze
 

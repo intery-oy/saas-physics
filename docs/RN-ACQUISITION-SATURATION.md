@@ -57,8 +57,13 @@ If the bound is correctly isolated:
   7.8e-16;
 - N is monotone in S&M and never exceeds capacity; at S&M = €1e12 it reaches 99.9998% of it —
   check 42;
-- dN/dS&M declines and marginal CAC > average CAC at every S&M > 0 — check 43;
+- second differences of N(S&M) are ≤ 0 on a €0–10m sweep and a forward-difference marginal
+  CAC exceeds S&M ÷ N at every S&M > 0 — check 43 (evaluates the law only, never the
+  derivative formula);
 - the closed-form derivative agrees with a central difference to 7.3e-10 relative — check 44;
+  on a €50k grid to €8m the law is strictly increasing with every second difference negative,
+  and the numerical marginal CAC matches the analytical one to < 1e-6 relative at every point
+  (`physics-checks.js` SATURATION-INDEPENDENT);
 - the response object is identical with or without a lag or an expansion cost (SAT+LAG 8,
   COST+SAT 12).
 
@@ -91,9 +96,13 @@ Three things the sweep exposes, and one it does not:
 2. **Marginal deteriorates faster than average.** At €0.9m the average CAC is 1.65× and the
    marginal 2.27×; at €3.6m, 3.00× against 7.50×. The marginal CAC rises as the square of the
    average-CAC denominator (SWEEP 40 asserts the ordering at every step).
-3. **Capital consequence.** Under the bound, ending cash peaks around €0.6m/month of spend and
-   the trough goes negative from about €1.8m/month — the same spend that the linear law rewards
-   with €106.8m of M60 ARR and a €18.2m ending cash position under the bound.
+3. **Capital consequence — an observation of this sweep, not a threshold of the law.** In this
+   experiment, with capacity €2.0m/month, the Base cost structure and the fixed 60-month window,
+   the ending-cash column is highest at the €0.6m/month row and the trough column first turns
+   negative at the €1.8m/month row. Both rows move with the capacity, the gross margin, the fixed
+   costs and the horizon; the law itself has no such points — it is smooth and concave
+   everywhere. The same €1.8m/month row under the linear law shows €106.8m of M60 ARR; under
+   the bound, €69.2m and an €18.2m ending cash position.
 4. **No optimum.** Which of these rows is "right" depends on what the company is trying to
    maximise and over what horizon. The model has none of that and says so on screen.
 
@@ -112,7 +121,12 @@ A reference point outside the sweep: at Base spend (€0.9m/month) the bound red
   spent; the capital loop on the System map is still drawn open.
 - Average CAC under the bound is a property of the *whole* month's spend; the model has no
   channels, so it cannot say which euro was the marginal one.
-- The v1.0 `cacPaybackMonths` (18.0 months at Base) is retained as the coefficient's own
-  payback. The product now labels the average-CAC payback (24.7 months at Base under a €2.0m
-  capacity) and the marginal one (34.0 months); readers comparing against v1.0 figures should
-  note which of the three they are looking at.
+- Vocabulary, fixed in the product and these notes: **CAC coefficient** (`cacPerARR`, the
+  low-spend law coefficient), **Average CAC** (S&M ÷ New ARR at the current spend), **Marginal
+  CAC** (1 ÷ dN/dS&M); **Coefficient payback** (18.0 months at Base — the v1.0
+  `cacPaybackMonths`, unchanged), **Average payback** (24.7 months at Base under a €2.0m
+  capacity) and **Marginal payback** (34.0 months). The capital track's crossing is a
+  **Cohort payback** (25 months for a Base cohort under the same capacity: it is measured on
+  the cohort's realised cost against its gross profit, month by month). Every CAC is € of S&M
+  per €1 of ARR, in either display basis. The build report that accompanied v1.1–v1.3 listed a
+  "measured payback"; no such quantity exists in the model and none was added.

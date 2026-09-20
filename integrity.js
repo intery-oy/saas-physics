@@ -487,23 +487,41 @@
     ok('ACQ-BOUND · null (maxMonthlyNewARR = null) reproduces the linear law: run byte-identical, New ARR = S&M ÷ cacPerARR at every probe',
        A.maxMonthlyNewARR === null && b1same && b1f < EPS, 'byte-identical: ' + b1same + ', max formula deviation €' + b1f.toExponential(1));
 
-    /* B2/B3/B4. Monotone, concave, bounded — on a sweep */
-    var sweep = [], mono = true, concave = true, bounded = true, margWorse = true;
-    for (var sm2 = 0; sm2 <= 10e6; sm2 += 250000) sweep.push(E.acquisitionResponse(Object.assign({}, A, { sm: sm2, maxMonthlyNewARR: CAP })));
-    for (i = 1; i < sweep.length; i++) {
-      if (sweep[i].newARR < sweep[i - 1].newARR - 1e-9) mono = false;
-      if (sweep[i].dNewARRdSM > sweep[i - 1].dNewARRdSM + 1e-15) concave = false;
-      if (sweep[i].newARR > CAP + 1e-6) bounded = false;
-      if (sweep[i].marginalCAC <= sweep[i].averageCAC) margWorse = false;
+    /* B2/B3/B4. Monotone, concave, bounded — on a sweep. INDEPENDENT of the
+       analytical derivative: only the law N(S&M) is evaluated; monotonicity is
+       first differences of N, concavity is SECOND differences of N, and the
+       marginal-vs-average ordering uses a finite-difference marginal CAC
+       (h ÷ ΔN) against S&M ÷ N. acquisitionResponse is read only for the
+       printed detail. */
+    var lawAt = function (s) { return E.newARRPerMonth(Object.assign({}, A, { sm: s, maxMonthlyNewARR: CAP })); };
+    var STEP = 250000, Ns = [], mono = true, concave = true, bounded = true, margWorse = true, fdDeclines = true;
+    for (var sm2 = 0; sm2 <= 10e6; sm2 += STEP) Ns.push(lawAt(sm2));
+    var prevFd = Infinity;
+    for (i = 1; i < Ns.length; i++) {
+      if (Ns[i] < Ns[i - 1] - 1e-9) mono = false;
+      if (Ns[i] > CAP + 1e-6) bounded = false;
+      var d1 = Ns[i] - Ns[i - 1];                                   // first difference
+      if (i >= 2 && d1 > (Ns[i - 1] - Ns[i - 2]) + 1e-9) concave = false;   // second difference must be ≤ 0
+      /* marginal by FORWARD difference over [s, s+h]: for a concave law through
+         the origin, N(s)/s > N'(s) > (N(s+h)−N(s))/h, so average CAC = s/N(s)
+         must sit strictly below h/ΔN. (A backward difference from s = 0 would
+         equal the average by construction and prove nothing.) */
+      if (i < Ns.length - 1) {
+        var fdMarginal = STEP / (Ns[i + 1] - Ns[i]);                // € of S&M per €1 of extra ARR, by finite difference
+        var s = i * STEP, avg = s / Ns[i];
+        if (fdMarginal <= avg) margWorse = false;
+      }
+      if (d1 > prevFd + 1e-9) fdDeclines = false; prevFd = d1;
     }
-    var atInf = E.acquisitionResponse(Object.assign({}, A, { sm: 1e12, maxMonthlyNewARR: CAP })).newARR;
+    var atInf = lawAt(1e12);
+    var sweepDetail = E.acquisitionResponse(Object.assign({}, A, { maxMonthlyNewARR: CAP }));
     ok('ACQ-BOUND · New ARR is monotonic in S&M and never exceeds the capacity; at extreme spend it approaches the capacity',
        mono && bounded && atInf > 0.999 * CAP && atInf <= CAP,
-       'sweep €0–10m/mo in 40 steps: monotone ' + mono + ', bounded ' + bounded + '; N(€1e12) = ' + (atInf / CAP * 100).toFixed(4) + '% of capacity');
-    ok('ACQ-BOUND · marginal acquisition productivity dN/dS&M declines with spend, so marginal CAC exceeds average CAC at every S&M > 0',
-       concave && margWorse,
-       'dN/dS&M ' + sweep[1].dNewARRdSM.toFixed(4) + ' at €0.25m → ' + sweep[sweep.length - 1].dNewARRdSM.toFixed(4) + ' at €10m; ' +
-       'at €' + (A.sm / 1e6).toFixed(2) + 'm: average CAC ' + sweep[Math.round(A.sm / 250000)].averageCAC.toFixed(3) + '×, marginal ' + sweep[Math.round(A.sm / 250000)].marginalCAC.toFixed(3) + '×');
+       'sweep €0–10m/mo in 40 steps of the law N(S&M) itself: first differences ≥ 0 ' + mono + ', bounded ' + bounded + '; N(€1e12) = ' + (atInf / CAP * 100).toFixed(4) + '% of capacity');
+    ok('ACQ-BOUND · marginal acquisition productivity declines with spend (second differences of N ≤ 0), so finite-difference marginal CAC exceeds average CAC at every S&M > 0',
+       concave && fdDeclines && margWorse,
+       'ΔN per €0.25m ' + (Ns[1] - Ns[0]).toFixed(0) + ' at €0.25m → ' + (Ns[Ns.length - 1] - Ns[Ns.length - 2]).toFixed(0) + ' at €10m; ' +
+       'at €' + (A.sm / 1e6).toFixed(2) + 'm the closed form reads average CAC ' + sweepDetail.averageCAC.toFixed(3) + '×, marginal ' + sweepDetail.marginalCAC.toFixed(3) + '×');
 
     /* B5. Low-spend limit is the v1.0 law; the analytical derivative is the law's own derivative */
     var lowSm = 1000, low = E.acquisitionResponse(Object.assign({}, A, { sm: lowSm, maxMonthlyNewARR: CAP }));
@@ -547,15 +565,55 @@
     ok('ACQ-LAG · null (acquisitionLagMonths = 0) reproduces the same-month world byte-for-byte',
        A.acquisitionLagMonths === 0 && l1, 'months and cohorts byte-identical: ' + l1);
 
-    /* L2. No cohort before maturity; provenance records the spend month */
-    var early = lagRun.months.slice(0, LAGM).every(function (m) { return m.newARR === 0; });
+    /* L2. No cohort exists before maturity — the pending stock holds the spend,
+       not a zero-ARR placeholder; provenance records the spend month. */
+    var early = lagRun.months.slice(0, LAGM).every(function (m) { return m.newARR === 0 && m.cohortCreated === false; });
+    var noPhantom = lagRun.cohorts.slice(1).every(function (c) { return c.acquisitionMonth > LAGM && c.initialARR > 0; }) &&
+                    lagRun.cohorts.length === 1 + (lagRun.horizon - LAGM) &&
+                    E.cohortSnapshot(lagRun, LAGM).length === 1 &&
+                    E.cohortSnapshot(lagRun, LAGM + 1).length === 2;
     var prov = lagRun.cohorts.slice(1).every(function (c) {
-      return c.acquisitionMonth <= LAGM ? (c.initialARR === 0 && c.spendMonth === null)
-                                        : (c.spendMonth === c.acquisitionMonth - LAGM && c.lagMonths === LAGM);
+      return c.spendMonth === c.acquisitionMonth - LAGM && c.lagMonths === LAGM && c.rows[0].t === c.acquisitionMonth && c.rows[0].age === 0;
     });
-    ok('ACQ-LAG · no New ARR enters the stock before its maturity date; each cohort records the month its spend was incurred and the lag it waited',
-       early && prov && lagRun.months[LAGM].newARR > 0,
-       'months 1–' + LAGM + ' realise €0; month ' + (LAGM + 1) + ' realises €' + (lagRun.months[LAGM].newARR / 1e6).toFixed(3) + 'm from month-1 spend');
+    ok('ACQ-LAG · no cohort exists for acquisition that has not matured: the first cohort is created in the maturity month, aged from realisation, and the cohort count is realised cohorts only',
+       early && noPhantom && prov && lagRun.months[LAGM].newARR > 0,
+       'months 1–' + LAGM + ': no cohort, €0 realised; ' + lagRun.cohorts.length + ' cohorts = opening base + ' + (lagRun.horizon - LAGM) + ' realised (M' + (LAGM + 1) + '…M' + lagRun.horizon +
+       '); snapshot at M' + LAGM + ' holds 1 cohort, at M' + (LAGM + 1) + ' holds 2');
+
+    /* L2b. SPEND-TIME PROVENANCE — structural proof. realiseCohort takes no
+       assumption object: a synthetic pending entry whose law differs from
+       every live assumption is realised, and the cohort's stamps can only
+       have come from the entry. Then the same is confirmed inside a run. */
+    var synth = { spendMonth: 4, matureMonth: 7, lagMonths: 3, sm: 123456, newARR: 100000,
+                  cacPerARRAtSpend: 0.4321, maxMonthlyNewARRAtSpend: 987654, realised: false, cohortId: null };
+    var synthCohort = E.realiseCohort(7, [synth], 'Early', 0.5);
+    var fromEntry = synthCohort.cacCoefficientAtCreation === 0.4321 && synthCohort.capacityAtSpend === 987654 &&
+                    synthCohort.acquisitionCost === 123456 && synthCohort.initialARR === 100000 && synthCohort.spendMonth === 4 &&
+                    synthCohort.lagMonths === 3 && synthCohort.acquisitionMonth === 7 && synth.realised === true && synth.cohortId === 'M7' &&
+                    Math.abs(synthCohort.cacPerARRAtCreation - 1.23456) < 1e-12;
+    var inRun = lagRun.cohorts.slice(1).every(function (c) {
+      var e = lagRun.acquisitionLedger.filter(function (q) { return q.cohortId === c.id; })[0];
+      return e && e.spendMonth === c.spendMonth && e.cacPerARRAtSpend === c.cacCoefficientAtCreation &&
+             e.maxMonthlyNewARRAtSpend === c.capacityAtSpend && e.sm === c.acquisitionCost && e.newARR === c.initialARR;
+    });
+    var noLiveRead = E.realiseCohort.toString().indexOf('cacPerARR') === -1 || /cacPerARRAtSpend/.test(E.realiseCohort.toString()) &&
+                     !/a\.cacPerARR|assumptions/.test(E.realiseCohort.toString());
+    ok('ACQ-LAG · SPEND-TIME PROVENANCE: a cohort is stamped from its pending entry, never from the live law — proven on a synthetic entry (coefficient 0.4321×, capacity €987,654) realised with no assumption object in reach, and on every cohort of the run',
+       fromEntry && inRun && noLiveRead,
+       'synthetic cohort: coefficient ' + synthCohort.cacCoefficientAtCreation + '×, capacity ' + synthCohort.capacityAtSpend + ', realised CAC ' + synthCohort.cacPerARRAtCreation.toFixed(5) +
+       '× (= 123456 ÷ 100000); every run cohort matches its ledger entry: ' + inRun + '; realiseCohort reads no live assumption: ' + noLiveRead);
+
+    /* L2c. The engine boundary rejects invalid lags instead of coercing them */
+    var rejected = [], accepted = [];
+    [-1, -3, 0.5, 2.4, 2.5, NaN, Infinity, -Infinity, 'x', '6', null, true, {}].forEach(function (v) {
+      try { E.run(Object.assign({}, A, { acquisitionLagMonths: v })); accepted.push(String(v)); }
+      catch (err) { if (err instanceof RangeError) rejected.push(String(v)); else accepted.push(String(v) + '(' + err.name + ')'); }
+    });
+    var validOK = [0, 1, 6, 12, 72].every(function (v) { try { return E.run(Object.assign({}, A, { acquisitionLagMonths: v })).derived.acquisitionLagMonths === v; } catch (err) { return false; } });
+    var undefOK = E.run({ acquisitionLagMonths: undefined }).derived.acquisitionLagMonths === 0;
+    ok('ACQ-LAG · the engine boundary REJECTS a negative, fractional, NaN, infinite, non-numeric or null lag (RangeError) — never clamps, rounds or dates entries to NaN; integers ≥ 0 pass, undefined takes the default',
+       rejected.length === 13 && accepted.length === 0 && validOK && undefOK,
+       'rejected: ' + rejected.join(', ') + (accepted.length ? ' · WRONGLY ACCEPTED: ' + accepted.join(', ') : '') + ' · valid 0/1/6/12/72 accepted, undefined → 0');
 
     /* L3. S&M is expensed in the spend month — the only P&L difference vs no-lag is the missing gross profit */
     var l3sm = 0, l3 = 0;
@@ -581,14 +639,18 @@
        'ARR residual €' + l4.toExponential(1) + ', spend residual €' + l4s.toExponential(1) + ', max pending residual €' + l5.toExponential(1) +
        '; ' + lagRun.pendingAtHorizon.entries.length + ' months of spend (€' + (lagRun.pendingAtHorizon.spend / 1e6).toFixed(2) + 'm) mature beyond M' + lagRun.horizon + ' and never appear inside it');
 
-    /* L6/L7. Retention of created cohorts is unchanged, and cohorts still sum to the company */
-    var l6 = 0;
-    for (var kk2 = 1; kk2 + LAGM < BASE.cohorts.length; kk2++) {
-      var cb = BASE.cohorts[kk2], cl2 = lagRun.cohorts[kk2 + LAGM];
+    /* L6/L7. Retention of created cohorts is unchanged, and cohorts still sum to the company.
+       With no phantom cohorts, lagRun.cohorts[k] is the cohort created in month k + LAGM —
+       the twin of BASE.cohorts[k], created in month k. */
+    var l6 = 0, twinIds = true;
+    for (var kk2 = 1; kk2 < lagRun.cohorts.length; kk2++) {
+      var cb = BASE.cohorts[kk2], cl2 = lagRun.cohorts[kk2];
+      if (cl2.acquisitionMonth !== cb.acquisitionMonth + LAGM) twinIds = false;
       for (var r2 = 0; r2 < cl2.rows.length && r2 < cb.rows.length; r2++) {
         l6 = Math.max(l6, Math.abs(cl2.rows[r2].closingARR - cb.rows[r2].closingARR), Math.abs(cl2.rows[r2].leakage - cb.rows[r2].leakage));
       }
     }
+    if (!twinIds) l6 = Infinity;
     var l7 = 0;
     for (i = 1; i <= lagRun.horizon; i++) {
       var s7 = E.cohortSnapshot(lagRun, i).reduce(function (s, c) { return s + c.currentARR; }, 0);

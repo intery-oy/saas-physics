@@ -281,8 +281,99 @@
     return (a.cacPerARR * 12) / a.grossMargin;
   }
 
+  /* ------------------------------------------------------------------ *
+   * Assumption normalisation and validation — the engine boundary.
+   *
+   * The engine never silently reinterprets an invalid economic input. A lag
+   * that is negative, fractional, NaN, non-numeric or infinite is REJECTED
+   * (RangeError) rather than clamped or rounded: a silently-coerced lag
+   * would reshape the cash path, and a NaN lag would date every pending
+   * entry to never mature — all acquisition lost with S&M still spent.
+   * `undefined` means "not provided" and takes the default, as Object.assign
+   * would otherwise copy it over the default.
+   *
+   * Capacity is canonicalised: null / undefined / ±Infinity all mean "no
+   * bound" and are stored as null, so two runs with the bound off compare
+   * equal whichever spelling the caller used. A finite capacity < 0 or NaN is
+   * rejected; 0 is kept (no acquisition capacity, N = 0 — documented).
+   * ------------------------------------------------------------------ */
+  function validateAssumptions(a) {
+    var L = a.acquisitionLagMonths;
+    if (L === undefined) a.acquisitionLagMonths = DEFAULT_ASSUMPTIONS.acquisitionLagMonths;
+    else if (typeof L !== 'number' || !isFinite(L) || L < 0 || Math.floor(L) !== L)
+      throw new RangeError('acquisitionLagMonths must be an integer >= 0 (got ' + String(L) + ')');
+    var cap = a.maxMonthlyNewARR;
+    if (cap === undefined || cap === null || cap === Infinity || cap === -Infinity) a.maxMonthlyNewARR = null;
+    else if (typeof cap !== 'number' || isNaN(cap) || cap < 0)
+      throw new RangeError('maxMonthlyNewARR must be null (no bound) or a finite number >= 0 (got ' + String(cap) + ')');
+    return a;
+  }
   function normaliseAssumptions(a) {
-    return Object.assign({}, DEFAULT_ASSUMPTIONS, a || {});
+    return validateAssumptions(Object.assign({}, DEFAULT_ASSUMPTIONS, a || {}));
+  }
+
+  /* ------------------------------------------------------------------ *
+   * v1.3 PENDING ACQUISITION — the two state transitions, as pure functions.
+   *
+   * pendingEntry(a, t, L, newARR): S&M spent at t under the acquisition law in
+   * force at t. The entry records WHAT the law was (coefficient, capacity or
+   * null) and WHAT it produced, so the provenance of committed spend is fixed
+   * at commitment. Later assumptions cannot rewrite it: nothing downstream
+   * ever re-derives these fields from a live assumption object.
+   *
+   * realiseCohort(t, matured, bandName, grossMargin): the matured entries
+   * become the month-t cohort. The signature deliberately takes NO assumption
+   * object — every provenance stamp is read from the entries, and the only
+   * live inputs are the band name and the gross margin the birth-month
+   * revenue needs. That is what makes "stamped from the pending entry, not
+   * the live law" a structural fact rather than a convention, and what lets
+   * the integrity suite prove it by calling this function with a synthetic
+   * entry whose law differs from any assumption the engine holds.
+   * ------------------------------------------------------------------ */
+  function pendingEntry(a, t, L, newARR) {
+    return {
+      spendMonth: t, matureMonth: t + L, lagMonths: L,
+      sm: a.sm, newARR: newARR,
+      cacPerARRAtSpend: a.cacPerARR,
+      maxMonthlyNewARRAtSpend: saturationEnabled(a) ? a.maxMonthlyNewARR : null,   // null = bound off at spend
+      realised: false, cohortId: null
+    };
+  }
+  function realiseCohort(t, matured, bandName, grossMargin) {
+    var realisedARR = 0, realisedSpend = 0, first = matured[0];
+    for (var i = 0; i < matured.length; i++) {
+      var e = matured[i];
+      e.realised = true; e.cohortId = 'M' + t;
+      realisedARR += e.newARR; realisedSpend += e.sm;
+      if (e.spendMonth < first.spendMonth) first = e;
+    }
+    var realisedMRR = realisedARR / 12;
+    var nc = {
+      id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
+      initialARR: realisedARR, live: realisedMRR, rows: [],
+      /* PROVENANCE (§2). Stamped once, at creation, FROM THE PENDING ENTRY —
+         the acquisition economics in force when the spend was incurred.
+         Immutable thereafter, and never read by any forward transition — a
+         sunk cost, not a forward penalty. cacPerARRAtCreation is the REALISED
+         cost per €1 of ARR (= acquisitionCost / initialARR), which equals the
+         coefficient only while the bound was off at spend; the coefficient
+         and the capacity at spend are stamped separately. */
+      acquisitionCost: realisedSpend,
+      cacPerARRAtCreation: realisedARR > 0 ? realisedSpend / realisedARR : null,
+      cacCoefficientAtCreation: first.cacPerARRAtSpend,
+      capacityAtSpend: first.maxMonthlyNewARRAtSpend,
+      spendMonth: first.spendMonth,
+      lagMonths: t - first.spendMonth,
+      sourceEntries: matured.length
+    };
+    var ncRevenue = (0 + realisedMRR) / 2;    // half a month of MRR, same midpoint rule
+    nc.rows.push({
+      t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandName,
+      openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: realisedMRR,
+      openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: realisedARR,
+      revenue: ncRevenue, grossProfit: ncRevenue * grossMargin, expansionCost: 0
+    });
+    return nc;
   }
 
   /* ------------------------------------------------------------------ *
@@ -302,11 +393,14 @@
        the stock in month t is the realised amount below (v1.3). */
     var newARR = newARRPerMonth(a);
     var newMRR = newARR / 12;
-    var LAG = Math.max(0, Math.round(a.acquisitionLagMonths || 0));
+    var LAG = a.acquisitionLagMonths;            /* validated: integer >= 0 */
     /* v1.3 PENDING ACQUISITION — explicit engine state. Every month of spend
        creates one ledger entry; it matures into a cohort at spendMonth + LAG.
        The ledger is returned whole (res.acquisitionLedger) so provenance and
-       reconciliation are inspectable, never inferred from a shifted chart. */
+       reconciliation are inspectable, never inferred from a shifted chart.
+       Each entry carries the ACQUISITION LAW IN FORCE AT SPEND (coefficient,
+       capacity) as well as the amount it produced — the cohort it becomes is
+       stamped from the entry, never from the live assumptions at maturity. */
     var ledger = [], pending = [];
 
     var bands = resolveBands(a);
@@ -397,55 +491,31 @@
       }
 
       /* --- v1.3 SPEND. S&M is incurred NOW (it hits EBITA and cash below in
-         this month) and enters the pending ledger with the New ARR the law
-         says it will create, dated to mature at t + LAG. --- */
-      var entry = { spendMonth: t, matureMonth: t + LAG, sm: a.sm, newARR: newARR,
-                    realised: false, cohortId: null };
+         this month) and enters the pending ledger with the New ARR the law IN
+         FORCE NOW says it will create, dated to mature at t + LAG. --- */
+      var entry = pendingEntry(a, t, LAG, newARR);
       ledger.push(entry); pending.push(entry);
 
       /* --- v1.3 REALISE. Whatever matured this month becomes the acquisition
          cohort, created AFTER the base has aged (the same order as v1.0). With
          LAG = 0 the entry just written matures immediately, which is exactly
-         the v1.0 same-month world. Under a constant S&M at most one entry
-         matures per month; the sum below keeps the cohort well-defined if that
-         ever changes. Entries maturing beyond the horizon stay pending forever
-         — spend near the end of the window never magically appears inside it. --- */
-      var realisedARR = 0, realisedSpend = 0, spendMonthOf = null, matured = [];
+         the v1.0 same-month world. When NOTHING matures (the first LAG months
+         of a lagged world) NO cohort is created: a customer cohort that does
+         not yet exist is not represented by a zero-ARR placeholder — the spend
+         is in the pending stock, which is where it economically is. Entries
+         maturing beyond the horizon stay pending forever — spend near the end
+         of the window never magically appears inside it. --- */
+      var matured = [];
       for (i = pending.length - 1; i >= 0; i--) {
-        if (pending[i].matureMonth === t) {
-          var e = pending.splice(i, 1)[0];
-          e.realised = true; e.cohortId = 'M' + t;
-          realisedARR += e.newARR; realisedSpend += e.sm; spendMonthOf = e.spendMonth;
-          matured.push(e);
-        }
+        if (pending[i].matureMonth === t) matured.push(pending.splice(i, 1)[0]);
       }
-      var realisedMRR = realisedARR / 12;
-      var nc = {
-        id: 'M' + t, label: 'M' + t, acquisitionMonth: t, initialAge: 0,
-        initialARR: realisedARR, live: realisedMRR, rows: [],
-        /* PROVENANCE (§2). Stamped once, at creation, from the acquisition
-           economics in force when the spend was incurred. Immutable thereafter,
-           and never read by any forward transition — a sunk cost, not a forward
-           penalty. v1.2: cacPerARRAtCreation is the REALISED cost per €1 of ARR
-           (= acquisitionCost / initialARR), which equals the cacPerARR
-           coefficient only while the bound is off; the coefficient itself is
-           stamped separately. v1.3: spendMonth and lagMonths record when the
-           capital left and how long it sat pending. */
-        acquisitionCost: realisedSpend,
-        cacPerARRAtCreation: realisedARR > 0 ? realisedSpend / realisedARR : null,
-        cacCoefficientAtCreation: a.cacPerARR,
-        spendMonth: spendMonthOf,
-        lagMonths: spendMonthOf === null ? null : t - spendMonthOf
-      };
-      var ncRevenue = (0 + realisedMRR) / 2;    // half a month of MRR, same midpoint rule
-      nc.rows.push({
-        t: t, age: 0, ageAtStart: -1, band: 0, bandName: bandRates[0].name,
-        openingMRR: 0, retainedMRR: 0, leakageMRR: 0, expansionMRR: 0, closingMRR: realisedMRR,
-        openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: realisedARR,
-        revenue: ncRevenue, grossProfit: ncRevenue * a.grossMargin, expansionCost: 0
-      });
-      cohorts.push(nc);
-      totRevenue += ncRevenue;
+      var realisedARR = 0, realisedMRR = 0;
+      if (matured.length) {
+        var nc = realiseCohort(t, matured, bandRates[0].name, a.grossMargin);
+        realisedARR = nc.initialARR; realisedMRR = nc.live;
+        cohorts.push(nc);
+        totRevenue += nc.rows[0].revenue;
+      }
 
       var pendingARR = 0, pendingSpend = 0;
       for (i = 0; i < pending.length; i++) { pendingARR += pending[i].newARR; pendingSpend += pending[i].sm; }
@@ -511,7 +581,8 @@
         pendingNewARR: pendingARR,
         pendingSpend: pendingSpend,
         pendingCount: pending.length,
-        realisedFromSpendMonth: spendMonthOf,
+        realisedFromSpendMonth: matured.length ? matured[matured.length - 1].spendMonth : null,
+        cohortCreated: matured.length > 0,
         cohortRevenueSum: totRevenue,
         avgARR: avgMRRco * 12,
         revenue: revenue,
@@ -631,6 +702,7 @@
         acquisitionCost: c.acquisitionCost,
         cacPerARRAtCreation: c.cacPerARRAtCreation,
         cacCoefficientAtCreation: c.cacCoefficientAtCreation === undefined ? null : c.cacCoefficientAtCreation,
+        capacityAtSpend: c.capacityAtSpend === undefined ? null : c.capacityAtSpend,
         spendMonth: c.spendMonth === undefined ? null : c.spendMonth,
         lagMonths: c.lagMonths === undefined ? null : c.lagMonths,
         age: row.age,
@@ -744,6 +816,7 @@
       endingCash: last.cashClosing,
       cashTrough: trough.cashClosing,
       cashTroughMonth: trough.t,
+      cohortCount: res.cohorts.length,
       /* v1.2 / v1.3 — acquisition economics and timing, read from derived/ledger */
       averageCAC: res.derived.acquisition.averageCAC,
       marginalCAC: res.derived.acquisition.marginalCAC,
@@ -825,6 +898,9 @@
     newMRRPerMonth: newMRRPerMonth,
     saturationEnabled: saturationEnabled,
     acquisitionResponse: acquisitionResponse,
+    validateAssumptions: validateAssumptions,
+    pendingEntry: pendingEntry,
+    realiseCohort: realiseCohort,
     cacPerMRR: cacPerMRR,
     run: run,
     bridge: bridge,

@@ -390,24 +390,37 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 ## New in v1.1–v1.3
 
-### 27. Three CAC paybacks now exist, and only one of them is the v1.0 number
+### 27. Several CACs and paybacks now legitimately exist — the vocabulary is fixed
 
-`cacPaybackMonths = cacPerARR × 12 ÷ GM` (18.0 months at Base) is the coefficient's own payback
-and is unchanged. Under a capacity the realised figure is the *average*-CAC payback
-(24.7 months at Base under €2.0m/month) and the last euro's is the *marginal*-CAC payback
-(34.0 months). The product labels which it shows; the capital-recovery track measures the
-realised one because it works from stamped cost. A reader comparing "payback" across versions
-or across a bound being on and off must say which of the three they mean. The measurement
-layer's `measuredCACR12M` adds a fourth reading under a lag, which is a feature: it carries the
-timing the law hides.
+| Canonical name | Definition | Source |
+|---|---|---|
+| **CAC coefficient** | `cacPerARR`, the low-spend acquisition-law coefficient | assumption |
+| **Average CAC** | S&M ÷ New ARR at the current spend (= coefficient + S&M ÷ capacity) | `derived.acquisition` |
+| **Marginal CAC** | 1 ÷ dN/dS&M, closed form | `derived.acquisition` |
+| **Cohort CAC (realised)** | a cohort's acquisition cost ÷ its initial ARR, stamped from its pending entry | `cohort.cacPerARRAtCreation` |
+| **Measured CAC · trailing 12** | Σ S&M ÷ Σ realised New ARR over the window — carries the lag | `K.acquisitionMeasures` |
+| **Coefficient payback** | CAC coefficient × 12 ÷ GM — the v1.0 `cacPaybackMonths`, 18.0 months at Base, unchanged | `derived` |
+| **Average payback** / **Marginal payback** | the same construction on average / marginal CAC | `derived.acquisition` |
+| **Cohort payback** | the month a cohort's cumulative gross profit first covers its cost | `capital.cohortCapital` |
 
-### 28. Pending acquisition is a stock with no economics of its own
+Every CAC is € of S&M per €1 of **ARR** and never passes through the MRR/ARR display basis. A
+bare "CAC payback" no longer appears in the product; a reader comparing 18.0 (coefficient),
+24.7 (average, Base under €2.0m/month), 34.0 (marginal) and 25 (a Base cohort's realised
+crossing) is comparing four named quantities. There is no "measured payback".
 
-The lag introduces a state — spend that has left cash but not yet created ARR — and the engine
-gives it no cost of carry, no conversion risk, no partial revenue and no interaction with the
-bound. That is the minimum mechanism the brief asked for, stated as a boundary: the pending stock
-is a delay line, not a pipeline model. Any future pipeline physics (conversion, ramp, decay of
-stale pipeline) would replace this object, not extend it.
+### 28. Pending acquisition is a stock with provenance and no economics of its own
+
+The lag introduces a state — spend that has left cash but not yet created ARR — held as a
+ledger of entries. Each entry fixes, at spend, the law that produced it (`cacPerARRAtSpend`,
+`maxMonthlyNewARRAtSpend`) and the amount; the cohort it matures into is stamped from the entry
+and from nothing else, so committed spend cannot be re-priced by later assumptions. No cohort
+exists before maturity — the first L months of a lagged world have no acquisition cohorts, not
+empty ones — and acquisition capital is deployed when spent (realised-cohort capital + pending
+capital = Σ S&M, every month). The engine gives the pending stock no cost of carry, no
+conversion risk, no partial revenue and no interaction with the bound. That is the minimum
+mechanism the brief asked for, stated as a boundary: a delay line with provenance, not a
+pipeline model. Any future pipeline physics (conversion, ramp, decay of stale pipeline) would
+replace this object, not extend it.
 
 ### 29. The three mechanisms are separable, and that separability is itself a modelling choice
 

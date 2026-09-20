@@ -79,6 +79,17 @@ for (var t = 1; t <= 60; t++) {
 check('REDUCTION-IS-BAND-CONDITIONAL', bandedErr > 1e-4,
   'banded world departs from the reduction by ' + (bandedErr * 100).toFixed(2) + '% — as it must');
 
+/* The reduction must NOT be claimed under an acquisition lag either: N is no
+   longer a same-month addend. Under a capacity it still holds (N is a
+   constant, just a smaller one). Stated as checks so the UI cannot cite the
+   reduced form outside its domain without this suite noticing. */
+var lagRed = R.reductionResidual({ acquisitionLagMonths: 6 });
+check('REDUCTION-IS-LAG-CONDITIONAL', lagRed.worstRelIterated > 1e-2,
+  'lag-6 world departs from ARR(t+1) = g·ARR(t) + N by ' + (lagRed.worstRelIterated * 100).toFixed(1) + '% — the reduced form needs lag 0');
+var capRed = R.reductionResidual({ maxMonthlyNewARR: 2e6 });
+check('REDUCTION-HOLDS-UNDER-CAPACITY', capRed.worstRelIterated < 1e-12,
+  'bounded world still reduces exactly (N = ' + (capRed.N / 1e6).toFixed(4) + 'm/mo constant), worst rel err ' + ex(capRed.worstRelIterated));
+
 /* ================================================================== *
  * FIBC
  * FIBC-60 equals direct cohort-level GP summation from the T0 base with

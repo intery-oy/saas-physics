@@ -72,9 +72,9 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('OBSERVE: page expansion cost and pending New ARR at the selected month match an independent Node recomputation',
       Math.abs(obs.expCost - im.expansionCost) < 1e-6 && Math.abs(obs.pending - im.pendingNewARR) < 1e-6, 'page ' + obs.expCost + '/' + obs.pending + ' node ' + im.expansionCost + '/' + im.pendingNewARR);
   const fmtEur = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
-  rec('OBSERVE: the side panel prints the expansion-cost row, the pending row and average/marginal payback only because the mechanisms are on',
+  rec('OBSERVE: the side panel prints the expansion-cost row, the pending row and coefficient/average/marginal payback only because the mechanisms are on',
       obs.txt.includes('Expansion realisation cost · this month') && obs.txt.includes(fmtEur(im.expansionCost)) &&
-      obs.txt.includes('Pending MRR (spent, not yet realised)') && obs.txt.includes('CAC payback (average)') && obs.txt.includes('CAC payback (marginal)') && obs.txt.includes('Acquisition capacity used'),
+      obs.txt.includes('Pending MRR (spent, not yet realised)') && obs.txt.includes('Coefficient payback') && obs.txt.includes('Average payback') && obs.txt.includes('Marginal payback') && obs.txt.includes('Acquisition capacity used'),
       obs.txt.slice(0, 120).replace(/\n/g, ' | '));
   const pb = await pg.evaluate(() => { const q = window.__SP_DEBUG.expRes.derived.acquisition; return { avg: q.averagePaybackMonths, marg: q.marginalPaybackMonths }; });
   rec('OBSERVE: average and marginal payback on screen equal the engine\'s acquisitionResponse (avg CAC × 12 ÷ GM, marginal CAC × 12 ÷ GM)',
@@ -100,10 +100,10 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     const D = window.__SP_DEBUG;
     /* pin cohort M12 (created month 12 from month-6 spend under a 6-month lag) via the canvas hit-test is fragile; use the page's own state through the mass click */
     const cv = document.getElementById('scene'); const r = cv.getBoundingClientRect();
-    return { w: r.width, h: r.height, cohort: D.expRes.cohorts[12] };
+    return { w: r.width, h: r.height, cohort: D.expRes.cohorts.filter(c => c.id === 'M12')[0], count12: D.expRes.cohorts.filter(c => c.acquisitionMonth > 0 && c.acquisitionMonth <= 12).length, first: D.expRes.cohorts[1].id };
   });
-  rec('INSPECT (engine): cohort M12 under a 6-month lag records spendMonth 6, lag 6, acquisition cost €0.90m, realised CAC = average CAC',
-      dossier.cohort.spendMonth === 6 && dossier.cohort.lagMonths === 6 && Math.abs(dossier.cohort.acquisitionCost - 900000) < 1e-6 &&
+  rec('INSPECT (engine): under a 6-month lag the first cohort is M7, 6 cohorts exist by M12 (no phantoms), and cohort M12 records spendMonth 6, lag 6, acquisition cost €0.90m, realised CAC = average CAC',
+      dossier.first === 'M7' && dossier.count12 === 6 && dossier.cohort.spendMonth === 6 && dossier.cohort.lagMonths === 6 && Math.abs(dossier.cohort.acquisitionCost - 900000) < 1e-6 &&
       Math.abs(dossier.cohort.cacPerARRAtCreation - indep.derived.acquisition.averageCAC) < 1e-9, JSON.stringify({ s: dossier.cohort.spendMonth, l: dossier.cohort.lagMonths, c: dossier.cohort.acquisitionCost, cac: dossier.cohort.cacPerARRAtCreation }));
   /* click into the mass at the top stratum near month 20 to pin a cohort, then read the dossier */
   const pinned = await pg.evaluate(() => {
@@ -120,8 +120,18 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.waitForTimeout(300);
   const dText = pinned.txt;
   rec('INSPECT (screen): the pinned cohort\'s dossier shows when the spend was incurred, how long it was pending, and when the cohort was created',
-      pinned.hit !== null && /Spend incurred\s+month \d+ · pending 6 months/.test(dText) && /Cohort created\s+month \d+/.test(dText) && /Realised cost \/ €1 MRR/.test(dText),
+      pinned.hit !== null && /Spend incurred\s+month \d+ · pending 6 months/.test(dText) && /Cohort created\s+month \d+/.test(dText) && /Cohort CAC \(realised\)/.test(dText),
       (pinned.hit === null ? 'no cohort hit' : dText.slice(dText.indexOf('Cohort acquired'), dText.indexOf('Cohort acquired') + 260).replace(/\n/g, ' | ')));
+
+  /* ---- CAC-UNITS: the pinned cohort's CAC does not change when the display basis changes ---- */
+  const cacMRR = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
+  await pg.click('#basis-arr'); await pg.waitForTimeout(300);
+  const cacARR = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
+  await pg.click('#basis-mrr'); await pg.waitForTimeout(200);
+  rec('CAC-UNITS: switching the MRR/ARR display basis leaves the cohort CAC string unchanged (CAC is per €1 of ARR, never ×12)',
+      cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC coefficient 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
+  const alive = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/Cohorts alive\s+(\d+)/); return m ? +m[1] : null; });
+  rec('INSPECT (screen): "Cohorts alive" at month 20 under a 6-month lag counts the opening base + 14 realised cohorts, not 20', alive === 15, 'shown ' + alive);
 
   /* ---- SYSTEM ---- */
   await pg.click('#nav-system'); await pg.waitForTimeout(500);
@@ -152,7 +162,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="bounded"]').click()); await pg.waitForTimeout(500);
   const s8 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, cap: window.__SP_DEBUG.expA.maxMonthlyNewARR, q: window.__SP_DEBUG.expRes.derived.acquisition }));
   rec('SCENARIO 8: the bound is on at €2.0m, the panel shows average vs marginal CAC and the response-curve table, and no optimum is declared',
-      s8.cap === 2000000 && s8.txt.includes('Average CAC / €1 New ARR') && s8.txt.includes('Marginal CAC / €1 New ARR') && s8.txt.includes('Acquisition response in the Experiment') &&
+      s8.cap === 2000000 && s8.txt.includes('Average CAC') && s8.txt.includes('Marginal CAC') && s8.txt.includes('Coefficient payback') && s8.txt.includes('Average payback') && s8.txt.includes('Marginal payback') && s8.txt.includes('Acquisition response in the Experiment') &&
       s8.txt.includes(s8.q.marginalCAC.toFixed(2) + '×') && !/optimal|should stop|should invest/i.test(s8.txt), s8.txt.slice(0, 100).replace(/\n/g, ' | '));
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="lag"]').click()); await pg.waitForTimeout(500);
   const s9 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, lag: window.__SP_DEBUG.expA.acquisitionLagMonths, pend: window.__SP_DEBUG.expRes.pendingAtHorizon.newARR }));

@@ -83,23 +83,55 @@
   /* ------------------------------------------------------------------ *
    * Portfolio view at month t: how much capital is out, how much has come
    * back, and how the deployed capital is distributed across payback states.
+   *
+   * v1.3 — acquisition capital is DEPLOYED when it is spent, not when its
+   * cohort exists. So:
+   *
+   *   deployed(t) = Σ acquisitionCost of cohorts realised by t     (realisedDeployed)
+   *               + Σ sm of ledger entries still pending at t       (pendingCapital)
+   *               = Σ S&M spent through t                           (deployedSeries)
+   *
+   * Pending capital has recovered nothing yet (there is no cohort to produce
+   * gross profit), so it is outstanding in full. When an entry matures its
+   * sm moves from pendingCapital to realisedDeployed with no change to the
+   * total — the CAPITAL-RECONCILIATION check asserts that across every month
+   * and through the maturity transition. With lag 0 the pending term is
+   * always zero and this reduces to the v1.0 definition exactly.
    * ------------------------------------------------------------------ */
+  function pendingAt(res, t) {
+    var spend = 0, arr = 0, count = 0, ledger = res.acquisitionLedger || [];
+    for (var i = 0; i < ledger.length; i++) {
+      var e = ledger[i];
+      if (e.spendMonth <= t && e.matureMonth > t) { spend += e.sm; arr += e.newARR; count++; }
+    }
+    return { spend: spend, newARR: arr, count: count };
+  }
   function portfolioCapital(res, t) {
-    var deployed = 0, recovered = 0, outstanding = 0;
-    var states = { prePayback: 0, paidBack: 0 }, counts = { prePayback: 0, paidBack: 0 };
+    var realised = 0, recovered = 0, outstandingRealised = 0;
+    var states = { prePayback: 0, paidBack: 0, pending: 0 }, counts = { prePayback: 0, paidBack: 0, pending: 0 };
     for (var k = 0; k < res.cohorts.length; k++) {
       var c = res.cohorts[k];
       if (c.acquisitionCost === null || c.acquisitionMonth > t) continue;
       var r = rowAt(c, t);
       var cum = r ? r.cumGrossProfit : 0;
-      deployed += c.acquisitionCost;
+      realised += c.acquisitionCost;
       recovered += Math.min(cum, c.acquisitionCost);
       var unrec = Math.max(c.acquisitionCost - cum, 0);
-      outstanding += unrec;
+      outstandingRealised += unrec;
       if (unrec > 0) { states.prePayback += c.acquisitionCost; counts.prePayback++; }
       else { states.paidBack += c.acquisitionCost; counts.paidBack++; }
     }
-    return { t: t, deployed: deployed, recovered: recovered, outstanding: outstanding,
+    var p = pendingAt(res, t);
+    states.pending = p.spend; counts.pending = p.count;
+    var deployed = realised + p.spend;
+    return { t: t,
+             deployed: deployed,                       /* realised + pending — what has actually left cash */
+             realisedDeployed: realised,               /* attached to cohorts that exist */
+             pendingCapital: p.spend,                  /* spent, cohort not yet created */
+             pendingNewARR: p.newARR,
+             recovered: recovered,
+             outstanding: outstandingRealised + p.spend, /* pending has recovered nothing */
+             outstandingRealised: outstandingRealised,
              states: states, counts: counts,
              recoveredShare: deployed > 0 ? recovered / deployed : 0 };
   }
@@ -142,6 +174,7 @@
     cohortCapital: cohortCapital,
     cohortCapitalAt: cohortCapitalAt,
     portfolioCapital: portfolioCapital,
+    pendingAt: pendingAt,
     gpByVintage: gpByVintage,
     deployedSeries: deployedSeries
   };

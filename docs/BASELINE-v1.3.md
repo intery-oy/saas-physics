@@ -1,68 +1,76 @@
-# Baseline v1.3 — the re-frozen core after the physics extension
+# Baseline v1.3 — the re-frozen core after the physics extension and its fix pass
 
 Established after v1.1 (Expansion Economics), v1.2 (Bounded Acquisition) and v1.3 (Acquisition
-Timing) passed every suite. This supersedes `BASELINE-v1.0.md` as the frozen reference; that file
-is kept as the record of what the extension started from.
+Timing) landed in `f08f992`, were adversarially reviewed, and the review's findings were fixed
+in the follow-up commit. This supersedes `BASELINE-v1.0.md` as the frozen reference; that file
+is kept as the record of what the extension started from and holds the two fixtures the
+ALL-NULL gates replay.
 
 ## Protected core, byte-identical at freeze
 
 | File | sha256 | lines | vs v1.0 |
 |---|---|---|---|
-| `engine.js` | `12400b0245424e281aff944a4e3a73b681d59f3b5719eab5c1ded3ddbd5a8eeb` | 840 | changed — three mechanisms, see below |
+| `engine.js` | `1e8f132e900735e9352c37eec45b0cc567c97ecd27e1c94c9f1e6a9f18c33df3` | 916 | changed — three mechanisms; `validateAssumptions`, `pendingEntry`, `realiseCohort` |
 | `kpi.js` | `0bcd0f6da231059e70e6ededb19ab2446afc5a8c167f27978377c5fb0bde84d7` | 381 | changed — `acquisitionMeasures`, `expansionCostMeasures`, `companyKPIs.expansionCost` |
-| `integrity.js` | `44ef1da72568bb732fcddc37a6eecfd95127cb717a324cd8b4744f5a1be8c7c6` | 604 | changed — 16 checks appended (36–51); checks 1–35 untouched |
-| `capital.js` | `a3a0df75a7be2e1f142aa5f2961ff407d8d88d36ccb7f01c60dbabf700a21be5` | 148 | comment only (disclosed boundary updated) |
-| `systemstate.js` | `3bb2c255d21fbd83ba0ebf23db78d0235fc7ab8075c6a3df48d530e509a85d24` | 96 | changed — reads `expansionCost`, pending fields |
+| `integrity.js` | `bae107a51a0d7ead6fd16254529c59a5884ba940561a8bfdcf50a667437632d5` | 666 | changed — 18 checks appended (36–53); checks 1–35 untouched |
+| `capital.js` | `c9ff52248de50a7cdf11ca5f21c6017c0bab0f68b15a061969912db23982eb96` | 181 | changed — `portfolioCapital` includes pending capital; `pendingAt` |
+| `systemstate.js` | `3bb2c255d21fbd83ba0ebf23db78d0235fc7ab8075c6a3df48d530e509a85d24` | 97 | changed — reads `expansionCost`, pending fields |
 | `basis.js` | `ee816509cc29485bd64496d1b974df7808cdf9583f9dc8a1a392a46492522e66` | 49 | unchanged |
 | `build.js` | `f1fdb5a053adf9a1045c341cba4673d59b73ec1620d8b65233f1795cd474fa83` | 37 | unchanged |
-| `v1.template.html` | `cb26f99ee774ae27642c48e71c4043e963b78044ea0cbc3559bd45cd76e383d5` | 2519 | changed — controls, Observe, Scenarios 7–9, Inspect, System map |
-| `saas-physics-v1.html` (built) | `e53e5053fbd4b9a7d0785726e8c6f8ae373aad16d4c974235a5d4512f95aaac2` | — | rebuilt from the above |
+| `v1.template.html` | `42666428d56d6fda73cb312e74c9341d64ca35e30d7b83d343e80dd70aac85de` | 2532 | changed — controls, Observe, Scenarios 7–9, Inspect, System map, canonical CAC vocabulary |
+| `saas-physics-v1.html` (built) | `e34c6f7edcc3113ef8c020c19fcfa733f0dd1157f8fd839db0c5836782109f4b` | — | rebuilt from the above |
+| `baseline-v1.0-full.json.gz` (fixture) | `970cc4d7c6dcbd01be79a487e5c8002cb811ee427a499870e629647704b35f08` | — | the complete v1.0 snapshot, from the engine at `ba98265` |
 
-## Exactly what changed in the protected files, and why
+## What the fix pass changed in the protected files, and why
 
 **`engine.js`**
-- `DEFAULT_ASSUMPTIONS`: `expansionCostPerARR: 0`, `maxMonthlyNewARR: null`,
-  `acquisitionLagMonths: 0` — the null settings, so every existing caller is unchanged.
-- `newARRPerMonth()`: the saturating response when the bound is on; the linear law otherwise.
-  New `saturationEnabled()`, `acquisitionResponse()` (analytical average/marginal CAC).
-- `run()`: per-cohort `expansionCost` and the company line (v1.1); the pending ledger, realise
-  step, cohort provenance `spendMonth` / `lagMonths` / `cacCoefficientAtCreation` (v1.3);
-  `cacPerARRAtCreation` now the realised cost per €1 (v1.2). New month fields
-  (`expansionCost`, `acquisitionLawNewARR`, `pendingNewARR`, `pendingSpend`, `pendingCount`,
-  `realisedFromSpendMonth`), new result fields (`mechanisms`, `derived.acquisition`,
-  `derived.acquisitionLagMonths`, `derived.expansionCostPerARR`, `acquisitionLedger`,
-  `pendingAtHorizon`), `modelVersion` `'0.3'` → `'1.3'`.
-- `summarise()`: `cumExpansionCost`, `averageCAC`, `marginalCAC`, `acquisitionUtilisation`,
-  `firstCohortMonth`, `pendingNewARRAtHorizon`, `pendingSpendAtHorizon`.
-- `TAXONOMY` and `cohortSnapshot()` extended accordingly.
+- `validateAssumptions()` at the boundary: `acquisitionLagMonths` must be an integer ≥ 0 —
+  negative, fractional, NaN, ±Infinity, non-numeric or null throws `RangeError` (a coerced lag
+  reshaped the cash path; a NaN lag dated every entry to never mature). `maxMonthlyNewARR`
+  canonicalised: null/undefined/±Infinity → null; negative or NaN throws; 0 kept.
+- `pendingEntry(a, t, L, newARR)`: the ledger entry now carries `cacPerARRAtSpend`,
+  `maxMonthlyNewARRAtSpend` (null = bound off) and `lagMonths` beside `sm` and `newARR`.
+- `realiseCohort(t, matured, bandName, grossMargin)`: takes no assumption object; every
+  provenance stamp (`acquisitionCost`, `initialARR`, `cacPerARRAtCreation`,
+  `cacCoefficientAtCreation`, `capacityAtSpend`, `spendMonth`, `lagMonths`, `sourceEntries`)
+  comes from the entries. Called **only when an entry matured** — no zero-ARR placeholder
+  cohort exists before maturity; the cohort count is realised cohorts only.
+- `months[].cohortCreated`; `summarise().cohortCount`.
 
-**`kpi.js`** — additive only: two measurement functions and one field. No economics.
+**`capital.js`** — `portfolioCapital` reports `realisedDeployed`, `pendingCapital`,
+`pendingNewARR`, `deployed` (= realised + pending = Σ S&M), `outstanding` (pending is
+outstanding in full), `outstandingRealised`, and a `pending` state/count. `pendingAt(res, t)`.
 
-**`integrity.js`** — additive only: EXP-COST (36–40), ACQ-BOUND (41–46), ACQ-LAG (47–51).
+**`integrity.js`** — check 43 rewritten to evaluate the law only (second differences of N, a
+forward-difference marginal CAC); check 48 asserts no phantom cohorts; new SPEND-TIME
+PROVENANCE (synthetic entry realised with no assumption object) and lag-validation checks;
+check 51 re-indexed for real cohorts.
+
+**`kpi.js`, `systemstate.js`, `basis.js`, `build.js`** — unchanged in the fix pass.
 
 ## Suites passing at freeze
 
 | Suite | Result |
 |---|---|
-| `node checks.js` | 51 / 51 |
-| `node physics-checks.js` | 41 / 41 (ALL-NULL exact: worst |Δ| €0.00e+0 on all six fixture worlds) |
+| `node checks.js` | 53 / 53 |
+| `node physics-checks.js` | 69 / 69 — ALL-NULL-FULL: 331,662 fields vs the complete v1.0 snapshot, worst \|Δ\| €0.00e+0; CAPITAL-RECONCILIATION €0.00e+0 at lags 0/6/12/72, zero S&M, through maturity; SATURATION-INDEPENDENT marginal CAC 3.2e-10 rel |
 | `node mrr-native-checks.js` | 20 / 20 |
 | `node basis-checks.js` | 12 / 12 |
 | `node clarity-checks.js` | 46 / 46 |
 | `node attribution-checks.js` | 22 / 22 |
-| `node research-checks.js` | 19 / 19 |
+| `node research-checks.js` | 21 / 21 (REDUCTION-IS-LAG-CONDITIONAL, REDUCTION-HOLDS-UNDER-CAPACITY added) |
 | `node clarity-accept.js` (Playwright) | 15 / 15 |
 | `node attribution-accept.js` (Playwright) | 14 / 14 |
-| `node physics-accept.js` (Playwright) | 22 / 22 |
+| `node physics-accept.js` (Playwright) | 24 / 24 (CAC-UNITS basis invariance, real cohort count added) |
 
-Total: 262 checks (183 at v1.0 + 79 added). Headline Base figures unchanged from v1.0:
+Total: 296 checks (183 at v1.0 + 113 added). Headline Base figures unchanged from v1.0:
 M60 ARR €62,926,223.19 · ending cash €59,571,254.64 · trough €6,100,740.28 (M13) ·
-New ARR €750,000/mo · CAC payback 18.0 months.
+New ARR €750,000/mo · coefficient payback 18.0 months.
 
 ## Rule from here
 
 The three protected files are frozen again at the checksums above. The next physics change
 repeats the same discipline: capture (this file becomes the "before"), one mechanism with a
-null setting, named checks, an all-null replay against a captured fixture, then a new baseline
-note. `baseline-v1.0.json` stays as the fixture until a release deliberately changes the null
-world — which none of v1.1–v1.3 did.
+null setting, named checks, an all-null replay against the captured full snapshot, then a new
+baseline note. `baseline-v1.0-full.json.gz` stays as the fixture until a release deliberately
+changes the null world — which none of v1.1–v1.3 did.

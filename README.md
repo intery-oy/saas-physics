@@ -32,7 +32,7 @@ release gate replays `baseline-v1.0.json` to €0.00e+0:
 |---|---|---|---|---|
 | **v1.1 Expansion Economics** | expansion realisation cost | `expansionCostPerARR` (0) | a named P&L line → EBITA, FCF, cash | any ARR quantity, GRR, NRR, the acquisition response |
 | **v1.2 Bounded Acquisition** | saturating acquisition response `N = S&M ÷ (CAC + S&M ÷ capacity)`, with average and marginal CAC derived analytically | `maxMonthlyNewARR` (null = linear) | how much New ARR each month of spend creates | existing cohorts' transitions, retention KPIs |
-| **v1.3 Acquisition Timing** | S&M at t → explicit pending stock → cohort at t + L | `acquisitionLagMonths` (0) | when ARR appears; the cash path; what is still pending at M60 | how much per euro; retention |
+| **v1.3 Acquisition Timing** | S&M at t → explicit pending stock (with the law in force at spend) → cohort at t + L; no cohort exists before maturity; capital is deployed when spent | `acquisitionLagMonths` (0; integer ≥ 0, anything else is rejected) | when ARR appears; the cash path; what is still pending at M60 | how much per euro; retention; the provenance of spend already committed |
 
 Measured results are in the three research notes — [`docs/RN-EXPANSION-ECONOMICS.md`](docs/RN-EXPANSION-ECONOMICS.md),
 [`docs/RN-ACQUISITION-SATURATION.md`](docs/RN-ACQUISITION-SATURATION.md),
@@ -43,10 +43,14 @@ ARR; at Base spend under a €2.0m/month capacity the average CAC is 1.65× and 
 €2.29m. The product gained three controls (Change), the corresponding rows (Observe), Scenarios
 7–9 (Compare), spend/pending/creation provenance per cohort (Inspect) and the new causal links on
 the System map. `FINDINGS.md` #10, #14 and #17 are reclassified, not deleted; #27–#30 are new.
-Regression suites: `node checks.js` (51 — 16 new, named EXP-COST / ACQ-BOUND / ACQ-LAG),
-`node physics-checks.js` (41 — ALL-NULL, SAT+LAG, COST+SAT, ALL-ON, RETENTION-ISO, DETERMINISM,
-EXTREMES, SWEEP), `node physics-accept.js` (Playwright, 22), `node physics-study.js` (the
-experiments).
+Regression suites: `node checks.js` (53 — 18 new, named EXP-COST / ACQ-BOUND / ACQ-LAG,
+including SPEND-TIME PROVENANCE and the lag-validation check), `node physics-checks.js` (69 —
+ALL-NULL-FULL against the complete v1.0 snapshot, NO-PHANTOM-COHORTS, CAPITAL-RECONCILIATION,
+SATURATION-INDEPENDENT, CAC-UNITS, SAT+LAG, COST+SAT, ALL-ON, RETENTION-ISO, DETERMINISM,
+EXTREMES, SWEEP), `node physics-accept.js` (Playwright, 24), `node physics-study.js` (the
+experiments). Vocabulary is canonical (`docs/FINDINGS.md` #27): CAC coefficient, Average CAC,
+Marginal CAC, Cohort CAC (realised), Measured CAC · trailing 12; Coefficient / Average /
+Marginal / Cohort payback — every CAC per €1 of ARR, in either display basis.
 
 Four passes ran between the v1 product shipping and this extension:
 
@@ -112,9 +116,9 @@ FINANCIAL-WATERFALL, NO-FAKE-MOVEMENTS) and `node clarity-accept.js` (Playwright
 DISPLAY-RECONCILIATION, DELTA-CASH, KPI-MEASUREMENT, BASIS-INVARIANCE, and the full six-viewport
 scenario matrix).
 
-All 51 economic integrity checks, 41 physics-extension checks, 19 research checks, 12 MRR/ARR
+All 53 economic integrity checks, 69 physics-extension checks, 21 research checks, 12 MRR/ARR
 basis-switch regression checks, 46 clarity regression checks, 20 MRR-native engine-refactor
-checks and 22 Integrity + Experiment Attribution checks pass; so do the 15 + 14 + 22 Playwright
+checks and 22 Integrity + Experiment Attribution checks pass; so do the 15 + 14 + 24 Playwright
 acceptance checks.
 
 ## The product
@@ -164,8 +168,8 @@ identity, bridge, measurement and integrity check, in numbers.
 ## Run it
 
 ```bash
-node checks.js              # 51 economic, measurement and state integrity checks (35 + EXP-COST, ACQ-BOUND, ACQ-LAG)
-node physics-checks.js      # v1.1–v1.3: ALL-NULL release gate vs baseline-v1.0.json, cross-mechanism, extremes, S&M sweep
+node checks.js              # 53 economic, measurement and state integrity checks (35 + EXP-COST, ACQ-BOUND, ACQ-LAG)
+node physics-checks.js      # v1.1–v1.3: ALL-NULL-FULL gate vs the complete v1.0 snapshot, no-phantom-cohorts, capital reconciliation, independent saturation, cross-mechanism, extremes, S&M sweep
 node physics-study.js       # v1.1–v1.3: the three experiments with measured results (quoted in docs/RN-*.md)
 node physics-accept.js      # v1.1–v1.3 DOM/render checks — needs playwright
 node mrr-native-checks.js   # MRR-native engine refactor checks (ARR-EQUALS-12X-MRR, REVENUE-INVARIANCE, CAC-PAYBACK-INVARIANCE, SCENARIO-INVARIANCE)
@@ -193,7 +197,7 @@ No dependencies. The browser UI inlines the same `engine.js` and `integrity.js` 
 | CONTROL | Monthly S&M investment | €900k |
 | CONTROL | Monthly R&D investment | €700k |
 | CONTROL | Monthly G&A investment | €350k |
-| TRANSITION | CAC / New ARR | 1.20× |
+| TRANSITION | CAC coefficient (€ of S&M per €1 of New ARR, low-spend law) | 1.20× |
 | TRANSITION | Annual persistence coefficient | 90% (per age band; flat by default) |
 | TRANSITION | Annual expansion coefficient | 10% (per age band; flat by default) |
 | TRANSITION | Gross margin | 80% |
@@ -217,7 +221,7 @@ are not the same objects — a 90% persistence coefficient measures as **89.56% 
 gap is the within-period interaction of decay and expansion, not an error.
 
 Two things are deliberately **not** assumptions. **R12M NRR** emerges as 99.0% from P × (1 + X).
-**CAC payback** emerges as 18.0 months from `CAC/New ARR × 12 ÷ GM` — in v0.1 it was an input, and
+**Coefficient payback** emerges as 18.0 months from `CAC coefficient × 12 ÷ GM` — in v0.1 it was an input, and
 inverting it is the main change in 0.2. Acquisition productivity decides how much ARR the spend
 creates; gross margin decides how fast that investment is recovered.
 

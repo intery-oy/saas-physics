@@ -102,14 +102,33 @@ LAGS.forEach(function (lag) {
 });
 var lag6 = E.run(Object.assign({}, A, { acquisitionLagMonths: 6 }));
 var shift = 0; for (var t = 6; t < 60; t++) shift = Math.max(shift, Math.abs(lag6.months[t].newARR - base0.months[t - 6].newARR));
-var cohortTwin = 0; for (var k = 1; k + 6 < base0.cohorts.length; k++) for (var q2 = 0; q2 < lag6.cohorts[k + 6].rows.length; q2++) cohortTwin = Math.max(cohortTwin, Math.abs(lag6.cohorts[k + 6].rows[q2].closingARR - base0.cohorts[k].rows[q2].closingARR));
+/* no phantom cohorts: lag6.cohorts[k] is the cohort created in month k + 6, the twin of base0.cohorts[k] */
+var cohortTwin = 0; for (var k = 1; k < lag6.cohorts.length; k++) for (var q2 = 0; q2 < lag6.cohorts[k].rows.length; q2++) cohortTwin = Math.max(cohortTwin, Math.abs(lag6.cohorts[k].rows[q2].closingARR - base0.cohorts[k].rows[q2].closingARR));
 console.log('\n  Lag 6: realised New ARR series = the lag-0 series shifted by 6 months exactly (max |Δ| €' + shift.toExponential(1) + ').');
 console.log('  Lag 6: every cohort ages exactly as its lag-0 twin (max |Δ| €' + cohortTwin.toExponential(1) + ') — retention mechanics untouched.');
+
+/* cohort counts, pending stock and capital — the state the fix pass made explicit */
+var CAPm = require('./capital.js');
+console.log('\n  COHORTS, PENDING STOCK AND ACQUISITION CAPITAL (capital is deployed when spent, realised when its cohort exists)');
+console.log('  ' + pad('lag', 6) + rpad('cohorts @M12', 14) + rpad('cohorts @M60', 14) + rpad('pending @M12', 14) + rpad('pending ARR', 13) + rpad('realised cap', 14) + rpad('pending cap', 13) + rpad('deployed', 11) + rpad('Σ S&M', 9) + rpad('residual', 10));
+console.log('  ' + L(118));
+LAGS.forEach(function (lag) {
+  var r = E.run(Object.assign({}, A, { acquisitionLagMonths: lag })), p = CAPm.portfolioCapital(r, 12);
+  console.log('  ' + pad(lag + ' mo', 6) + rpad(String(E.cohortSnapshot(r, 12).length), 14) + rpad(String(E.cohortSnapshot(r, 60).length), 14) + rpad(p.counts.pending + ' months', 14) +
+              rpad(m(p.pendingNewARR), 13) + rpad(m(p.realisedDeployed), 14) + rpad(m(p.pendingCapital), 13) + rpad(m(p.deployed), 11) + rpad(m(12 * A.sm), 9) + rpad('€' + Math.abs(p.deployed - 12 * A.sm).toExponential(1), 10));
+});
+console.log('\n  Lag 6, through the first maturity month (spend of M1 becomes cohort M7):');
+[5, 6, 7, 8].forEach(function (t) {
+  var p = CAPm.portfolioCapital(lag6, t);
+  console.log('    M' + t + ': realised €' + (p.realisedDeployed / 1e6).toFixed(2) + 'm (' + (E.cohortSnapshot(lag6, t).length - 1) + ' cohorts) + pending €' + (p.pendingCapital / 1e6).toFixed(2) + 'm (' + p.counts.pending + ' months) = deployed €' +
+              (p.deployed / 1e6).toFixed(2) + 'm = Σ S&M €' + (t * A.sm / 1e6).toFixed(2) + 'm · outstanding €' + (p.outstanding / 1e6).toFixed(2) + 'm');
+});
 var cashGap = 0, cashGapM = 0; for (t = 0; t < 60; t++) { var g = base0.months[t].cashClosing - lag6.months[t].cashClosing; if (g > cashGap) { cashGap = g; cashGapM = t + 1; } }
 console.log('  Lag 6: cash sits below the lag-0 path all the way — widest gap ' + m(cashGap) + ' at M' + cashGapM + '. Spend leaves on time; ARR and its gross profit arrive 6 months late.');
 console.log('  Horizon boundary: the last L months of spend are expensed inside the window and their ARR matures outside it —');
 console.log('  the model reports them as pending at M60, it does not pull them forward. M60 ARR therefore differs by construction, not by productivity.');
 var k36l = K.acquisitionMeasures(lag6, 36), k12l = K.acquisitionMeasures(lag6, 9);
-console.log('  Measured CAC (spend ÷ realised New ARR): at T=9 ' + (k12l.measuredCACR12M === null ? 'undefined (nothing realised yet)' : k12l.measuredCACR12M.toFixed(3) + '×') +
-            ' · trailing-12 at T=36 ' + k36l.measuredCACR12M.toFixed(3) + '× · cumulative at T=36 ' + k36l.measuredCACCumulative.toFixed(3) + '× (the pending stock inflates it) · law ' + A.cacPerARR.toFixed(3) + '×');
+console.log('  Measured CAC · trailing 12 (spend ÷ realised New ARR): at T=9 ' + (k12l.measuredCACR12M === null ? 'undefined (nothing realised yet)' : k12l.measuredCACR12M.toFixed(3) + '×') +
+            ' · at T=36 ' + k36l.measuredCACR12M.toFixed(3) + '× · cumulative at T=36 ' + k36l.measuredCACCumulative.toFixed(3) + '× (the pending stock inflates it) · CAC coefficient ' + A.cacPerARR.toFixed(3) + '×');
+console.log('  Coefficient payback ' + lag6.derived.cacPaybackMonths.toFixed(1) + ' mo at every lag (the law is unchanged); no "measured payback" exists in the model.');
 console.log('');

@@ -40,36 +40,188 @@ var NULLS = { expansionCostPerARR: 0, maxMonthlyNewARR: null, acquisitionLagMont
 var ALL = { expansionCostPerARR: 0.25, maxMonthlyNewARR: 2000000, acquisitionLagMonths: 3 };
 
 /* ------------------------------------------------------------------ *
- * ALL-NULL — the release gate
+ * ALL-NULL — the release gate.
+ *
+ * Two fixtures, both generated from the v1.0 engine at git ba98265 (the
+ * generator is recorded in docs/BASELINE-v1.0.md):
+ *
+ *   baseline-v1.0.json          a small, human-readable subset (11 month
+ *                               fields, cohort finals, R12M at 36, summary)
+ *   baseline-v1.0-full.json.gz  EVERYTHING the v1.0 engine emitted: every
+ *                               month field including `cumulative`, every
+ *                               cohort scalar and every cohort row, R12M at
+ *                               every T = 12…60 including per-cohort
+ *                               contributions, summarise() including `mix`,
+ *                               derived, bands — gzipped, read with node's
+ *                               built-in zlib, no dependency.
+ *
+ * The FULL comparison walks the v1.0 object recursively and looks up the same
+ * path in the v1.3 run. Numbers must agree within EPS, nulls/strings/booleans
+ * exactly; a v1.0 path missing in v1.3 is a failure. Fields that exist only in
+ * v1.3 (expansionCost, acquisitionLawNewARR, pendingNewARR, pendingSpend,
+ * pendingCount, realisedFromSpendMonth, cohortCreated, cacCoefficientAtCreation,
+ * capacityAtSpend, spendMonth, lagMonths, sourceEntries, mechanisms,
+ * derived.acquisition/acquisitionLagMonths/expansionCostPerARR,
+ * acquisitionLedger, pendingAtHorizon, summarise.cumExpansionCost/averageCAC/
+ * marginalCAC/acquisitionUtilisation/firstCohortMonth/cohortCount/pending*) are
+ * not in the fixture and are asserted separately to be at their null values.
  * ------------------------------------------------------------------ */
+var SCEN = { base: {}, retention: { persistenceAnnual: 0.96 }, expansion: { expansionCoefficientAnnual: 0.18 },
+             efficiency: { cacPerARR: 0.80 }, margin: { grossMargin: 0.65 }, pair: { cacPerARR: 0.80, sm: 900000 * 1.5 } };
+function walkCompare(ref, cur, path, acc) {
+  if (ref === null || typeof ref !== 'object') {
+    acc.fields++;
+    /* JSON has no Infinity: the v1.0 engine's open-ended band edge
+       (bands[2].maxAgeExclusive = Infinity) serialised as null in the fixture.
+       That is the one place a null in the fixture may meet ±Infinity here. */
+    if (ref === null && (cur === Infinity || cur === -Infinity) && /maxAgeExclusive$/.test(path)) return;
+    if (typeof ref === 'number') {
+      if (typeof cur !== 'number') { acc.missing.push(path); return; }
+      var d = Math.abs(ref - cur);
+      if (!(d <= EPS) && !(ref === cur)) { if (d > acc.worst || isNaN(d)) { acc.worst = isNaN(d) ? Infinity : d; acc.where = path; } }
+      else if (d > acc.worst) { acc.worst = d; acc.where = path; }
+    } else if (ref !== cur) acc.missing.push(path + ' (' + String(ref) + ' vs ' + String(cur) + ')');
+    return;
+  }
+  if (cur === null || typeof cur !== 'object') { acc.missing.push(path); return; }
+  if (Array.isArray(ref)) {
+    if (!Array.isArray(cur) || cur.length !== ref.length) { acc.missing.push(path + ' (length ' + ref.length + ' vs ' + (cur && cur.length) + ')'); return; }
+    for (var i = 0; i < ref.length; i++) walkCompare(ref[i], cur[i], path + '[' + i + ']', acc);
+    return;
+  }
+  Object.keys(ref).forEach(function (f) { walkCompare(ref[f], cur[f], path + '.' + f, acc); });
+}
 (function allNull() {
-  var B = JSON.parse(fs.readFileSync(__dirname + '/baseline-v1.0.json', 'utf8'));
-  var scen = { base: {}, retention: { persistenceAnnual: 0.96 }, expansion: { expansionCoefficientAnnual: 0.18 },
-               efficiency: { cacPerARR: 0.80 }, margin: { grossMargin: 0.65 }, pair: { cacPerARR: 0.80, sm: 900000 * 1.5 } };
-  Object.keys(scen).forEach(function (k) {
-    var r = E.run(Object.assign({}, A, NULLS, scen[k]));
-    var worst = 0, where = '';
-    r.months.forEach(function (m, i) {
-      var b = B[k].months[i];
-      Object.keys(b).forEach(function (f) { var d = Math.abs(m[f] - b[f]); if (d > worst) { worst = d; where = 'M' + m.t + ' ' + f; } });
-    });
-    r.cohorts.forEach(function (c, i) {
-      var b = B[k].cohortsFinal[i];
-      [c.finalARR, c.cumGrossProfit, c.acquisitionCost].forEach(function (v, j) {
-        var d = Math.abs((v === null ? 0 : v) - (b[j + 1] === null ? 0 : b[j + 1]));
-        if (d > worst) { worst = d; where = 'cohort ' + c.id; }
-      });
-    });
-    var k36 = K.measureR12M(r, 36);
-    ['grr', 'expansionRate', 'nrr'].forEach(function (f) { var d = Math.abs(k36[f] - B[k].k36[f]); if (d > worst) { worst = d; where = 'k36 ' + f; } });
-    var s = E.summarise(r);
-    Object.keys(B[k].summary).forEach(function (f) { if (typeof s[f] === 'number') { var d = Math.abs(s[f] - B[k].summary[f]); if (d > worst) { worst = d; where = 'summary ' + f; } } });
-    ok('ALL-NULL', k + ': all three mechanisms at null reproduce the captured v1.0 trajectory (months, cohorts, R12M, summary)',
-       worst < EPS, 'worst |Δ| = €' + ex(worst) + (worst ? ' at ' + where : ' (exact)'));
+  var zlib = require('zlib');
+  var FULL = JSON.parse(zlib.gunzipSync(fs.readFileSync(__dirname + '/baseline-v1.0-full.json.gz')).toString('utf8'));
+  var totalFields = 0;
+  Object.keys(SCEN).forEach(function (k) {
+    var r = E.run(Object.assign({}, A, NULLS, SCEN[k]));
+    var r12 = []; for (var T = 12; T <= r.horizon; T++) r12.push(K.measureR12M(r, T));
+    var cur = { months: r.months, cohorts: r.cohorts, r12m: r12, summary: E.summarise(r), derived: r.derived, bands: r.bands };
+    var acc = { fields: 0, worst: 0, where: '', missing: [] };
+    walkCompare(FULL[k], cur, k, acc);
+    totalFields += acc.fields;
+    ok('ALL-NULL-FULL', k + ': every v1.0 field (all month fields incl. cumulative, every cohort scalar and row, R12M at every T, summary, derived, bands) is reproduced by the v1.3 engine at null',
+       acc.worst < EPS && acc.missing.length === 0,
+       acc.fields + ' fields; worst |Δ| = ' + ex(acc.worst) + (acc.worst ? ' at ' + acc.where : ' (exact)') + (acc.missing.length ? '; MISSING/MISMATCHED: ' + acc.missing.slice(0, 5).join(', ') : ''));
+    /* the v1.3-only state must be at its null values in the null world */
+    var pend = r.months.every(function (m) { return m.pendingNewARR === 0 && m.pendingSpend === 0 && m.pendingCount === 0 && m.expansionCost === 0 && m.cohortCreated === true && m.acquisitionLawNewARR === m.newARR; });
+    var led = r.acquisitionLedger.every(function (e) { return e.realised && e.matureMonth === e.spendMonth && e.lagMonths === 0 && e.maxMonthlyNewARRAtSpend === null && e.cacPerARRAtSpend === r.assumptions.cacPerARR; });
+    var coh = r.cohorts.slice(1).every(function (c) { return c.spendMonth === c.acquisitionMonth && c.lagMonths === 0 && c.capacityAtSpend === null && c.cacCoefficientAtCreation === r.assumptions.cacPerARR && c.sourceEntries === 1; });
+    ok('ALL-NULL-FULL', k + ': the v1.3-only state is at its null value (no pending stock, €0 cost line, a cohort every month, every ledger entry same-month, bound off at spend)',
+       pend && led && coh && r.pendingAtHorizon.entries.length === 0 && r.cohorts.length === r.horizon + 1, '');
   });
+  ok('ALL-NULL-FULL', 'total fields compared against the v1.0 full snapshot', totalFields > 200000, totalFields + ' fields');
   var r0 = E.run(A);
   ok('ALL-NULL', 'the default assumption object IS the all-null world (no caller has to opt out of anything)',
      r0.mechanisms.expansionCost === false && r0.mechanisms.acquisitionSaturation === false && r0.mechanisms.acquisitionLag === false, JSON.stringify(r0.mechanisms));
+  /* the small fixture stays as a readable second witness */
+  var B = JSON.parse(fs.readFileSync(__dirname + '/baseline-v1.0.json', 'utf8'));
+  var worstS = 0;
+  Object.keys(SCEN).forEach(function (k) {
+    var r = E.run(Object.assign({}, A, NULLS, SCEN[k]));
+    r.months.forEach(function (m, i) { Object.keys(B[k].months[i]).forEach(function (f) { worstS = Math.max(worstS, Math.abs(m[f] - B[k].months[i][f])); }); });
+  });
+  ok('ALL-NULL', 'the small readable fixture (baseline-v1.0.json) agrees too', worstS < EPS, 'worst |Δ| = ' + ex(worstS));
+})();
+
+/* ------------------------------------------------------------------ *
+ * NO-PHANTOM-COHORTS + CAPITAL-RECONCILIATION — the pending stock is a
+ * stock, not a placeholder cohort; capital is deployed when spent.
+ *
+ *   deployed(t) = Σ acquisitionCost of realised cohorts (acqMonth ≤ t)
+ *               + Σ sm of ledger entries pending at t
+ *               = Σ S&M spent through t                     (no double count)
+ * ------------------------------------------------------------------ */
+(function capitalReconciliation() {
+  var CAPm = require('./capital.js');
+  var cases = [['lag 0', { acquisitionLagMonths: 0 }], ['lag 6', { acquisitionLagMonths: 6 }], ['lag 12', { acquisitionLagMonths: 12 }],
+               ['lag 72 (beyond horizon)', { acquisitionLagMonths: 72 }], ['zero S&M, lag 6', { sm: 0, acquisitionLagMonths: 6 }],
+               ['lag 6 with capacity and cost', { acquisitionLagMonths: 6, maxMonthlyNewARR: 2e6, expansionCostPerARR: 0.25 }]];
+  cases.forEach(function (cs) {
+    var L = cs[1].acquisitionLagMonths, r = E.run(Object.assign({}, A, cs[1]));
+    var phantoms = r.cohorts.filter(function (c) { return c.acquisitionMonth > 0 && c.acquisitionMonth <= L; }).length;
+    var countOK = r.cohorts.length === 1 + Math.max(0, r.horizon - L);
+    var ages = r.cohorts.slice(1).every(function (c) { return c.rows[0].t === c.acquisitionMonth && c.rows[0].age === 0 && c.spendMonth === c.acquisitionMonth - L; });
+    var snapOK = true;
+    for (var t = 1; t <= r.horizon; t++) if (E.cohortSnapshot(r, t).length !== 1 + Math.max(0, t - L)) snapOK = false;
+    ok('NO-PHANTOM-COHORTS', cs[0] + ': no cohort exists before maturity; count = opening base + realised months; created in the maturity month, aged from realisation; cohortSnapshot counts realised cohorts only',
+       phantoms === 0 && countOK && ages && snapOK,
+       r.cohorts.length + ' cohorts (' + (r.cohorts.length - 1) + ' realised), ' + r.pendingAtHorizon.entries.length + ' entries pending at M' + r.horizon);
+    var worst = 0, where = '', spent = 0;
+    for (t = 1; t <= r.horizon; t++) {
+      spent += r.months[t - 1].sm;
+      var p = CAPm.portfolioCapital(r, t);
+      var d1 = Math.abs(p.deployed - spent), d2 = Math.abs((p.realisedDeployed + p.pendingCapital) - p.deployed), d3 = Math.abs(p.pendingCapital - r.months[t - 1].pendingSpend);
+      var d4 = Math.abs(p.deployed - CAPm.deployedSeries(r)[t]);
+      var d = Math.max(d1, d2, d3, d4);
+      if (d > worst) { worst = d; where = 'M' + t; }
+    }
+    ok('CAPITAL-RECONCILIATION', cs[0] + ': deployed = realised-cohort capital + pending capital = Σ S&M spent = deployedSeries, every month, no double counting',
+       worst < EPS, 'worst residual €' + ex(worst) + (worst ? ' at ' + where : ' (exact)'));
+  });
+  /* the maturity transition, shown numerically: lag 6, months 6 → 7 → 8 */
+  var r6 = E.run(Object.assign({}, A, { acquisitionLagMonths: 6 }));
+  var rows = [6, 7, 8, 12].map(function (t) { var p = CAPm.portfolioCapital(r6, t); return { t: t, realised: p.realisedDeployed, pending: p.pendingCapital, deployed: p.deployed, spent: t * A.sm, pendingCount: p.counts.pending, cohorts: E.cohortSnapshot(r6, t).length - 1 }; });
+  var transOK = rows[0].realised === 0 && rows[0].pending === 6 * A.sm && Math.abs(rows[1].realised - A.sm) < EPS && Math.abs(rows[1].pending - 6 * A.sm) < EPS &&
+                rows.every(function (x) { return Math.abs(x.deployed - x.spent) < EPS && x.pendingCount === 6; }) && rows[1].cohorts === 1 && rows[0].cohorts === 0;
+  ok('CAPITAL-RECONCILIATION', 'lag 6 through the first maturity: M6 realised €0 / pending €5.4m; M7 realised €0.9m / pending €5.4m (one in, one out); deployed = spent at every step',
+     transOK, rows.map(function (x) { return 'M' + x.t + ': realised €' + (x.realised / 1e6).toFixed(2) + 'm + pending €' + (x.pending / 1e6).toFixed(2) + 'm (' + x.pendingCount + ' months) = €' + (x.deployed / 1e6).toFixed(2) + 'm = spent €' + (x.spent / 1e6).toFixed(2) + 'm · ' + x.cohorts + ' realised cohorts'; }).join(' | '));
+  /* pending capital has recovered nothing; outstanding includes it in full */
+  var p12 = CAPm.portfolioCapital(r6, 12);
+  ok('CAPITAL-RECONCILIATION', 'pending capital is outstanding in full (it has no cohort to recover through): outstanding = unrecovered on realised cohorts + pending',
+     Math.abs(p12.outstanding - (p12.outstandingRealised + p12.pendingCapital)) < EPS && p12.pendingCapital === 6 * A.sm && p12.counts.paidBack === 0,
+     'M12: outstanding €' + (p12.outstanding / 1e6).toFixed(2) + 'm = €' + (p12.outstandingRealised / 1e6).toFixed(2) + 'm realised-unrecovered + €' + (p12.pendingCapital / 1e6).toFixed(2) + 'm pending; paid-back count ' + p12.counts.paidBack);
+})();
+
+/* ------------------------------------------------------------------ *
+ * SATURATION-INDEPENDENT — the law N(S), evaluated on a grid, checked
+ * with finite differences only; the analytical response is compared
+ * against those differences, never assumed.
+ * ------------------------------------------------------------------ */
+(function saturationIndependent() {
+  /* h is the GRID step (shape: monotone, concave, declining ΔN/ΔS); hd is the
+     small step for derivative ESTIMATES compared against the closed form —
+     the central difference is O(hd²) accurate, and at hd = €10 on a law
+     curving over millions the truncation error is ~1e-11 relative while the
+     cancellation error stays ~1e-10. */
+  var CAPv = 2e6, h = 50000, hd = 10, grid = [];
+  var lawAt = function (s) { return E.newARRPerMonth(Object.assign({}, A, { sm: s, maxMonthlyNewARR: CAPv })); };
+  for (var s = h; s <= 8e6; s += h) grid.push({ s: s, N: lawAt(s) });
+  var inc = true, concave = true, fdDecl = true, below = true, worstMarg = 0, worstDN = 0, prevFd = Infinity;
+  for (var i = 0; i < grid.length; i++) {
+    var g = grid[i];
+    var fwd = (lawAt(g.s + h) - g.N) / h, central = (lawAt(g.s + hd) - lawAt(g.s - hd)) / (2 * hd);
+    var second = (lawAt(g.s + h) - 2 * g.N + lawAt(g.s - h)) / (h * h);
+    if (i > 0 && g.N <= grid[i - 1].N) inc = false;
+    if (second >= 0) concave = false;
+    if (fwd > prevFd + 1e-12) fdDecl = false; prevFd = fwd;
+    if (g.N >= CAPv) below = false;
+    var an = E.acquisitionResponse(Object.assign({}, A, { sm: g.s, maxMonthlyNewARR: CAPv }));
+    worstDN = Math.max(worstDN, Math.abs(central - an.dNewARRdSM) / an.dNewARRdSM);
+    worstMarg = Math.max(worstMarg, Math.abs((1 / central) - an.marginalCAC) / an.marginalCAC);
+  }
+  ok('SATURATION-INDEPENDENT', 'on a €50k grid to €8m, N(S) is strictly increasing and every finite second difference is negative (the law itself, no derivative formula used)',
+     inc && concave, grid.length + ' points; increasing ' + inc + ', second differences < 0 ' + concave);
+  ok('SATURATION-INDEPENDENT', 'finite-difference marginal productivity ΔN/ΔS declines along the grid and bounded N stays strictly below the asymptote',
+     fdDecl && below, 'ΔN/ΔS ' + ((grid[0].N - lawAt(0)) / h).toFixed(4) + ' at €50k → ' + ((lawAt(8e6 + h) - grid[grid.length - 1].N) / h).toFixed(4) + ' at €8m; N(€8m) = ' + (grid[grid.length - 1].N / CAPv * 100).toFixed(2) + '% of capacity');
+  ok('SATURATION-INDEPENDENT', 'numerical (central-difference) marginal CAC agrees with the analytical marginal CAC at every grid point, and so does dN/dS',
+     worstMarg < 1e-6 && worstDN < 1e-6, 'worst rel err: marginal CAC ' + ex(worstMarg) + ', dN/dS ' + ex(worstDN));
+})();
+
+/* ------------------------------------------------------------------ *
+ * CAC-UNITS — CAC is per €1 of ARR and never passes through the MRR/ARR
+ * display basis. Source scan of the product template (the DOM check is in
+ * physics-accept.js).
+ * ------------------------------------------------------------------ */
+(function cacUnits() {
+  var tpl = fs.readFileSync(__dirname + '/v1.template.html', 'utf8');
+  ok('CAC-UNITS', 'no CAC figure in the template is multiplied by the basis (no "AtCreation*(basis" / "CAC*(basis" pattern)',
+     !/cacPerARRAtCreation\s*\*\s*\(basis|cacCoefficientAtCreation\s*\*\s*\(basis|CAC\s*\*\s*\(basis/.test(tpl), '');
+  ok('CAC-UNITS', 'the canonical CAC vocabulary is used on screen: "CAC coefficient", "Average CAC", "Marginal CAC", "Cohort CAC (realised)", "Measured CAC · trailing 12"; and paybacks are qualified',
+     /CAC coefficient/.test(tpl) && /Average CAC/.test(tpl) && /Marginal CAC/.test(tpl) && /Cohort CAC \(realised\)/.test(tpl) && /Measured CAC · trailing 12/.test(tpl) &&
+     /Coefficient payback/.test(tpl) && /Average payback/.test(tpl) && /Marginal payback/.test(tpl) && /Cohort payback/.test(tpl) && !/'CAC payback'/.test(tpl), '');
 })();
 
 /* ------------------------------------------------------------------ *
@@ -194,9 +346,14 @@ var ALL = { expansionCostPerARR: 0.25, maxMonthlyNewARR: 2000000, acquisitionLag
        ' · M60 ARR €' + (r.months[r.horizon - 1].closingARR / 1e6).toFixed(2) + 'm · cash €' + (r.months[r.horizon - 1].cashClosing / 1e6).toFixed(2) + 'm');
   });
   var beyond = E.run(Object.assign({}, A, { acquisitionLagMonths: 72 }));
-  ok('EXTREMES', 'a lag beyond the horizon realises nothing inside it, expenses every month of S&M, and reports all 60 entries pending at the horizon',
-     beyond.months.every(function (m) { return m.newARR === 0 && m.sm === A.sm; }) && beyond.pendingAtHorizon.entries.length === 60 &&
-     Math.abs(beyond.pendingAtHorizon.spend - A.sm * 60) < EPS, 'pending spend €' + (beyond.pendingAtHorizon.spend / 1e6).toFixed(1) + 'm');
+  ok('EXTREMES', 'a lag beyond the horizon realises nothing inside it, creates NO cohort (only the opening base exists), expenses every month of S&M, and reports all 60 entries pending at the horizon',
+     beyond.months.every(function (m) { return m.newARR === 0 && m.sm === A.sm && m.cohortCreated === false; }) && beyond.cohorts.length === 1 && beyond.pendingAtHorizon.entries.length === 60 &&
+     Math.abs(beyond.pendingAtHorizon.spend - A.sm * 60) < EPS, 'pending spend €' + (beyond.pendingAtHorizon.spend / 1e6).toFixed(1) + 'm; cohorts: ' + beyond.cohorts.length);
+  var badLag = 0; [-1, 2.5, NaN, 'x', Infinity, null].forEach(function (v) { try { E.run(Object.assign({}, A, { acquisitionLagMonths: v })); } catch (err) { if (err instanceof RangeError) badLag++; } });
+  var badCap = 0; [-5, NaN, 'x'].forEach(function (v) { try { E.run(Object.assign({}, A, { maxMonthlyNewARR: v })); } catch (err) { if (err instanceof RangeError) badCap++; } });
+  ok('EXTREMES', 'invalid lags (−1, 2.5, NaN, "x", Infinity, null) and invalid capacities (−5, NaN, "x") are rejected with RangeError at the engine boundary; ±Infinity capacity canonicalises to null',
+     badLag === 6 && badCap === 3 && E.run(Object.assign({}, A, { maxMonthlyNewARR: Infinity })).assumptions.maxMonthlyNewARR === null &&
+     E.compare(E.run(A), E.run(Object.assign({}, A, { maxMonthlyNewARR: Infinity }))).changed.length === 0, badLag + ' lags and ' + badCap + ' capacities rejected');
   var zeroCap = E.run(Object.assign({}, A, { maxMonthlyNewARR: 0 }));
   ok('EXTREMES', 'capacity 0 is NOT silently treated as "disabled": it means no acquisition capacity, New ARR = 0, S&M still spent',
      zeroCap.mechanisms.acquisitionSaturation && zeroCap.derived.newARRPerMonth === 0 && zeroCap.months[0].sm === A.sm, '');

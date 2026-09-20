@@ -206,24 +206,50 @@ payback      = CAC × 12 ÷ GM        (coefficient, average or marginal CAC)
 ```
 
 `E.acquisitionResponse(a, sm)` returns all of these analytically. A cohort stamps
-`cacPerARRAtCreation` = realised cost per €1 (= average CAC) and `cacCoefficientAtCreation` =
-`cacPerARR`; `acquisitionCost = initialARR × cacPerARRAtCreation` still holds. A finite capacity
-≤ 0 is not "off": it yields N = 0 with S&M still spent. Null: `maxMonthlyNewARR = null`.
+`cacPerARRAtCreation` = realised cost per €1 (= average CAC at spend) and
+`cacCoefficientAtCreation` / `capacityAtSpend` from its pending entry;
+`acquisitionCost = initialARR × cacPerARRAtCreation` still holds. A finite capacity of 0 is not
+"off": it yields N = 0 with S&M still spent. Null: `maxMonthlyNewARR = null` (±Infinity is
+canonicalised to null; negative or NaN is rejected).
+
+Vocabulary: **CAC coefficient** (`cacPerARR`), **Average CAC**, **Marginal CAC**, **Cohort
+CAC (realised)**, **Measured CAC · trailing 12**; **Coefficient / Average / Marginal
+payback**, **Cohort payback**. See `FINDINGS.md` #27.
 
 ### v1.3 Acquisition timing
 
 ```
 month t:
   age existing cohorts (leak, then expand)                                  unchanged
-  spend: ledger ← { spendMonth: t, matureMonth: t + L, sm, newARR: N(S&M) } S&M expensed now
-  realise: entries with matureMonth = t → cohort M(t)                        after ageing
+  spend:   ledger ← pendingEntry(a, t, L, N(S&M))                            S&M expensed now
+           = { spendMonth t, matureMonth t+L, lagMonths L, sm, newARR,
+               cacPerARRAtSpend, maxMonthlyNewARRAtSpend (null = bound off) }
+  realise: entries with matureMonth = t → realiseCohort(t, entries, band, GM) after ageing
+           NO entry matured → NO cohort this month (no zero-ARR placeholder)
   closing = retained + expansion + realised New ARR
 ```
 
-State returned: `months[].pendingNewARR / pendingSpend / pendingCount /
-acquisitionLawNewARR / realisedFromSpendMonth`, `res.acquisitionLedger`, `res.pendingAtHorizon`;
-cohorts carry `spendMonth`, `lagMonths`. Spend maturing beyond the horizon stays pending and is
-reported, never realised inside it. Null: `acquisitionLagMonths = 0`.
+`realiseCohort` takes no assumption object: `acquisitionCost`, `initialARR`,
+`cacCoefficientAtCreation`, `capacityAtSpend`, `spendMonth`, `lagMonths` are all read from the
+entries, so the provenance of committed spend is fixed at spend and cannot be rewritten by later
+assumptions (integrity check "SPEND-TIME PROVENANCE" proves it on a synthetic entry). The cohort
+count is realised cohorts only; a cohort's age starts at its realisation month.
+
+State returned: `months[].pendingNewARR / pendingSpend / pendingCount / cohortCreated /
+acquisitionLawNewARR / realisedFromSpendMonth`, `res.acquisitionLedger`, `res.pendingAtHorizon`.
+Spend maturing beyond the horizon stays pending and is reported, never realised inside it.
+Null: `acquisitionLagMonths = 0`.
+
+**Validation at the engine boundary.** `acquisitionLagMonths` must be an integer ≥ 0; a
+negative, fractional, NaN, infinite, non-numeric or null value throws `RangeError` — never
+clamped, rounded or allowed to date entries to NaN. `maxMonthlyNewARR` is canonicalised:
+null / undefined / ±Infinity → null (no bound); a finite value < 0 or NaN throws; 0 is kept
+(no acquisition capacity, N = 0).
+
+**Capital.** Acquisition capital is deployed when spent:
+`deployed(t) = Σ acquisitionCost of realised cohorts + Σ sm of entries pending at t = Σ S&M
+through t`. `capital.portfolioCapital` reports `realisedDeployed`, `pendingCapital`, `deployed`
+and `outstanding` (pending is outstanding in full); the identity is asserted every month.
 
 ### Order and separability
 
@@ -248,7 +274,7 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 | **FLOW** | New ARR, expansion, leakage, revenue, COGS, gross profit, **expansion realisation cost (v1.1)**, EBITA, FCF |
 | **TRANSITION** | persistence coefficient, expansion coefficient, gross margin, **CAC / New ARR** — each of the first two may vary by age band; **expansionCostPerARR (v1.1), maxMonthlyNewARR (v1.2), acquisitionLagMonths (v1.3)** |
 | **CONTROL** | S&M, R&D, G&A investment |
-| **MEASURED** | **R12M GRR / expansion / NRR**, **CAC payback** (coefficient / average / marginal), measured CAC, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable |
+| **MEASURED** | **R12M GRR / expansion / NRR**, **Coefficient / Average / Marginal payback**, **Cohort CAC (realised)**, **Measured CAC · trailing 12**, pending stock, utilisation, ARR growth, EBITA margin, burn — produced by Layer B, never settable. Every CAC is € of S&M per €1 of ARR, in either display basis. |
 
 ## Files
 
@@ -320,6 +346,12 @@ interpretation, and a named check.
 
 The Phase 0/1 gate ran on v0.3 and returned **PROCEED TO ACQUISITION-NONLINEARITY
 DESIGN** — a bound, not a benefit. See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
+
+The homogeneous reduced form `ARR(t+1) = g·ARR(t) + N` holds for flat bands with same-month
+acquisition (lag 0); under a capacity it still holds with a smaller constant N; under an
+acquisition lag it does not (`research-checks.js` REDUCTION-IS-LAG-CONDITIONAL: 22.6% off at
+lag 6). The product's Experiment Attribution re-runs the engine rather than using the reduced
+form, so its terms still sum exactly under a lag, and it says so on screen.
 
 v1.1–v1.3 admitted three mechanisms under the criteria above. Two are bounds (capacity, cost);
 one is a timing state (lag). Criterion 7 (rerun the observability gate when hidden state is

@@ -24,11 +24,26 @@ month t:  existing cohorts age (leak, then expand)                 — unchanged
           closing ARR = retained + expansion + realised New ARR
 ```
 
-S&M hits EBITA and cash in the spend month. The cohort created at t records `spendMonth`,
-`lagMonths`, its acquisition cost (the spend that created it) and the realised cost per €1 of
-ARR. The whole ledger is returned (`res.acquisitionLedger`) and each month reports
-`pendingNewARR`, `pendingSpend` and `pendingCount`, so the state is inspectable and reconcilable,
-never inferred from a shifted chart.
+S&M hits EBITA and cash in the spend month. **Nothing else exists for that spend until it
+matures: no cohort is created in a month in which no entry matures** (the first L months of a
+lagged world), so the cohort count is realised cohorts only and every cohort's age starts at its
+realisation. The ledger entry carries the acquisition law in force at spend —
+`cacPerARRAtSpend`, `maxMonthlyNewARRAtSpend` (null when the bound is off) — as well as `sm`
+and the `newARR` it produced; the cohort it becomes is stamped **from the entry**
+(`E.realiseCohort(t, entries, bandName, grossMargin)` takes no assumption object at all), so
+later acquisition assumptions cannot rewrite the provenance of spend already committed. The
+whole ledger is returned (`res.acquisitionLedger`) and each month reports `pendingNewARR`,
+`pendingSpend`, `pendingCount` and `cohortCreated`, so the state is inspectable and
+reconcilable, never inferred from a shifted chart.
+
+The engine boundary rejects (RangeError) a negative, fractional, NaN, infinite, non-numeric or
+null lag rather than coercing it; valid lags are integers ≥ 0.
+
+**Capital.** Acquisition capital is deployed when spent: `deployed(t) = Σ acquisitionCost of
+realised cohorts + Σ sm of entries still pending = Σ S&M spent through t`, with pending
+capital outstanding in full until its cohort exists. `capital.portfolioCapital` reports the
+split; the CAPITAL-RECONCILIATION checks assert the identity every month at lags 0, 6, 12 and
+72, at zero S&M, and through the first maturity transition.
 
 **Horizon boundary, stated.** Spend in the last L months of the window matures beyond M60. It is
 expensed inside the window, reported as `pendingAtHorizon`, and never pulled forward into M60.
@@ -85,10 +100,23 @@ fail to reconcile through the pending stock.
   still pending — and the model reports that stock (€4.50m of ARR, €5.40m of spend at L = 6)
   rather than forcing terminal equivalence.
 - **No retention contamination.** R12M NRR at M36 is 99.0000% in every row.
-- **Measured CAC carries the lag.** At L = 6, spend ÷ realised New ARR is 3.600× at T = 9 (only
-  three months realised against nine spent), 1.200× trailing-12 at T = 36 (steady state), and
-  1.440× cumulative at T = 36 (the pending stock inflates it). Quoting the law's 1.200× hides
-  the timing; measuring shows it.
+- **Measured CAC · trailing 12 carries the lag.** At L = 6, spend ÷ realised New ARR is 3.600×
+  at T = 9 (only three months realised against nine spent), 1.200× at T = 36 (steady state),
+  and 1.440× cumulative at T = 36 (the pending stock inflates it). Quoting the CAC coefficient's
+  1.200× hides the timing; measuring shows it. Coefficient payback is 18.0 months at every lag;
+  there is no "measured payback" in the model.
+- **Cohorts, pending stock and capital** (`physics-study.js` §3, at M12):
+
+  | lag | cohorts alive M12 | cohorts alive M60 | pending months | pending ARR | realised capital | pending capital | deployed | Σ S&M |
+  |---|---|---|---|---|---|---|---|---|
+  | 0 | 13 | 61 | 0 | €0 | €10.80m | €0 | €10.80m | €10.80m |
+  | 3 | 10 | 58 | 3 | €2.25m | €8.10m | €2.70m | €10.80m | €10.80m |
+  | 6 | 7 | 55 | 6 | €4.50m | €5.40m | €5.40m | €10.80m | €10.80m |
+  | 12 | 1 | 49 | 12 | €9.00m | €0 | €10.80m | €10.80m | €10.80m |
+
+  Through the first maturity at lag 6: M6 realised €0 (0 cohorts) + pending €5.40m (6 months);
+  M7 realised €0.90m (1 cohort) + pending €5.40m (6 months: one matured, one entered); at every
+  step deployed = Σ S&M exactly.
 
 ## Boundary
 
