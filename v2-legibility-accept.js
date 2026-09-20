@@ -156,6 +156,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   /* ---- HIERARCHY (Compare) ---- */
   await pg.evaluate(() => document.getElementById('nav-scen').click()); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="customers"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => document.getElementById('nav-compare').click()); await pg.waitForTimeout(400);   /* Compare is its own surface; Scenarios keeps the spine behind disclosure */
   const spine = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); if (!s) return null;
     const causes = [...s.querySelectorAll('.cause')].map(c => ({ lvl: [...c.classList].filter(x => /^l\d$/.test(x))[0], head: (c.querySelector('.eyebrow, h5, .ch') || c).innerText.split('\n')[0] }));
     const layers = [...s.querySelectorAll('.cause.l1 .exp-layer, .cause.l1 .mh, .cause.l1 .eyebrow')].map(e => e.textContent);
@@ -194,7 +195,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const pin = await pg.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (9 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.6; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return y; } } return null; });
   await pg.waitForTimeout(500);
-  const prov = await pg.evaluate(() => { const d = document.querySelector('.dossier'); if (!d) return null;
+  const prov = await pg.evaluate(() => { const d = document.querySelector('.dossier'); if (!d) return null; d.querySelectorAll('details').forEach(x => { x.open = true; });   /* the disclosed rows are part of the chain */
     return { steps: [...d.querySelectorAll('.pstep .pl')].map(e => e.textContent.replace(/M\d+.*$|age \d+$|CUM.*$/, '').trim()), off: [...d.querySelectorAll('.pstep.off')].length, txt: d.innerText, tags: [...d.querySelectorAll('.pstep .pl .basis')].map(e => e.textContent) }; });
   rec('PROVENANCE: a pinned cohort reads as one chain — Company → Cohort → Customer economics → Monetization components → Contract · billing → Cash — every step with its own time basis',
       pin !== null && prov && prov.steps.length === 6 && /^Company/.test(prov.steps[0]) && /^Cohort/.test(prov.steps[1]) && /^Customer economics/.test(prov.steps[2]) && /^Monetization/.test(prov.steps[3]) && /^Contract/.test(prov.steps[4]) && /^Cash/.test(prov.steps[5]) && prov.off === 0 && prov.tags.length === 6 && prov.tags.every(t => BASIS.test(t)),

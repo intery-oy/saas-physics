@@ -63,7 +63,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- A · OBSERVE ---- */
   await setScrub(36);
-  const obs = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, cu: D.expRes.months[m - 1].customers, txt: document.getElementById('side').innerText }; });
+  const obs = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, cu: D.expRes.months[m - 1].customers, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }; });
   const indep = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, contractionAnnual: 0.05 }));
   const im = indep.months[obs.m - 1].customers, icm = K.customerMeasures(indep, obs.m);
   rec('A · OBSERVE: the Customers lens shows the logo ladder (opening, new, churn, closing) and its customers, ARPA and R12M logo retention tie to an independent Node run; persistence reads derived',
@@ -86,7 +86,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); hit = y; }
     }
-    return { hit, txt: document.getElementById('side').innerText };
+    return { hit, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) };
   });
   rec('A · INSPECT: the pinned cohort\'s dossier shows customers now / acquired, ARPA, this month\'s lost-logo and contraction leakage, and the ARR-per-logo stamped at spend',
       pinned.hit !== null && /Customers now\s+[\d.]+ of [\d.]+ acquired/.test(pinned.txt) && /ARPA now/.test(pinned.txt) && /lost logos · .* contraction/.test(pinned.txt) && /Customers acquired\s+[\d.]+ = .* ÷ .* per logo, stamped at spend/.test(pinned.txt),
@@ -94,7 +94,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- A · SYSTEM ---- */
   await jsClick('#nav-system'); await pg.waitForTimeout(500);
-  const sys = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('chip-' + k)) }));
+  const sys = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('chip-' + k)) }));
   rec('A · SYSTEM (absolute): the side panel states the customer layer with its live laws and the derived persistence; the customer law chips exist for the map\'s valves',
       sys.txt.includes('Customer physics · logo retention 92.0%, contraction 5.0%') && sys.txt.includes('87.4% = L × (1 − C)') && sys.chips.every(Boolean), sys.txt.slice(sys.txt.indexOf('Customer physics'), sys.txt.indexOf('Customer physics') + 160).replace(/\n/g, ' | '));
   await jsClick('#cmp-delta'); await pg.waitForTimeout(400);
@@ -105,12 +105,12 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   /* ---- A · SCENARIO 10 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="customers"]').click()); await pg.waitForTimeout(500);
-  const s10 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
+  const s10 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     b: window.__SP_DEBUG.baseRes.months[59].closingARR, x: window.__SP_DEBUG.expRes.months[59].closingARR,
     cb: window.__SP_DEBUG.baseRes.months[59].customers.closing, cx: window.__SP_DEBUG.expRes.months[59].customers.closing }));
   rec('A · SCENARIO 10: both worlds carry the layer (L 87.4%/C 0 vs L 92%/C 5%), M60 ARR identical, customers differ, and the panel shows the match block and the customer consequence rows',
       s10.bA.logoRetentionAnnual === 0.874 && s10.xA.logoRetentionAnnual === 0.92 && Math.abs(s10.b - s10.x) < 1e-6 && Math.abs(s10.cb - s10.cx) > 50 &&
-      s10.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ARR CAN SHOW') && /max \|ΔMRR\| over 60 months\n€0/.test(s10.txt) && /WHAT YOU CHANGED[\s\S]*WHAT THE SYSTEM DID[\s\S]*WHAT COMPANY EMERGED/.test(s10.txt) && /customers M60\n2157 → 2505\n\+349/.test(s10.txt) && /logo retention R12M\n87\.4% → 92\.0%\n\+4\.6 pp/.test(s10.txt) && /contraction CUM\n€0 → €[\d.]+[km]/.test(s10.txt) && s10.txt.includes('Same ARR, different system'),
+      s10.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ARR CAN SHOW') && /max \|ΔMRR\| over 60 months\n€0/.test(s10.txt) && /WHAT CHANGED[\s\S]*WHAT STAYED THE SAME[\s\S]*WHAT EMERGED[\s\S]*WHY IT MATTERS[\s\S]*WHAT THE SYSTEM DID/.test(s10.txt) && /customers M60\n2157 → 2505\n\+349/.test(s10.txt) && /logo retention R12M\n87\.4% → 92\.0%\n\+4\.6 pp/.test(s10.txt) && /contraction CUM\n€0 → €[\d.]+[km]/.test(s10.txt) && s10.txt.includes('Same ARR, different system'),
       s10.txt.slice(0, 200).replace(/\n/g, ' | '));
   rec('A · SCENARIO 10: the boundary discloses the customer layer\'s limits (continuous count, no heterogeneity, flat laws)',
       (await pg.evaluate(() => document.getElementById('side').textContent)).includes('continuous cohort count with one ARPA per cohort'), '');
@@ -119,7 +119,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
   await jsClick('#reset'); await pg.waitForTimeout(300);
   const nul = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-logoRetentionAnnual').textContent,
-    Pv: document.getElementById('v-persistenceAnnual').textContent, Pdis: document.getElementById('f-persistenceAnnual').disabled, txt: document.getElementById('side').innerText }));
+    Pv: document.getElementById('v-persistenceAnnual').textContent, Pdis: document.getElementById('f-persistenceAnnual').disabled, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   await setScrub(36);
   const nulTxt = await side();
   rec('NULL-ON-SCREEN: Reset switches the layer off; persistence is an input again (90.0%, enabled); no logo ladder, no contraction or churned-ARR row on screen, leakage is one row (NO-FAKE-MOVEMENTS holds with the layer off)',
@@ -153,7 +153,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- B · OBSERVE ---- */
   await setScrub(36);
-  const bo = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, mo: D.expRes.months[m - 1].monetization, txt: document.getElementById('side').innerText }; });
+  const bo = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, mo: D.expRes.months[m - 1].monetization, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }; });
   const indepB = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, contractionAnnual: 0, monetization: { components: [
     { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0.03 },
     { name: 'usage', kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0.02, usageGrowthAnnual: 0.15, unitsCap: 300, adoptionAnnual: 0.10, penetrationCap: 0.95 } ] } }));
@@ -175,12 +175,12 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   /* ---- B · SCENARIOS 11, 12 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="monetization"]').click()); await pg.waitForTimeout(500);
-  const s11 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
+  const s11 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
   rec('B · SCENARIO 11: Base is the customer world with a coefficient, Experiment the same customers priced as components (same €20m opening); the panel shows cumulative price/usage/adoption effects, the R12M decomposition and the headroom used',
       !s11.bm.monetization && s11.xm.monetization && s11.b0 === 20000000 && s11.x0 === 20000000 && /MONETIZATION\nMonetization · off → on/.test(s11.txt) && /price effect CUM\n— → €[\d.]+[km]\nnew/.test(s11.txt) && /usage effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /adoption effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /variable share M60\n— → [\d.]+%/.test(s11.txt) && /expansion CUM\n€[\d.]+[km] → €[\d.]+[km]/.test(s11.txt),
       s11.txt.slice(s11.txt.indexOf('CONSEQUENCE'), s11.txt.indexOf('CONSEQUENCE') + 200).replace(/\n/g, ' | '));
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="mix"]').click()); await pg.waitForTimeout(500);
-  const s12 = await pg.evaluate(() => ({ txt: document.getElementById('side').innerText, b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
+  const s12 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
   const gb12 = await pg.evaluate(() => { const D = window.__SP_DEBUG; return { gb: D.K.measureR12M(D.baseRes, 12).grr, gx: D.K.measureR12M(D.expRes, 12).grr, cb: D.baseRes.months[0].monetization.contractionARR, cx: D.expRes.months[0].monetization.contractionARR, ob: D.baseRes.months[0].openingARR, ox: D.expRes.months[0].openingARR }; });
   rec('B · SCENARIO 12: same opening ARR, customers and laws; contraction €0 in the all-platform Base and > 0 in the mixed Experiment; GRR differs; the match block is on screen',
       gb12.ob === gb12.ox && gb12.cb === 0 && gb12.cx > 0 && Math.abs(gb12.gb - 0.92) < 1e-9 && gb12.gx < gb12.gb - 0.01 && s12.txt.includes('SAME START, DIFFERENT DOLLAR RETENTION') && s12.txt.includes('M1 contraction'),
@@ -191,7 +191,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   /* ---- B · NULL ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
   await jsClick('#reset'); await pg.waitForTimeout(300);
-  const bn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled, txt: document.getElementById('side').innerText }));
+  const bn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   rec('B · NULL-ON-SCREEN: Reset switches Monetization off; the expansion coefficient is an input again (10.0%, enabled); no composition block on screen',
       bn.A.monetization === null && !bn.mech.monetization && bn.tog === 'off' && bn.Xv === '10.0%' && !bn.Xdis && !bn.txt.includes('WHERE THE MRR COMES FROM'), '');
 
@@ -216,7 +216,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- C · OBSERVE + WATERFALL ---- */
   await setScrub(36);
-  const co = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, c: D.expRes.months[m - 1].cash, fcf: D.expRes.months[m - 1].fcf, ebita: D.expRes.months[m - 1].ebita, txt: document.getElementById('side').innerText,
+  const co = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, c: D.expRes.months[m - 1].cash, fcf: D.expRes.months[m - 1].fcf, ebita: D.expRes.months[m - 1].ebita, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText),
     wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), wfv: [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent) }; });
   const indepC = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { billingTermMonths: 12, collectionDelayMonths: 1 }));
   const icC = indepC.months[co.m - 1].cash;
@@ -239,7 +239,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); hit = y; }
     }
-    return { hit, txt: document.getElementById('side').innerText };
+    return { hit, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) };
   });
   rec('C · INSPECT: the pinned cohort\'s dossier shows what it invoiced this month and its deferred revenue (billed at birth, trued up at renewal)',
       pinC.hit !== null && /Invoiced this month/.test(pinC.txt) && /(Deferred revenue|Unbilled \(contract asset\))\s+€[\d.]+[km]? · billed at birth, trued up at renewal/.test(pinC.txt),
@@ -257,7 +257,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="billing"]').click()); await pg.waitForTimeout(500);
   const s13 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let wE = 0; for (let t = 0; t < 60; t++) wE = Math.max(wE, Math.abs(D.expRes.months[t].ebita - D.baseRes.months[t].ebita));
-    return { txt: document.getElementById('side').innerText, wE, xm: D.expRes.mechanisms, bm: D.baseRes.mechanisms, bc: D.baseRes.months[59].cashClosing, xc: D.expRes.months[59].cashClosing }; });
+    return { txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), wE, xm: D.expRes.mechanisms, bm: D.baseRes.mechanisms, bc: D.baseRes.months[59].cashClosing, xc: D.expRes.months[59].cashClosing }; });
   rec('C · SCENARIO 13: Base FCF = EBITA, Experiment billed annually in advance and collected a month later; EBITA identical every month, ending cash differs; the match block and the cash rows are on screen',
       !s13.bm.cashPhysics && s13.xm.cashPhysics && s13.wE < 1e-6 && Math.abs(s13.xc - s13.bc) > 1e6 && s13.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ABOVE THE CASH LINE') && /CASH\nBilling term · off → 12 mo/.test(s13.txt) && /BILLING & COLLECTION\nbillings CUM\nas revenue → €[\d.]+m/.test(s13.txt) && /deferred revenue M60\n— → €[\d.]+m/.test(s13.txt) && /receivables M60\n— → €[\d.]+[km]/.test(s13.txt) && /cash FCF − EBITA CUM\n\+€0 → \+€[\d.]+m\n\+€[\d.]+m/.test(s13.txt) && /EBITA CUM\n€[\d.]+m → €[\d.]+m\n=/.test(s13.txt) && /ending cash M60\n€59\.57m → €74\.66m/.test(s13.txt),
       'M60 cash ' + (s13.bc / 1e6).toFixed(2) + 'm → ' + (s13.xc / 1e6).toFixed(2) + 'm');
@@ -266,7 +266,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   /* ---- C · NULL ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
   await jsClick('#reset'); await pg.waitForTimeout(300);
-  const cn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-billingTermMonths').textContent, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), txt: document.getElementById('side').innerText }));
+  const cn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-billingTermMonths').textContent, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   rec('C · NULL-ON-SCREEN: Reset switches Cash Physics off; the waterfall ends at "= Modeled FCF (= EBITA)" (7 steps); no cash block on screen',
       cn.A.billingTermMonths === null && cn.A.collectionDelayMonths === 0 && !cn.mech.cashPhysics && cn.tog === 'off' && cn.wf.length === 7 && cn.wf[6] === '= Modeled FCF (= EBITA)' && !cn.txt.includes('CASH BENEATH EBITA'), JSON.stringify(cn.wf));
 
@@ -293,7 +293,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- D · OBSERVE + WATERFALL ---- */
   await setScrub(20);
-  const dob = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, iv: D.expRes.months[m - 1].interventions, cost: D.expRes.months[m - 1].interventionCost, txt: document.getElementById('side').innerText,
+  const dob = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, iv: D.expRes.months[m - 1].interventions, cost: D.expRes.months[m - 1].interventionCost, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText),
     wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), wfv: [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent) }; });
   rec('D · OBSERVE: the Company lens carries the hypothesis strip — in force, what it moved (persistence 90.0% → 94.5%), this month\'s cost — and the P&L ladder carries the hypothesis cost line',
       /hypothesis h1 in force · persistence 90\.0% → 94\.5% · cost €50k this month/.test(dob.txt) && dob.txt.includes('− hypothesis cost') && dob.iv.active[0] === 'h1' && dob.cost === 50000,
@@ -319,7 +319,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); hit = y; }
     }
-    return { hit, txt: document.getElementById('side').innerText };
+    return { hit, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) };
   });
   rec('D · INSPECT: the pinned cohort\'s dossier states the hypotheses in force when its spend was committed', pinD.hit !== null && /Hypotheses at spend\s+h1 · the law this cohort was bought under/.test(pinD.txt),
       pinD.hit === null ? 'no cohort hit' : pinD.txt.slice(pinD.txt.indexOf('Hypotheses at spend'), pinD.txt.indexOf('Hypotheses at spend') + 120).replace(/\n/g, ' | '));
@@ -329,7 +329,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="hypothesis"]').click()); await pg.waitForTimeout(500);
   const s14 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let same = true; for (let t = 0; t < 8; t++) if (D.expRes.months[t].closingARR !== D.baseRes.months[t].closingARR) same = false;
-    return { txt: document.getElementById('side').innerText, same, bm: D.baseRes.mechanisms, xm: D.expRes.mechanisms, cost: D.K.interventionMeasures(D.expRes, 60).cumulativeCost }; });
+    return { txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), same, bm: D.baseRes.mechanisms, xm: D.expRes.mechanisms, cost: D.K.interventionMeasures(D.expRes, 60).cumulativeCost }; });
   rec('D · SCENARIO 14: Base has no hypothesis, Experiment the retention programme; months 1–8 identical; the panel shows the window, the cost (€1.55m), the month cash overtakes Base and the boundary',
       !s14.bm.interventions && s14.xm.interventions && s14.same && Math.abs(s14.cost - 1550000) < 1e-6 && /INTERVENTION\nHypothesis · ↯ Retention programme · persistence × 1\.05 · M6 \+3 lag · 24 mo · €200k \+ €50k\/mo/.test(s14.txt) && /Retention programme · persistence\n90\.0% → 94\.5% · M9–M32/.test(s14.txt) && /hypothesis cost CUM\n€0 → €1\.55m\n\+€1\.55m/.test(s14.txt) && /cash overtakes Base\n— → month 26/.test(s14.txt),
       s14.txt.slice(s14.txt.indexOf('CONSEQUENCE'), s14.txt.indexOf('CONSEQUENCE') + 220).replace(/\n/g, ' | '));
@@ -338,7 +338,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   /* ---- D · NULL ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
   await jsClick('#reset'); await pg.waitForTimeout(300);
-  const dn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, txt: document.getElementById('side').innerText, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent) }));
+  const dn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent) }));
   rec('D · NULL-ON-SCREEN: Reset removes the hypothesis; no Hypotheses block, no cost step', dn.A.interventions.length === 0 && !dn.mech.interventions && dn.tog === 'off' && !dn.txt.includes('HYPOTHESES') && !dn.wf.includes('− Hypothesis cost'), '');
 
   /* ---- FINAL · rail by layer, restraint, packs, hierarchical map ---- */

@@ -74,6 +74,18 @@ button,input{font:inherit;color:inherit}
 .regime b{font-family:var(--ui);font-style:normal;color:var(--ink);font-weight:600}
 .illus{background:rgba(201,151,63,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
 .illus b{color:var(--warn);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
+.scenidx{display:grid;margin-top:12px;border-top:1px solid var(--line-soft)}
+.scenrow{display:grid;grid-template-columns:24px minmax(130px,200px) minmax(0,1fr);gap:6px 12px;align-items:baseline;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
+.scenrow:hover{background:var(--sunk)}
+.scenrow .sn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.scenrow .stitle{font-family:var(--display);font-style:italic;color:var(--ink-2)}
+.sgrp.exp{padding-left:2px;padding-right:2px;max-width:640px}
+.sgrp.exp .eyebrow{margin-bottom:7px}
+.sgrp.exp .teach{font-family:var(--display);font-style:italic;font-size:12.5px;color:var(--ink-2);line-height:1.6}
+.subblk{margin-top:12px}
+.subblk .sub-eb{font-family:var(--ui);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.bnd.sec{margin-top:8px;padding-top:7px;border-top:1px solid var(--line-soft)}
+.bnd.sec .mech{margin-top:6px}
 .scencard{border:1px solid var(--line);border-radius:3px;background:var(--sunk);padding:11px 13px;margin-bottom:9px}
 .scencard h4{margin:0 0 3px;font-size:12.5px}
 .scencard .teach{font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--ink-2);line-height:1.55;margin:0}
@@ -3213,11 +3225,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(layer==='scen'){
       var host=document.getElementById('side');
       if(!activeScenario){
-        host.innerHTML='<div class="sgrp"><div class="eyebrow">Scenarios</div>'+
-          '<div class="hint" style="margin-top:7px;line-height:1.7">Fourteen canonical scenarios. Each changes one declared '+
-          'assumption against a frozen Base and reports only the consequences that scenario actually bears on.</div></div>'+
-          SCENARIOS.map(function(sc){ return '<div class="sgrp" style="padding-top:0"><div class="scencard">'+
-            '<h4>'+sc.n+' · '+esc(sc.name)+'</h4><p class="teach">'+esc(sc.teach)+'</p></div></div>'; }).join('');
+        host.innerHTML='<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head"><span class="lens-n">Experiments</span><span class="lens-q">What does one declared change do to the company?</span><span class="basis">14 canonical</span></div></div>'+
+          '<div class="sgrp exp"><div class="hint" style="line-height:1.7">Each experiment changes one declared assumption against the frozen Base and reads what changed, what stayed the same, what emerged and why it matters. The full mechanism stays one step away.</div>'+
+          '<div class="scenidx">'+SCENARIOS.map(function(sc){ return '<button class="scenrow" data-id="'+sc.id+'"><span class="sn">'+sc.n+'</span><span class="sname">'+esc(sc.name)+'</span><span class="stitle">'+esc(sc.title)+'</span></button>'; }).join('')+'</div></div>';
+        [].forEach.call(host.querySelectorAll('.scenrow'), function(b2){ b2.addEventListener('click', function(){ var sc2 = SCENARIOS.filter(function(x){ return x.id===b2.dataset.id; })[0]; if(sc2) applyScenario(sc2); }); });
         return;
       }
       host.innerHTML = consequencePanel(activeScenario);
@@ -3270,7 +3281,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         row('+ expansion, cumulative', reur(snap.cumExpansion), 'in') +
         row('− leakage, cumulative', reur(snap.cumLeakage), 'out') +
         row(basis+' now', reur(snap.currentARR)) +
-        '<div class="sub-eb">Bought under</div>' + provenanceRows(c), '', 'age '+snap.age);
+        '<details class="more"><summary>Bought under · '+(c.acquisitionMonth===0 ? 'predates the simulation' : 'spend month '+c.spendMonth+(c.cacPerARRAtCreation!==null ? ' · CAC '+c.cacPerARRAtCreation.toFixed(2)+'×' : ''))+'</summary>' + provenanceRows(c) + '</details>', '', 'age '+snap.age);
       /* 3 · CUSTOMER ECONOMICS — the logos beneath the balance */
       if(snap.customers!==null)
         out += pstep('Customer economics', snap.customers.toFixed(1)+' customers · ARPA '+reur(snap.arpa),
@@ -3544,7 +3555,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* a row where one side may lack the layer (null → —); the Δ is stated only when both sides have it */
     function numO(k, vb, vx, fmt, good, basisTag){ if(vb!==null && vx!==null) return num(k, vb, vx, fmt, good, basisTag); return mrow(k, vb===null?'—':fmt(vb), vx===null?'—':fmt(vx), vx===null ? 'off' : 'new', 0, 0, basisTag); }
     function pctO(k, vb, vx, good, basisTag){ if(vb!==null && vx!==null) return pctr(k, vb, vx, good, basisTag); return mrow(k, vb===null?'—':pct(vb,1), vx===null?'—':pct(vx,1), vx===null ? 'off' : 'new', 0, 0, basisTag); }
-    var h = '<div class="spine">';
+    var h = '';
+    /* hypotheses enter at the layer of their target: that layer is direct too */
+    var hypL = {}; (expRes.derived.interventions||[]).forEach(function(hh){ hypL[CAUSAL_LAYER[hh.target]||'other'] = true; });
 
     /* ---- Layer 1: what you changed ---- */
     var byLayer = {}; changed.forEach(function(c){ var L = CAUSAL_LAYER[c.key.split('.')[0].split('[')[0]]||'other'; (byLayer[L]=byLayer[L]||[]).push(c); });
@@ -3553,56 +3566,75 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     else h += '<div class="chg">'+LAYER_ORDER_C.concat(['other']).filter(function(L){ return byLayer[L]; }).map(function(L){
       return byLayer[L].map(function(c,i){ var Fk=forceOf(c.key)||{}; return '<span class="ck">'+(i===0?esc(L):'')+'</span><span class="cv">'+esc(LABEL[c.key]||Fk.label||c.key)+' · '+fmtChange(c)+'</span>'; }).join(''); }).join('')+'</div>';
     h += '</div>';
+    var L1 = h, L1body = h.slice(h.indexOf('</div>')+6, -6);
 
-    /* ---- Layer 2: what the system did ---- */
-    var rows = [];
+    /* ---- Layer 2: what the system did ----
+       Rows are grouped by the section of the machine they belong to. A section is
+       DIRECT when the change entered there (or a hypothesis targets it). Primary
+       rows = moved rows of direct sections; everything else is a secondary effect,
+       collapsed. Proximity to the change decides, not a judgement of importance. */
+    var rows = [], curSec = null;
+    function sec(name, direct){ curSec = { h:'<span class="mh">'+name+'</span>', direct:!!direct, rows:[] }; rows.push(curSec); }
+    function push(html){ curSec.rows.push({ html:html, moved: html.indexOf('">=</span>')<0, label: html.replace(/<span class="basis">[^<]*<\/span>/,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().split(' → ')[0].replace(/\s[\d€%−+.,km×]+.*$/,'') }); }
     if(touched.acquisition || touched.intervention){
-      rows.push('<span class="mh">acquisition</span>');
-      rows.push(num('new '+basis+' per month · law', qb.newARR, qx.newARR, reur, +1));
+      sec('acquisition', touched.acquisition || hypL.acquisition);
+      push(num('new '+basis+' per month · law', qb.newARR, qx.newARR, reur, +1));
       var mo1 = function(v){return v.toFixed(1)+' mo';}, xx = function(v){return v.toFixed(2)+'×';};
-      rows.push(num('Coefficient payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, mo1, -1));
+      push(num('Coefficient payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, mo1, -1));
       if(E.saturationEnabled(baseA)||E.saturationEnabled(expA)){
-        rows.push(num('Average CAC', qb.averageCAC, qx.averageCAC, xx, -1)); rows.push(num('Average payback', qb.averagePaybackMonths, qx.averagePaybackMonths, mo1, -1));
-        rows.push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, xx, -1)); rows.push(num('Marginal payback', qb.marginalPaybackMonths, qx.marginalPaybackMonths, mo1, -1));
+        push(num('Average CAC', qb.averageCAC, qx.averageCAC, xx, -1)); push(num('Average payback', qb.averagePaybackMonths, qx.averagePaybackMonths, mo1, -1));
+        push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, xx, -1)); push(num('Marginal payback', qb.marginalPaybackMonths, qx.marginalPaybackMonths, mo1, -1));
       }
-      rows.push(num('new '+basis+' realised', b.cumNewARR, x.cumNewARR, reur, +1, 'CUM'));
+      push(num('new '+basis+' realised', b.cumNewARR, x.cumNewARR, reur, +1, 'CUM'));
       if(baseRes.derived.acquisitionLagMonths>0||expRes.derived.acquisitionLagMonths>0){
-        rows.push(mrow('first cohort', 'M'+b.firstCohortMonth, 'M'+x.firstCohortMonth, x.firstCohortMonth===b.firstCohortMonth ? '=' : (x.firstCohortMonth>b.firstCohortMonth?'+':'−')+Math.abs(x.firstCohortMonth-b.firstCohortMonth)+' mo', x.firstCohortMonth-b.firstCohortMonth, -1));
-        rows.push(num('pending at M60', b.pendingNewARRAtHorizon, x.pendingNewARRAtHorizon, reur, -1));
+        push(mrow('first cohort', 'M'+b.firstCohortMonth, 'M'+x.firstCohortMonth, x.firstCohortMonth===b.firstCohortMonth ? '=' : (x.firstCohortMonth>b.firstCohortMonth?'+':'−')+Math.abs(x.firstCohortMonth-b.firstCohortMonth)+' mo', x.firstCohortMonth-b.firstCohortMonth, -1));
+        push(num('pending at M60', b.pendingNewARRAtHorizon, x.pendingNewARRAtHorizon, reur, -1));
       }
-      rows.push(num('acquisition capital', b.cumSM, x.cumSM, eur, -1, 'CUM'));
+      push(num('acquisition capital', b.cumSM, x.cumSM, eur, -1, 'CUM'));
     }
     if(touched['installed base'] || touched.customers || touched.monetization || touched.intervention || touched.acquisition){
-      rows.push('<span class="mh">installed base</span>');
+      sec('installed base', touched['installed base'] || touched.customers || touched.monetization || hypL['installed base'] || hypL.customers || hypL.monetization);
       if(anyCu){ var cb=b.finalCustomers!==null?K.customerMeasures(baseRes,T):null, cx=x.finalCustomers!==null?K.customerMeasures(expRes,T):null;
-        rows.push(numO('customers', b.finalCustomers, x.finalCustomers, function(v){return v.toFixed(0);}, +1, 'M60'));
-        rows.push(pctO('logo retention', cb?cb.logoRetentionR12M:null, cx?cx.logoRetentionR12M:null, +1, 'R12M'));
-        rows.push(numO('churned '+basis, b.cumLogoChurnARR, x.cumLogoChurnARR, reur, -1, 'CUM'));
-        rows.push(numO('contraction', b.cumContractionARR, x.cumContractionARR, reur, -1, 'CUM'));
-        rows.push(numO('ARPA', b.finalARPA, x.finalARPA, eurF, +1, 'M60'));
-      } else rows.push(num('leakage', b.cumLeakage, x.cumLeakage, reur, -1, 'CUM'));
-      if(anyMo){ rows.push(numO('price effect', b.cumPriceARR, x.cumPriceARR, reur, +1, 'CUM')); rows.push(numO('usage effect', b.cumUsageARR, x.cumUsageARR, reur, +1, 'CUM')); rows.push(numO('adoption effect', b.cumAdoptionARR, x.cumAdoptionARR, reur, +1, 'CUM')); rows.push(pctO('variable share', b.finalVariableShare, x.finalVariableShare, 0, 'M60')); if(!bothMo) rows.push(num('expansion', b.cumExpansion, x.cumExpansion, reur, +1, 'CUM')); }
-      else rows.push(num('expansion', b.cumExpansion, x.cumExpansion, reur, +1, 'CUM'));
-      rows.push(pctr('gross dollar retention', kb.grr, kx.grr, +1, 'R12M'));
-      if(b.cumExpansionCost>0||x.cumExpansionCost>0) rows.push(num('expansion realisation cost', b.cumExpansionCost, x.cumExpansionCost, eur, -1, 'CUM'));
+        push(numO('customers', b.finalCustomers, x.finalCustomers, function(v){return v.toFixed(0);}, +1, 'M60'));
+        push(pctO('logo retention', cb?cb.logoRetentionR12M:null, cx?cx.logoRetentionR12M:null, +1, 'R12M'));
+        push(numO('churned '+basis, b.cumLogoChurnARR, x.cumLogoChurnARR, reur, -1, 'CUM'));
+        push(numO('contraction', b.cumContractionARR, x.cumContractionARR, reur, -1, 'CUM'));
+        push(numO('ARPA', b.finalARPA, x.finalARPA, eurF, +1, 'M60'));
+      } else push(num('leakage', b.cumLeakage, x.cumLeakage, reur, -1, 'CUM'));
+      if(anyMo){ push(numO('price effect', b.cumPriceARR, x.cumPriceARR, reur, +1, 'CUM')); push(numO('usage effect', b.cumUsageARR, x.cumUsageARR, reur, +1, 'CUM')); push(numO('adoption effect', b.cumAdoptionARR, x.cumAdoptionARR, reur, +1, 'CUM')); push(pctO('variable share', b.finalVariableShare, x.finalVariableShare, 0, 'M60')); if(!bothMo) push(num('expansion', b.cumExpansion, x.cumExpansion, reur, +1, 'CUM')); }
+      else push(num('expansion', b.cumExpansion, x.cumExpansion, reur, +1, 'CUM'));
+      push(pctr('gross dollar retention', kb.grr, kx.grr, +1, 'R12M'));
+      if(b.cumExpansionCost>0||x.cumExpansionCost>0) push(num('expansion realisation cost', b.cumExpansionCost, x.cumExpansionCost, eur, -1, 'CUM'));
     }
     if(touched.cash || anyCa){
-      rows.push('<span class="mh">billing &amp; collection</span>');
+      sec('billing &amp; collection', touched.cash || hypL.cash);
       var fb2 = b.cumBillings===null ? 'as revenue' : eur(b.cumBillings), fx2 = x.cumBillings===null ? 'as revenue' : eur(x.cumBillings);
       var bb2 = b.cumBillings===null?b.cumRevenue:b.cumBillings, xb2 = x.cumBillings===null?x.cumRevenue:x.cumBillings;
-      rows.push(mrow('billings', fb2, fx2, Math.abs(xb2-bb2)<1 ? '=' : eurS(xb2-bb2), xb2-bb2, 0, 'CUM'));
-      rows.push(mrow('deferred revenue', b.finalDeferredRevenue===null?'—':eur(b.finalDeferredRevenue), x.finalDeferredRevenue===null?'—':eur(x.finalDeferredRevenue), (b.finalDeferredRevenue!==null&&x.finalDeferredRevenue!==null&&Math.abs(x.finalDeferredRevenue-b.finalDeferredRevenue)>1) ? eurS(x.finalDeferredRevenue-b.finalDeferredRevenue) : '=', 0, 0, 'M60'));
-      rows.push(mrow('receivables', b.finalReceivables===null?'—':eur(b.finalReceivables), x.finalReceivables===null?'—':eur(x.finalReceivables), (b.finalReceivables!==null&&x.finalReceivables!==null&&Math.abs(x.finalReceivables-b.finalReceivables)>1) ? eurS(x.finalReceivables-b.finalReceivables) : '=', 0, 0, 'M60'));
+      push(mrow('billings', fb2, fx2, Math.abs(xb2-bb2)<1 ? '=' : eurS(xb2-bb2), xb2-bb2, 0, 'CUM'));
+      push(mrow('deferred revenue', b.finalDeferredRevenue===null?'—':eur(b.finalDeferredRevenue), x.finalDeferredRevenue===null?'—':eur(x.finalDeferredRevenue), (b.finalDeferredRevenue!==null&&x.finalDeferredRevenue!==null&&Math.abs(x.finalDeferredRevenue-b.finalDeferredRevenue)>1) ? eurS(x.finalDeferredRevenue-b.finalDeferredRevenue) : '=', 0, 0, 'M60'));
+      push(mrow('receivables', b.finalReceivables===null?'—':eur(b.finalReceivables), x.finalReceivables===null?'—':eur(x.finalReceivables), (b.finalReceivables!==null&&x.finalReceivables!==null&&Math.abs(x.finalReceivables-b.finalReceivables)>1) ? eurS(x.finalReceivables-b.finalReceivables) : '=', 0, 0, 'M60'));
       var fb3 = b.cumFCFMinusEbita||0, fx3 = x.cumFCFMinusEbita||0;
-      rows.push(mrow('cash FCF − EBITA', eurS(fb3), eurS(fx3), Math.abs(fx3-fb3)<1 ? '=' : eurS(fx3-fb3), fx3-fb3, +1, 'CUM'));
+      push(mrow('cash FCF − EBITA', eurS(fb3), eurS(fx3), Math.abs(fx3-fb3)<1 ? '=' : eurS(fx3-fb3), fx3-fb3, +1, 'CUM'));
     }
     if(touched.intervention || anyIv){
-      rows.push('<span class="mh">hypothesis</span>');
-      (expRes.derived.interventions||[]).forEach(function(hh){ var ff=(forceOf(hh.target)||{}).f||'x'; rows.push(mrow(hh.name+' · '+hypTargetLabel(hh.target), fmtF(ff, hh.baseValue), fmtF(ff, hh.valueInForce===null?hh.baseValue:hh.valueInForce)+' · M'+hh.effectiveFrom+'–M'+hh.effectiveTo, '↯', 0, 0)); });
-      rows.push(num('hypothesis cost', b.cumInterventionCost||0, x.cumInterventionCost||0, eur, -1, 'CUM'));
+      sec('hypothesis', touched.intervention);
+      (expRes.derived.interventions||[]).forEach(function(hh){ var ff=(forceOf(hh.target)||{}).f||'x'; push(mrow(hh.name+' · '+hypTargetLabel(hh.target), fmtF(ff, hh.baseValue), fmtF(ff, hh.valueInForce===null?hh.baseValue:hh.valueInForce)+' · M'+hh.effectiveFrom+'–M'+hh.effectiveTo, '↯', 0, 0)); });
+      push(num('hypothesis cost', b.cumInterventionCost||0, x.cumInterventionCost||0, eur, -1, 'CUM'));
     }
-    h += '<div class="cause l2"><div class="ct"><span class="eyebrow">What the system did</span><span class="basis">Base → Experiment</span></div>'+
-      (rows.length ? '<div class="mech">'+rows.join('')+'</div>' : '<div class="hint">No mechanism moved.</div>')+(opts.attribution||'')+'</div>';
+    var prim = [], seco = [], nMoved = 0, nSame = 0, unmoved = [];
+    function split(direct){
+      prim = []; seco = []; nMoved = 0; nSame = 0; unmoved = [];
+      rows.forEach(function(S){
+        var P = S.rows.filter(function(r){ return r.moved && (S.direct || !direct); }), Q = S.rows.filter(function(r){ return !(r.moved && (S.direct || !direct)); });
+        if(P.length) prim.push(S.h + P.map(function(r){ return r.html; }).join(''));
+        if(Q.length){ seco.push(S.h + Q.map(function(r){ return r.html; }).join('')); Q.forEach(function(r){ if(r.moved) nMoved++; else { nSame++; unmoved.push(r.label); } }); }
+      });
+    }
+    split(true); if(!prim.length) split(false);   /* nothing moved where the change entered: every moved row is primary */
+    var secSum = (nMoved ? nMoved+' additional change'+(nMoved===1?'':'s') : '') + (nMoved && nSame ? ' · ' : '') + (nSame ? nSame+' unchanged' : '');
+    var L2body = (prim.length ? '<div class="mech">'+prim.join('')+'</div>' : '<div class="hint">No mechanism moved.</div>') +
+      (seco.length ? '<details class="bnd sec"><summary>Secondary effects · '+secSum+'</summary><div class="mech">'+seco.join('')+'</div></details>' : '') + (opts.attribution||'');
+    var L2 = '<div class="cause l2"><div class="ct"><span class="eyebrow">What the system did</span><span class="basis">Base → Experiment</span></div>'+L2body+'</div>';
 
     /* ---- Layer 3: what company emerged ---- */
     var payback = null; for(var t3=1;t3<=H;t3++) if(payback===null && expRes.months[t3-1].cashClosing > baseRes.months[t3-1].cashClosing + 1) payback = t3;
@@ -3615,10 +3647,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     l3.push(mrow('cash trough', eur(b.cashTrough)+' M'+b.cashTroughMonth, eur(x.cashTrough)+' M'+x.cashTroughMonth, Math.abs(x.cashTrough-b.cashTrough)<1 ? '=' : eurS(x.cashTrough-b.cashTrough), x.cashTrough-b.cashTrough, +1));
     l3.push(num('ending cash', b.endingCash, x.endingCash, eur, +1, 'M60'));
     if(anyIv && x.cumInterventionCost>0) l3.push(mrow('cash overtakes Base', '—', payback===null ? 'not within 60 months' : 'month '+payback, '', 0, 0));
-    h += '<div class="cause l3"><div class="ct"><span class="eyebrow">What company emerged</span><span class="basis">Base → Experiment</span></div><div class="mech">'+l3.join('')+'</div></div>';
-    h += '</div>';
+    var L3body = '<div class="mech">'+l3.join('')+'</div>';
+    var L3 = '<div class="cause l3"><div class="ct"><span class="eyebrow">What company emerged</span><span class="basis">Base → Experiment</span></div>'+L3body+'</div>';
 
     /* ---- same output, different system ---- */
+    var SAME = '';
     var sameARR = Math.abs(x.finalARR-b.finalARR) < 0.005*Math.max(1,b.finalARR) && changed.length>0;
     if(sameARR){
       var diffs = [];
@@ -3628,9 +3661,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       if(Math.abs(x.cumExpansion-b.cumExpansion)>1) diffs.push('expansion '+reur(b.cumExpansion)+' → '+reur(x.cumExpansion));
       if(Math.abs(x.endingCash-b.endingCash)>1) diffs.push('ending cash '+eur(b.endingCash)+' → '+eur(x.endingCash));
       if(bothMo && Math.abs(x.finalVariableShare-b.finalVariableShare)>0.005) diffs.push('variable share '+pct(b.finalVariableShare,0)+' → '+pct(x.finalVariableShare,0));
-      if(diffs.length) h += '<div class="same-sys"><h5>Same ARR, different system</h5><div class="hint">M60 ARR agrees within 0.5%. The systems that produced it do not: '+esc(diffs.join(' · '))+'. The headline is not a sufficient statistic.</div></div>';
+      if(diffs.length) SAME = '<div class="same-sys"><h5>Same ARR, different system</h5><div class="hint">M60 ARR agrees within 0.5%. The systems that produced it do not: '+esc(diffs.join(' · '))+'. The headline is not a sufficient statistic.</div></div>';
     }
-    return h;
+    if(opts.parts) return { l1:L1, l2:L2, l3:L3, l1body:L1body, l2body:L2body, l3body:L3body, same:SAME, unmoved:unmoved, nSecondary:nMoved+nSame };
+    return '<div class="spine">'+L1+L2+L3+'</div>'+SAME;
   }
 
   function consequencePanel(sc){
@@ -3702,13 +3736,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     if(has('payback') && (E.saturationEnabled(expA)||E.saturationEnabled(baseA))) rows.push(row('Average payback', qb.averagePaybackMonths.toFixed(1)+' → '+qx.averagePaybackMonths.toFixed(1)+' months', -(qx.averagePaybackMonths - qb.averagePaybackMonths)));
     if(has('marginal') && E.saturationEnabled(expA)) rows.push(row('Marginal payback', qb.marginalPaybackMonths.toFixed(1)+' → '+qx.marginalPaybackMonths.toFixed(1)+' months', -(qx.marginalPaybackMonths - qb.marginalPaybackMonths)));
 
-    var h = '<div class="sgrp"><div class="eyebrow">Scenario '+sc.n+' · '+esc(sc.name)+'</div>'+
-      '<h4 style="margin:6px 0 4px;font-size:13.5px">'+esc(sc.title)+'</h4>'+
-      '<div class="msg" style="font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--ink-2);line-height:1.6">'+
-      esc(sc.teach)+'</div></div>';
+    /* The experiment grammar: what changed · what stayed the same · what emerged ·
+       why it matters. The full mechanism spine, the response curve and the
+       boundaries stay available behind disclosure. */
+    var h = '<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head"><span class="lens-n">Experiment '+sc.n+' · '+esc(sc.name)+'</span><span class="lens-q">'+esc(sc.title)+'</span><span class="basis">Base → Experiment</span></div></div>';
+    var same = '';
 
     if(sc.illustrative){
-      h += '<div class="sgrp" style="padding-top:0"><div class="illus"><b>Illustrative state-dependent world</b>'+
+      same += '<div class="subblk"><div class="illus"><b>Illustrative state-dependent world</b>'+
         'This demonstrates what can occur <em>if</em> transition behaviour varies with cohort maturity. '+
         'It is not a claim that the illustrated tenure law is empirically typical. Acquisition is switched '+
         'off in both companies so the installed base is isolated.</div></div>';
@@ -3721,7 +3756,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       var fb = 0, fx = 0;
       for(var t2=T0+1; t2<=H; t2++){ fb += baseRes.months[t2-1].grossProfit; fx += expRes.months[t2-1].grossProfit; }
       var arrB = baseRes.months[T0-1].closingARR, arrX = expRes.months[T0-1].closingARR;
-      h += '<div class="sgrp"><div class="eyebrow">At month 12 — the two companies agree</div><div class="recon" style="margin-top:5px">'+
+      same += '<div class="subblk"><div class="sub-eb">At month 12 — the two companies agree</div><div class="recon" style="margin-top:5px">'+
         '<span>'+basis+'</span><b>'+reur(arrB)+' · '+reur(arrX)+'</b>'+
         '<span>R12M GRR</span><b>'+pct(kb2.grr,4)+' · '+pct(kx2.grr,4)+'</b>'+
         '<span>R12M expansion</span><b>'+pct(kb2.expansionRate,4)+' · '+pct(kx2.expansionRate,4)+'</b>'+
@@ -3729,7 +3764,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '<span>law set</span><b style="color:var(--good)">identical</b>'+
         '<span>cohort age at M12</span><b style="color:var(--warn)">36 vs 12 months</b>'+
         '</div><div class="hint" style="margin-top:8px">Every reported metric agrees. Only the hidden age composition differs.</div></div>'+
-        '<div class="sgrp"><div class="eyebrow">Forward installed-base contribution</div><div class="recon" style="margin-top:5px">'+
+        '<div class="subblk"><div class="sub-eb">Forward installed-base contribution</div><div class="recon" style="margin-top:5px">'+
         '<span>Gross profit, M13–M60</span><b>'+eur(fb)+' · '+eur(fx)+'</b>'+
         '<span>difference</span><b class="'+(fx>=fb?'up':'down')+'">'+
         ((Math.abs(fx-fb)/((fx+fb)/2))*100).toFixed(1)+'%</b></div>'+
@@ -3749,7 +3784,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         if(t7>=12) wNRR = Math.max(wNRR, Math.abs(K.measureR12M(expRes,t7).nrr - K.measureR12M(baseRes,t7).nrr));
       }
       var k7b = K.measureR12M(baseRes, 12), k7x = K.measureR12M(expRes, 12);
-      h += '<div class="sgrp"><div class="eyebrow">The two worlds agree on ARR and NRR</div><div class="recon" style="margin-top:5px">'+
+      same += '<div class="subblk"><div class="sub-eb">The two worlds agree on ARR and NRR</div><div class="recon" style="margin-top:5px">'+
         '<span>R12M GRR at M12</span><b>'+pct(k7b.grr,2)+' · '+pct(k7x.grr,2)+'</b>'+
         '<span>R12M expansion at M12</span><b>'+pct(k7b.expansionRate,2)+' · '+pct(k7x.expansionRate,2)+'</b>'+
         '<span>R12M NRR at M12</span><b>'+pct(k7b.nrr,4)+' · '+pct(k7x.nrr,4)+'</b>'+
@@ -3768,7 +3803,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         wR = Math.max(wR, Math.abs(expRes.months[t13-1].revenue - baseRes.months[t13-1].revenue));
       }
       var ck13 = K.cashMeasures(expRes, H);
-      h += '<div class="sgrp"><div class="eyebrow">The two worlds agree on everything above the cash line</div><div class="recon" style="margin-top:5px">'+
+      same += '<div class="subblk"><div class="sub-eb">The two worlds agree on everything above the cash line</div><div class="recon" style="margin-top:5px">'+
         '<span>max |Δ'+basis+'| over 60 months</span><b>'+reur(wA13)+'</b>'+
         '<span>max |Δrevenue|, |ΔEBITA| over 60 months</span><b>'+eur(Math.max(wE, wR))+'</b>'+
         '<span>cash trough</span><b style="color:var(--warn)">'+eur(b.cashTrough)+' (M'+b.cashTroughMonth+') · '+eur(x.cashTrough)+' (M'+x.cashTroughMonth+')</b>'+
@@ -3780,7 +3815,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     /* Scenario 12 proves its own premise on screen: same start, different GRR. */
     if(has('mixmatch')){
       var kb12 = K.measureR12M(baseRes, 12), kx12 = K.measureR12M(expRes, 12), b1 = baseRes.months[0], x1 = expRes.months[0];
-      h += '<div class="sgrp"><div class="eyebrow">Same start, different dollar retention</div><div class="recon" style="margin-top:5px">'+
+      same += '<div class="subblk"><div class="sub-eb">Same start, different dollar retention</div><div class="recon" style="margin-top:5px">'+
         '<span>opening '+basis+'</span><b>'+reur(b1.openingARR)+' · '+reur(x1.openingARR)+'</b>'+
         '<span>customers · ARPA</span><b>'+b1.customers.opening.toFixed(0)+' · '+reur(b1.customers.arpaOpening)+' both</b>'+
         '<span>logo retention · contraction law</span><b>'+pct(baseA.logoRetentionAnnual,0)+' · '+pct(baseA.contractionAnnual,0)+' both</b>'+
@@ -3798,7 +3833,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         if(t10>=12){ var kb10 = K.measureR12M(baseRes,t10), kx10 = K.measureR12M(expRes,t10);
           wNRR10 = Math.max(wNRR10, Math.abs(kx10.nrr - kb10.nrr), Math.abs(kx10.grr - kb10.grr)); }
       }
-      h += '<div class="sgrp"><div class="eyebrow">The two worlds agree on everything ARR can show</div><div class="recon" style="margin-top:5px">'+
+      same += '<div class="subblk"><div class="sub-eb">The two worlds agree on everything ARR can show</div><div class="recon" style="margin-top:5px">'+
         '<span>derived persistence</span><b>'+pct(baseRes.derived.persistenceAnnualEffective,2)+' · '+pct(expRes.derived.persistenceAnnualEffective,2)+'</b>'+
         '<span>max |Δ'+basis+'| over 60 months</span><b>'+reur(wARR10)+'</b>'+
         '<span>max |ΔGRR|, |ΔNRR| over all measurement dates</span><b>'+wNRR10.toExponential(1)+'</b>'+
@@ -3807,16 +3842,16 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         '</div><div class="hint" style="margin-top:8px">Persistence is derived as L × (1 − C) in both. Identical dollar physics; different customer physics.</div></div>';
     }
 
-    /* the causal comparison — what you changed → what the system did → what company emerged */
+    /* the causal comparison, in parts */
     var chg = E.compare(baseRes, expRes).changed;
     if(sc.world==='state-dependent') chg = [{ key:'bands', from:'one opening cohort', to:'two vintages' }];
-    h += '<div class="sgrp"><div class="eyebrow">Why the Experiment differs from Base</div>'+causalCompare(chg, { attribution: attributionBlock(chg) })+'</div>';
-
+    var P = causalCompare(chg, { attribution: attributionBlock(chg), parts:true });
+    var curve = '';
     /* Scenario 8 — the response curve itself, from the engine's own law at
        several spend levels, in this Experiment's world. A curve, not a verdict. */
     if(has('curve')){
       var mult = [0.5, 1, 1.5, 2, 3];
-      h += '<div class="sgrp"><div class="eyebrow">Acquisition response in the Experiment · per month of spend</div>'+
+      curve = '<div class="subblk"><div class="sub-eb">Acquisition response in the Experiment · per month of spend</div>'+
         '<table class="attrib-tbl attrib-tbl3" style="margin-top:6px"><thead><tr><th>S&amp;M</th><th>New '+basis+' linear</th><th>New '+basis+' bounded</th><th>avg CAC</th><th>marg CAC</th></tr></thead><tbody>'+
         mult.map(function(mu){
           var s8 = expA.sm*mu, lin = E.acquisitionResponse(Object.assign({}, expA, {sm:s8, maxMonthlyNewARR:null})), bnd = E.acquisitionResponse(Object.assign({}, expA, {sm:s8}));
@@ -3826,10 +3861,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         'Where to stop is a decision the model does not make: it has no objective function.</div></div>';
     }
 
-    if(sc.note){
-      h += '<div class="sgrp" style="padding-top:0"><div class="hint">'+esc(sc.note)+'</div></div>';
-    }
-
+    var regime = '';
     /* §9 — regime statement. Explanatory text only; no new visualisation. */
     if(!sc.world){
       var rb2 = regimeOf(baseRes), rx2 = regimeOf(expRes);
@@ -3841,13 +3873,27 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         txt = 'This change moves the installed base from <b>'+REGIME[rb2.band]+'</b> to <b>'+REGIME[rx2.band]+
               '</b> under the model\'s transition laws (g '+rb2.g.toFixed(6)+' → '+rx2.g.toFixed(6)+').';
       }
-      h += '<div class="sgrp" style="padding-top:0"><div class="regime">'+txt+
+      regime = '<div class="regime">'+txt+
         '<div style="font-family:var(--ui);font-style:normal;font-size:10px;color:var(--ink-4);margin-top:6px">'+
-        'g = (1−ℓ)(1+e), the monthly multiplier applied to existing ARR before new business.</div></div></div>';
+        'g = (1−ℓ)(1+e), the monthly multiplier applied to existing ARR before new business.</div></div>';
     }
 
-    /* §10 — boundary disclosure, compact and never hidden entirely */
-    h += '<div class="sgrp"><details class="bnd"><summary>Model boundaries</summary><ul>' +
+
+    /* 1 · what changed */
+    h += '<div class="sgrp exp"><div class="eyebrow">What changed</div>'+P.l1body+'</div>';
+    /* 2 · what stayed the same — the scenario's own proof where it has one, otherwise the outputs that did not move */
+    var sameHint = sc.world==='state-dependent' ? 'Every law and every input is shared: one law set, two histories.'
+                 : (sc.pair ? 'Every other law and input is shared by both worlds.' : 'Every other law and input is Base\'s.');
+    h += '<div class="sgrp exp"><div class="eyebrow">What stayed the same</div><div class="hint">'+sameHint+
+         (P.unmoved.length ? ' Unchanged at the horizon: '+esc(P.unmoved.join(' · '))+'.' : '')+'</div>'+same+'</div>';
+    /* 3 · what emerged */
+    h += '<div class="sgrp exp"><div class="eyebrow">What emerged</div>'+P.l3body+P.same+'</div>';
+    /* 4 · why it matters */
+    h += '<div class="sgrp exp"><div class="eyebrow">Why it matters</div><div class="teach">'+esc(sc.teach)+'</div>'+
+         (sc.note ? '<div class="hint" style="margin-top:8px">'+esc(sc.note)+'</div>' : '')+regime+'</div>';
+    /* the full mechanism, the curve and the boundaries — available, not first */
+    h += '<div class="sgrp"><details class="bnd"><summary>What the system did · full mechanism</summary><div class="spine" style="margin-top:8px">'+P.l2+'</div>'+curve+'</details>';
+    h += '<details class="bnd"><summary>Model boundaries</summary><ul>' +
       (sc.bounds||[]).map(function(k2){ return '<li>'+esc(boundText(k2))+'</li>'; }).join('') +
       '</ul></details></div>';
     return h;
