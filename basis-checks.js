@@ -204,7 +204,7 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /eur\(eb\)/,
     /eur\(em\.cashClosing\)/,
     /eur\(fc\)/,
-    /eur\(snap\.cumGrossProfit\)/,
+    /eur\(cc\.acquisitionCost\)/,          // Inspect · capital recovery step (moved from the cohort rows in the legibility pass)
     /eur\(c\.acquisitionCost\)/,
     /eur\(now\.cumGP\)/,
     /eur\(now\.unrecovered\)/,

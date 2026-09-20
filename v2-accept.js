@@ -42,7 +42,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     group: [...document.querySelectorAll('.fgrp-kind')].map(e => e.textContent)
   }));
   rec('A · CONTROLS: the three customer controls exist in their own "Customer physics" group, read null (logo retention off, ARR per new logo = opening ARPA), and persistence is an ordinary input',
-      c0.L && c0.C && c0.K && c0.tog === 'off' && c0.Lv === 'off' && c0.Kv === 'opening ARPA' && c0.Pv === '90.0%' && !c0.Pdis && c0.A.logoRetentionAnnual === null && c0.mech.customerPhysics === false && c0.group.includes('Customer physics'),
+      c0.L && c0.C && c0.K && c0.tog === 'off' && c0.Lv === '' && c0.Kv === 'opening ARPA' && c0.Pv === '90.0%' && !c0.Pdis && c0.A.logoRetentionAnnual === null && c0.mech.customerPhysics === false && c0.group.includes('Customer physics'),
       JSON.stringify({ tog: c0.tog, Lv: c0.Lv, Kv: c0.Kv, Pv: c0.Pv, groups: c0.group }));
   await pg.click('#t-logoRetentionAnnual'); await pg.waitForTimeout(300);
   await setSlider('f-contractionAnnual', 0.05);
@@ -54,8 +54,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('A · CONTROLS: the toggle switches the layer on at 92%; contraction 5% → the run reports customerPhysics on, persistence reads "derived 87.4% = L × (1 − C)" and its slider is disabled',
       c1.A.logoRetentionAnnual === 0.92 && c1.A.contractionAnnual === 0.05 && c1.mech.customerPhysics === true && Math.abs(c1.P - 0.874) < 1e-12 && c1.tog === 'on' && c1.Pv === 'derived 87.4% = L × (1 − C)' && c1.Pdis,
       JSON.stringify({ Pv: c1.Pv, P: c1.P }));
-  rec('A · CONTROLS: the Experiment summary names the two changed customer assumptions with from → to',
-      /2 assumptions changed/.test(c1.summary) && /Logo retention\s+off → 92\.0%/.test(c1.summary) && /Contraction\s+0\.0% → 5\.0%/.test(c1.summary), c1.summary.replace(/\n/g, ' | ').slice(0, 160));
+  rec('A · CONTROLS: the Experiment summary names the two changed customer assumptions as laws (⋈) with from → to, grouped under their causal layer',
+      /2 assumptions changed/.test(c1.summary) && /Logo retention\s+⋈ off → 92\.0%/.test(c1.summary) && /Contraction\s+⋈ 0\.0% → 5\.0%/.test(c1.summary), c1.summary.replace(/\n/g, ' | ').slice(0, 160));
 
   /* ---- A · OBSERVE ---- */
   await setScrub(36);
@@ -135,7 +135,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       b0.A.monetization && b0.A.logoRetentionAnnual === 0.92 && b0.mech.monetization && b0.mech.genericExpansionBypassed && b0.tog === 'on' && b0.Lt === 'on' && b0.Xv === 'bypassed — price + usage + adoption' && b0.Xdis &&
       /^derived/.test(b0.Kv) && /^emergent/.test(b0.Pv) && b0.Uv === '15.0%' && !b0.Udis && b0.openingARR === 20000000,
       JSON.stringify({ Xv: b0.Xv, Kv: b0.Kv, Pv: b0.Pv, Uv: b0.Uv }));
-  rec('B · CONTROLS: the Experiment summary names the layer and the customer layer it switched on', /2 assumptions changed/.test(b0.summary) && /Logo retention\s+off → 92\.0%/.test(b0.summary) && /Monetization\s+off → on/.test(b0.summary), b0.summary.replace(/\n/g, ' | '));
+  rec('B · CONTROLS: the Experiment summary names the layer and the customer layer it switched on', /2 assumptions changed/.test(b0.summary) && /Logo retention\s+⋈ off → 92\.0%/.test(b0.summary) && /Monetization\s+off → on/.test(b0.summary), b0.summary.replace(/\n/g, ' | '));
   await setSlider('f-monetization.components[1].usageGrowthAnnual', 0.30);
   const b1 = await pg.evaluate(() => ({ u: window.__SP_DEBUG.expA.monetization.components[1].usageGrowthAnnual, summary: document.getElementById('experiment-summary').innerText, base: window.__SP_DEBUG.baseA.monetization }));
   rec('B · CONTROLS: a nested component slider writes the nested key (usage growth 15% → 30%) without mutating Base; against a Base without the layer the whole layer is the change, so the summary keeps "Monetization off → on"',
@@ -274,9 +274,9 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     Dv: document.getElementById('v-interventions[0].durationMonths').textContent, Dt: document.getElementById('t-interventions[0].durationMonths').textContent,
     summary: document.getElementById('experiment-summary').innerText, sched: window.__SP_DEBUG.expRes.derived.interventions
   }));
-  rec('D · CONTROLS: the Hypothesis toggle switches one costed programme on (persistence × 1.05, decided M6, lag 3, 24 months); the target button, effect, timing and cost sliders enable; the schedule is resolved (in force M9–M32); the summary names it',
+  rec('D · CONTROLS: the Hypothesis toggle switches one costed programme on (persistence × 1.05, decided M6, lag 3, 24 months); the target button, effect, timing and cost sliders enable; the schedule is resolved (in force M9–M32); the summary states the programme (target, effect, timing, duration)',
       d0.A.interventions.length === 1 && d0.A.interventions[0].target === 'persistenceAnnual' && d0.mech.interventions && d0.tog === 'on' && d0.Hv === '1 active' && d0.tgt === 'persistence' && d0.Ev === '1.05×' && !d0.Edis && d0.Dv === '24 mo' && d0.Dt === 'on' &&
-      d0.sched[0].effectiveFrom === 9 && d0.sched[0].effectiveTo === 32 && /Hypothesis\s+off → 1 active/.test(d0.summary), JSON.stringify({ Hv: d0.Hv, tgt: d0.tgt, Ev: d0.Ev, Dv: d0.Dv }));
+      d0.sched[0].effectiveFrom === 9 && d0.sched[0].effectiveTo === 32 && /Hypothesis\s+↯ Hypothesis · persistence × 1\.05 · M6 \+3 lag · 24 mo · €200k \+ €50k\/mo/.test(d0.summary), JSON.stringify({ Hv: d0.Hv, tgt: d0.tgt, Ev: d0.Ev, Dv: d0.Dv }));
   await pg.click('[id="t-interventions[0].target"]'); await pg.waitForTimeout(300);
   const d1 = await pg.evaluate(() => ({ t: window.__SP_DEBUG.expA.interventions[0].target, tgt: document.getElementById('t-interventions[0].target').textContent }));
   rec('D · CONTROLS: the target button cycles to the next law that is on (persistence → expansion coefficient, since the customer layer is off)', d1.t === 'expansionCoefficientAnnual' && d1.tgt === 'expansion coefficient', JSON.stringify(d1));
@@ -284,7 +284,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   for (let i = 0; i < 6; i++) { const t = await pg.evaluate(() => window.__SP_DEBUG.expA.interventions[0].target); if (t === 'persistenceAnnual') break; await pg.click('[id="t-interventions[0].target"]'); await pg.waitForTimeout(150); }
   await pg.click('[id="t-interventions[0].durationMonths"]'); await pg.waitForTimeout(300);
   const d2 = await pg.evaluate(() => ({ d: window.__SP_DEBUG.expA.interventions[0].durationMonths, Dv: document.getElementById('v-interventions[0].durationMonths').textContent, to: window.__SP_DEBUG.expRes.derived.interventions[0].effectiveTo }));
-  rec('D · CONTROLS: the duration toggle switches the programme to permanent (null): the schedule runs to the horizon', d2.d === null && d2.Dv === 'off' && d2.to === 60, JSON.stringify(d2));
+  rec('D · CONTROLS: the duration toggle switches the programme to permanent (null, the value reads "permanent"): the schedule runs to the horizon', d2.d === null && d2.Dv === 'permanent' && d2.to === 60, JSON.stringify(d2));
   await pg.click('[id="t-interventions[0].durationMonths"]'); await pg.waitForTimeout(300);
 
   /* ---- D · OBSERVE + WATERFALL ---- */

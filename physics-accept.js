@@ -43,8 +43,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     costVal: document.getElementById('v-expansionCostPerARR').textContent,
     A: window.__SP_DEBUG.expA
   }));
-  rec('CONTROLS: the three new controls exist and read their null state (capacity off, lag 0 mo, cost 0.00×)',
-      ctrls.cost && ctrls.cap && ctrls.lag && ctrls.capTog === 'off' && ctrls.capVal === 'off' && ctrls.lagVal === '0 mo' && ctrls.costVal === '0.00×', JSON.stringify(ctrls).slice(0, 200));
+  rec('CONTROLS: the three new controls exist and read their null state (capacity switch off, lag 0 mo, cost 0.00×)',
+      ctrls.cost && ctrls.cap && ctrls.lag && ctrls.capTog === 'off' && ctrls.capVal === '' /* the switch states off; the value is not repeated */ && ctrls.lagVal === '0 mo' && ctrls.costVal === '0.00×', JSON.stringify(ctrls).slice(0, 200));
   rec('CONTROLS: the page\'s Experiment assumptions carry the null settings the engine defaults to',
       ctrls.A.expansionCostPerARR === 0 && ctrls.A.maxMonthlyNewARR === null && ctrls.A.acquisitionLagMonths === 0, '');
 
