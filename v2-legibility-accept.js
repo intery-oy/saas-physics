@@ -212,7 +212,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
 
   /* ---- WORLDS ---- */
-  for (const [id, name, want] of [['wA', 'A · enterprise iPaaS', { custLo: 100, custHi: 400, term: 12, timing: 'advance', lag: 4 }], ['wB', 'B · usage-heavy AI', { custLo: 2000, custHi: 8000, term: 1, timing: 'arrears', lag: 0 }], ['wC', 'C · SMB', { custLo: 6000, custHi: 12000, term: 1, timing: 'advance', lag: 0 }]]) {
+  for (const [id, name, want] of [['wA', 'A · enterprise', { custLo: 100, custHi: 400, term: 12, timing: 'advance', lag: 4 }], ['wB', 'B · usage-heavy AI', { custLo: 2000, custHi: 8000, term: 1, timing: 'arrears', lag: 0 }], ['wC', 'C · SMB', { custLo: 6000, custHi: 12000, term: 1, timing: 'advance', lag: 0 }]]) {
     await pack(pg, id); await setScrub(pg, 24);
     const w = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.expRes.months[23], mo = D.expRes.derived.monetization;
       const lens = [...document.querySelectorAll('#side .lens')].map(l => l.innerText);

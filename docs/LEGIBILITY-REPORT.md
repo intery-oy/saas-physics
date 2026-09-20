@@ -110,7 +110,7 @@ Three packs of the existing laws — illustrative, never benchmarks; each pack n
 
 | World | Shape | Opening book | What it exercises |
 |---|---|---|---|
-| A · Enterprise iPaaS | 120 customers at ~€132k; €90k platform fee + metered usage; annual billing in advance, collected +2 months; 4-month sales lag; capacity €1.5m/mo; 95% logo retention, 3% contraction; 78% GM | €15.8m | lag and pending stock, capacity, deferred revenue and receivables, a platform-led mix, a shallow cash trough |
+| A · Enterprise | 120 customers at ~€132k; €90k platform fee + metered usage; annual billing in advance, collected +2 months; 4-month sales lag; capacity €1.5m/mo; 95% logo retention, 3% contraction; 78% GM | €15.8m | lag and pending stock, capacity, deferred revenue and receivables, a platform-led mix, a shallow cash trough |
 | B · Usage / AI | 2,500 customers at ~€7.8k; small platform fee, ~70% metered usage; usage +45%/yr to a cap, unit price −5%/yr, adoption 30%; monthly in arrears, +1 month; 60% GM; 85% retention, 10% contraction | €19.5m | a variable-led mix, usage-driven expansion against a cap, falling price, contraction reaching usage, a thin margin |
 | C · SMB | 8,000 customers at ~€2.1k; €1,800 plan + light add-on usage; monthly in advance, on invoice; cheap capacity-bound acquisition; 78% retention, 4% contraction | €16.8m | many small logos, high churn as a treadmill, monthly billing with almost no financing effect |
 
