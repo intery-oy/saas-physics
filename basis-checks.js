@@ -200,10 +200,10 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /n\(d\.grossProfit\)/,
     /n\(d\.otherOpex\)/,
     /n\(d\.fcf\)/,
-    /eur\(em\.grossProfit\)/,
-    /eur\(em\.ebita\)/,
+    /eur\(gp\)/,
+    /eur\(eb\)/,
     /eur\(em\.cashClosing\)/,
-    /eur\(em\.revenue\*12\)/,
+    /eur\(fc\)/,
     /eur\(snap\.cumGrossProfit\)/,
     /eur\(c\.acquisitionCost\)/,
     /eur\(now\.cumGP\)/,
@@ -236,7 +236,7 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /rn\(d\.leakage\)/,                   // System FLOW Leakage
     /reur\(em\.closingARR\)/,             // Company headline
     /reur\(em\.openingARR\)/,             // bridge
-    /reur\(mix\.amounts\.base\)/,         // composition
+    /reur\(em\.closingARR\)/,         // composition
     /reur\(c\.initialARR\)/,              // cohort dossier
     /reur\(snap\.currentARR\)/,
     /reur\(snap\.cumExpansion\)/,

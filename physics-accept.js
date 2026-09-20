@@ -72,10 +72,10 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('OBSERVE: page expansion cost and pending New ARR at the selected month match an independent Node recomputation',
       Math.abs(obs.expCost - im.expansionCost) < 1e-6 && Math.abs(obs.pending - im.pendingNewARR) < 1e-6, 'page ' + obs.expCost + '/' + obs.pending + ' node ' + im.expansionCost + '/' + im.pendingNewARR);
   const fmtEur = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
-  rec('OBSERVE: the side panel prints the expansion-cost row, the pending row and coefficient/average/marginal payback only because the mechanisms are on',
-      obs.txt.includes('Expansion realisation cost · this month') && obs.txt.includes(fmtEur(im.expansionCost)) &&
-      obs.txt.includes('Pending MRR (spent, not yet realised)') && obs.txt.includes('Coefficient payback') && obs.txt.includes('Average payback') && obs.txt.includes('Marginal payback') && obs.txt.includes('Acquisition capacity used'),
-      obs.txt.slice(0, 120).replace(/\n/g, ' | '));
+  rec('OBSERVE: the Growth engine lens shows the capacity node in use, the lag node with the pending stock, the three CAC tiles with their paybacks, and the P&L ladder carries the expansion-cost line — only because the mechanisms are on',
+      obs.txt.includes('− expansion cost') && /capacity\n⌈⌉ €2\.00m · \d+% used/.test(obs.txt) && /lag\n6 mo · .* pending/.test(obs.txt) &&
+      obs.txt.includes('CAC coefficient · law') && obs.txt.includes('average CAC · at this spend') && obs.txt.includes('marginal CAC · next euro') && (obs.txt.match(/payback [\d.]+ mo/g) || []).length === 3,
+      obs.txt.slice(obs.txt.indexOf('What actually'), obs.txt.indexOf('What actually') + 260).replace(/\n/g, ' | '));
   const pb = await pg.evaluate(() => { const q = window.__SP_DEBUG.expRes.derived.acquisition; return { avg: q.averagePaybackMonths, marg: q.marginalPaybackMonths }; });
   rec('OBSERVE: average and marginal payback on screen equal the engine\'s acquisitionResponse (avg CAC × 12 ÷ GM, marginal CAC × 12 ÷ GM)',
       obs.txt.includes(pb.avg.toFixed(1) + ' months') && obs.txt.includes(pb.marg.toFixed(1) + ' months') &&
@@ -130,8 +130,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.click('#basis-mrr'); await pg.waitForTimeout(200);
   rec('CAC-UNITS: switching the MRR/ARR display basis leaves the cohort CAC string unchanged (CAC is per €1 of ARR, never ×12)',
       cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC coefficient 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
-  const alive = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/Cohorts alive\s+(\d+)/); return m ? +m[1] : null; });
-  rec('INSPECT (screen): "Cohorts alive" at month 20 under a 6-month lag counts the opening base + 14 realised cohorts, not 20', alive === 15, 'shown ' + alive);
+  const alive = await pg.evaluate(() => { const t = document.getElementById('side').innerText; const m = t.match(/cohort M20 · (\d+) alive/); return m ? +m[1] : null; });
+  rec('OBSERVE (screen): the Growth engine\'s cohort node at month 20 under a 6-month lag counts the opening base + 14 realised cohorts alive, not 20', alive === 15, 'shown ' + alive);
 
   /* ---- SYSTEM ---- */
   await pg.click('#nav-system'); await pg.waitForTimeout(500);

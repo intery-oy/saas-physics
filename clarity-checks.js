@@ -125,7 +125,7 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
      browser can actually render remain */
   var noComments = tpl.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
   var DISCLOSED = /combines churn and contraction|so churn and contraction cannot be separated/;
-  var CUSTOMER_CTX = /[Ll]ogo|[Cc]ustomer|[Uu]sage|[Mm]onetization|platform|[Cc]ontractionA(nnual|RR)|logoChurn|dollarChurnFrom|contractionShare|cmd\b|cmo\b|cu\.|mcu2?\./;
+  var CUSTOMER_CTX = /[Ll]ogo|[Cc]ustomer|[Uu]sage|[Mm]onetization|platform|\bmv\.|rowsB|[Cc]ontractionA(nnual|RR)|logoChurn|dollarChurnFrom|contractionShare|cmd\b|cmo\b|cu\.|mcu2?\./;
   function mentions(src, re, allow) {
     var all = [], allowed = 0, m4, r2 = new RegExp(re.source, 'g');
     while ((m4 = r2.exec(src)) !== null) { all.push(m4.index); }

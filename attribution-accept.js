@@ -25,7 +25,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     const D = window.__SP_DEBUG;
     const m = D.selectedMonth();
     const canonicalCash = D.expRes.months[m - 1].cashClosing;
-    const sideCashText = [...document.querySelectorAll('#side .srow')].find(r => r.querySelector('span').textContent === 'Cash').querySelector('b').textContent;
+    const sideCashText = [...document.querySelectorAll('#side .desc > div')].find(d => /^cash( ·|$)/.test(d.querySelector('.dl').textContent.trim())).querySelector('.dv').textContent;
     return { m, canonicalCash, sideCashText };
   });
   rec('SCREEN-RECONCILIATION: side-panel Cash reads off the canonical selected-month object at fractional tau',

@@ -18,6 +18,12 @@
   --leak:#3b4a55;       /* structural / operating-cost context — neutral slate, never a loss signal */
   --churn:#b25a5e;      /* customer loss: Leakage. Muted rose, not alarm-red — physics, not a warning */
   --good:#4f9e77; --warn:#c9973f;
+  /* legibility grammar (docs/VISUAL-GRAMMAR.md §6): semantic, sparse, never the only encoding */
+  --in:#4f9e77;         /* inflow to a stock */
+  --out:#b25a5e;        /* outflow from a stock */
+  --law:#c9973f;        /* a law's valve / chip, a constraint's cap */
+  --hyp:#8b7fd4;        /* an intervention */
+  --stock:#8fa0aa;      /* a stock at rest */
   --ui:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --display:"Spectral",Georgia,"Times New Roman",serif;
@@ -163,6 +169,65 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .dossier{background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:11px 12px}
 .dossier h4{margin:0 0 7px;font-size:11.5px;display:flex;align-items:center;gap:8px}
 .sw{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* ---------- lenses (docs/VISUAL-GRAMMAR.md §5, §7) ---------- */
+.lensnav{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--panel);z-index:2;flex-wrap:wrap}
+.lensnav .btn{font-size:10px;padding:3px 7px}
+.lens{padding:15px 17px 16px;border-bottom:1px solid var(--line-soft)}
+.lens-head{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.lens-n{font-family:var(--mono);font-size:9.5px;color:var(--ink-4)}
+.lens-q{font-family:var(--display);font-style:italic;font-size:12.5px;color:var(--ink-2);flex-grow:1;line-height:1.35}
+.basis{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+.hero{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.hero .hv{font-family:var(--mono);font-size:32px;font-weight:500;letter-spacing:-.02em;color:var(--ink);line-height:1}
+.hero .hs{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+.hero .hd{font-family:var(--mono);font-size:11px}
+.desc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px 12px;margin-top:13px}
+.desc .dv{font-family:var(--mono);font-size:13px;color:var(--ink);white-space:nowrap}
+.desc .dl{font-size:10px;color:var(--ink-3);margin-top:2px;line-height:1.3}
+.desc .dv.law{color:var(--law)}
+.desc .dv.derived{color:var(--ink-2)}
+.desc .dv.meas{color:var(--ink)}
+.fig{margin-top:10px}
+.fig-t{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+.fig-t .eyebrow{flex-grow:1}
+.lrow{display:grid;grid-template-columns:118px minmax(0,1fr) 66px;gap:8px;align-items:center;font-size:11px;height:19px}
+.lrow .ln{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow.stock .ln{color:var(--ink);font-weight:500}
+.lrow .lb{height:8px;position:relative}
+.lrow.stock .lb{height:13px;background:var(--line-soft);border-radius:1px}
+.lrow .lb i{position:absolute;top:0;bottom:0;border-radius:1px}
+.lrow .lb u{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--ink-4)}
+.lrow .lv{font-family:var(--mono);text-align:right;font-size:11px;color:var(--ink)}
+.lrow.in .lv{color:var(--in)} .lrow.out .lv{color:var(--out)}
+.lrow.stock .lv{font-weight:500}
+.lrow .ln .chip-law{font-family:var(--mono);font-size:9.5px;color:var(--law);margin-left:4px}
+.readouts{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:10px;font-size:11px}
+.readouts span{color:var(--ink-3)} .readouts b{font-family:var(--mono);font-weight:500;color:var(--ink);text-align:right}
+.readouts b.law{color:var(--law)} .readouts b.derived{color:var(--ink-2)} .readouts b.hyp{color:var(--hyp)}
+.chain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 11px;margin-top:8px}
+.chain .cn{min-width:0;padding:6px 7px 5px;border:1px solid var(--line);border-radius:3px;background:var(--sunk);position:relative}
+.chain .cn+.cn::before{content:"›";position:absolute;left:-9px;top:50%;transform:translateY(-55%);color:var(--ink-4);font-size:12px}
+.chain .cn:nth-child(4)::before{content:"↳";left:auto;right:calc(100% + 2px);top:-8px;transform:none;font-size:10px}
+.chain .cl{font-size:9px;color:var(--ink-3);line-height:1.2}
+.chain .cv{font-family:var(--mono);font-size:11px;color:var(--ink);margin-top:2px;line-height:1.3;overflow-wrap:anywhere}
+.chain .cn.law .cv{color:var(--law)} .chain .cn.cap .cv{color:var(--law)}
+.chain .cn.off{border-style:dotted} .chain .cn.off .cv{color:var(--ink-4)}
+.chain .cn.stock{border-color:var(--ink-3)}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:9px}
+.tile{padding:7px 8px;border:1px solid var(--line);border-radius:3px;background:var(--sunk)}
+.tile .tl{font-size:9.5px;color:var(--ink-3);line-height:1.25}
+.tile .tv{font-family:var(--mono);font-size:14px;color:var(--ink);margin-top:3px}
+.tile .ts{font-size:9.5px;color:var(--ink-4);margin-top:2px}
+.tile.law .tv{color:var(--law)}
+.comp{display:flex;height:14px;gap:2px;margin-top:7px}
+.comp i{display:block;height:100%;border-radius:1px;min-width:2px}
+.comp-l{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--ink-3);margin-top:4px}
+.comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
+.lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
+.hyprow{margin-top:10px;padding:7px 9px;border-left:2px solid var(--hyp);font-size:10.5px;color:var(--ink-2);line-height:1.5;background:rgba(139,127,212,.06)}
+.hyprow b{color:var(--hyp);font-family:var(--mono);font-weight:500}
+.curve{margin-top:8px;display:block}
 
 /* ---------- §4/§5 experiment attribution ---------- */
 .attrib-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
@@ -2488,17 +2553,223 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var word = ratio > NET_TOLERANCE ? 'net-growing'
              : ratio < -NET_TOLERANCE ? 'net-shrinking'
              : 'approximately self-sustaining';
-    var cls3 = ratio > NET_TOLERANCE ? 'up' : (ratio < -NET_TOLERANCE ? 'down' : 'flat');
-    return '<div class="sgrp" style="padding-top:0"><div class="eyebrow" style="margin-bottom:5px">Installed-base net &middot; '+basis+'</div>'+
-      '<div class="srow"><span>Expansion − Leakage</span><b class="'+cls3+'">'+reurS(net)+'</b></div>'+
-      '<div class="hint" style="margin-top:6px;line-height:1.65">Net installed-base movement of '+reurS(net)+' against opening installed-base '+basis+
-      ' of '+reur(em.openingARR)+' = <b style="color:var(--ink-2)">'+pct(Math.abs(ratio),2)+'</b> this month. '+
-      'The installed base is <b style="color:var(--ink-2)">'+word+'</b> (tolerance ±'+pct(NET_TOLERANCE,2)+' of opening).</div></div>';
+    return '<div class="readouts">'+ro('Installed-base net · month', reurS(net)+' · '+word)+'</div>'+
+      '<div class="lens-off">Expansion − leakage on the opening installed base: '+reurS(net)+' on '+reur(em.openingARR)+' = '+pct(Math.abs(ratio),2)+' this month (tolerance ±'+pct(NET_TOLERANCE,2)+').</div>';
   }
 
   /* ------------------------------------------------------------------ *
    * Side column — pause and inspect
    * ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ *
+   * OBSERVE — the five lenses (docs/VISUAL-GRAMMAR.md §7). Each lens: a
+   * question, one hero or one figure, descriptors, readouts, and a boundary
+   * line when the layer that would answer it is off. Every number is the
+   * engine's own month record, the KPI layer's measurement, or a sum of month
+   * records over a stated basis. Stocks are containers, flows are deltas.
+   * ------------------------------------------------------------------ */
+  function eurF(v){ return '€'+Math.round(v).toLocaleString('en-GB'); }
+  function pp(v,d){ return (v>=0?'+':'−')+(Math.abs(v)*100).toFixed(d===undefined?1:d)+' pp'; }
+  function sumM(res, from, to, f){ var q=0; for(var i=Math.max(1,from); i<=to; i++) q+=f(res.months[i-1]); return q; }
+  /* a ladder: rows [{k:'stock'|'in'|'out', n:label, v:value (abs for stock, signed for flows), law:'⋈ 90%'}] */
+  function ladder(rows){
+    var run=0, maxv=0, pts=[];
+    rows.forEach(function(r){ if(r.k==='stock'){ run=r.v; pts.push({lo:0,hi:r.v}); } else { var a=run, b=run+r.v; run=b; pts.push({lo:Math.min(a,b),hi:Math.max(a,b)}); } maxv=Math.max(maxv, run, r.k==='stock'?r.v:0, pts[pts.length-1].hi); });
+    maxv = maxv || 1;
+    return '<div class="ladder">'+rows.map(function(r,i){
+      var l=pts[i].lo/maxv*100, w=Math.max(0.5,(pts[i].hi-pts[i].lo)/maxv*100);
+      var col = r.k==='stock' ? 'var(--stock)' : r.k==='in' ? 'var(--in)' : 'var(--out)';
+      var edge = r.k==='in' ? pts[i].lo : r.k==='out' ? pts[i].hi : null;
+      return '<div class="lrow '+r.k+'"><span class="ln">'+esc(r.n)+(r.law?'<span class="chip-law">'+esc(r.law)+'</span>':'')+'</span>'+
+        '<span class="lb"><i style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+col+(r.k==='stock'?'':';opacity:.85')+'"></i>'+
+        (edge!==null ? '<u style="left:'+(edge/maxv*100).toFixed(2)+'%"></u>' : '')+'</span>'+
+        '<span class="lv">'+(r.k==='stock' ? r.f : (r.k==='in'?'+':'−')+r.f)+'</span></div>';
+    }).join('')+'</div>';
+  }
+  /* a readout row: kind 'meas' (→ observed), 'law' (⋈ set), 'derived' (⋈ generated), 'hyp' (↯) */
+  function ro(label, value, kind){ var g = kind==='law' ? '⋈ ' : kind==='derived' ? '⋈ ' : kind==='hyp' ? '↯ ' : '→ '; return '<span>'+esc(label)+'</span><b class="'+(kind||'meas')+'">'+g+value+'</b>'; }
+  function lensHead(n, q, basisTag, id){ return '<div class="lens" id="lens-'+id+'"><div class="lens-head"><span class="lens-n">'+n+'</span><span class="lens-q">'+esc(q)+'</span><span class="basis">'+esc(basisTag)+'</span></div>'; }
+  function figT(title, basisTag){ return '<div class="fig"><div class="fig-t"><span class="eyebrow">'+esc(title)+'</span><span class="basis">'+esc(basisTag)+'</span></div>'; }
+  function comp(parts){ var tot=parts.reduce(function(q,p){ return q+Math.max(0,p.v); },0)||1;
+    return '<div class="comp">'+parts.map(function(p){ return '<i style="width:'+(Math.max(0,p.v)/tot*100).toFixed(2)+'%;background:'+p.c+'"></i>'; }).join('')+'</div>'+
+      '<div class="comp-l">'+parts.map(function(p){ return '<span>'+esc(p.n)+' <b>'+p.f+'</b> '+pct(Math.max(0,p.v)/tot,0)+'</span>'; }).join('')+'</div>'; }
+  function trailing12(m){ return { from: Math.max(1, m-11), to: m, tag: m>=12 ? 'R12M' : 'CUM · M1–M'+m }; }
+
+  function renderLenses(m, em, bm){
+    var cuOn = !!em.customers, moOn = !!em.monetization, caOn = !!em.cash, ivOn = !!em.interventions;
+    var Mt = 'M'+m, w = trailing12(m);
+    var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
+    var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
+    var mm = moOn && m>=12 ? K.monetizationMeasures(expRes, m) : null;
+    var h = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+
+    /* ---- 1. COMPANY ---- */
+    var dARR = em.closingARR-bm.closingARR;
+    var revR12 = sumM(expRes, w.from, w.to, function(x){ return x.revenue; }), ebR12 = sumM(expRes, w.from, w.to, function(x){ return x.ebita; });
+    var trough = E.summarise(expRes);
+    h += lensHead('1', 'What kind of company is this?', Mt, 'company') +
+      '<div class="hero"><span class="hv">'+reur(em.closingARR)+'</span><span class="hs">'+basis+'</span>'+
+        '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
+        (Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
+      '<div class="desc">'+
+        '<div><div class="dv">'+(cuOn ? em.customers.closing.toFixed(0) : '—')+'</div><div class="dl">'+(cuOn ? 'customers' : 'customers · no customer layer')+'</div></div>'+
+        '<div><div class="dv">'+(cuOn ? eurF(em.closingARR/em.customers.closing) : '—')+'</div><div class="dl">ARPA · ARR per customer</div></div>'+
+        '<div><div class="dv law">⋈ '+pct(lawNow('grossMargin'),0)+'</div><div class="dl">gross margin · law</div></div>'+
+        '<div><div class="dv meas">→ '+(revR12>0 ? pct(ebR12/revR12,1) : '—')+'</div><div class="dl">EBITA margin · '+w.tag+'</div></div>'+
+        '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash</div></div>'+
+        '<div><div class="dv">'+eur(trough.cashTrough)+'</div><div class="dl">cash trough · M'+trough.cashTroughMonth+' of 60</div></div>'+
+      '</div>'+
+      (ivOn ? '<div class="hyprow">'+(em.interventions.changes.length
+          ? em.interventions.changes.map(function(ch){ return '<b>hypothesis '+esc(ch.id)+'</b> in force · '+esc(hypTargetLabel(ch.target))+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('<br>')
+          : '<b>hypothesis</b> not in force this month')+(em.interventionCost>0 ? ' · cost '+eur(em.interventionCost)+' this month' : '')+'</div>' : '')+
+      '</div>';
+
+    /* ---- 2. CUSTOMERS ---- */
+    h += lensHead('2', 'What installed base produces the revenue?', Mt, 'customers');
+    if(cuOn){
+      var cu = em.customers;
+      h += figT('Logos', Mt+' · month') + ladder([
+        {k:'stock', n:'Opening', v:cu.opening, f:cu.opening.toFixed(0)},
+        {k:'in', n:'+ new logos', v:cu.newCustomers, f:cu.newCustomers.toFixed(1)},
+        {k:'out', n:'− churn', v:-cu.logoChurn, f:cu.logoChurn.toFixed(1), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
+        {k:'stock', n:'Closing', v:cu.closing, f:cu.closing.toFixed(0)}]) + '</div>';
+      var arrRows = [{k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
+        {k:'in', n:'+ new ARR', v:em.newARR, f:reur(em.newARR)},
+        {k:'out', n:'− churned ARR', v:-cu.logoChurnARR, f:reur(cu.logoChurnARR)},
+        {k:'out', n:'− contraction', v:-cu.contractionARR, f:reur(cu.contractionARR), law:'⋈ '+pct(lawNow('contractionAnnual'),0)}];
+      if(moOn) arrRows = arrRows.concat([{k:'in', n:'+ price', v:em.monetization.priceARR, f:reur(em.monetization.priceARR)}, {k:'in', n:'+ usage', v:em.monetization.usageARR, f:reur(em.monetization.usageARR)}, {k:'in', n:'+ adoption', v:em.monetization.adoptionARR, f:reur(em.monetization.adoptionARR)}]);
+      else arrRows.push({k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)});
+      arrRows.push({k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)});
+      h += figT(basis, Mt+' · month') + ladder(arrRows) + '</div>';
+      h += '<div class="readouts">'+
+        ro('logo retention · R12M', cm ? pct(cm.logoRetentionR12M,1) : 'needs 12 mo') +
+        ro('gross dollar retention · R12M', kpi ? pct(kpi.grr,1) : 'needs 12 mo') +
+        ro('net dollar retention · R12M', kpi ? pct(kpi.nrr,1) : 'needs 12 mo') +
+        ro('persistence in force', expRes.derived.persistenceAnnualEffective===null ? 'emergent from the mix' : pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)', 'derived') +
+        '</div>'+ installedBaseNet(em) +
+        (cm && kpi ? '<div class="lens-off">'+(cm.logoRetentionR12M > kpi.grr+0.002 ? 'Customers stay more than dollars do: '+pct(cm.logoRetentionR12M - kpi.grr,1)+' of the gap is contraction inside surviving accounts.' : 'Dollars stay as well as customers do.')+(kpi.nrr>cm.logoRetentionR12M ? ' Net retention above logo retention: expansion is carrying the base.' : '')+' <span class="basis">R12M</span></div>' : '');
+    } else {
+      h += figT(basis, Mt+' · month') + ladder([
+        {k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
+        {k:'in', n:'+ new ARR', v:em.newARR, f:reur(em.newARR)},
+        {k:'out', n:'− leakage', v:-em.leakage, f:reur(em.leakage), law:'⋈ '+pct(lawNow('persistenceAnnual'),0)},
+        {k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)},
+        {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
+        '<div class="readouts">'+ro('gross dollar retention · R12M', kpi ? pct(kpi.grr,1) : 'needs 12 mo')+ro('net dollar retention · R12M', kpi ? pct(kpi.nrr,1) : 'needs 12 mo')+ro('persistence', pct(lawNow('persistenceAnnual'),1), 'law')+'</div>'+ installedBaseNet(em) +
+        '<div class="lens-off">No customer layer: there are no logos, leakage is one number and persistence is a set law. Switch Logo retention on to see who leaves and who shrinks.</div>';
+    }
+    h += '</div>';
+
+    /* ---- 3. GROWTH ENGINE ---- */
+    var qx = expRes.derived.acquisition, satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0;
+    var newR12 = sumM(expRes, w.from, w.to, function(x){ return x.newARR; }), expR12 = sumM(expRes, w.from, w.to, function(x){ return x.expansion; }), leakR12 = sumM(expRes, w.from, w.to, function(x){ return x.leakage; });
+    var arrPrev = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
+    h += lensHead('3', 'What actually creates growth?', Mt, 'growth') +
+      '<div class="chain">'+
+        '<div class="cn"><div class="cl">S&amp;M · month</div><div class="cv">'+eur(em.sm)+'</div></div>'+
+        '<div class="cn law"><div class="cl">CAC coefficient</div><div class="cv">⋈ '+lawNow('cacPerARR').toFixed(2)+'×</div></div>'+
+        '<div class="cn '+(satOn?'cap':'off')+'"><div class="cl">capacity</div><div class="cv">'+(satOn ? '⌈⌉ '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : 'off · linear')+'</div></div>'+
+        '<div class="cn"><div class="cl">committed new '+basis+'</div><div class="cv">'+reur(em.acquisitionLawNewARR)+'</div></div>'+
+        '<div class="cn '+(lagOn?'':'off')+'"><div class="cl">lag</div><div class="cv">'+(lagOn ? expRes.derived.acquisitionLagMonths+' mo · '+reur(em.pendingNewARR)+' pending' : 'none')+'</div></div>'+
+        '<div class="cn stock"><div class="cl">cohort '+Mt+' · '+E.cohortSnapshot(expRes,m).length+' alive</div><div class="cv">'+reur(em.newARR)+(cuOn ? ' · '+em.customers.newCustomers.toFixed(1)+' logos' : '')+'</div></div>'+
+      '</div>'+
+      '<div class="tiles">'+
+        '<div class="tile law"><div class="tl">CAC coefficient · law</div><div class="tv">⋈ '+lawNow('cacPerARR').toFixed(2)+'×</div><div class="ts">Coefficient payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo</div></div>'+
+        '<div class="tile meas"><div class="tl">Average CAC · at this spend</div><div class="tv">→ '+qx.averageCAC.toFixed(2)+'×</div><div class="ts">Average payback '+qx.averagePaybackMonths.toFixed(1)+' mo</div></div>'+
+        '<div class="tile meas"><div class="tl">Marginal CAC · next euro</div><div class="tv">→ '+qx.marginalCAC.toFixed(2)+'×</div><div class="ts">'+(satOn ? 'Marginal payback '+qx.marginalPaybackMonths.toFixed(1)+' mo' : '= coefficient while capacity is off')+'</div></div>'+
+      '</div>'+
+      (lagOn ? (function(){ var am = K.acquisitionMeasures(expRes, m); return '<div class="readouts">'+ro('Measured CAC · trailing 12', am.measuredCACR12M===null ? 'nothing realised yet' : am.measuredCACR12M.toFixed(2)+'× on '+reur(am.realisedNewARRR12M)+' realised')+'</div>'; })() : '')+
+      figT('Where the growth came from', w.tag) +
+      comp([{n:'new ARR', v:newR12, c:'var(--in)', f:reur(newR12)}, {n:'expansion', v:expR12, c:'rgba(79,158,119,.55)', f:reur(expR12)}]) +
+      '<div class="comp-l" style="margin-top:2px"><span>− leakage <b>'+reur(leakR12)+'</b></span><span>net <b>'+reurS(newR12+expR12-leakR12)+'</b> on '+reur(arrPrev)+'</span></div></div>'+
+      (cuOn && w.from>1 ? (function(){ var c0=expRes.months[w.from-2].customers, c1=em.customers, a0=expRes.months[w.from-2].closingARR/c0.closing, a1=em.closingARR/c1.closing;
+          return '<div class="readouts"><span>customers</span><b>'+c0.closing.toFixed(0)+' → '+c1.closing.toFixed(0)+' · '+pp(c1.closing/c0.closing-1)+'</b><span>ARPA</span><b>'+eurF(a0)+' → '+eurF(a1)+' · '+pp(a1/a0-1)+'</b></div>'; })() : '')+
+      (satOn ? responseCurve(qx) : '<div class="lens-off">Acquisition is linear and unbounded: every euro of S&amp;M buys the same ARR. Switch the capacity on to see the marginal euro do less.</div>')+
+      '</div>';
+
+    /* ---- 4. MONETIZATION ---- */
+    h += lensHead('4', 'What is revenue made of, and why did it change?', Mt, 'monetization');
+    if(moOn){
+      var mo = em.monetization, br = K.rowAt(expRes.cohorts[0], m), st = br && br.monetization ? br.monetization : null;
+      h += figT('Composition', Mt) + comp([{n:'platform · fixed', v:mo.fixedARR, c:'var(--stock)', f:reur(mo.fixedARR)}, {n:'usage · variable', v:mo.variableARR, c:'rgba(143,160,170,.45)', f:reur(mo.variableARR)}]) +
+        (st ? '<div class="comp-l" style="margin-top:2px"><span>opening-base customer <b>'+eurF(st.perCustomerClosing)+'/yr</b></span>'+(st.headroom && st.headroom[1] ? '<span>usage <b>'+(st.headroom[1].units!==null?pct(st.headroom[1].units,0):'—')+'</b> of cap · adoption <b>'+pct(st.headroom[1].penetration,0)+'</b> of cap</span>' : '')+'</div>' : '') + '</div>';
+      var s0 = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
+      var f = function(k){ return sumM(expRes, w.from, w.to, k); };
+      var mv = { n:f(function(x){return x.newARR;}), ch:f(function(x){return x.customers.logoChurnARR;}), co:f(function(x){return x.monetization.contractionARR;}), pr:f(function(x){return x.monetization.priceARR;}), us:f(function(x){return x.monetization.usageARR;}), ad:f(function(x){return x.monetization.adoptionARR;}) };
+      h += figT('Movement', w.tag) + ladder([
+        {k:'stock', n:basis+' before', v:s0, f:reur(s0)},
+        {k:'in', n:'+ new customers', v:mv.n, f:reur(mv.n)},
+        {k:'out', n:'− churn', v:-mv.ch, f:reur(mv.ch)},
+        {k:'out', n:'− contraction', v:-mv.co, f:reur(mv.co)},
+        {k:'in', n:'+ price', v:mv.pr, f:reur(mv.pr), law:'⋈ '+pct(lawNow('monetization.components[0].priceGrowthAnnual'),0)+' · '+pct(lawNow('monetization.components[1].priceGrowthAnnual'),0)},
+        {k:'in', n:'+ usage', v:mv.us, f:reur(mv.us), law:'⋈ '+pct(lawNow('monetization.components[1].usageGrowthAnnual'),0)},
+        {k:'in', n:'+ adoption', v:mv.ad, f:reur(mv.ad), law:'⋈ '+pct(lawNow('monetization.components[1].adoptionAnnual'),0)},
+        {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
+        (mm ? '<div class="readouts">'+ro('of NRR, price · usage · adoption · R12M', pct(mm.priceEffectR12M,1)+' · '+pct(mm.usageEffectR12M,1)+' · '+pct(mm.adoptionEffectR12M,1))+ro('expansion coefficient', 'bypassed', 'derived')+'</div>' : '');
+    } else {
+      var s0b = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
+      var g = function(k){ return sumM(expRes, w.from, w.to, k); };
+      var rowsB = [{k:'stock', n:basis+' before', v:s0b, f:reur(s0b)}, {k:'in', n:'+ new customers', v:g(function(x){return x.newARR;}), f:reur(g(function(x){return x.newARR;}))}];
+      if(cuOn) rowsB.push({k:'out', n:'− churn', v:-g(function(x){return x.customers.logoChurnARR;}), f:reur(g(function(x){return x.customers.logoChurnARR;}))}, {k:'out', n:'− contraction', v:-g(function(x){return x.customers.contractionARR;}), f:reur(g(function(x){return x.customers.contractionARR;}))});
+      else rowsB.push({k:'out', n:'− leakage', v:-g(function(x){return x.leakage;}), f:reur(g(function(x){return x.leakage;}))});
+      rowsB.push({k:'in', n:'+ expansion', v:g(function(x){return x.expansion;}), f:reur(g(function(x){return x.expansion;})), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)}, {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)});
+      h += figT('Movement', w.tag) + ladder(rowsB) + '</div>' +
+        '<div class="lens-off">No monetization layer: revenue is one balance per cohort and expansion is one coefficient. Switch Monetization on to see fixed against usage, and price, usage and adoption apart.</div>';
+    }
+    h += '</div>';
+
+    /* ---- 5. ECONOMICS & CASH ---- */
+    var P = function(k){ return sumM(expRes, w.from, w.to, function(x){ return x[k]; }); };
+    var rev=P('revenue'), cogs=P('cogs'), gp=P('grossProfit'), smS=P('sm'), rd=P('rd'), ga=P('ga'), xc=P('expansionCost'), ic=P('interventionCost'), eb=P('ebita'), fc=P('fcf');
+    var plRows = [{k:'stock', n:'Revenue', v:rev, f:eur(rev)}, {k:'out', n:'− COGS', v:-cogs, f:eur(cogs), law:'⋈ GM '+pct(lawNow('grossMargin'),0)}, {k:'stock', n:'Gross profit', v:gp, f:eur(gp)},
+      {k:'out', n:'− S&M', v:-smS, f:eur(smS)}, {k:'out', n:'− R&D', v:-rd, f:eur(rd)}, {k:'out', n:'− G&A', v:-ga, f:eur(ga)}];
+    if(xc>0) plRows.push({k:'out', n:'− expansion cost', v:-xc, f:eur(xc)});
+    if(ic>0) plRows.push({k:'out', n:'− hypothesis cost', v:-ic, f:eur(ic)});
+    plRows.push({k:'stock', n:'EBITA', v:eb, f:eur(eb)});
+    h += lensHead('5', 'What did this system earn, and what cash did it need?', w.tag, 'cash') + figT('Economics · P&L', w.tag) + ladder(plRows) + '</div>';
+    if(caOn){
+      var c1=em.cash, c0=expRes.months[w.from-1].cash, dDef=c1.deferredClosing-c0.deferredOpening, dRec=c1.receivablesClosing-c0.receivablesOpening, ckm=K.cashMeasures(expRes, m);
+      h += figT('Cash · financing reality', w.tag) + ladder([
+        {k:'stock', n:'EBITA', v:eb, f:eur(eb)},
+        {k: dDef>=0?'in':'out', n:(dDef>=0?'+ ':'− ')+'Δ deferred', v:dDef, f:eur(Math.abs(dDef)), law:'⋈ '+expRes.derived.cash.billingTermMonths+' mo '+expRes.derived.cash.billingTiming},
+        {k: dRec>0?'out':'in', n:(dRec>0?'− ':'+ ')+'Δ receivables', v:-dRec, f:eur(Math.abs(dRec)), law:expRes.derived.cash.collectionDelayMonths>0 ? '⋈ +'+expRes.derived.cash.collectionDelayMonths+' mo' : ''},
+        {k:'stock', n:'Cash FCF', v:fc, f:eur(fc)}]) + '</div>' +
+        '<div class="desc" style="margin-top:11px">'+
+          '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · '+Mt+'</div></div>'+
+          '<div><div class="dv">'+eur(Math.abs(c1.deferredClosing))+'</div><div class="dl">'+(c1.deferredClosing>=0?'deferred revenue':'contract asset')+' · '+Mt+'</div></div>'+
+          '<div><div class="dv">'+eur(c1.receivablesClosing)+'</div><div class="dl">receivables · '+Mt+'</div></div>'+
+          '<div><div class="dv meas">→ '+(ckm && ckm.cashConversion!==null ? ckm.cashConversion.toFixed(2)+'×' : '—')+'</div><div class="dl">cash FCF ÷ EBITA · '+w.tag+'</div></div>'+
+          '<div><div class="dv">'+eur(trough.cashTrough)+'</div><div class="dl">cash trough · M'+trough.cashTroughMonth+'</div></div>'+
+          '<div><div class="dv">'+eur(Math.max(0, expRes.start.openingCash - trough.cashTrough))+'</div><div class="dl">capital drawn from opening cash</div></div>'+
+        '</div>';
+    } else {
+      h += '<div class="desc" style="margin-top:11px">'+
+          '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · '+Mt+'</div></div>'+
+          '<div><div class="dv">'+eur(trough.cashTrough)+'</div><div class="dl">cash trough · M'+trough.cashTroughMonth+'</div></div>'+
+          '<div><div class="dv">'+eur(Math.max(0, expRes.start.openingCash - trough.cashTrough))+'</div><div class="dl">capital drawn from opening cash</div></div>'+
+        '</div>'+
+        '<div class="lens-off">No cash layer: cash FCF = EBITA — profit and cash move together. Switch a billing term on to see billings, deferred revenue and receivables come between them.</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+  /* the law in force this month for a flat or nested key (a hypothesis may have moved it) */
+  function lawNow(key){ var m=selectedMonth(), iv=expRes.months[m-1].interventions; var ch = iv && iv.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; var v = ch ? ch.to : getK(expA, key); return v; }
+  /* the acquisition response: N(S&M) with the bound, this run's position marked */
+  function responseCurve(q){
+    var W=286, Hh=74, L=34, B=16, cap=lawNow('maxMonthlyNewARR'), smax=Math.max(expA.sm*3, 1), pts=[];
+    for(var i=0;i<=40;i++){ var sm=smax*i/40, n=E.acquisitionResponse(Object.assign({}, expA, {sm:sm, maxMonthlyNewARR:cap})).newARR; pts.push([L+(W-L-6)*i/40, Hh-B-(n/cap)*(Hh-B-8)]); }
+    var here = E.acquisitionResponse(Object.assign({}, expA, {maxMonthlyNewARR:cap}));
+    var hx = L+(W-L-6)*Math.min(1, expA.sm/smax), hy = Hh-B-(here.newARR/cap)*(Hh-B-8);
+    return '<svg class="curve" width="'+W+'" height="'+Hh+'" viewBox="0 0 '+W+' '+Hh+'">'+
+      '<line x1="'+L+'" y1="'+(Hh-B-(Hh-B-8))+'" x2="'+(W-6)+'" y2="'+(Hh-B-(Hh-B-8))+'" stroke="var(--law)" stroke-width="1" stroke-dasharray="3 3"/>'+
+      '<text x="'+(W-6)+'" y="'+(Hh-B-(Hh-B-8)-3)+'" text-anchor="end" font-size="8.5" fill="var(--law)" font-family="var(--mono)">⌈⌉ capacity '+eur(cap)+'/mo</text>'+
+      '<polyline points="'+pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ')+'" fill="none" stroke="var(--ink-2)" stroke-width="1.5"/>'+
+      '<circle cx="'+hx.toFixed(1)+'" cy="'+hy.toFixed(1)+'" r="4" fill="var(--exp)" stroke="var(--panel)" stroke-width="2"/>'+
+      '<text x="'+L+'" y="'+(Hh-3)+'" font-size="8.5" fill="var(--ink-3)" font-family="var(--mono)">S&amp;M 0 → '+eur(smax)+'/mo</text>'+
+      '<text x="'+Math.min(W-70, hx+7).toFixed(1)+'" y="'+Math.max(10, hy-6).toFixed(1)+'" font-size="8.5" fill="var(--ink-2)" font-family="var(--mono)">here · '+reur(here.newARR)+'</text>'+
+      '</svg>';
+  }
+
   function renderSide(){
     if(layer==='flow'){ return renderFlowSide(); }
     if(layer==='scen'){
@@ -2516,147 +2787,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     }
     var t=tau, m=selectedMonth();
     var em=expRes.months[m-1], bm=baseRes.months[m-1];
-    var mix=E.arrMix(expRes, m);
-    var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
-    var d=em.closingARR-bm.closingARR;
-
-    var h='<div class="sgrp"><div class="eyebrow">Where the company is &middot; '+basis+'</div>'+
-      '<div class="big"><span class="v">'+reur(em.closingARR)+'</span>'+
-      '<span class="d '+cls(d)+'">'+(Math.abs(d)<1?'on Base':reurS(d)+' vs Base')+'</span></div>'+
-      row('Revenue run rate', eur(em.revenue*12)) +
-      row('Gross margin', pct(expRes.assumptions.grossMargin)) +
-      row('Gross profit · this month', eur(em.grossProfit)) +
-      ((em.expansionCost>0 || bm.expansionCost>0) ? row('Expansion realisation cost · this month', eur(em.expansionCost)) : '') +
-      (em.cash ? row('EBITA · this month', eur(em.ebita)) + row('Cash FCF · this month', eur(em.fcf)) : row('EBITA / FCF · this month', eur(em.ebita))) +
-      row('Cash', eur(em.cashClosing)) + '</div>';
-
-    var mx=Math.max(em.openingARR, em.closingARR);
-    function bar(v,color,from){ var w=Math.abs(v)/mx*100, l=(from||0)/mx*100;
-      return '<span class="bb"><i style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+color+'"></i></span>'; }
-    h+='<div class="sgrp"><div class="eyebrow">How it is moving &middot; '+basis+'</div><div class="bridge">'+
-      '<div class="brow"><span style="color:var(--ink-3)">Opening</span>'+bar(em.openingARR,'var(--ink-4)')+'<span class="bv">'+reur(em.openingARR)+'</span></div>'+
-      '<div class="brow"><span style="color:var(--ink-3)">+ New</span>'+bar(em.newARR,'var(--exp)',em.openingARR)+'<span class="bv" style="color:var(--exp)">'+reur(em.newARR)+'</span></div>'+
-      '<div class="brow"><span style="color:var(--ink-3)">+ Expansion</span>'+bar(em.expansion,'var(--exp)',em.openingARR)+'<span class="bv" style="color:var(--exp)">'+reur(em.expansion)+'</span></div>'+
-      '<div class="brow"><span style="color:var(--ink-3)">− Leakage</span>'+bar(em.leakage,'var(--churn)',em.openingARR-em.leakage)+'<span class="bv" style="color:var(--churn)">'+reur(em.leakage)+'</span></div>'+
-      '<div class="brow" style="margin-top:2px"><span style="color:var(--ink)">Closing</span>'+bar(em.closingARR,'var(--exp)')+'<span class="bv" style="color:var(--exp)">'+reur(em.closingARR)+'</span></div>'+
-      '</div></div>'+ installedBaseNet(em);
-
-    h+='<div class="sgrp"><div class="eyebrow">What it is made of &middot; '+basis+'</div>'+
-      row('Opening base still here', reur(mix.amounts.base)+' · '+pct(mix.shares.base)) +
-      row('From cohorts acquired since', reur(mix.total-mix.amounts.base)+' · '+pct(1-mix.shares.base)) +
-      row('Cohorts alive', String(E.cohortSnapshot(expRes,m).length)) + '</div>';
-
-    /* v2 Gate A — the customer state beneath the ARR, only when the layer is on.
-       Every figure is engine state (months[].customers) or K.customerMeasures. */
-    if(em.customers){
-      var cu = em.customers, cmo = m>=12 ? K.customerMeasures(expRes, m) : null;
-      h+='<div class="sgrp" id="observe-customers"><div class="eyebrow">Customers beneath the '+basis+'</div>'+
-        row('Customers', cu.closing.toFixed(0)+(bm.customers ? ' · Base '+bm.customers.closing.toFixed(0) : '')) +
-        row('ARPA ('+basis+' per customer)', reur(cu.arpaClosing)) +
-        row('New customers · this month', cu.newCustomers.toFixed(1)) +
-        row('Customers lost · this month', cu.logoChurn.toFixed(1)) +
-        row('Leakage from lost logos · this month', reur(cu.logoChurnARR)) +
-        row('Leakage from contraction · this month', reur(cu.contractionARR)) +
-        row('Persistence in force', expRes.derived.persistenceAnnualEffective===null
-              ? 'emergent — contraction '+pct(expA.contractionAnnual,1)+' reaches usage revenue only'
-              : pct(expRes.derived.persistenceAnnualEffective,1)+' = '+pct(expA.logoRetentionAnnual,1)+' × (1 − '+pct(expA.contractionAnnual,1)+')') +
-        (cmo ? row('R12M logo retention', pct(cmo.logoRetentionR12M,1)) : '') +
-        '<div class="hint" style="margin-top:7px">Customers are a continuous cohort count, not individual accounts. ARPA is ARR ÷ customers — a readout, never a stock. Persistence is no longer an input here: it is what logo survival and contraction produce.</div></div>';
-    }
-
-    /* v2 Gate B — where the revenue comes from, only when the layer is on.
-       Every figure is engine state (months[].monetization, cohort rows) or
-       K.monetizationMeasures. */
-    if(em.monetization){
-      var mo = em.monetization, dm = expRes.derived.monetization, baseRow = K.rowAt(expRes.cohorts[0], m);
-      var hr = baseRow && baseRow.monetization ? baseRow.monetization.headroom[1] : null;
-      h+='<div class="sgrp" id="observe-monetization"><div class="eyebrow">Where the '+basis+' comes from</div>'+
-        row('Platform (fixed)', reur(mo.fixedARR)+' · '+pct(1-mo.variableShare)) +
-        row('Usage (variable)', reur(mo.variableARR)+' · '+pct(mo.variableShare)) +
-        row('Price effect · this month', reur(mo.priceARR)) +
-        row('Usage effect · this month', reur(mo.usageARR)) +
-        row('Adoption effect · this month', reur(mo.adoptionARR)) +
-        row('Contraction · this month', reur(mo.contractionARR)+' · usage only') +
-        (baseRow && baseRow.monetization ? row('Opening base · per customer', eur(baseRow.monetization.perCustomerClosing)+'/yr' + (hr && hr.units!==null ? ' · usage '+pct(hr.units,0)+' of cap' : '') + (hr ? ' · adoption '+pct(hr.penetration,0)+' of cap' : '')) : '') +
-        row('Opening '+basis+' derived', reur(dm.openingARRDerived)+' = customers × '+eur(dm.newLogoRevenuePerCustomer)) +
-        '<div class="hint" style="margin-top:7px">Revenue is customers × per-customer components, recomputed every month — one source of truth. The expansion coefficient ('+pct(dm.expansionCoefficientIgnored,1)+') is bypassed: expansion IS price + usage + adoption, and it saturates at the usage and penetration caps.</div></div>';
-    }
-
-    /* v2 Gate C — the cash beneath EBITA, only when the layer is on. Every
-       figure is engine state (months[].cash) or K.cashMeasures. */
-    if(em.cash){
-      var ca = em.cash, ckm = K.cashMeasures(expRes, m), dc = expRes.derived.cash;
-      h+='<div class="sgrp" id="observe-cash"><div class="eyebrow">Cash beneath EBITA</div>'+
-        row('Billings · this month', eur(ca.billings)+' vs revenue '+eur(em.revenue)) +
-        row('Collections · this month', eur(ca.collections)) +
-        row(ca.deferredClosing>=0 ? 'Deferred revenue' : 'Contract asset (unbilled)', eur(Math.abs(ca.deferredClosing))+(ca.deferredClosing>=0 && em.revenue>0 ? ' · '+(ca.deferredClosing/em.revenue).toFixed(1)+' months of revenue' : '')) +
-        row('Receivables', eur(ca.receivablesClosing)) +
-        row('EBITA → cash FCF', eur(ca.ebita)+' → '+eur(ca.cashFCF)+' ('+(ca.fcfMinusEbita>=0?'+':'−')+eur(Math.abs(ca.fcfMinusEbita))+')') +
-        (ckm && m>=12 ? row('Cash conversion · trailing 12', ckm.cashConversion===null ? '—' : ckm.cashConversion.toFixed(2)+'× EBITA') : '') +
-        row('Billing policy', dc.billingTermMonths+'-month term, in '+dc.billingTiming+(dc.collectionDelayMonths>0 ? ', collected '+dc.collectionDelayMonths+' mo later' : '')) +
-        '<div class="hint" style="margin-top:7px">Billings = revenue + Δdeferred by construction; cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. The opening book started with '+eur(Math.abs(dc.openingDeferredRevenue))+' of '+(dc.openingDeferredRevenue>=0?'deferred revenue':'contract asset')+' — derived from a staggered book, not an input. Costs are cash when incurred.</div></div>';
-    }
-
-    /* v2 Gate D — the hypotheses in force, only when there are any. Every
-       figure is engine state (months[].interventions, derived.interventions). */
-    if(em.interventions){
-      var ivm = K.interventionMeasures(expRes, m);
-      h+='<div class="sgrp" id="observe-hypotheses"><div class="eyebrow">Hypotheses</div>'+
-        ivm.hypotheses.map(function(hy){
-          var ch = em.interventions.changes.filter(function(x){ return x.id===hy.id; })[0];
-          var f = (forceOf(hy.target)||{}).f || (LABEL_FMT[hy.target]||'x');
-          return row(hy.name, hy.status+(ch ? ' · '+hypTargetLabel(hy.target)+' '+fmtF(f, ch.from)+' → '+fmtF(f, ch.to) : ' · '+hypTargetLabel(hy.target))) +
-                 row('  decided M'+hy.startMonth+(hy.lagMonths>0?', effect from M'+hy.effectiveFrom:'')+' to M'+hy.effectiveTo+(hy.totalCost>0?', cost to date '+eur(hy.costToDate)+' of '+eur(hy.totalCost):''), hy.monthsInForce+' months in force');
-        }).join('') +
-        row('Hypothesis cost · this month', eur(em.interventionCost)) +
-        (bm.interventions ? '' : row('vs Base', 'Base runs the base laws with no hypothesis — the Consequence is the effect net of the cost')) +
-        '<div class="hint" style="margin-top:7px">A hypothesis is applied only while it is in force and never becomes a coefficient: outside its window every cohort runs on the base law. Its cost is a P&amp;L line of its own, booked from the decision month. The effect is Experiment − Base, a comparison of two runs, not a measurement of one.</div></div>';
-    }
-
-    var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition;
-    var satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0;
-    var am = K.acquisitionMeasures(expRes, m);
-    h+='<div class="sgrp"><div class="eyebrow">Emergent KPIs</div>'+
-      row('ARR growth, year on year', em.arrGrowthYoY===null?'—':pct(em.arrGrowthYoY)) +
-      row('R12M GRR', kpi?pct(kpi.grr,1):'needs 12 months') +
-      row('R12M NRR', kpi?pct(kpi.nrr,1):'needs 12 months') +
-      row('Coefficient payback', expRes.derived.cacPaybackMonths.toFixed(1)+' months · Base '+baseRes.derived.cacPaybackMonths.toFixed(1)) +
-      (satOn ? row('Average payback', qx.averagePaybackMonths.toFixed(1)+' months') +
-               row('Marginal payback', qx.marginalPaybackMonths.toFixed(1)+' months') +
-               row('Acquisition capacity used', pct(qx.utilisation,1)+' of '+fmtF('cap', expA.maxMonthlyNewARR)) : '') +
-      (lagOn ? row('Pending '+basis+' (spent, not yet realised)', reur(em.pendingNewARR)+' · '+em.pendingCount+' months') +
-               row('Measured CAC · trailing 12', am.measuredCACR12M===null ? 'nothing realised yet' : am.measuredCACR12M.toFixed(2)+'× · CAC coefficient '+expA.cacPerARR.toFixed(2)+'×') : '') +
-      '<div class="hint" style="margin-top:7px">Measurements of the system, not inputs to it. Every CAC is € of S&amp;M per €1 of ARR, in either display basis. Coefficient payback = CAC coefficient × 12 ÷ GM.'+
-      (satOn ? ' Average CAC = S&amp;M ÷ New ARR at this spend; marginal CAC = 1 ÷ dN/dS&amp;M, from the law itself; each payback = that CAC × 12 ÷ GM.' : '')+
-      (lagOn ? ' Measured CAC divides spend by the ARR that has actually arrived, so it carries the lag.' : '')+'</div></div>';
-
-    /* §9 — the honest R12M decomposition. NOT "100% - Churn + NetExpansion":
-       v1 does not distinguish churn from contraction, so that language would
-       assert a split the engine cannot produce. This is the decomposition the
-       KPI layer actually supports, and it says so. */
-    if(kpi){
-      var cmd = em.customers ? K.customerMeasures(expRes, m) : null;
-      var mmd = em.monetization ? K.monetizationMeasures(expRes, m) : null;
-      h+='<div class="sgrp"><div class="eyebrow">Installed-base evolution &middot; R12M</div>'+
-        '<div class="recon" style="margin-top:5px">'+
-        '<span>Opening cohort</span><b class="tot">100.0%</b>'+
-        (cmd
-          ? '<span>&minus; Lost logos</span><b class="down">&minus;'+pct(cmd.dollarChurnFromLogosR12M,1)+'</b>'+
-            '<span>&minus; Contraction</span><b class="down">&minus;'+pct(cmd.dollarChurnFromContractionR12M,1)+'</b>'
-          : '<span>&minus; Gross leakage impact</span><b class="down">&minus;'+pct(1-kpi.grr,1)+'</b>')+
-        (mmd
-          ? '<span>+ Price</span><b class="up">+'+pct(mmd.priceEffectR12M,1)+'</b>'+
-            '<span>+ Usage</span><b class="up">+'+pct(mmd.usageEffectR12M,1)+'</b>'+
-            '<span>+ Adoption</span><b class="up">+'+pct(mmd.adoptionEffectR12M,1)+'</b>'
-          : '<span>+ Expansion impact</span><b class="up">+'+pct(kpi.expansionRate,1)+'</b>')+
-        '<span>= NRR</span><b class="tot">'+pct(kpi.nrr,1)+'</b>'+
-        '</div><div class="hint" style="margin-top:7px">'+(mmd
-          ? 'With Monetization on, expansion separates into price, usage and adoption effects — three flows the engine produces from the component state, measured on the same frozen R12M cohort; contraction is the usage that survivors gave up.'
-          : '')+(cmd
-          ? 'With Customer Physics on, gross leakage separates into euros that left with departing customers and euros that stayed customers but shrank — two flows the engine now produces, measured on the same frozen R12M cohort.'
-          : 'With the customer layer off the engine combines churn and contraction in Gross Leakage — it cannot say how much of the loss was lost logos versus shrinking accounts. Switch Logo retention on to separate them.')+'</div></div>';
-    }
-
+    var h = renderLenses(m, em, bm);
     h+='<div class="sgrp" id="causal-slot"></div>';
 
     if(pinned!==null && pinned<expS.C){
@@ -2689,6 +2820,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
     document.getElementById('side').innerHTML=h;
     renderCausal(null, true);
+    [].forEach.call(document.querySelectorAll('.lensnav .btn'), function(b){ b.addEventListener('click', function(){ var el=document.getElementById('lens-'+b.dataset.lens); if(el) el.scrollIntoView({block:'start', behavior:'smooth'}); }); });
     function row(a,b){ return '<div class="srow"><span>'+esc(a)+'</span><b>'+b+'</b></div>'; }
     /* §10.4 — provenance: when the capital left, how long it sat pending, what
        it actually bought per euro. All stamped at creation, never recomputed. */
