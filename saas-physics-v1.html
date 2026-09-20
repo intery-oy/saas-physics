@@ -197,6 +197,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .lrow .lb{height:8px;position:relative}
 .lrow.stock .lb{height:13px;background:var(--line-soft);border-radius:1px}
 .lrow .lb i{position:absolute;top:0;bottom:0;border-radius:1px}
+.lrow .lb s{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--ink-3);opacity:.7}
 .lrow .lb u{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--ink-4)}
 .lrow .lv{font-family:var(--mono);text-align:right;font-size:11px;color:var(--ink)}
 .lrow.in .lv{color:var(--in)} .lrow.out .lv{color:var(--out)}
@@ -225,6 +226,35 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .comp-l{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--ink-3);margin-top:4px}
 .comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
 .lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
+/* ---------- responsive: reflow, never shrink (docs/VISUAL-GRAMMAR.md) ---------- */
+#rail-toggle,#rail-close{display:none}
+@media (max-width:1180px){
+  .app,.app.flow{grid-template-columns:minmax(0,1fr) 300px}   /* the rail leaves the grid: it is a drawer */
+  .rail{position:fixed;left:0;top:0;bottom:0;width:272px;z-index:20;transform:translateX(-100%);transition:transform .2s;box-shadow:8px 0 24px rgba(0,0,0,.45)}
+  .app.rail-open .rail{transform:none}
+  #rail-toggle{display:inline-block}
+  .app.rail-open #rail-toggle{border-color:var(--exp);color:var(--exp)}
+  #rail-close{display:block;margin:10px 18px 0;width:calc(100% - 36px)}
+  .head{flex-wrap:wrap;row-gap:8px}
+  .head .sub{display:none}
+}
+@media (max-width:760px){
+  /* one column, the page scrolls: header · stage (figure + waterfall) · the five lenses · transport pinned */
+  html,body{height:auto;overflow:auto}
+  .app,.app.flow{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto;height:auto;min-height:100vh}
+  .stage{overflow-x:auto;overflow-y:visible}
+  #scene{flex:none;height:300px}
+  .app.flow #scene{min-width:1000px;height:640px}
+  .side{grid-column:1;grid-row:3;border-left:none;border-top:1px solid var(--line);overflow:visible}
+  .transport{grid-row:4;flex-wrap:wrap;row-gap:8px;position:sticky;bottom:0;z-index:5}
+  .transport .tlabel{min-width:0}
+  .head{padding:10px 16px;gap:10px}
+  .head h1{font-size:17px}
+  .head .chip{display:none}
+  .lens{padding:14px 16px 15px}
+  .cascade{padding:9px 16px 10px}
+  .crow{grid-template-columns:96px minmax(0,1fr) 80px}
+}
 /* ---------- Change as model construction ---------- */
 .rail-legend{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:7px;font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
 .rail-legend .law{color:var(--law)} .rail-legend .hyp{color:var(--hyp)} .rail-legend .inp{color:var(--stock)}
@@ -258,7 +288,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .pstep details.more .hint{margin-top:4px}
 .hyprow{margin-top:10px;padding:7px 9px;border-left:2px solid var(--hyp);font-size:10.5px;color:var(--ink-2);line-height:1.5;background:rgba(139,127,212,.06)}
 .hyprow b{color:var(--hyp);font-family:var(--mono);font-weight:500}
-.curve{margin-top:8px;display:block}
+.curve{margin-top:8px;display:block;width:100%;height:auto}
 
 /* ---------- Compare: the causal spine (docs/VISUAL-GRAMMAR.md §8) ---------- */
 .spine{position:relative;padding-left:14px;margin-top:6px}
@@ -318,6 +348,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
 <div class="app">
   <header class="head">
+    <button class="btn" id="rail-toggle" aria-label="Open or close the Change rail">Change</button>
     <h1>SaaS Physics</h1>
     <span class="sub">an economic system, observed</span>
     <span class="spacer"></span>
@@ -332,11 +363,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   </header>
 
   <aside class="rail">
+    <button class="btn" id="rail-close" aria-label="Close the Change rail">‹ Close</button>
     <div class="grp" id="experiment-summary"></div>
     <div class="grp" id="packs">
       <div class="eyebrow" style="margin-bottom:4px">World</div>
       <div class="hint">Assumption packs: which layers the Base world carries. Assumptions only — no scenario logic. Reset returns to the pack.</div>
       <div class="btn-row" id="packlist" style="margin-top:7px"></div>
+      <div class="hint" style="margin-top:9px">Acceptance worlds &middot; three company shapes built from the same laws. Illustrative, not benchmarks.</div>
+      <div class="btn-row" id="worldlist" style="margin-top:6px"></div>
       <div class="hint" id="packnote" style="margin-top:6px"></div>
     </div>
     <div class="grp" id="rail-change">
@@ -3423,7 +3457,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * sum to the total in a system with interactions, and are not forced to.
    * ------------------------------------------------------------------ */
   function attributionValid(){
-    return baseRes.bandsAreFlat && expRes.bandsAreFlat && baseStart===undefined && expStart===undefined;
+    return baseRes.bandsAreFlat && expRes.bandsAreFlat && baseStart===expStart;   /* the same opening state on both sides: undefined (canonical) or one pack's */
   }
   var attrAcqRes = null, attrIbRes = null, attrCash = null;
   function recurringAttribution(m){
@@ -3546,13 +3580,40 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
                                                             return Object.assign({}, CUST_PACK, { monetization: monDefault(), billingTermMonths:12, collectionDelayMonths:1, interventions:[h] }); },
       note:'Every layer on, plus a costed retention programme (logo retention × 1.03 from M9 for 24 months) as the hypothesis in the Base world.' }
   ];
-  var packA = BASE_A, activePack = 'arr';
+  /* ACCEPTANCE WORLDS — illustrative company shapes built from the SAME laws,
+     so the representation can be read against three economies a CFO recognises.
+     Not benchmarks: every number is a plausible setting of an existing law, and
+     the opening book is derived from the components exactly as any pack's is. */
+  function worldMon(fixedFee, fixedGrowth, usage){ return { components:[ { name:'platform', kind:'fixed', units:1, priceAnnual:fixedFee, priceGrowthAnnual:fixedGrowth }, Object.assign({ name:'usage', kind:'variable' }, usage) ] }; }
+  var WORLDS = [
+    { id:'wA', name:'A · Enterprise', world:true, start:function(){ return { openingCustomers:120, openingCash:10000000 }; },
+      a:function(){ return { sm:700000, rd:700000, ga:350000, cacPerARR:1.6, grossMargin:0.78, maxMonthlyNewARR:1500000, acquisitionLagMonths:4,
+        logoRetentionAnnual:0.95, contractionAnnual:0.03,
+        monetization: worldMon(90000, 0.04, { penetration:0.7, units:400, priceAnnual:150, priceGrowthAnnual:0.02, usageGrowthAnnual:0.20, unitsCap:1200, adoptionAnnual:0.12, penetrationCap:0.95 }),
+        billingTermMonths:12, billingTiming:'advance', collectionDelayMonths:2 }; },
+      note:'World A · enterprise iPaaS: 120 customers at ~€132k, a €90k platform fee plus metered usage, billed annually in advance and collected two months later, a four-month sales lag, capacity-bound acquisition, 95% logo retention. Illustrative, not a benchmark.' },
+    { id:'wB', name:'B · Usage / AI', world:true, start:function(){ return { openingCustomers:2500, openingCash:10000000 }; },
+      a:function(){ return { sm:700000, rd:900000, ga:300000, cacPerARR:0.9, grossMargin:0.60,
+        logoRetentionAnnual:0.85, contractionAnnual:0.10,
+        monetization: worldMon(2400, 0, { penetration:0.9, units:500, priceAnnual:12, priceGrowthAnnual:-0.05, usageGrowthAnnual:0.45, unitsCap:3000, adoptionAnnual:0.30, penetrationCap:1 }),
+        billingTermMonths:1, billingTiming:'arrears', collectionDelayMonths:1 }; },
+      note:'World B · usage-heavy AI product: 2,500 customers at ~€7.8k, a small platform fee and ~70% metered usage whose unit price falls 5% a year while usage grows 45% to a cap, billed monthly in arrears, 60% gross margin, 85% logo retention with 10% contraction. Illustrative, not a benchmark.' },
+    { id:'wC', name:'C · SMB', world:true, start:function(){ return { openingCustomers:8000, openingCash:10000000 }; },
+      a:function(){ return { sm:450000, rd:400000, ga:200000, cacPerARR:0.7, grossMargin:0.75, maxMonthlyNewARR:800000,
+        logoRetentionAnnual:0.78, contractionAnnual:0.04,
+        monetization: worldMon(1800, 0.03, { penetration:0.5, units:20, priceAnnual:30, priceGrowthAnnual:0.02, usageGrowthAnnual:0.10, unitsCap:60, adoptionAnnual:0.15, penetrationCap:0.8 }),
+        billingTermMonths:1, billingTiming:'advance', collectionDelayMonths:0 }; },
+      note:'World C · SMB: 8,000 customers at ~€2.1k, a €1,800 plan plus light add-on usage, billed monthly in advance and collected on invoice, cheap but capacity-bound acquisition, 78% logo retention — a treadmill: a fifth of the base must be replaced every year before the company grows. Illustrative, not a benchmark.' }
+  ];
+  PACKS = PACKS.concat(WORLDS);
+  var packA = BASE_A, packStart = undefined, activePack = 'arr';
   function applyPack(id){
     var P = PACKS.filter(function(p){ return p.id===id; })[0]; if(!P) return;
     exitPair(); clearScenario();
     packA = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS, P.a())); activePack = id;
+    packStart = P.start ? Object.freeze(P.start()) : undefined;
     baseA = packA; expA = Object.assign({}, packA);
-    baseStart = undefined; expStart = undefined;
+    baseStart = packStart; expStart = packStart;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     resize(); recompute(); render();
   }
@@ -3561,7 +3622,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     PACKS.forEach(function(P){
       var b=document.createElement('button'); b.className='btn'; b.id='pack-'+P.id; b.textContent=P.name; b.title=P.note;
       b.addEventListener('click', function(){ applyPack(P.id); });
-      host.appendChild(b);
+      (P.world ? document.getElementById('worldlist') : host).appendChild(b);
     });
   }
   function syncPackButtons(){
@@ -3590,11 +3651,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
        coefficient, ARR per new logo and opening ARR are no longer read. */
     { kind:'Monetization physics', layer:'monetization', note:'Beneath the customer laws: each customer pays a platform fee plus usage. Revenue is derived from those components every month; expansion is price, usage (to a cap) and adoption (to a cap), and contraction reaches usage only. When on, the expansion coefficient, ARR per new logo and opening ARR stop being inputs. Requires the customer layer.',
       forces:[ {k:'monetization', label:'Monetization', sub:'off = revenue is a carried balance · on = revenue is customers × components', f:'onoff', nullable:true, toggleOnly:true, onValue:monDefault},
-               {k:'monetization.components[0].priceAnnual', label:'Platform fee', sub:'€ per customer per year · fixed component · sets the opening ARPA', min:4000, max:30000, step:500, f:'eur', needs:'monetization'},
+               {k:'monetization.components[0].priceAnnual', label:'Platform fee', sub:'€ per customer per year · fixed component · sets the opening ARPA', min:500, max:120000, step:500, f:'eur', needs:'monetization'},
                {k:'monetization.components[0].priceGrowthAnnual', label:'Platform price growth', sub:'annual list-price change on the fixed component', min:-0.1, max:0.15, step:0.005, f:'pct', needs:'monetization'},
                {k:'monetization.components[1].priceGrowthAnnual', label:'Usage price growth', sub:'annual price change per unit of usage', min:-0.1, max:0.15, step:0.005, f:'pct', needs:'monetization'},
                {k:'monetization.components[1].usageGrowthAnnual', label:'Usage growth', sub:'annual growth of units per adopting customer, until the cap', min:0, max:0.5, step:0.01, f:'pct', needs:'monetization'},
-               {k:'monetization.components[1].unitsCap', label:'Usage cap', sub:'units per customer the usage component cannot exceed · the bound on expansion', min:100, max:1000, step:10, f:'units', needs:'monetization'},
+               {k:'monetization.components[1].unitsCap', label:'Usage cap', sub:'units per customer the usage component cannot exceed · the bound on expansion', min:10, max:5000, step:10, f:'units', needs:'monetization'},
                {k:'monetization.components[1].adoptionAnnual', label:'Adoption', sub:'share of the remaining non-adopters who adopt usage each year', min:0, max:0.5, step:0.01, f:'pct', needs:'monetization'},
                {k:'monetization.components[1].penetrationCap', label:'Penetration cap', sub:'share of a cohort\'s customers usage can reach', min:0.8, max:1, step:0.01, f:'pct', needs:'monetization'} ] },
     { kind:'Acquisition response', layer:'arr', note:'How much recurring state S&M creates, whether that response is bounded, and when the ARR appears. Each has a null setting that is the v1.0 world.',
@@ -5480,20 +5541,27 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    * records over a stated basis. Stocks are containers, flows are deltas.
    * ------------------------------------------------------------------ */
   function eurF(v){ return '€'+Math.round(v).toLocaleString('en-GB'); }
+  function relS(v){ return (v>=0?'+':'−')+pct(Math.abs(v),1); }   /* a signed relative change: +19.4% (a rate), never pp */
   function pp(v,d){ return (v>=0?'+':'−')+(Math.abs(v)*100).toFixed(d===undefined?1:d)+' pp'; }
   function sumM(res, from, to, f){ var q=0; for(var i=Math.max(1,from); i<=to; i++) q+=f(res.months[i-1]); return q; }
   /* a ladder: rows [{k:'stock'|'in'|'out', n:label, v:value (abs for stock, signed for flows), law:'⋈ 90%'}] */
   function ladder(rows){
-    var run=0, maxv=0, pts=[];
-    rows.forEach(function(r){ if(r.k==='stock'){ run=r.v; pts.push({lo:0,hi:r.v}); } else { var a=run, b=run+r.v; run=b; pts.push({lo:Math.min(a,b),hi:Math.max(a,b)}); } maxv=Math.max(maxv, run, r.k==='stock'?r.v:0, pts[pts.length-1].hi); });
-    maxv = maxv || 1;
+    /* a stock row resets the running balance; a flow row is a delta from it. The
+       scale spans the whole range the balance visits — including negative values
+       (a cash ladder can start below zero), so a bar never leaves its track. */
+    var run=0, minv=0, maxv=0, pts=[];
+    rows.forEach(function(r){ if(r.k==='stock'){ run=r.v; pts.push({lo:Math.min(0,r.v),hi:Math.max(0,r.v)}); } else { var a=run, b=run+r.v; run=b; pts.push({lo:Math.min(a,b),hi:Math.max(a,b)}); }
+      minv=Math.min(minv, pts[pts.length-1].lo); maxv=Math.max(maxv, pts[pts.length-1].hi); });
+    var range = (maxv-minv) || 1;
+    function X(v){ return (v-minv)/range*100; }
     return '<div class="ladder">'+rows.map(function(r,i){
-      var l=pts[i].lo/maxv*100, w=Math.max(0.5,(pts[i].hi-pts[i].lo)/maxv*100);
+      var l=X(pts[i].lo), w=Math.max(0.5,(pts[i].hi-pts[i].lo)/range*100);
       var col = r.k==='stock' ? 'var(--stock)' : r.k==='in' ? 'var(--in)' : 'var(--out)';
       var edge = r.k==='in' ? pts[i].lo : r.k==='out' ? pts[i].hi : null;
       return '<div class="lrow '+r.k+'"><span class="ln">'+esc(r.n)+(r.law?'<span class="chip-law">'+esc(r.law)+'</span>':'')+'</span>'+
         '<span class="lb"><i style="left:'+l.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+col+(r.k==='stock'?'':';opacity:.85')+'"></i>'+
-        (edge!==null ? '<u style="left:'+(edge/maxv*100).toFixed(2)+'%"></u>' : '')+'</span>'+
+        (minv<0 ? '<s style="left:'+X(0).toFixed(2)+'%"></s>' : '')+
+        (edge!==null ? '<u style="left:'+X(edge).toFixed(2)+'%"></u>' : '')+'</span>'+
         '<span class="lv">'+(r.k==='stock' ? r.f : (r.k==='in'?'+':'−')+r.f)+'</span></div>';
     }).join('')+'</div>';
   }
@@ -5594,7 +5662,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       comp([{n:'new ARR', v:newR12, c:'var(--in)', f:reur(newR12)}, {n:'expansion', v:expR12, c:'rgba(79,158,119,.55)', f:reur(expR12)}]) +
       '<div class="comp-l" style="margin-top:2px"><span>− leakage <b>'+reur(leakR12)+'</b></span><span>net <b>'+reurS(newR12+expR12-leakR12)+'</b> on '+reur(arrPrev)+'</span></div></div>'+
       (cuOn && w.from>1 ? (function(){ var c0=expRes.months[w.from-2].customers, c1=em.customers, a0=expRes.months[w.from-2].closingARR/c0.closing, a1=em.closingARR/c1.closing;
-          return '<div class="readouts"><span>customers</span><b>'+c0.closing.toFixed(0)+' → '+c1.closing.toFixed(0)+' · '+pp(c1.closing/c0.closing-1)+'</b><span>ARPA</span><b>'+eurF(a0)+' → '+eurF(a1)+' · '+pp(a1/a0-1)+'</b></div>'; })() : '')+
+          return '<div class="readouts"><span>customers</span><b>'+c0.closing.toFixed(0)+' → '+c1.closing.toFixed(0)+' · '+relS(c1.closing/c0.closing-1)+'</b><span>ARPA</span><b>'+eurF(a0)+' → '+eurF(a1)+' · '+relS(a1/a0-1)+'</b></div>'; })() : '')+
       (satOn ? responseCurve(qx) : '<div class="lens-off">Acquisition is linear and unbounded: every euro of S&amp;M buys the same ARR. Switch the capacity on to see the marginal euro do less.</div>')+
       '</div>';
 
@@ -6513,11 +6581,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   function resetAll(){
     exitPair(); clearScenario();
     baseA = packA; expA = Object.assign({}, packA);          /* v2: back to the active pack's world */
-    baseStart = undefined; expStart = undefined;
+    baseStart = packStart; expStart = packStart;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     resize(); recompute(); render();
   }
   document.getElementById('reset').addEventListener('click', resetAll);
+  /* narrow screens: the Change rail is a drawer over the stage */
+  document.getElementById('rail-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('rail-open'); });
+  document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
+  document.querySelector('.stage').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
   buildPacks(); buildSysViews(); syncPackButtons(); syncSysViews();
   window.addEventListener('resize', function(){ resize(); });
 
