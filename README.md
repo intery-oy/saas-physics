@@ -201,6 +201,7 @@ node state-sufficiency.js # the v0.3 State Sufficiency Experiment
 node capital-study.js     # Capital Loop concept study: payback calibration and experiments
 node pulse-study.js       # Flow / Pulse concept study: intra-month law and reconciliation
 node build.js             # build all three single-file surfaces
+node deploy-build.js      # deployment packaging: runs build.js, then copies saas-physics-v1.html byte-for-byte to dist/index.html (what Vercel serves; `npm run build:deploy`)
 open saas-physics-v1.html
 ```
 
