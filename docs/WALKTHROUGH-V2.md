@@ -11,35 +11,30 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - cash · trough €6.10m at M13: €19.17m
 - EBITA margin · R12M: → 23.9%
 - gross margin · law: ⋈ 80%
-- Opening: €3.78m
-- − leakage⋈ 90%: −€33k
-- + expansion⋈ 10%: +€30k
-- + new MRR: +€63k
-- Closing: €3.83m
 - gross dollar retention · R12M: → 89.6%
-- net dollar retention · R12M: ⋈ 80%
-- persistence: ⋈ 90.0%
-- S&M this month · capital in: ⋈ CAC coefficient 1.20× · € of S&M per €1 of new ARR at low spend
-- revenue: €41.73m
-- gross profit · ⋈ GM 80% · €9.98m · EBITA · 2
-- EBITA · 23.9% margin · €19.17m · cash · M36 · 
-- MRR arrives · cohort M36 · 37 alive · MEAS
+- net dollar retention · R12M: → 99.0%
+- S&M · month: €900k
+- new MRR · month: €63k
+- average CAC · € per €1 of new ARR: → 1.20×
+- marginal CAC · the next euro: → 1.20×
+- payback · average: → 18.0 mo
+- revenue · R12M: €41.73m
+- EBITA · R12M: €9.98m
+- Installed-base net · month · → −€3k · net-shrinking · Expansion 
+- WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0 · new custome
+- ACQUISITION EFFICIENCY · average CAC · marginal CAC · Measured CAC
+- ECONOMICS · MONTHLY · revenue · gross profit · EBITA · M36 · Y1 · Y2 · Y3 · 
 
 ## 2. How much of the loss is customers leaving, and how much is customers shrinking?
 
-- World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail; the Customers lens reads customers × MRR per customer = MRR, then the logo bridge beside the customer-economics bridge.
+- World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail; the Customers lens shows customers and MRR per customer over 60 months, then where MRR growth came from.
 - MRR: €3.61m
-- customers: 1977
-- MRR per customer · derived: €2k
-- + new logos: +37.5
-- − left · churned⋈ 92%: −13.5
-- − left · churned logos⋈ 92%: −€25k
-- − stayed but shrank · contraction⋈ 5%: −€15k
+- customers: 1,977+17.8% y/y
+- MRR per customer: €2k+2.5% y/y
 - logo retention · R12M: → 92.0%
-- gross dollar retention · R12M: → 86.8%
 - net dollar retention · R12M: → 96.1%
-- persistence · L × (1 − C), derived: ⋈ 87.4%
-- MRR GROWTH = CUSTOMER GROWTH × ARPA DEVELOPMENT · M24 → M36 · R12M · +17.8% · customers · 1,678 → 1,977 · × · +2.5% · ARPA · €2k → €2k · = · +20.8% · MRR · (1 + customers)(1 + ARPA) − 1: exa
+- CUSTOMER BASE DEVELOPMENT · customers · MRR per customer · Base · M3
+- WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0 · new customers · existing base · expansion −
 
 ## 3. Could two companies with identical ARR, GRR and NRR be losing customers at different rates?
 
@@ -58,16 +53,10 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 ## 4. How much of the revenue change is price, how much usage, how much adoption — and where does expansion stop?
 
 - World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.
-- platform · fixed · 54% · + · €1.75m · usage · variable · 46% · platf
-- usage · variable · 46% · platform · fixed €2.06m 54% · usage · v
-- per customer · → 98.8% · net dollar retention · R12M · ⋈ 80% · gross margin · law · → 23.6
-- + price⋈ 3% · 2%: +€86k
-- + usage⋈ 15%: +€211k
-- + adoption⋈ 10%: +€24k
-- − churn · logos left⋈ 92%: −€285k
-- − contraction · usage shrank⋈ 5%: −€77k
-- INSTALLED-BASE GROWTH BY CAUSE · R12M · price €86k 27% · usage €211k 66% · adoption €24k 7% · of NRR 98.8%: price 2.5% · usage 6.2% · adoption 0.7% · usage-led · 5 · How does the economic engine become profit, and pr
-- persistence · from the revenue mix: ⋈ emergent
+- platform · fixed · 46% · usage · variable · ▭Platform fee · €12k · ⋈Us
+- usage · variable · ▭Platform fee · €12k · ⋈Usage growth · 15.0% · ⋈Ado
+- MRR COMPOSITION · platform · fixed · usage · variable · M36 · Y1 · Y2 · 
+- MRR per customer: €2k+4.3% y/y
 
 ## 5. Same customers, same laws — does the revenue mix alone change dollar retention?
 
@@ -83,9 +72,11 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 ## 6. When does the cash arrive, and how far is cash FCF from EBITA?
 
-- World: + Cash (billed 12 months in advance, collected one month after invoice). Path 2 separates from Path 1.
-- PATH 1 · ECONOMICS · €41.51m · revenue · ⋈ gross margin 80% · − COGS €8.30m · €33.21m · gross profit · − S&M €10.80m · R&D €8.40m · G&A €4.20m · €9.81m · EBITA · 23.6% margin · P
-- PATH 2 · CASH · €45.44m · billings · invoiced · ⋈ billed 12 mo advance · Δ deferred +€3.93m · €44.73m · collections · ⋈ collected +1 mo · Δ receivables +€710k · − cash costs €31.70m · €13.03m · cash FCF · 1.33× EBITA · €27.47m · cash · M36 · MONTHLY P&L WATERFALL · M36 · MONTHLY P&L WA
+- World: + Cash (billed 12 months in advance, collected one month after invoice). The cash chart marks the trough; the waterfall continues below EBITA.
+- ECONOMICS · MONTHLY · revenue · gross profit · EBITA · M36 · Y1 · Y2 · Y3 · 
+- trough €7.71m at M1 · MODEL · ARR · CUSTOM
+- Δ deferred revenue · −€4k · + Δ receivables · 
+- Δ receivables · €1k · = Cash FCF · €1.07m · Cash
 - cash · M36: €27.47m
 - cash trough · M1: €7.71m
 - capital required · opening cash drawn: €2.29m
@@ -108,8 +99,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 - World: + Hypothesis (every layer on; logo retention × 1.03 decided M6, in force M9–M32, €200k + €50k/month).
 - hypothesis ret in force · logo retention 92.0% → 94.8% · cost €50k this month · Company · Customers · Growth engine · Monetizati
-- ↯ hypothesis cost €600k · €418k · EBITA · 1.
-- PATH 2 · CASH · €34.72m · billings · invoiced · ⋈ billed 12 mo advance · Δ deferred +€4.20m · €33.95m · collections · ⋈ collected +1 mo · Δ receivables +€772k · − cash costs €30.10m · €3.84m · cash FCF · 9.20× EBITA · €1
+- − Hypothesis cost: −€50k
 
 ## 9. Against the same company without it — net of its cost — when does the programme pay back?
 
@@ -137,6 +127,6 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 - Pack: ARR physics. Mechanisms: {"expansionCost":false,"acquisitionSaturation":false,"acquisitionLag":false,"customerPhysics":false,"monetization":false,"genericExpansionBypassed":false,"cashPhysics":false,"interventions":false}
 - cash · trough €6.10m at M13: €19.17m
-- net dollar retention · R12M: ⋈ 80%
+- net dollar retention · R12M: → 99.0%
 
 Page errors during the walkthrough: none.

@@ -291,6 +291,32 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .comp-l{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--ink-3);margin-top:4px}
 .comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
 .lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
+/* ---------- five-lens redesign: one chart grammar, levers, model chip ---------- */
+.chb{margin-top:14px;max-width:780px}
+.chb .fig-t{margin-bottom:4px}
+.ch{width:100%;height:auto;display:block;cursor:crosshair}
+.ch .ax{font:9.5px var(--mono);fill:var(--ink-4)}
+.ch .gx,.ch .gy{stroke:var(--line-soft);stroke-width:1}
+.ch .zero{stroke:var(--ink-4);stroke-width:1}
+.ch .cur{stroke:rgba(230,233,242,.35);stroke-width:1}
+.ch .ln{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.ch .rv{font:10.5px var(--mono);font-weight:500}
+.ch .rl{font:8px var(--ui);fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.ch .mk{font:9px var(--mono);fill:var(--ink-2)}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:9.5px;color:var(--ink-3);margin-left:auto;margin-right:12px}
+.lg i{display:inline-block;width:10px;height:3px;margin-right:5px;vertical-align:middle;border-radius:1px}
+.lg i.dash{background:none!important;border-top:2px dashed var(--base);height:0}
+.model{margin-top:12px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
+.model .chg{color:var(--exp);text-transform:none;letter-spacing:0}
+.yoy{display:inline-block;margin-left:6px;font-size:10px;color:var(--ink-3);font-weight:400}
+.offnote{margin-top:10px;font-size:11px;color:var(--ink-3);line-height:1.5;border-left:2px dotted var(--ink-4);padding-left:10px;max-width:640px}
+.offnote .eyebrow{display:block;margin-bottom:2px}
+.levers{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 24px;margin:12px 0 2px;padding:9px 0 8px;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);max-width:780px}
+.lever{display:grid;grid-template-columns:1fr auto auto;gap:0 8px;align-items:center;font-size:11px}
+.lever .ll{color:var(--ink-2)} .lever .ll .kg{margin-right:6px}
+.lever .lv{font-family:var(--mono);color:var(--ink)} .lever .lv.off{color:var(--ink-4)}
+.lever .btn{font-size:9.5px;padding:2px 6px}
+.lever input{grid-column:1/-1;width:100%;margin:2px 0 0}
 /* ---------- lens redesign: marks, deltas, identity, vertical flow, two paths (docs/LENS-VISUAL-GRAMMAR.md) ---------- */
 .marks{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin:2px 0 10px}
 .marks.company{margin-top:12px;padding:9px 12px;border-left:2px solid var(--exp);background:rgba(139,141,240,.05)}
@@ -594,7 +620,7 @@ details.pl .cascade{margin-top:8px}
     </div>
     <aside class="side" id="side"></aside>
     <details class="figwrap" id="figwrap" open>
-      <summary><span id="fig-title">Formation · 60 months</span><span class="hint" id="fig-hint">recurring revenue as cohort strata, cash beneath · click a stratum to inspect that cohort</span></summary>
+      <summary><span id="fig-title">Formation · 60 months</span><span class="hint" id="fig-hint">opening base + successive cohorts as strata · YoY growth as a line · click a stratum to inspect that cohort</span></summary>
       <div class="figbox">
         <canvas id="scene"></canvas>
         <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
@@ -4457,7 +4483,8 @@ details.pl .cascade{margin-top:8px}
     var r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio||1);
     W = Math.max(320, r.width); HH = Math.max(240, r.height);
     cv.width = W*dpr; cv.height = HH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-    var L=64, R=20, T=18, B=16;
+    var noCash = layer==='stock';                      /* Company: the formation alone; cash has its own lens */
+    var L=64, R=noCash ? 78 : 20, T=18, B=16;
     var inner = HH - T - B;
     /* §3 — TWO SYNCHRONISED PLANES, sharing the X (time) axis, each with its
        own Y-axis. Plane 1 = recurring asset (MRR/ARR space): the mass, ghosts,
@@ -4470,10 +4497,12 @@ details.pl .cascade{margin-top:8px}
     var midH  = capitalMode ? inner*0.30 : (leakShadow ? inner*0.13 : 0);      /* capital track, or leakage outline */
     var midGap= showMid ? 14 : 24;   /* room for the Plane 2 axis label even with the band collapsed */
     var cashH = capitalMode ? inner*0.24 : inner*0.26;
-    geo = { L:L, R:R, T:T, massTop:T, massBot:T+massH, showMid:showMid,
+    if(noCash){ massH = capitalMode ? inner*0.64 : (leakShadow ? inner*0.82 : inner-4); cashH = 0; midGap = showMid ? 6 : 0; }
+    geo = { L:L, R:R, T:T, noCash:noCash, massTop:T, massBot:T+massH, showMid:showMid,
             leakTop:T+massH+1, leakBot:T+massH+midH,
             capTop:T+massH+8, capBot:T+massH+midH,
             cashTop:T+massH+midH+midGap, cashBot:T+massH+midH+midGap+cashH-12, w:W-L-R };
+    geo.axisY = noCash ? T+massH+midH+midGap : geo.cashBot;
   }
   function X(m){ return geo.L + (m/H)*geo.w; }
   function invX(px){ return Math.max(0, Math.min(H, ((px-geo.L)/geo.w)*H)); }
@@ -4502,10 +4531,11 @@ details.pl .cascade{margin-top:8px}
     ctx.fillStyle='#0a0d15'; ctx.fillRect(0,0,W,HH);
     ctx.strokeStyle='#131a27'; ctx.lineWidth=1;
     for(var y=1;y<=5;y++){
-      var x=X(y*12)+0.5; ctx.beginPath(); ctx.moveTo(x,geo.massTop); ctx.lineTo(x,geo.cashBot); ctx.stroke();
+      var x=X(y*12)+0.5; ctx.beginPath(); ctx.moveTo(x,geo.massTop); ctx.lineTo(x,geo.axisY); ctx.stroke();
     }
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
-    ctx.fillText(basis, geo.L+8, geo.massTop+11);
+    figLegend = geo.noCash ? basis+' · OPENING BASE + '+Math.max(0, E.cohortSnapshot(expRes, selectedMonth()).length-1)+' COHORTS' : basis;
+    ctx.fillText(figLegend, geo.L+8, geo.massTop+11);
     /* gridlines, in the chosen basis — the axis geometry is always ARR-native,
        only the printed number changes */
     ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#414a60';
@@ -4653,6 +4683,7 @@ details.pl .cascade{margin-top:8px}
       ctx.fillText(reur(expRes.months[selectedMonth()-1].cumulative.leakage), geo.L+8, geo.leakTop+22);
     }
 
+    if(!geo.noCash){
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
     ctx.fillText('MODEL CASH (€M)', geo.L+8, geo.cashTop-8);
@@ -4708,17 +4739,37 @@ details.pl .cascade{margin-top:8px}
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
     ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, geo.L+8, geo.cashTop+2);
 
+    } else {
+      /* --- YoY growth as the secondary line over the formation, its own quiet right scale --- */
+      var gX=[], gB=[], gAll=[];
+      for(var gi=0; gi<H; gi++){ gX.push(expRes.months[gi].arrGrowthYoY); gB.push(baseRes.months[gi].arrGrowthYoY); if(expRes.months[gi].arrGrowthYoY!==null) gAll.push(expRes.months[gi].arrGrowthYoY); if(baseRes.months[gi].arrGrowthYoY!==null) gAll.push(baseRes.months[gi].arrGrowthYoY); }
+      if(gAll.length){
+        var gLo=Math.min(0, Math.min.apply(null,gAll)), gHi=Math.max.apply(null,gAll)*1.15||0.1, gTop=geo.massTop+22, gBot=geo.massBot-6;
+        var yG=function(v){ return gBot-((v-gLo)/((gHi-gLo)||1))*(gBot-gTop); };
+        var gline=function(arr, col, dash, wdt){ ctx.save(); if(dash) ctx.setLineDash(dash); ctx.beginPath(); var on=false; for(var q=0;q<H;q++){ if(arr[q]===null){ on=false; continue; } var gx=X(q+1), gy=yG(arr[q]); on?ctx.lineTo(gx,gy):ctx.moveTo(gx,gy); on=true; } ctx.strokeStyle=col; ctx.lineWidth=wdt; ctx.stroke(); ctx.restore(); };
+        gline(gB, 'rgba(102,112,138,.75)', [4,4], 1.2);
+        gline(gX, 'rgba(230,233,242,.85)', null, 1.5);
+        /* right scale for growth */
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.textAlign='left'; ctx.fillStyle='#414a60';
+        [gLo, gHi].forEach(function(gv){ ctx.fillText(pct(gv,0)+' y/y', W-geo.R+6, yG(gv)+3); });
+        /* selected month: right-edge values */
+        var mS=selectedMonth(), mrec=expRes.months[mS-1], yArr=S.yA(mrec.closingARR), yGr=mrec.arrGrowthYoY===null ? null : yG(mrec.arrGrowthYoY);
+        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText(reur(mrec.closingARR), W-geo.R+6, yArr+3);
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText(basis.toUpperCase()+' · M'+mS, W-geo.R+6, yArr+13);
+        if(yGr!==null){ var yy2 = Math.abs(yGr-yArr)<22 ? (yGr<yArr ? yArr-22 : yArr+22) : yGr; ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText((mrec.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(mrec.arrGrowthYoY),1), W-geo.R+6, yy2+3); ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('YOY GROWTH', W-geo.R+6, yy2+13); }
+      }
+    }
     /* --- the playhead: now --- */
     var px2 = X(t);
     ctx.strokeStyle='rgba(230,233,242,.30)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(px2+0.5, geo.massTop); ctx.lineTo(px2+0.5, geo.cashBot); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px2+0.5, geo.massTop); ctx.lineTo(px2+0.5, geo.axisY); ctx.stroke();
     ctx.beginPath(); ctx.arc(px2, S.yA(lerpAt(expS.arr,t)), 3.5, 0, Math.PI*2);
     ctx.fillStyle='#8b8df0'; ctx.fill();
     ctx.strokeStyle='#0a0d15'; ctx.lineWidth=2; ctx.stroke();
 
     /* --- year labels --- */
     ctx.fillStyle='#414a60'; ctx.textAlign='center'; ctx.font='9.5px "JetBrains Mono",monospace';
-    for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.cashBot+13);
+    for(var yl=1; yl<=5; yl++) ctx.fillText('Y'+yl, X(yl*12), geo.axisY+13);
   }
 
   /* ==================================================================== *
@@ -5828,256 +5879,266 @@ details.pl .cascade{margin-top:8px}
   function trailing12(m){ return { from: Math.max(1, m-11), to: m, tag: m>=12 ? 'R12M' : 'CUM · M1–M'+m }; }
 
   /* ------------------------------------------------------------------ *
-   * EXPERIMENT PROPAGATION (docs/LENS-VISUAL-GRAMMAR.md). One disturbance,
-   * five views. Every lens shows: the changed assumption at the mechanism it
-   * entered (a MARK), the consequence appropriate to the lens (a DELTA on its
-   * primary state), and — when that is the finding — that its mechanism is
-   * unchanged. Nothing here is computed: every delta is Experiment minus Base
-   * on the engine's own fields at the same month.
+   * ONE CHART GRAMMAR for every lens (docs/LENS-VISUAL-GRAMMAR.md): the same
+   * width, margins, Y1–Y5 axis, grid, Base treatment (dashed, quiet),
+   * Experiment treatment (solid), selected-month cursor and right-edge
+   * values. Series are indexed by month 0..60 (0 = opening); a null is a gap.
+   * Every value plotted is an engine month field or a sum of them.
    * ------------------------------------------------------------------ */
+  var CHG = { W:640, L:54, R:78, T:10, B:18 };
+  function chart(o){
+    var W=CHG.W, L=CHG.L, R=CHG.R, T=CHG.T, B=CHG.B, Hh=o.h||200, pw=W-L-R, ph=Hh-T-B;
+    var vals=[]; o.series.forEach(function(s){ (s.pts||[]).forEach(function(v){ if(v!==null && v!==undefined && isFinite(v)) vals.push(v); }); (s.hi||[]).forEach(function(v){ if(v!==null&&isFinite(v)) vals.push(v); }); (s.lo||[]).forEach(function(v){ if(v!==null&&isFinite(v)) vals.push(v); }); });
+    var lo = o.yMin!==undefined ? o.yMin : Math.min(0, Math.min.apply(null, vals.length?vals:[0])), hi = o.yMax!==undefined ? o.yMax : Math.max.apply(null, vals.length?vals:[1]);
+    if(hi<=lo) hi=lo+1; var span=(hi-lo); hi += span*0.06; if(lo<0) lo -= span*0.06;
+    function x(m){ return L + (m/H)*pw; } function y(v){ return T + ph - ((v-lo)/(hi-lo))*ph; }
+    var fmt = o.yFmt||eur, g='';
+    /* grid + axes */
+    for(var i=1;i<=5;i++){ g+='<line class="gy" x1="'+x(i*12).toFixed(1)+'" x2="'+x(i*12).toFixed(1)+'" y1="'+T+'" y2="'+(T+ph)+'"/><text class="ax" x="'+x(i*12).toFixed(1)+'" y="'+(Hh-4)+'" text-anchor="middle">Y'+i+'</text>'; }
+    for(var k=0;k<=3;k++){ var v=lo+(hi-lo)*k/3, yy=y(v).toFixed(1); g+='<line class="gx" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax" x="'+(L-6)+'" y="'+(y(v)+3.5).toFixed(1)+'" text-anchor="end">'+esc(fmt(v))+'</text>'; }
+    if(lo<0 && hi>0) g+='<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(0).toFixed(1)+'" y2="'+y(0).toFixed(1)+'"/>';
+    function path(pts, close){ var d='', on=false; for(var m=0;m<=H;m++){ var v=pts[m]; if(v===null||v===undefined||!isFinite(v)){ on=false; continue; } d+=(on?'L':'M')+x(m).toFixed(1)+' '+y(v).toFixed(1); on=true; } return d; }
+    function area(pts){ var first=null,last=null; for(var m=0;m<=H;m++){ if(pts[m]!==null&&pts[m]!==undefined&&isFinite(pts[m])){ if(first===null) first=m; last=m; } } if(first===null) return ''; return path(pts)+'L'+x(last).toFixed(1)+' '+y(Math.max(lo,Math.min(0,hi))).toFixed(1)+'L'+x(first).toFixed(1)+' '+y(Math.max(lo,Math.min(0,hi))).toFixed(1)+'Z'; }
+    function band(lo2, hi2){ var up='', dn='', on=false, first=null; for(var m=0;m<=H;m++){ var a=lo2[m], b=hi2[m]; if(a===null||b===null||a===undefined||b===undefined){ on=false; continue; } if(first===null) first=m; up+=(on?'L':'M')+x(m).toFixed(1)+' '+y(b).toFixed(1); on=true; } for(var m2=H;m2>=0;m2--){ var a2=lo2[m2]; if(a2===null||a2===undefined) continue; dn+='L'+x(m2).toFixed(1)+' '+y(a2).toFixed(1); } return up ? up+dn+'Z' : ''; }
+    var body='';
+    /* Base first (quiet), then Experiment (live) */
+    o.series.slice().sort(function(a,b){ return (a.base?0:1)-(b.base?0:1); }).forEach(function(s){
+      var col=s.color||'var(--exp)';
+      if(s.k==='area') body+='<path class="ar" d="'+area(s.pts)+'" fill="'+col+'" opacity="'+(s.opacity||0.22)+'"/>'+'<path class="ln" d="'+path(s.pts)+'" stroke="'+col+'" stroke-width="'+(s.width||1.6)+'"'+(s.base?' stroke-dasharray="5 4"':'')+'/>';
+      else if(s.k==='band') body+='<path class="ar" d="'+band(s.lo, s.hi)+'" fill="'+col+'" opacity="'+(s.opacity||0.3)+'"/>'+(s.edge ? '<path class="ln" d="'+path(s.hi)+'" stroke="'+col+'" stroke-width="1.2"/>' : '');
+      else if(s.k==='dots'){ for(var m=0;m<=H;m++){ var v=s.pts[m]; if(v===null||v===undefined) continue; body+='<circle cx="'+x(m).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="2.2" fill="'+col+'" opacity=".85"/>'; } }
+      else body+='<path class="ln" d="'+path(s.pts)+'" stroke="'+col+'" stroke-width="'+(s.width||(s.base?1.3:1.8))+'"'+(s.base?' stroke-dasharray="5 4" opacity=".85"':'')+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
+    });
+    /* marks: {m, v, label} */
+    (o.marks||[]).forEach(function(mk){ body+='<circle cx="'+x(mk.m).toFixed(1)+'" cy="'+y(mk.v).toFixed(1)+'" r="4" fill="none" stroke="'+(mk.color||'var(--ink)')+'" stroke-width="1.2"/><text class="mk" x="'+(x(mk.m)+7).toFixed(1)+'" y="'+(y(mk.v)+(mk.below?12:-6)).toFixed(1)+'">'+esc(mk.label)+'</text>'; });
+    /* selected month: cursor + right-edge values, pushed apart when they collide */
+    var sel = o.sel, cur='';
+    if(sel!==undefined && sel!==null){
+      var sx=x(sel).toFixed(1); cur+='<line class="cur" x1="'+sx+'" x2="'+sx+'" y1="'+T+'" y2="'+(T+ph)+'"/>';
+      var labs=[]; o.series.forEach(function(s){ if(!s.label || s.base) return; var v = s.k==='band' ? s.hi[sel] : s.pts[sel]; if(v===null||v===undefined||!isFinite(v)) return; labs.push({ y:y(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label }); });
+      labs.sort(function(a,b){ return a.y-b.y; }); for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<12) labs[j].y=labs[j-1].y+12; } for(var j2=labs.length-2;j2>=0;j2--){ if(labs[j2+1].y>T+ph) labs[j2+1].y=T+ph; if(labs[j2+1].y-labs[j2].y<12) labs[j2].y=labs[j2+1].y-12; }
+      labs.forEach(function(l){ cur+='<text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+esc(l.n)+'</text>'; });
+    }
+    return '<svg class="ch" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" preserveAspectRatio="none" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+cur+'</svg>';
+  }
+  /* a chart block: title row (eyebrow · basis), legend, the svg */
+  function chartBlock(title, tag, legend, svg){
+    return '<div class="chb"><div class="fig-t"><span class="eyebrow">'+esc(title)+'</span>'+
+      (legend && legend.length ? '<span class="lg">'+legend.map(function(l){ return '<i style="background:'+l.c+'"'+(l.dash?' class="dash"':'')+'></i>'+esc(l.n); }).join('')+'</span>' : '')+
+      '<span class="basis">'+esc(tag)+'</span></div>'+svg+'</div>';
+  }
+  function seriesOf(res, f){ var a=[null]; for(var i=0;i<H;i++) a.push(f(res.months[i], i+1)); return a; }
+  function cumOf(res, f){ var a=[0], q=0; for(var i=0;i<H;i++){ q+=f(res.months[i]); a.push(q); } return a; }
+  /* the acquisition response under the laws in force at month t (a hypothesis may have moved them) — the engine's own function, evaluated per month */
+  function responseAt(res, A, t){ var m=res.months[t-1], a=Object.assign({}, A); if(m.interventions && m.interventions.changes) m.interventions.changes.forEach(function(c){ if(c.target==='sm'||c.target==='cacPerARR'||c.target==='maxMonthlyNewARR') a[c.target]=c.to; }); return E.acquisitionResponse(a); }
+  function gmAt(res, A, t){ var m=res.months[t-1], g=A.grossMargin; if(m.interventions && m.interventions.changes) m.interventions.changes.forEach(function(c){ if(c.target==='grossMargin') g=c.to; }); return g; }
+  function pctF(v){ return (v*100).toFixed(0)+'%'; }
+  function xF(v){ return v.toFixed(2)+'×'; }
+  function moF(v){ return v.toFixed(0)+' mo'; }
+  function n0(v){ return Math.round(v).toLocaleString('en-GB'); }
+  function reurP(v){ return '€'+Math.round(rc(v)).toLocaleString('en-GB'); }   /* per-customer money, to the euro, basis-aware */
+  function n0s(v){ return Math.round(v).toString(); }
+  function yoy(res, m, f){ if(m<=12) return null; var a=f(res.months[m-1]), b=f(res.months[m-13]); return b>0 ? a/b-1 : null; }
+  function yoyTag(v){ return v===null ? '' : '<span class="yoy">'+(v>=0?'+':'−')+pct(Math.abs(v),1)+' y/y</span>'; }
+  function dv(value, label, cls){ return '<div><div class="dv'+(cls?' '+cls:'')+'">'+value+'</div><div class="dl">'+label+'</div></div>'; }
+
+  /* ---- experiment marks (kept from the propagation pass, used sparingly) ---- */
   function rootKey(k){ return String(k).split('.')[0].split('[')[0]; }
   function chLabel(c){ var Fk=forceOf(c.key)||{}; return (LABEL||{})[c.key]||c.label||Fk.label||c.key; }
   function chText(c){ var Fk=forceOf(c.key)||{}, f=(LABEL_FMT||{})[c.key]||Fk.f||'eur'; if(c.key==='interventions') return '↯ hypothesis'; if(typeof c.from==='string') return c.from+' → '+c.to; if((c.from!==null&&typeof c.from==='object')||(c.to!==null&&typeof c.to==='object')) return 'components changed'; if(c.from===null||c.to===null) return (c.from===null?'off':'on')+' → '+(c.to===null?'off':'on'); return fmtF(f,c.from)+' → '+fmtF(f,c.to); }
-  function chMark(c){
-    var body = (typeof c.from==='string') ? esc(c.from)+' → <b>'+esc(c.to)+'</b>' : fmtChange(c);
-    return '<div class="mark"><span class="mk-l">'+esc(chLabel(c))+'</span><span class="mk-v">'+body+'</span></div>';
-  }
+  function chMark(c){ var body = (typeof c.from==='string') ? esc(c.from)+' → <b>'+esc(c.to)+'</b>' : fmtChange(c); return '<div class="mark"><span class="mk-l">'+esc(chLabel(c))+'</span><span class="mk-v">'+body+'</span></div>'; }
   function marksFor(CH, roots){ var mk = CH.filter(function(c){ return roots.indexOf(rootKey(c.key))>=0; }); return mk.length ? '<div class="marks">'+mk.map(chMark).join('')+'</div>' : ''; }
-  /* a delta on a primary state: +€5.5m vs Base · +186 vs Base · +1.2 pp vs Base. `good` = the economic direction of an increase */
-  function vsN(v, b, fmtAbs, good, tol){ if(v===null||v===undefined||b===null||b===undefined) return ''; var d=v-b; if(Math.abs(d) < (tol===undefined?1:tol)) return ''; var cl = !good ? 'flat' : (d*good>0 ? 'up' : 'down'); return '<span class="vs '+cl+'">'+(d>=0?'+':'−')+fmtAbs(Math.abs(d))+' vs Base</span>'; }
-  function vsPP(v, b, good){ return vsN(v, b, function(a){ return (a*100).toFixed(1)+' pp'; }, good, 5e-4); }
-  function n0(v){ return Math.round(v).toLocaleString('en-GB'); }
-  function n1(v){ return v.toFixed(1); }
-  /* the first month the experiment's ARR (or cash) leaves the Base */
-  function effectFrom(){
-    var a=null, c=null;
-    for(var i=0;i<H;i++){ var xm=expRes.months[i], bm=baseRes.months[i];
-      if(a===null && Math.abs(xm.closingARR-bm.closingARR)>1) a=i+1;
-      if(c===null && Math.abs(xm.cashClosing-bm.cashClosing)>1) c=i+1;
-      if(a!==null && c!==null) break; }
-    return { arr:a, cash:c };
+  function effectFrom(){ var a=null, c=null; for(var i=0;i<H;i++){ var xm=expRes.months[i], bm=baseRes.months[i]; if(a===null && Math.abs(xm.closingARR-bm.closingARR)>1) a=i+1; if(c===null && Math.abs(xm.cashClosing-bm.cashClosing)>1) c=i+1; if(a!==null && c!==null) break; } return { arr:a, cash:c }; }
+
+  /* ---- levers: the rail's own controls, mirrored on the lens that they shape.
+     The nodes are built once and re-attached across renders, so a drag is never interrupted. ---- */
+  var LEVERS = {};
+  function leverBar(lensId, keys){
+    var bar = LEVERS[lensId];
+    if(!bar){
+      bar = document.createElement('div'); bar.className='levers'; bar.dataset.lens=lensId; LEVERS[lensId]=bar;
+      keys.forEach(function(k){
+        var F = forceOf(k); if(!F) return;
+        var row = document.createElement('div'); row.className='lever'; row.dataset.k=k;
+        row.innerHTML = '<span class="ll">'+kindGlyph(F)+esc(F.label)+'</span><span class="lv" id="lv-'+k+'"></span>'+
+          (F.nullable ? '<button class="btn nulltog" data-tog="'+k+'">off</button>' : '')+
+          '<input type="range" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'" data-for="'+k+'">';
+        var inp = row.querySelector('input');
+        inp.addEventListener('input', function(){ var r=document.getElementById('f-'+k); if(!r) return; r.value=this.value; r.dispatchEvent(new Event('input')); });
+        var tg = row.querySelector('[data-tog]'); if(tg) tg.addEventListener('click', function(){ var b=document.querySelector('[id="t-'+k+'"]'); if(b) b.click(); });
+        bar.appendChild(row);
+      });
+    }
+    return bar;
   }
-  /* a vertical flow: nodes (values) and valves (laws, constraints, off mechanisms) on one rail */
-  function fnode(kind, value, label, extra){ return '<div class="fn'+(kind?' '+kind:'')+'"><b>'+value+'</b><span>'+esc(label)+'</span>'+(extra||'')+'</div>'; }
-  function fvalve(kind, text, extra){ return '<div class="fv '+kind+'"><span>'+text+'</span>'+(extra||'')+'</div>'; }
-  function same(label){ return '<div class="same">'+esc(label)+' · unchanged vs Base</div>'; }
-  function near(a, b, tol){ return Math.abs(a-b) < (tol===undefined?1:tol); }
+  function syncLevers(){
+    Object.keys(LEVERS).forEach(function(id){ var bar=LEVERS[id]; [].forEach.call(bar.querySelectorAll('.lever'), function(row){
+      var k=row.dataset.k, F=forceOf(k), r=document.getElementById('f-'+k), inp=row.querySelector('input'), val=row.querySelector('.lv'), tg=row.querySelector('[data-tog]');
+      if(!F || !r) return;
+      var v = getK(expA, k), off = F.nullable && (v===null || v===undefined || !isFinite(v));
+      if(document.activeElement!==inp){ inp.value = off ? r.value : v; }
+      inp.disabled = r.disabled || off; val.textContent = off ? 'off' : fmtF(F.f, v); val.classList.toggle('off', off);
+      if(tg){ tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off); }
+    }); });
+  }
+  function placeLevers(){ [].forEach.call(document.querySelectorAll('#side .lever-slot'), function(slot){ var bar=LEVERS[slot.dataset.lens]; if(bar){ slot.appendChild(bar); } }); syncLevers(); }
 
   function renderLenses(m, em, bm){
     var cuOn = !!em.customers, moOn = !!em.monetization, caOn = !!em.cash, ivOn = !!em.interventions;
-    var cuB = !!bm.customers, moB = !!bm.monetization, caB = !!bm.cash;
     var Mt = 'M'+m, w = trailing12(m);
-    var kpi = m>=12 ? K.measureR12M(expRes, m) : null, kpiB = m>=12 ? K.measureR12M(baseRes, m) : null;
-    var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null, cmB = cuB && m>=12 ? K.customerMeasures(baseRes, m) : null;
-    var mm = moOn && m>=12 ? K.monetizationMeasures(expRes, m) : null;
+    var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
+    var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
     var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || pairMode, eff = differs ? effectFrom() : {arr:null, cash:null};
     var sx = E.summarise(expRes), sb = E.summarise(baseRes);
     var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+    var S12 = function(f){ return sumM(expRes, w.from, w.to, f); };
     var h = '';
-    var offLayers = [];
-    if(!cuOn) offLayers.push('customers'); if(!moOn) offLayers.push('monetization'); if(!caOn) offLayers.push('cash');
-    var S12 = function(f){ return sumM(expRes, w.from, w.to, f); }, B12 = function(f){ return sumM(baseRes, w.from, w.to, f); };
+    var model = 'MODEL · ARR'+(cuOn?' · Customers':'')+(moOn?' · Monetization':'')+(caOn?' · Cash':'');
 
-    /* ================= 1. COMPANY — what company emerged? ================= */
+    /* ================= 1. COMPANY ================= */
     var dARR = em.closingARR-bm.closingARR;
     var revR12 = S12(function(x){ return x.revenue; }), ebR12 = S12(function(x){ return x.ebita; });
-    var arpa = cuOn ? em.closingARR/em.customers.closing : null, arpaB = cuB ? bm.closingARR/bm.customers.closing : null;
-    h += lensHead('1', 'What kind of company is this?', Mt, 'company') +
+    h += lensHead('1', 'What kind of company did these assumptions create?', Mt, 'company') +
       '<div class="hero"><span class="hv">'+reur(em.closingARR)+'</span><span class="hs">'+basis+'</span>'+
         '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
         (Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
       '<div class="desc">'+
-        (cuOn ? '<div><div class="dv">'+em.customers.closing.toFixed(0)+'</div><div class="dl">customers'+(cuB ? vsN(em.customers.closing, bm.customers.closing, n0, +1, 0.5) : '')+'</div></div>'+
-                '<div><div class="dv">'+reur(arpa)+'</div><div class="dl">'+basis+' per customer'+(cuB ? vsN(arpa, arpaB, reur, +1, 1) : '')+'</div></div>' : '')+
-        (kpi ? '<div><div class="dv meas">→ '+pct(kpi.nrr,1)+'</div><div class="dl">net dollar retention · R12M'+(kpiB ? vsPP(kpi.nrr, kpiB.nrr, +1) : '')+'</div></div>' : '')+
-        '<div><div class="dv law">⋈ '+pct(lawNow('grossMargin'),0)+'</div><div class="dl">gross margin · law</div></div>'+
-        '<div><div class="dv meas">→ '+(revR12>0 ? pct(ebR12/revR12,1) : '—')+'</div><div class="dl">EBITA margin · '+w.tag+'</div></div>'+
-        '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · trough '+eur(sx.cashTrough)+' at M'+sx.cashTroughMonth+vsN(em.cashClosing, bm.cashClosing, eur, +1, 1)+'</div></div>'+
+        dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+
+        dv('⋈ '+pct(lawNow('grossMargin'),0), 'gross margin · law', 'law')+
+        dv('→ '+(revR12>0 ? pct(ebR12/revR12,1) : '—'), 'EBITA margin · '+w.tag, 'meas')+
+        dv(eur(em.cashClosing), 'cash · trough '+eur(sx.cashTrough)+' at M'+sx.cashTroughMonth)+
       '</div>'+
-      (differs && CH.length ? '<div class="marks company"><span class="eyebrow">Changed</span>'+CH.slice(0,4).map(chMark).join('')+(CH.length>4 ? '<div class="hint">+ '+(CH.length-4)+' more · see Compare</div>' : '')+
-          '<div class="hint">'+(eff.arr ? basis+' leaves Base from M'+eff.arr : basis+' stays on Base')+(eff.cash ? ' · cash from M'+eff.cash : ' · cash on Base')+'</div></div>' : '')+
+      '<div class="model"><span>'+model+'</span>'+(differs && CH.length ? '<span class="chg">'+CH.slice(0,3).map(function(c){ return esc(chLabel(c))+' '+esc(chText(c)); }).join(' · ')+(CH.length>3 ? ' · +'+(CH.length-3) : '')+(eff.arr ? ' · from M'+eff.arr : '')+'</span>' : '')+'</div>'+
       (ivOn ? '<div class="hyprow">'+(em.interventions.changes.length
           ? em.interventions.changes.map(function(ch){ return '<b>hypothesis '+esc(ch.id)+'</b> in force · '+esc(hypTargetLabel(ch.target))+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('<br>')
           : '<b>hypothesis</b> not in force this month')+(em.interventionCost>0 ? ' · cost '+eur(em.interventionCost)+' this month' : '')+'</div>' : '')+
-      (offLayers.length ? '<div class="lens-off">This world carries no '+offLayers.join(', no ')+' layer'+(offLayers.length>1?'s':'')+'. Change adds '+(offLayers.length>1?'them':'it')+'.</div>' : '')+
       '</div>';
     h += nav;
 
-    /* ================= 2. CUSTOMERS — customers × economics per customer = recurring revenue ================= */
+    /* ================= 2. CUSTOMERS ================= */
+    var cumNewX = cumOf(expRes, function(x){ return x.newARR; }), cumExX = cumOf(expRes, function(x){ return x.expansion-x.leakage; });
+    var cumNewB = cumOf(baseRes, function(x){ return x.newARR; }), cumExB = cumOf(baseRes, function(x){ return x.expansion-x.leakage; });
+    var totX = cumNewX.map(function(v,i){ return v+cumExX[i]; }), totB = cumNewB.map(function(v,i){ return v+cumExB[i]; });
+    var growthChart = chartBlock('Where '+basis+' growth came from · cumulative since M0', Mt, [{n:'new customers', c:'var(--exp)'}, {n:'existing base · expansion − contraction − churn', c:'var(--ink-3)'}, {n:'Base', c:'var(--base)', dash:true}],
+      chart({ h:210, sel:m, yFmt:reur, aria:'cumulative ARR growth split into new customers and the existing base', series:[
+        { k:'band', lo:cumNewX.map(function(){ return 0; }), hi:cumNewX, color:'var(--exp)', opacity:0.32, edge:true, label:'new customers', fmt:reurS },
+        { k:'band', lo:cumNewX, hi:totX, color:'var(--ink-3)', opacity:0.35, label:'existing base', fmt:reurS },
+        { k:'line', pts:totX, color:'var(--ink)', width:1.2, label:'total', fmt:reurS },
+        { k:'line', pts:totB, color:'var(--base)', base:true } ] }));
     if(cuOn){
-      var cu = em.customers;
-      h += lensHead('2', 'What is happening to the installed base, and to the economics per customer?', Mt, 'customers');
+      var cu = em.customers, arpa = em.closingARR/cu.closing;
+      var custX = seriesOf(expRes, function(x){ return x.customers.closing; }), custB = bm.customers ? seriesOf(baseRes, function(x){ return x.customers.closing; }) : null;
+      var arpaX = seriesOf(expRes, function(x){ return x.closingARR/x.customers.closing; }), arpaB = bm.customers ? seriesOf(baseRes, function(x){ return x.closingARR/x.customers.closing; }) : null;
+      custX[0]=expRes.months[0].customers.opening; arpaX[0]=expRes.months[0].openingARR/expRes.months[0].customers.opening;
+      if(custB){ custB[0]=baseRes.months[0].customers.opening; arpaB[0]=baseRes.months[0].openingARR/baseRes.months[0].customers.opening; }
+      h += lensHead('2', 'How is the customer base developing?', Mt, 'customers');
       h += marksFor(CH, ['logoRetentionAnnual','contractionAnnual','newLogoARPA']);
-      h += '<div class="ident">'+
-        '<span class="it"><b>'+n0(cu.closing)+'</b><i>customers</i>'+(cuB ? vsN(cu.closing, bm.customers.closing, n0, +1, 0.5) : '')+'</span><span class="op">×</span>'+
-        '<span class="it"><b>'+reur(arpa)+'</b><i>'+basis+' per customer · derived</i>'+(cuB ? vsN(arpa, arpaB, reur, +1, 1) : '')+'</span><span class="op">=</span>'+
-        '<span class="it"><b>'+reur(em.closingARR)+'</b><i>'+basis+'</i>'+vsN(em.closingARR, bm.closingARR, reur, +1, 1)+'</span></div>';
       h += '<div class="desc">'+
-        '<div><div class="dv meas">→ '+(cm ? pct(cm.logoRetentionR12M,1) : 'needs 12 mo')+'</div><div class="dl">logo retention · R12M'+(cm && cmB ? vsPP(cm.logoRetentionR12M, cmB.logoRetentionR12M, +1) : '')+'</div></div>'+
-        '<div><div class="dv meas">→ '+(kpi ? pct(kpi.grr,1) : 'needs 12 mo')+'</div><div class="dl">gross dollar retention · R12M'+(kpi && kpiB ? vsPP(kpi.grr, kpiB.grr, +1) : '')+'</div></div>'+
-        '<div><div class="dv meas">→ '+(kpi ? pct(kpi.nrr,1) : 'needs 12 mo')+'</div><div class="dl">net dollar retention · R12M'+(kpi && kpiB ? vsPP(kpi.nrr, kpiB.nrr, +1) : '')+'</div></div>'+
-        '<div><div class="dv derived">⋈ '+(expRes.derived.persistenceAnnualEffective===null ? 'emergent' : pct(expRes.derived.persistenceAnnualEffective,1))+'</div><div class="dl">persistence · '+(expRes.derived.persistenceAnnualEffective===null ? 'from the revenue mix' : 'L × (1 − C), derived')+'</div></div>'+
+        dv(n0(cu.closing)+yoyTag(yoy(expRes, m, function(x){ return x.customers.closing; })), 'customers')+
+        dv(reur(arpa)+yoyTag(yoy(expRes, m, function(x){ return x.closingARR/x.customers.closing; })), basis+' per customer')+
+        dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+
+        dv(cm ? '→ '+pct(cm.logoRetentionR12M,1) : '→ needs 12 mo', 'logo retention · R12M', 'meas')+
+        dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+
         '</div>';
-      var arrRows = [{k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
-        {k:'out', n:'− left · churned logos', v:-cu.logoChurnARR, f:reur(cu.logoChurnARR), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
-        {k:'out', n:'− stayed but shrank · contraction', v:-cu.contractionARR, f:reur(cu.contractionARR), law:'⋈ '+pct(lawNow('contractionAnnual'),0)}];
-      if(moOn) arrRows.push({k:'in', n:'+ expanded · price + usage + adoption', v:em.monetization.priceARR+em.monetization.usageARR+em.monetization.adoptionARR, f:reur(em.monetization.priceARR+em.monetization.usageARR+em.monetization.adoptionARR)});
-      else arrRows.push({k:'in', n:'+ expanded', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)});
-      arrRows.push({k:'in', n:'+ new customers', v:em.newARR, f:reur(em.newARR)}, {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)});
-      h += '<div class="two">'+
-        figT('Customer base · logos', Mt+' · month') + ladder([
-          {k:'stock', n:'Opening', v:cu.opening, f:n1(cu.opening)},
-          {k:'in', n:'+ new logos', v:cu.newCustomers, f:n1(cu.newCustomers)},
-          {k:'out', n:'− left · churned', v:-cu.logoChurn, f:n1(cu.logoChurn), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
-          {k:'stock', n:'Closing', v:cu.closing, f:n1(cu.closing)}]) + '</div>'+
-        figT('Customer economics · '+basis, Mt+' · month') + ladder(arrRows) + '</div>'+
-        '</div>';
-      /* ARR growth = customer growth × ARPA development — exact, because ARR = customers × ARPA */
-      var m0 = m>12 ? expRes.months[m-13] : null;
-      if(m0 && m0.customers){
-        var c0=m0.customers.closing, c1=cu.closing, a0=m0.closingARR/c0, a1=em.closingARR/c1, gc=c1/c0-1, ga=a1/a0-1, gA=em.closingARR/m0.closingARR-1;
-        h += '<div class="decomp"><div class="fig-t"><span class="eyebrow">'+basis+' growth = customer growth × ARPA development · M'+(m-12)+' → '+Mt+'</span><span class="basis">R12M</span></div>'+
-          '<div class="ident small"><span class="it"><b>'+relS(gc)+'</b><i>customers · '+n0(c0)+' → '+n0(c1)+'</i></span><span class="op">×</span><span class="it"><b>'+relS(ga)+'</b><i>ARPA · '+reur(a0)+' → '+reur(a1)+'</i></span><span class="op">=</span><span class="it"><b>'+relS(gA)+'</b><i>'+basis+'</i></span></div>'+
-          '<div class="hint">(1 + customers)(1 + ARPA) − 1: exact, because '+basis+' is customers × '+basis+' per customer.</div></div>';
-      }
-      if(differs && cuB && near(cu.closing, bm.customers.closing, 0.05) && near(cu.logoChurn, bm.customers.logoChurn, 0.01) && !near(em.closingARR, bm.closingARR)) h += same('Customer base');
+      h += chartBlock('Customer base development', Mt, [{n:'customers', c:'var(--exp)'}, {n:basis+' per customer', c:'var(--ink)'}, {n:'Base', c:'var(--base)', dash:true}],
+        chart({ h:118, sel:m, yFmt:n0s, yMin:0, aria:'customers over 60 months', series:[ { k:'area', pts:custX, color:'var(--exp)', opacity:0.16, label:'customers', fmt:n0 } ].concat(custB ? [{ k:'line', pts:custB, color:'var(--base)', base:true }] : []) })+
+        chart({ h:118, sel:m, yFmt:reurP, yMin:0, aria:'ARR per customer over 60 months', series:[ { k:'line', pts:arpaX, color:'var(--ink)', width:1.6, label:basis+' / customer', fmt:reurP } ].concat(arpaB ? [{ k:'line', pts:arpaB, color:'var(--base)', base:true }] : []) }));
+      h += growthChart;
     } else {
-      h += lensHead('2', 'What installed base produces the revenue?', Mt, 'customers');
-      h += '<div class="reduced"><div class="eyebrow">Installed base · '+basis+' only</div>'+
-        '<div class="lens-off">Customer Physics off — '+basis+' is modelled without logos: leakage is one number and persistence one law. Enabling Customer Physics separates who left from who stayed but shrank.</div>'+
-        marksFor(CH, ['persistenceAnnual','expansionCoefficientAnnual'])+
-        '<div class="ident"><span class="it"><b>'+reur(em.closingARR)+'</b><i>'+basis+' · one balance per cohort</i>'+vsN(em.closingARR, bm.closingARR, reur, +1, 1)+'</span></div>'+
-        figT('Installed-base movement', Mt+' · month') + ladder([
-          {k:'stock', n:'Opening', v:em.openingARR, f:reur(em.openingARR)},
-          {k:'out', n:'− leakage', v:-em.leakage, f:reur(em.leakage), law:'⋈ '+pct(lawNow('persistenceAnnual'),0)},
-          {k:'in', n:'+ expansion', v:em.expansion, f:reur(em.expansion), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)},
-          {k:'in', n:'+ new '+basis, v:em.newARR, f:reur(em.newARR)},
-          {k:'stock', n:'Closing', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>' +
-        '<div class="readouts">'+ro('gross dollar retention · R12M', kpi ? pct(kpi.grr,1) : 'needs 12 mo')+ro('net dollar retention · R12M', kpi ? pct(kpi.nrr,1) : 'needs 12 mo')+ro('persistence', pct(lawNow('persistenceAnnual'),1), 'law')+'</div>'+
-        installedBaseNet(em)+'</div>';
+      h += lensHead('2', 'How is the customer base developing?', Mt, 'customers');
+      h += '<div class="desc">'+dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+dv(kpi ? '→ '+pct(kpi.grr,1) : '→ needs 12 mo', 'gross dollar retention · R12M', 'meas')+dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+'</div>'+
+        '<div class="offnote"><span class="eyebrow">Customer physics off</span>Customers and '+basis+' per customer are not modelled in this world: recurring revenue is one balance per cohort. The split below is the installed base as a whole.</div>'+
+        installedBaseNet(em);
+      h += growthChart;
     }
     h += '</div>';
 
-    /* ================= 3. GROWTH ENGINE — capital → acquisition → new ARR → cohort ================= */
-    var qx = expRes.derived.acquisition, qb = baseRes.derived.acquisition, satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0, lag = expRes.derived.acquisitionLagMonths;
-    var newR12 = S12(function(x){ return x.newARR; }), expR12 = S12(function(x){ return x.expansion; }), leakR12 = S12(function(x){ return x.leakage; });
-    var arrPrev = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
-    var alive = E.cohortSnapshot(expRes,m).length;
-    var acqSame = differs && near(em.sm, bm.sm) && near(em.acquisitionLawNewARR, bm.acquisitionLawNewARR) && near(em.newARR, bm.newARR) && near(qx.averageCAC, qb.averageCAC, 1e-6);
-    h += lensHead('3', 'How is capital becoming new recurring revenue?', Mt, 'growth');
+    /* ================= 3. GROWTH ENGINE ================= */
+    var qx = expRes.derived.acquisition, satOn = E.saturationEnabled(expA);
+    var avgX=[null], margX=[null], pbAX=[null], pbMX=[null], avgB=[null], margB=[null], pbAB=[null], pbMB=[null], measX=[null];
+    for(var t=1;t<=H;t++){ var rx=responseAt(expRes, expA, t), gx=gmAt(expRes, expA, t), rb=responseAt(baseRes, baseA, t), gb=gmAt(baseRes, baseA, t);
+      avgX.push(rx.averageCAC); margX.push(rx.marginalCAC); pbAX.push(rx.averageCAC*12/gx); pbMX.push(rx.marginalCAC*12/gx);
+      avgB.push(rb.averageCAC); margB.push(rb.marginalCAC); pbAB.push(rb.averageCAC*12/gb); pbMB.push(rb.marginalCAC*12/gb);
+      var am=K.acquisitionMeasures(expRes, t); measX.push(t >= 12 + expRes.derived.acquisitionLagMonths ? am.measuredCACR12M : null); }   /* measured once a full trailing window has realised */
+    var realised=[]; for(var i=0;i<=H;i++) realised.push(null);
+    expRes.cohorts.forEach(function(c, k){ if(c.acquisitionMonth>0 && c.acquisitionCost!==null){ var cc=CAP.cohortCapital(expRes, k); if(cc.paybackAge!==null) realised[c.acquisitionMonth]=cc.paybackAge; } });
+    var baseDiff = Math.abs(avgX[m]-avgB[m])>1e-6 || Math.abs(margX[m]-margB[m])>1e-6;
+    h += lensHead('3', 'How efficiently is growth investment becoming new '+basis+'?', Mt, 'growth');
     h += marksFor(CH, ['sm','cacPerARR','maxMonthlyNewARR','acquisitionLagMonths']);
-    h += '<div class="engine"><div class="vflow">'+
-      fnode('input', eur(em.sm), 'S&M this month · capital in', vsN(em.sm, bm.sm, eur, 0, 1))+
-      fvalve('law', '⋈ CAC coefficient <b>'+lawNow('cacPerARR').toFixed(2)+'×</b> · € of S&amp;M per €1 of new ARR at low spend')+
-      (satOn ? fvalve('cons', '⌈⌉ capacity <b>'+eur(lawNow('maxMonthlyNewARR'))+'/mo</b> · '+pct(qx.utilisation,0)+' used · each extra euro buys less'+(qb.enabled && !near(qx.utilisation, qb.utilisation, 5e-3) ? vsPP(qx.utilisation, qb.utilisation, 0) : ''))
-             : fvalve('off', 'no capacity · linear: every euro buys the same ARR'))+
-      fnode('', reur(em.acquisitionLawNewARR), basis+' committed this month', vsN(em.acquisitionLawNewARR, bm.acquisitionLawNewARR, reur, +1, 1))+
-      (lagOn ? fvalve('law', '⋈ lag <b>'+lag+' mo</b> · '+reur(em.pendingNewARR)+' committed, not yet arrived') : fvalve('off', 'no lag · arrives the month it is bought'))+
-      fnode('stock', reur(em.newARR)+(cuOn ? ' · '+n1(em.customers.newCustomers)+' logos' : ''), basis+' arrives · cohort '+Mt+' · '+alive+' alive', vsN(em.newARR, bm.newARR, reur, +1, 1))+
-      '</div>'+
-      '<div class="engine-side"><div class="eyebrow">Measured · at this spend</div>'+
-        '<div class="mrow"><span>Average CAC</span><b>→ '+qx.averageCAC.toFixed(2)+'×</b><i>'+vsN(qx.averageCAC, qb.averageCAC, function(a){ return a.toFixed(2)+'×'; }, -1, 5e-3)+'</i></div>'+
-        '<div class="mrow"><span>Marginal CAC · next euro</span><b>→ '+qx.marginalCAC.toFixed(2)+'×</b><i>'+vsN(qx.marginalCAC, qb.marginalCAC, function(a){ return a.toFixed(2)+'×'; }, -1, 5e-3)+'</i></div>'+
-        '<div class="mrow"><span>Payback · average</span><b>→ '+qx.averagePaybackMonths.toFixed(1)+' mo</b><i>'+vsN(qx.averagePaybackMonths, qb.averagePaybackMonths, function(a){ return a.toFixed(1)+' mo'; }, -1, 0.05)+'</i></div>'+
-        (satOn ? '<div class="mrow"><span>Payback · marginal</span><b>→ '+qx.marginalPaybackMonths.toFixed(1)+' mo</b><i>'+vsN(qx.marginalPaybackMonths, qb.marginalPaybackMonths, function(a){ return a.toFixed(1)+' mo'; }, -1, 0.05)+'</i></div>' : '')+
-        (lagOn ? (function(){ var am = K.acquisitionMeasures(expRes, m); return '<div class="mrow"><span>Measured CAC · trailing 12 · realised</span><b>→ '+(am.measuredCACR12M===null ? '—' : am.measuredCACR12M.toFixed(2)+'×')+'</b><i></i></div>'; })() : '')+
-        '<div class="hint">The coefficient is a law you set. Average and marginal CAC are measurements of the response at this spend'+(satOn ? '; under the capacity the marginal euro buys less than the average one.' : '; without a capacity they equal the coefficient.')+'</div>'+
-        (satOn ? responseCurve(qx) : '')+
-      '</div></div>';
-    if(acqSame) h += same('Acquisition');
-    else if(differs && !CH.some(function(c){ return ['sm','cacPerARR','maxMonthlyNewARR','acquisitionLagMonths'].indexOf(rootKey(c.key))>=0; }) && !near(em.newARR, bm.newARR)) h += same('Acquisition laws');
-    /* where the growth came from — acquisition against the installed base */
-    var ibParts = moOn ? [{n:'installed base · price + usage + adoption', v:S12(function(x){ return x.monetization.priceARR+x.monetization.usageARR+x.monetization.adoptionARR; }), c:'var(--exp)'}] : [{n:'installed base · expansion', v:expR12, c:'var(--exp)'}];
-    var outParts = cuOn ? '− churned '+reur(S12(function(x){ return x.customers.logoChurnARR; }))+' · − contraction '+reur(S12(function(x){ return x.customers.contractionARR; })) : '− leakage '+reur(leakR12);
-    h += figT('Where the growth came from', w.tag) +
-      comp([{n:'acquisition · new '+basis, v:newR12, c:'var(--in)', f:reur(newR12)}].concat(ibParts.map(function(p){ p.f=reur(p.v); return p; }))) +
-      '<div class="comp-l" style="margin-top:2px"><span>'+outParts+'</span><span>net <b>'+reurS(newR12+ibParts[0].v-leakR12)+'</b> on '+reur(arrPrev)+'</span></div></div>';
-    if(!satOn) h += '<div class="lens-off">Acquisition is linear and unbounded: every euro of S&amp;M buys the same ARR. A capacity makes the marginal euro do less.</div>';
+    h += '<div class="desc">'+
+      dv(eur(em.sm), 'S&M · month')+
+      dv(reur(em.newARR), 'new '+basis+' · month')+
+      dv('→ '+xF(avgX[m]), 'average CAC · € per €1 of new ARR', 'meas')+
+      dv('→ '+xF(margX[m]), 'marginal CAC · the next euro', 'meas')+
+      dv('→ '+pbAX[m].toFixed(1)+' mo', 'payback · average', 'meas')+
+      '</div>';
+    leverBar('growth', ['sm','cacPerARR','maxMonthlyNewARR']);
+    h += '<div class="lever-slot" data-lens="growth"></div>';
+    h += chartBlock('Acquisition efficiency', Mt, [{n:'average CAC', c:'var(--exp)'}, {n:'marginal CAC', c:'var(--law)'}, {n:'Measured CAC · trailing 12', c:'var(--ink-2)'}].concat(baseDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+      chart({ h:200, sel:m, yFmt:xF, yMin:0, aria:'average and marginal CAC over 60 months', series:[
+        { k:'line', pts:avgX, color:'var(--exp)', label:'average', fmt:xF }, { k:'line', pts:margX, color:'var(--law)', label:'marginal', fmt:xF }, { k:'line', pts:measX, color:'var(--ink-2)', width:1.2, label:'measured', fmt:xF } ]
+        .concat(baseDiff ? [{ k:'line', pts:avgB, color:'var(--base)', base:true }, { k:'line', pts:margB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
+    h += chartBlock('Acquisition payback · average, marginal, realised', Mt, [{n:'average payback', c:'var(--exp)'}, {n:'marginal payback', c:'var(--law)'}, {n:'realised · cohort by vintage', c:'var(--ink)'}].concat(baseDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+      chart({ h:200, sel:m, yFmt:moF, yMin:0, aria:'payback months over 60 months', series:[
+        { k:'line', pts:pbAX, color:'var(--exp)', label:'average', fmt:function(v){ return v.toFixed(1)+' mo'; } }, { k:'line', pts:pbMX, color:'var(--law)', label:'marginal', fmt:function(v){ return v.toFixed(1)+' mo'; } }, { k:'dots', pts:realised, color:'var(--ink)' } ]
+        .concat(baseDiff ? [{ k:'line', pts:pbAB, color:'var(--base)', base:true }, { k:'line', pts:pbMB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
+    if(!satOn) h += '<div class="offnote"><span class="eyebrow">No capacity</span>Acquisition is linear: average and marginal CAC coincide, and the coefficient is the whole law.</div>';
     h += '</div>';
 
-    /* ================= 4. MONETIZATION — what revenue is made of · why it changed ================= */
+    /* ================= 4. MONETIZATION ================= */
+    h += lensHead('4', 'What are customers paying for?', Mt, 'monetization');
     if(moOn){
       var mo = em.monetization, comps = (expA.monetization && expA.monetization.components) || [], fixedName = (comps.filter(function(c){ return c.kind!=='variable'; })[0]||{}).name||'fixed', varName = (comps.filter(function(c){ return c.kind==='variable'; })[0]||{}).name||'usage';
-      var tot = mo.fixedARR+mo.variableARR, vShare = tot>0 ? mo.variableARR/tot : 0, vShareB = moB ? bm.monetization.variableARR/(bm.monetization.fixedARR+bm.monetization.variableARR) : null;
-      h += lensHead('4', 'What is revenue made of, and why is it changing?', Mt, 'monetization');
+      var tot = mo.fixedARR+mo.variableARR, vShare = tot>0 ? mo.variableARR/tot : 0;
+      var fixX = seriesOf(expRes, function(x){ return x.monetization.fixedARR; }), varX = seriesOf(expRes, function(x){ return x.monetization.fixedARR+x.monetization.variableARR; });
+      fixX[0]=null; varX[0]=null;
+      var totBm = bm.monetization ? seriesOf(baseRes, function(x){ return x.closingARR; }) : null;
       h += marksFor(CH, ['monetization']);
-      h += '<div class="fig-t"><span class="eyebrow">Composition · what '+basis+' is made of</span><span class="basis">'+Mt+'</span></div>'+
-        '<div class="ident small"><span class="it"><b>'+reur(tot)+'</b><i>'+basis+'</i></span><span class="op">=</span><span class="it"><b>'+reur(mo.fixedARR)+'</b><i>'+esc(fixedName)+' · fixed · '+pct(1-vShare,0)+'</i></span><span class="op">+</span><span class="it"><b>'+reur(mo.variableARR)+'</b><i>'+esc(varName)+' · variable · '+pct(vShare,0)+'</i>'+(vShareB!==null ? vsPP(vShare, vShareB, 0) : '')+'</span></div>'+
-        comp([{n:esc(fixedName)+' · fixed', v:mo.fixedARR, c:'var(--base)', f:reur(mo.fixedARR)}, {n:esc(varName)+' · variable', v:mo.variableARR, c:'var(--exp)', f:reur(mo.variableARR)}])+
-        (cuOn ? '<div class="comp-l" style="margin-top:2px"><span>per customer <b>'+reur(tot/em.customers.closing)+'</b> = '+reur(mo.fixedARR/em.customers.closing)+' '+esc(fixedName)+' + '+reur(mo.variableARR/em.customers.closing)+' '+esc(varName)+'</span></div>' : '');
-      var s0 = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
-      var mv = { n:S12(function(x){return x.newARR;}), ch:S12(function(x){return x.customers.logoChurnARR;}), co:S12(function(x){return x.monetization.contractionARR;}), pr:S12(function(x){return x.monetization.priceARR;}), us:S12(function(x){return x.monetization.usageARR;}), ad:S12(function(x){return x.monetization.adoptionARR;}) };
-      h += '<div class="rule"></div>'+figT('Movement · why '+basis+' changed', w.tag) + ladder([
-        {k:'stock', n:basis+' before', v:s0, f:reur(s0)},
-        {k:'in', n:'+ new customers', v:mv.n, f:reur(mv.n)},
-        {k:'out', n:'− churn · logos left', v:-mv.ch, f:reur(mv.ch), law:'⋈ '+pct(lawNow('logoRetentionAnnual'),0)},
-        {k:'out', n:'− contraction · usage shrank', v:-mv.co, f:reur(mv.co), law:'⋈ '+pct(lawNow('contractionAnnual'),0)},
-        {k:'in', n:'+ price', v:mv.pr, f:reur(mv.pr), law:'⋈ '+pct(lawNow('monetization.components[0].priceGrowthAnnual'),0)+' · '+pct(lawNow('monetization.components[1].priceGrowthAnnual'),0)},
-        {k:'in', n:'+ usage', v:mv.us, f:reur(mv.us), law:'⋈ '+pct(lawNow('monetization.components[1].usageGrowthAnnual'),0)},
-        {k:'in', n:'+ adoption', v:mv.ad, f:reur(mv.ad), law:'⋈ '+pct(lawNow('monetization.components[1].adoptionAnnual'),0)},
-        {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)}]) + '</div>';
-      var ib = mv.pr+mv.us+mv.ad;
-      h += figT('Installed-base growth by cause', w.tag) + comp([{n:'price', v:mv.pr, c:'var(--base)', f:reur(mv.pr)}, {n:'usage', v:mv.us, c:'var(--exp)', f:reur(mv.us)}, {n:'adoption', v:mv.ad, c:'rgba(139,141,240,.45)', f:reur(mv.ad)}]) +
-        (mm ? '<div class="comp-l" style="margin-top:2px"><span>of NRR '+pct(kpi?kpi.nrr:0,1)+': price '+pct(mm.priceEffectR12M,1)+' · usage '+pct(mm.usageEffectR12M,1)+' · adoption '+pct(mm.adoptionEffectR12M,1)+'</span><span>'+(ib>0 ? (mv.us/ib>0.5 ? 'usage-led' : mv.pr/ib>0.5 ? 'price-led' : mv.ad/ib>0.5 ? 'adoption-led' : 'mixed') : '—')+'</span></div>' : '')+'</div>';
-      if(differs && moB && !CH.some(function(c){ return rootKey(c.key)==='monetization'; }) && !near(em.closingARR, bm.closingARR)) h += same('Monetization laws')+'<div class="hint" style="margin-top:4px">The laws are Base\'s; the base they act on moved.</div>';
+      h += '<div class="desc">'+
+        dv(reur(tot)+yoyTag(em.arrGrowthYoY), basis)+
+        (cuOn ? dv(reur(tot/em.customers.closing), basis+' per customer') : '')+
+        dv(pct(1-vShare,0), esc(fixedName)+' · fixed')+
+        dv(pct(vShare,0), esc(varName)+' · variable')+
+        '</div>';
+      leverBar('monetization', ['monetization.components[0].priceAnnual','monetization.components[1].usageGrowthAnnual','monetization.components[1].adoptionAnnual']);
+      h += '<div class="lever-slot" data-lens="monetization"></div>';
+      h += chartBlock(basis+' composition', Mt, [{n:esc(fixedName)+' · fixed', c:'var(--base)'}, {n:esc(varName)+' · variable', c:'var(--exp)'}].concat(totBm && differs ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+        chart({ h:230, sel:m, yFmt:reur, yMin:0, aria:'ARR composition over 60 months', series:[
+          { k:'band', lo:fixX.map(function(){ return 0; }), hi:fixX, color:'var(--base)', opacity:0.55, edge:true, label:esc(fixedName)+' · '+pct(1-vShare,0), fmt:reur },
+          { k:'band', lo:fixX, hi:varX, color:'var(--exp)', opacity:0.42, edge:true, label:esc(varName)+' · '+pct(vShare,0), fmt:reur } ]
+          .concat(totBm && differs ? [{ k:'line', pts:totBm, color:'var(--base)', base:true }] : []) }));
     } else {
-      h += lensHead('4', 'What is revenue made of, and why did it change?', Mt, 'monetization');
-      var s0b = w.from>1 ? expRes.months[w.from-2].closingARR : expRes.months[0].openingARR;
-      var rowsB = [{k:'stock', n:basis+' before', v:s0b, f:reur(s0b)}, {k:'in', n:'+ new customers', v:S12(function(x){return x.newARR;}), f:reur(S12(function(x){return x.newARR;}))}];
-      if(cuOn) rowsB.push({k:'out', n:'− churn', v:-S12(function(x){return x.customers.logoChurnARR;}), f:reur(S12(function(x){return x.customers.logoChurnARR;}))}, {k:'out', n:'− contraction', v:-S12(function(x){return x.customers.contractionARR;}), f:reur(S12(function(x){return x.customers.contractionARR;}))});
-      else rowsB.push({k:'out', n:'− leakage', v:-S12(function(x){return x.leakage;}), f:reur(S12(function(x){return x.leakage;}))});
-      rowsB.push({k:'in', n:'+ expansion · one coefficient', v:S12(function(x){return x.expansion;}), f:reur(S12(function(x){return x.expansion;})), law:'⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)}, {k:'stock', n:basis+' now', v:em.closingARR, f:reur(em.closingARR)});
-      h += '<div class="reduced"><div class="eyebrow">Monetization off · one balance</div>'+
-        '<div class="lens-off">Monetization Physics off — revenue is one balance per cohort and expansion one coefficient. Enabling it prices each customer as components and names price, usage and adoption apart.</div>'+
-        marksFor(CH, ['expansionCoefficientAnnual'])+
-        '<div class="comp mono"><i style="width:100%;background:var(--stock)"></i></div><div class="comp-l"><span>'+reur(em.closingARR)+' · no components</span></div>'+
-        figT('Movement', w.tag) + ladder(rowsB) + '</div></div>';
+      var arrX = seriesOf(expRes, function(x){ return x.closingARR; });
+      h += '<div class="desc">'+dv(reur(em.closingARR)+yoyTag(em.arrGrowthYoY), basis)+(cuOn ? dv(reur(em.closingARR/em.customers.closing), basis+' per customer') : '')+dv('⋈ '+pct(lawNow('expansionCoefficientAnnual'),0), 'expansion · one coefficient', 'law')+'</div>'+
+        '<div class="offnote"><span class="eyebrow">Monetization physics off</span>Revenue is one balance per cohort: no components, no fixed or variable share. Enable Monetization to see what customers pay for.</div>';
+      h += chartBlock(basis+' · one balance', Mt, [{n:basis, c:'var(--stock)'}],
+        chart({ h:230, sel:m, yFmt:reur, yMin:0, aria:'ARR over 60 months, one balance', series:[ { k:'area', pts:arrX, color:'var(--stock)', opacity:0.18, label:basis, fmt:reur } ] }));
     }
     h += '</div>';
 
-    /* ================= 5. ECONOMICS & CASH — two paths ================= */
-    var P = function(k){ return S12(function(x){ return x[k]; }); }, PB = function(k){ return B12(function(x){ return x[k]; }); };
-    var rev=P('revenue'), cogs=P('cogs'), gp=P('grossProfit'), smS=P('sm'), rd=P('rd'), ga=P('ga'), xc=P('expansionCost'), ic=P('interventionCost'), eb=P('ebita'), fc=P('fcf');
-    var ebB=PB('ebita'), capReq = Math.max(0, expRes.start.openingCash - sx.cashTrough), capReqB = Math.max(0, baseRes.start.openingCash - sb.cashTrough);
-    h += lensHead('5', 'How does the economic engine become profit, and profit become cash?', w.tag, 'cash');
+    /* ================= 5. ECONOMICS & CASH ================= */
+    var P = function(k){ return S12(function(x){ return x[k]; }); };
+    var rev=P('revenue'), eb=P('ebita'), capReq = Math.max(0, expRes.start.openingCash - sx.cashTrough);
+    var revX=seriesOf(expRes, function(x){ return x.revenue; }), gpX=seriesOf(expRes, function(x){ return x.grossProfit; }), ebX=seriesOf(expRes, function(x){ return x.ebita; }), ebB=seriesOf(baseRes, function(x){ return x.ebita; });
+    var cashX=seriesOf(expRes, function(x){ return x.cashClosing; }), cashB=seriesOf(baseRes, function(x){ return x.cashClosing; }); cashX[0]=expRes.months[0].cashOpening; cashB[0]=baseRes.months[0].cashOpening;
+    var ebDiff = Math.abs(ebX[m]-ebB[m])>1, cashDiff = Math.abs(cashX[m]-cashB[m])>1;
+    h += lensHead('5', 'How does '+basis+' turn into profit and cash?', w.tag, 'cash');
     h += marksFor(CH, ['grossMargin','rd','ga','expansionCostPerARR','billingTermMonths','billingTiming','collectionDelayMonths']);
     h += '<div class="desc">'+
-      '<div><div class="dv">'+eur(rev)+'</div><div class="dl">revenue · '+w.tag+'</div></div>'+
-      '<div><div class="dv">'+eur(gp)+'</div><div class="dl">gross profit · <span class="law">⋈ GM '+pct(lawNow('grossMargin'),0)+'</span></div></div>'+
-      '<div><div class="dv">'+eur(eb)+'</div><div class="dl">EBITA · '+(rev>0 ? pct(eb/rev,1) : '—')+' margin'+vsN(eb, ebB, eur, +1, 1)+'</div></div>'+
-      '<div><div class="dv">'+eur(em.cashClosing)+'</div><div class="dl">cash · '+Mt+vsN(em.cashClosing, bm.cashClosing, eur, +1, 1)+'</div></div>'+
-      '<div><div class="dv">'+eur(sx.cashTrough)+'</div><div class="dl">cash trough · M'+sx.cashTroughMonth+vsN(sx.cashTrough, sb.cashTrough, eur, +1, 1)+'</div></div>'+
-      '<div><div class="dv">'+eur(capReq)+'</div><div class="dl">capital required · opening cash drawn'+vsN(capReq, capReqB, eur, -1, 1)+'</div></div>'+
+      dv(eur(rev), 'revenue · '+w.tag)+
+      dv(eur(eb), 'EBITA · '+w.tag)+
+      dv('→ '+(rev>0 ? pct(eb/rev,1) : '—'), 'EBITA margin · '+w.tag, 'meas')+
+      dv(eur(em.cashClosing), 'cash · '+Mt)+
+      dv(eur(sx.cashTrough), 'cash trough · M'+sx.cashTroughMonth)+
+      dv(eur(capReq), 'capital required · opening cash drawn')+
       '</div>';
-    var path1 = '<div class="path"><div class="eyebrow">Path 1 · Economics</div><div class="vflow">'+
-      fnode('input', eur(rev), 'revenue')+
-      fvalve('law', '⋈ gross margin <b>'+pct(lawNow('grossMargin'),0)+'</b> · − COGS '+eur(cogs))+
-      fnode('', eur(gp), 'gross profit')+
-      fvalve('cost', '− S&amp;M '+eur(smS)+' · R&amp;D '+eur(rd)+' · G&amp;A '+eur(ga)+(xc>0 ? ' · expansion cost '+eur(xc) : '')+(ic>0 ? ' · <span class="hyp">↯ hypothesis cost '+eur(ic)+'</span>' : ''))+
-      fnode('stock', eur(eb), 'EBITA · '+(rev>0 ? pct(eb/rev,1) : '—')+' margin', vsN(eb, ebB, eur, +1, 1))+
-      '</div></div>';
-    var path2;
-    if(caOn){
-      var c1=em.cash, c0=expRes.months[w.from-1].cash, dDef=c1.deferredClosing-c0.deferredOpening, dRec=c1.receivablesClosing-c0.receivablesOpening;
-      var bill=S12(function(x){ return x.cash.billings; }), coll=S12(function(x){ return x.cash.collections; }), cfcf=S12(function(x){ return x.cash.cashFCF; });
-      path2 = '<div class="path"><div class="eyebrow">Path 2 · Cash</div><div class="vflow">'+
-        fnode('input', eur(bill), 'billings · invoiced')+
-        fvalve('law', '⋈ billed <b>'+expRes.derived.cash.billingTermMonths+' mo '+expRes.derived.cash.billingTiming+'</b> · Δ deferred '+eurS(dDef))+
-        fnode('', eur(coll), 'collections')+
-        fvalve(expRes.derived.cash.collectionDelayMonths>0 ? 'law' : 'off', (expRes.derived.cash.collectionDelayMonths>0 ? '⋈ collected <b>+'+expRes.derived.cash.collectionDelayMonths+' mo</b>' : 'collected on invoice')+' · Δ receivables '+eurS(dRec))+
-        fvalve('cost', '− cash costs '+eur(S12(function(x){ return x.cash.cashCosts; })))+
-        fnode('', eur(cfcf), 'cash FCF · '+(eb!==0 ? (cfcf/eb).toFixed(2)+'× EBITA' : '—'), vsN(cfcf, B12(function(x){ return x.cash ? x.cash.cashFCF : x.fcf; }), eur, +1, 1))+
-        fnode('stock', eur(em.cashClosing), 'cash · '+Mt, vsN(em.cashClosing, bm.cashClosing, eur, +1, 1))+
-        '</div></div>';
-    } else {
-      path2 = '<div class="path off"><div class="eyebrow">Path 2 · Cash</div><div class="vflow">'+
-        fvalve('off', '= EBITA · no billing term, no collection delay')+
-        fnode('stock', eur(fc), 'cash FCF = EBITA', vsN(fc, PB('fcf'), eur, +1, 1))+
-        fnode('stock', eur(em.cashClosing), 'cash · '+Mt, vsN(em.cashClosing, bm.cashClosing, eur, +1, 1))+
-        '</div><div class="lens-off">Cash Physics off — modelled FCF = EBITA. Profit and cash move together; a billing term makes the two paths separate.</div></div>';
-    }
-    h += '<div class="paths'+(caOn ? '' : ' merged')+'">'+path1+path2+'</div>';
-    if(caOn && differs && near(eb, ebB, 1) && !near(em.cashClosing, bm.cashClosing, 1)) h += '<div class="same">P&amp;L · unchanged vs Base — only the cash path moved</div>';
+    h += chartBlock('Economics · monthly', Mt, [{n:'revenue', c:'var(--ink-2)'}, {n:'gross profit', c:'var(--ink)'}, {n:'EBITA', c:'var(--exp)'}].concat(ebDiff ? [{n:'Base EBITA', c:'var(--base)', dash:true}] : []),
+      chart({ h:200, sel:m, yFmt:eur, aria:'revenue, gross profit and EBITA per month over 60 months', series:[
+        { k:'line', pts:revX, color:'var(--ink-2)', width:1.3, label:'revenue' }, { k:'line', pts:gpX, color:'var(--ink)', width:1.3, label:'gross profit' }, { k:'area', pts:ebX, color:'var(--exp)', opacity:0.18, label:'EBITA' } ]
+        .concat(ebDiff ? [{ k:'line', pts:ebB, color:'var(--base)', base:true }] : []) }));
+    h += chartBlock('Cash', Mt, [{n:'cash balance', c:'var(--exp)'}].concat(cashDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []).concat(caOn ? [] : [{n:'FCF = EBITA · cash physics off', c:'transparent'}]),
+      chart({ h:200, sel:m, yFmt:eur, aria:'cash balance over 60 months', marks:[{ m:sx.cashTroughMonth, v:sx.cashTrough, label:'trough '+eur(sx.cashTrough)+' · M'+sx.cashTroughMonth, below:true }], series:[
+        { k:'area', pts:cashX, color:'var(--exp)', opacity:0.2, label:'cash' } ].concat(cashDiff ? [{ k:'line', pts:cashB, color:'var(--base)', base:true }] : []) }));
     h += '<details class="bnd pl" id="pl-details"><summary>Monthly P&amp;L waterfall · '+Mt+'</summary><div id="pl-slot"></div></details></div>';
     return h;
   }
@@ -6106,6 +6167,11 @@ details.pl .cascade{margin-top:8px}
   function parkCascade(){ var c=document.querySelector('.cascade'), p=document.getElementById('cascade-park'); if(c && p && c.parentNode!==p){ p.appendChild(c); } }
   function placeCascade(){ var c=document.querySelector('.cascade'), slot=document.getElementById('pl-slot'); if(c && slot){ slot.appendChild(c); c.hidden=false; } }
   var activeLens = 'company', figPref = {};
+  var leverDown = false, sideStale = false, figLegend = '';
+  document.addEventListener('pointerdown', function(e){ if(e.target && e.target.closest && e.target.closest('#side .levers')) leverDown = true; });
+  window.addEventListener('pointerup', function(){ if(leverDown){ leverDown = false; if(sideStale) renderSide(); } });
+  /* click on any lens chart: move the month there */
+  document.getElementById('side').addEventListener('click', function(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv) return; var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); playing = false; tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); });
   function setLens(id){
     activeLens = id;
     var side=document.getElementById('side'); side.dataset.active = id;
@@ -6117,9 +6183,9 @@ details.pl .cascade{margin-top:8px}
     var fw=document.getElementById('figwrap'), key=layer+':'+(layer==='stock'?activeLens:'');
     if(layer==='flow'){ fw.open=true; fw.classList.remove('tall'); return; }
     var inspect = layer==='stock' && pinned!==null;
-    var want = figPref[key]!==undefined ? figPref[key] : (layer!=='stock' || activeLens==='company' || activeLens==='customers' || inspect);
+    var want = figPref[key]!==undefined ? figPref[key] : (layer!=='stock' || activeLens==='company' || inspect);
     fw.classList.toggle('tall', layer==='stock' && activeLens==='company' && !inspect);
-    document.getElementById('fig-title').textContent = layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Formation · 60 months';
+    document.getElementById('fig-title').textContent = layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Company formation · 60 months';
     fw.dataset.silent='1'; fw.open = want; delete fw.dataset.silent;
     setTimeout(function(){ resize(); render(); }, 0);
   }
@@ -6170,9 +6236,20 @@ details.pl .cascade{margin-top:8px}
       h+='<div class="sgrp"><div class="hint">Anatomy is on — the strata have separated. Hover the mass to trace a vintage, click to hold its dossier here.</div></div>';
     }
 
-    var sideEl=document.getElementById('side'); sideEl.innerHTML=h;
+    var sideEl=document.getElementById('side');
+    var actBar = leverDown ? document.querySelector('#side .levers') : null;
+    if(actBar){
+      /* a lever is being dragged: swap the visible lens in place, keep the bar's node untouched */
+      var tmp=document.createElement('div'); tmp.innerHTML=h;
+      var lid=actBar.closest('.lens').id, oldL=document.getElementById(lid), newL=tmp.querySelector('#'+lid), slot=oldL && oldL.querySelector('.lever-slot');
+      if(newL && slot){ var kids=[].slice.call(newL.childNodes); [].slice.call(oldL.childNodes).forEach(function(n){ if(n!==slot) oldL.removeChild(n); });
+        var before=true; kids.forEach(function(n){ if(n.classList && n.classList.contains('lever-slot')){ before=false; return; } if(before) oldL.insertBefore(n, slot); else oldL.appendChild(n); }); }
+      var oc=document.getElementById('lens-company'), nc=tmp.querySelector('#lens-company'); if(oc && nc) oc.innerHTML=nc.innerHTML;
+      sideStale=true; syncLevers(); return;
+    }
+    sideEl.innerHTML=h; sideStale=false;
     sideEl.dataset.active = (pinned!==null && pinned<expS.C) ? 'inspect' : activeLens;
-    placeCascade();
+    placeCascade(); placeLevers();
     renderCausal(null, true);
     [].forEach.call(document.querySelectorAll('.lensnav .btn'), function(b){ b.addEventListener('click', function(){ setLens(b.dataset.lens); }); });
     var ib=document.getElementById('inspect-back'); if(ib) ib.addEventListener('click', function(){ pinned=null; capitalMode=anatomy=false; resize(); render(); renderSide(); });
@@ -7129,7 +7206,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }
   };
 })();
 </script>

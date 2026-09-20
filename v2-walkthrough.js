@@ -34,12 +34,12 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   await scrub(36);
   let t = await side();
   step('Where is the company at month 36, and what do the ARR-only KPIs say?',
-       ['World: ARR physics (the frozen Base). Company lens, month 36, MRR basis.'].concat(desc(t, ['MRR', 'cash · trough €6.10m at M13', 'EBITA margin · R12M', 'gross margin · law'])).concat(rows(t, ['Opening', '− leakage⋈ 90%', '+ expansion⋈ 10%', '+ new MRR', 'Closing', 'gross dollar retention · R12M', 'net dollar retention · R12M', 'persistence', 'S&M this month · capital in'])).concat(desc(t, ['revenue'])).concat([grab(t, 'gross profit · ⋈', 40), grab(t, 'EBITA · ', 40)]).concat([grab(t, 'MRR arrives · cohort M36', 40)]));
+       ['World: ARR physics (the frozen Base). Company lens, month 36, MRR basis.'].concat(desc(t, ['MRR', 'cash · trough €6.10m at M13', 'EBITA margin · R12M', 'gross margin · law'])).concat(desc(t, ['gross dollar retention · R12M', 'net dollar retention · R12M', 'S&M · month', 'new MRR · month', 'average CAC · € per €1 of new ARR', 'marginal CAC · the next euro', 'payback · average', 'revenue · R12M', 'EBITA · R12M'])).concat([grab(t, 'Installed-base net', 60), grab(t, 'WHERE MRR GROWTH CAME FROM', 60), grab(t, 'ACQUISITION EFFICIENCY', 60), grab(t, 'ECONOMICS · MONTHLY', 60)]));
 
   /* 2. customers beneath it */
   await click('#pack-customers'); await scrub(36); t = await side();
   step('How much of the loss is customers leaving, and how much is customers shrinking?',
-       ['World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail; the Customers lens reads customers × MRR per customer = MRR, then the logo bridge beside the customer-economics bridge.'].concat(desc(t, ['MRR', 'customers', 'MRR per customer · derived'])).concat(rows(t, ['+ new logos', '− left · churned⋈ 92%', '− left · churned logos⋈ 92%', '− stayed but shrank · contraction⋈ 5%'])).concat(desc(t, ['logo retention · R12M', 'gross dollar retention · R12M', 'net dollar retention · R12M', 'persistence · L × (1 − C), derived'])).concat([grab(t, 'MRR GROWTH = CUSTOMER GROWTH', 170)]));
+       ['World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail; the Customers lens shows customers and MRR per customer over 60 months, then where MRR growth came from.'].concat(desc(t, ['MRR', 'customers', 'MRR per customer', 'logo retention · R12M', 'net dollar retention · R12M'])).concat([grab(t, 'CUSTOMER BASE DEVELOPMENT', 60), grab(t, 'WHERE MRR GROWTH CAME FROM', 90)]));
   await click('#nav-scen'); await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="customers"]').click()); await pg.waitForTimeout(500); t = await side();
   step('Could two companies with identical ARR, GRR and NRR be losing customers at different rates?',
        ['Scenario 10 · Customers behind the ARR (Base L 87.4%/C 0 vs Experiment L 92%/C 5%, both persistence 87.4%).'].concat(rows(t, ['derived persistence', 'max |ΔMRR| over 60 months', 'max |ΔGRR|, |ΔNRR| over all measurement dates', 'logo retention', 'contraction', 'customers M60', 'churned MRR CUM', 'contraction CUM', 'ARPA M60'])).concat([grab(t, 'Same ARR, different system', 200)]));
@@ -47,7 +47,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   /* 3. where the revenue comes from */
   await click('#nav-company'); await click('#pack-priced'); await scrub(36); t = await side();
   step('How much of the revenue change is price, how much usage, how much adoption — and where does expansion stop?',
-       ['World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.'].concat([grab(t, 'platform · fixed', 60), grab(t, 'usage · variable', 60), grab(t, 'per customer', 80)]).concat(rows(t, ['+ price⋈ 3% · 2%', '+ usage⋈ 15%', '+ adoption⋈ 10%', '− churn · logos left⋈ 92%', '− contraction · usage shrank⋈ 5%'])).concat([grab(t, 'INSTALLED-BASE GROWTH BY CAUSE', 200)]).concat(desc(t, ['persistence · from the revenue mix'])));
+       ['World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.'].concat([grab(t, 'platform · fixed', 60), grab(t, 'usage · variable', 60), grab(t, 'MRR COMPOSITION', 60)]).concat(desc(t, ['MRR per customer'])));
   await click('#nav-scen'); await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="mix"]').click()); await pg.waitForTimeout(500); t = await side();
   step('Same customers, same laws — does the revenue mix alone change dollar retention?',
        ['Scenario 12 · Fixed or variable? (all platform €20,000 vs platform €12,000 + usage €8,000).'].concat(rows(t, ['opening MRR', 'customers · ARPA', 'M1 contraction', 'R12M GRR at M12', 'variable share M60', 'gross dollar retention R12M', 'MRR M60', 'ending cash M60'])));
@@ -55,7 +55,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   /* 4. the cash beneath EBITA */
   await click('#nav-company'); await click('#pack-cash'); await scrub(36); t = await side();
   step('When does the cash arrive, and how far is cash FCF from EBITA?',
-       ['World: + Cash (billed 12 months in advance, collected one month after invoice). Path 2 separates from Path 1.'].concat([grab(t, 'PATH 1 · ECONOMICS', 160), grab(t, 'PATH 2 · CASH', 260)]).concat(desc(t, ['cash · M36', 'cash trough · M1', 'capital required · opening cash drawn'])));
+       ['World: + Cash (billed 12 months in advance, collected one month after invoice). The cash chart marks the trough; the waterfall continues below EBITA.'].concat([grab(t, 'ECONOMICS · MONTHLY', 60), grab(t, 'trough €', 40)]).concat([grab(t, 'Δ deferred revenue', 40), grab(t, 'Δ receivables', 40)]).concat(desc(t, ['cash · M36', 'cash trough · M1', 'capital required · opening cash drawn'])));
   await click('#nav-scen'); await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="billing"]').click()); await pg.waitForTimeout(500); t = await side();
   step('Same P&L — how different can the cash path be?',
        ['Scenario 13 · Billed in advance (Base FCF = EBITA vs the same company billed annually in advance, collected a month later).'].concat(rows(t, ['max |ΔMRR| over 60 months', 'max |Δrevenue|, |ΔEBITA| over 60 months', 'cash trough', 'ending cash', 'cash conversion · trailing 12 at M60', 'billings CUM', 'deferred revenue M60', 'receivables M60', 'cash FCF − EBITA CUM', 'ending cash M60'])));
@@ -63,7 +63,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   /* 5. a hypothesis */
   await click('#nav-company'); await click('#pack-full'); await scrub(20); t = await side();
   step('What does a retention programme cost, when does it work, and what is it worth?',
-       ['World: + Hypothesis (every layer on; logo retention × 1.03 decided M6, in force M9–M32, €200k + €50k/month).'].concat([grab(t, 'hypothesis ret in force', 120)]).concat([grab(t, '↯ hypothesis cost', 40), grab(t, 'PATH 2 · CASH', 200)]));
+       ['World: + Hypothesis (every layer on; logo retention × 1.03 decided M6, in force M9–M32, €200k + €50k/month).'].concat([grab(t, 'hypothesis ret in force', 120)]).concat(rows(t, ['− Hypothesis cost'])));
   await click('#nav-scen'); await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="hypothesis"]').click()); await pg.waitForTimeout(500); t = await side();
   step('Against the same company without it — net of its cost — when does the programme pay back?',
        ['Scenario 14 · A retention programme (Base: no hypothesis; Experiment: persistence × 1.05 from M9 for 24 months, €1.55m).'].concat([grab(t, 'Hypothesis · ↯', 120)]).concat(rows(t, ['leakage CUM', 'expansion CUM', 'Retention programme · persistence', 'hypothesis cost CUM', 'MRR M60', 'EBITA CUM', 'cash trough', 'ending cash M60', 'cash overtakes Base'])));
@@ -80,7 +80,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   await click('#nav-company'); await click('#pack-arr'); await scrub(36); t = await side();
   const mech = await pg.evaluate(() => window.__SP_DEBUG.expRes.mechanisms);
   step('And back to the frozen ARR world — is every layer off again?',
-       ['Pack: ARR physics. Mechanisms: ' + JSON.stringify(mech)].concat(desc(t, ['cash · trough €6.10m at M13'])).concat(rows(t, ['net dollar retention · R12M'])));
+       ['Pack: ARR physics. Mechanisms: ' + JSON.stringify(mech)].concat(desc(t, ['cash · trough €6.10m at M13'])).concat(desc(t, ['net dollar retention · R12M'])));
 
   const md = ['# SaaS Physics v2 — practical-use walkthrough (read off the product)', '',
     'Generated by `node v2-walkthrough.js`: every answer below is text the built page (`saas-physics-v1.html`) showed after the stated clicks, on the MRR display basis. Nothing is typed in by hand; regenerate after any product change.', '',

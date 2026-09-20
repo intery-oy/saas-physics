@@ -76,13 +76,13 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('OBSERVE: page expansion cost and pending New ARR at the selected month match an independent Node recomputation',
       Math.abs(obs.expCost - im.expansionCost) < 1e-6 && Math.abs(obs.pending - im.pendingNewARR) < 1e-6, 'page ' + obs.expCost + '/' + obs.pending + ' node ' + im.expansionCost + '/' + im.pendingNewARR);
   const fmtEur = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
-  const gcond = { cost: obs.txt.includes('expansion cost'), cap: /⌈⌉ capacity €2\.00m\/mo · \d+% used/.test(obs.txt), lag: /⋈ lag 6 mo · .* committed, not yet arrived/.test(obs.txt),
-    law: obs.txt.includes('⋈ CAC coefficient'), meas: obs.txt.includes('Average CAC') && obs.txt.includes('Marginal CAC · next euro'), paybacks: (obs.txt.match(/Payback · (average|marginal)\n→ [\d.]+ mo/g) || []).length };
-  rec('OBSERVE: the Growth engine flow shows the capacity valve in use, the lag valve with the committed-not-arrived stock, the CAC law apart from the average and marginal measurements with their paybacks, and the P&L path carries the expansion-cost line — only because the mechanisms are on',
-      gcond.cost && gcond.cap && gcond.lag && gcond.law && gcond.meas && gcond.paybacks === 2, JSON.stringify(gcond));
+  const gcond = await pg.evaluate(() => { const g = document.getElementById('lens-growth'), q = window.__SP_DEBUG.expRes.derived.acquisition; const wf = [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent);
+    return { cost: wf.some(t => /Expansion realisation cost/.test(t)), cap: /⌈⌉Acquisition capacity\n€2\.00m\/mo\nON/.test(g.innerText), law: /⋈CAC coefficient/.test(g.innerText), meas: g.innerText.includes('average CAC') && g.innerText.includes('marginal CAC · the next euro'), spread: q.marginalCAC > q.averageCAC, rv: [...g.querySelectorAll('svg.ch .rv')].map(e => e.textContent) }; });
+  rec('OBSERVE: the Growth engine shows the capacity lever on at €2.00m, the CAC coefficient as a law beside the average and marginal measurements, marginal above average under the bound, and the P&L waterfall carries the expansion-cost line — only because the mechanisms are on',
+      gcond.cost && gcond.cap && gcond.law && gcond.meas && gcond.spread, JSON.stringify(gcond));
   const pb = await pg.evaluate(() => { const q = window.__SP_DEBUG.expRes.derived.acquisition; return { avg: q.averagePaybackMonths, marg: q.marginalPaybackMonths }; });
   rec('OBSERVE: average and marginal payback on screen equal the engine\'s acquisitionResponse (avg CAC × 12 ÷ GM, marginal CAC × 12 ÷ GM)',
-      obs.txt.includes('Payback · average\n→ ' + pb.avg.toFixed(1) + ' mo') && obs.txt.includes('Payback · marginal\n→ ' + pb.marg.toFixed(1) + ' mo') &&
+      gcond.rv.indexOf(pb.avg.toFixed(1) + ' mo') >= 0 && gcond.rv.indexOf(pb.marg.toFixed(1) + ' mo') >= 0 &&
       Math.abs(pb.avg - indep.derived.acquisition.averagePaybackMonths) < 1e-9 && Math.abs(pb.marg - indep.derived.acquisition.marginalPaybackMonths) < 1e-9, JSON.stringify(pb));
 
   /* ---- WATERFALL ---- */
@@ -136,7 +136,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC coefficient 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
   await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); });   /* Inspect is its own surface: back to the lenses */
   await pg.waitForTimeout(300);
-  const alive = await pg.evaluate(() => { const t = (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText); const m = t.match(/cohort M20 · (\d+) alive/); return m ? +m[1] : null; });
+  const alive = await pg.evaluate(() => { const m = String(window.__SP_DEBUG.figLegend).match(/OPENING BASE \+ (\d+) COHORTS/); return m ? +m[1] + 1 : null; });   /* the formation legend counts the cohorts drawn */
   rec('OBSERVE (screen): the Growth engine\'s cohort node at month 20 under a 6-month lag counts the opening base + 14 realised cohorts alive, not 20', alive === 15, 'shown ' + alive);
 
   /* ---- SYSTEM ---- */

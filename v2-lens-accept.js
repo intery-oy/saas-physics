@@ -1,24 +1,25 @@
 /*
- * SaaS Physics — Economic lens redesign, DOM-level acceptance checks.
- * "Change one assumption and see its impact through the economic system."
+ * SaaS Physics — Five-lens design, DOM-level acceptance checks.
+ * One instrument: each lens has a question, a small headline, one or two 60-month charts
+ * on the same grammar, and levers only where they improve exploration.
  *
- * Runs the built single file in headless Chromium on the Enterprise SaaS acceptance
- * world (Customer, Monetization and Cash physics on) and asserts, lens by lens:
+ * Runs the built single file in headless Chromium on the Enterprise SaaS world (Customer,
+ * Monetization and Cash physics on) and checks:
  *
- *   BASE        each lens shows its economic object: the identity customers × ARPA = ARR,
- *               the two bridges, the acquisition flow with its valves, composition apart
- *               from movement, the two paths
- *   RETENTION   logo retention 95% → 97%: the mark sits on Customers, the delta reaches
- *               customers, NRR, EBITA and cash; acquisition is stated unchanged
- *   ACQUISITION S&M €700k → €1.20m under a €1.5m capacity: the constraint tightens, the
- *               marginal euro does less, average and marginal CAC worsen
- *   MONETIZATION usage growth 20% → 30%: composition shifts toward usage, the cause bar
- *               reads usage-led, customers are unchanged
- *   BILLING     billing term 12 → 1 month: the P&L is untouched, only the cash path moves
- *   PHONE       the flows and the paths stack in one column at 390px
- *
- * No economics are asserted; every number here is read back from the engine through
- * window.__SP_DEBUG and compared with the text on screen.
+ *   COMPANY        headline (ARR, YoY, NRR, GM, EBITA margin, cash); the formation canvas
+ *                  carries no cash plane; the model chip replaces the absent-layer prose
+ *   CUSTOMERS      headline with YoY; the customer-base chart (customers, ARR/customer, Base
+ *                  dashed) and the cumulative growth split (new customers vs existing base)
+ *                  — and that split ties to the engine exactly
+ *   GROWTH ENGINE  headline (S&M, new ARR, average/marginal CAC, payback); levers mirrored to
+ *                  the rail; two charts (CAC, payback) that reshape when S&M moves
+ *   MONETIZATION   headline (ARR, ARR/customer, fixed %, variable %); levers; one stacked
+ *                  composition chart whose right-edge values equal the month's engine fields
+ *   ECONOMICS      headline; economics chart (revenue, gross profit, EBITA); cash chart with the
+ *                  trough marked and the zero line; waterfall behind disclosure
+ *   GRAMMAR        every chart shares margins, the Y1–Y5 axis, the cursor at the selected month
+ *   OFF WORLDS     customers / monetization / cash off are stated, not imitated
+ *   PHONE          charts fit at 390px, no horizontal scroll
  */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -35,97 +36,92 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const scrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
   const set = async (pg, id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); if (!i) throw new Error('no control ' + id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(450); };
   const world = async (pg) => { await click(pg, '#rail-toggle'); await click(pg, '#pack-wA'); await click(pg, '#rail-close'); await scrub(pg, 36); };
-  const lens = (pg, id) => pg.evaluate(id => { const l = document.getElementById('lens-' + id); return { txt: l.innerText, marks: [...l.querySelectorAll('.mark')].map(m => m.innerText.replace(/\n/g, ' ')), vs: [...l.querySelectorAll('.vs')].map(v => v.textContent), same: [...l.querySelectorAll('.same')].map(v => v.textContent) }; }, id);
+  const lens = (pg, id) => pg.evaluate(id => { const l = document.getElementById('lens-' + id); return { txt: l.innerText, charts: l.querySelectorAll('svg.ch').length, rv: [...l.querySelectorAll('svg.ch .rv')].map(e => e.textContent), rl: [...l.querySelectorAll('svg.ch .rl')].map(e => e.textContent), legend: [...l.querySelectorAll('.lg')].map(e => e.innerText), levers: [...l.querySelectorAll('.lever')].map(e => e.dataset.k), marks: [...l.querySelectorAll('.mark')].map(m => m.innerText.replace(/\n/g, ' ')), desc: [...l.querySelectorAll('.desc .dl')].map(e => e.textContent) }; }, id);
   const D = (pg, f) => pg.evaluate(f);
 
   const pg = await open(1440, 900);
   await world(pg);
+  const eng = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), em = W.expRes.months[m - 1], s = W.expRes.months; let cumNew = 0, cumEx = 0; for (let i = 0; i < m; i++) { cumNew += s[i].newARR; cumEx += s[i].expansion - s[i].leakage; }
+    return { m, arr: em.closingARR, cust: em.customers.closing, cash: em.cashClosing, fixed: em.monetization.fixedARR, variable: em.monetization.variableARR, cumNew, cumEx, opening: s[0].openingARR, avg: W.expRes.derived.acquisition.averageCAC, marg: W.expRes.derived.acquisition.marginalCAC, ebita: em.ebita, rev: em.revenue, trough: W.expRes.months.reduce((a, x) => Math.min(a, x.cashClosing), Infinity) }; });
+  const mrr = v => { const a = Math.abs(v / 12); return '€' + (a >= 1e6 ? (a / 1e6).toFixed(2) + 'm' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : Math.round(a)); };
+  const mrrS = v => (v >= 0 ? '+' : '−') + mrr(v);
+  const eurF = v => { const a = Math.abs(v); return (v < 0 ? '€-' : '€') + (a >= 1e6 ? (a / 1e6).toFixed(2) + 'm' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : Math.round(a)); };
 
-  /* ---- BASE: each lens shows its object ---- */
-  const co = await lens(pg, 'company'), cu = await lens(pg, 'customers'), gr = await lens(pg, 'growth'), mo = await lens(pg, 'monetization'), ca = await lens(pg, 'cash');
-  const eng = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), em = W.expRes.months[m - 1]; return { m, cust: em.customers.closing, arr: em.closingARR, sm: em.sm, committed: em.acquisitionLawNewARR, fixed: em.monetization.fixedARR, variable: em.monetization.variableARR, cash: em.cashClosing, hasBase: !!W.baseRes.months[m - 1].cash }; });
-  rec('BASE · COMPANY: hero on Base, no marks, no deltas; the absent-layer sentence is gone because every layer is on', /on Base/.test(co.txt) && co.marks.length === 0 && co.vs.length === 0 && !/carries no/.test(co.txt), co.txt.slice(0, 120).replace(/\n/g, ' | '));
-  rec('BASE · CUSTOMERS: the identity customers × MRR per customer = MRR leads the lens, then logo retention, GRR, NRR and derived persistence, then the two bridges side by side and the growth decomposition',
-      new RegExp(Math.round(eng.cust).toLocaleString('en-GB') + '\\ncustomers\\n×\\n€[\\d.]+k?\\nMRR per customer · derived\\n=\\n€[\\d.]+m\\nMRR').test(cu.txt) && /logo retention · R12M[\s\S]*gross dollar retention · R12M[\s\S]*net dollar retention · R12M[\s\S]*persistence ·/.test(cu.txt) &&
-      /CUSTOMER BASE · LOGOS[\s\S]*− left · churned[\s\S]*CUSTOMER ECONOMICS · MRR[\s\S]*− left · churned logos[\s\S]*− stayed but shrank · contraction[\s\S]*\+ expanded · price \+ usage \+ adoption[\s\S]*\+ new customers/.test(cu.txt) && /MRR GROWTH = CUSTOMER GROWTH × ARPA DEVELOPMENT/.test(cu.txt) && cu.vs.length === 0,
-      cu.txt.slice(0, 160).replace(/\n/g, ' | '));
-  const decomp = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), a = W.expRes.months[m - 1], b = W.expRes.months[m - 13]; const gc = a.customers.closing / b.customers.closing - 1, ga = (a.closingARR / a.customers.closing) / (b.closingARR / b.customers.closing) - 1; return { gc, ga, gA: a.closingARR / b.closingARR - 1, txt: document.getElementById('lens-customers').innerText }; });
-  const rel = v => (v >= 0 ? '+' : '−') + (Math.abs(v) * 100).toFixed(1) + '%';
-  rec('BASE · CUSTOMERS: the decomposition is exact — (1 + customer growth)(1 + ARPA growth) − 1 equals the R12M MRR growth, and the three printed rates are the engine\'s',
-      Math.abs((1 + decomp.gc) * (1 + decomp.ga) - 1 - decomp.gA) < 1e-9 && decomp.txt.includes(rel(decomp.gc) + '\ncustomers') && decomp.txt.includes(rel(decomp.ga) + '\nARPA') && decomp.txt.includes(rel(decomp.gA) + '\nMRR'), JSON.stringify(decomp.gc + ' ' + decomp.ga + ' ' + decomp.gA));
-  rec('BASE · GROWTH ENGINE: one vertical flow — S&M in → ⋈ CAC coefficient → ⌈⌉ capacity in use → MRR committed → ⋈ lag with the committed-not-arrived stock → MRR arrives as the cohort; the coefficient reads as a law, average and marginal CAC as measurements',
-      /S&M this month · capital in\n⋈ CAC coefficient [\d.]+×[\s\S]*⌈⌉ capacity €1\.50m\/mo · \d+% used[\s\S]*MRR committed this month\n⋈ lag 4 mo · €[\d.]+k committed, not yet arrived[\s\S]*MRR arrives · cohort M36/.test(gr.txt) && /MEASURED · AT THIS SPEND\nAverage CAC\n→ [\d.]+×\nMarginal CAC · next euro\n→ [\d.]+×/.test(gr.txt) && gr.same.length === 0 && gr.vs.length === 0,
-      gr.txt.slice(0, 200).replace(/\n/g, ' | '));
-  const curve = await D(pg, () => ({ svg: !!document.querySelector('#lens-growth svg.curve'), basePt: !!document.querySelector('#lens-growth svg.curve circle[stroke-dasharray]'), where: /WHERE THE GROWTH CAME FROM/.test(document.getElementById('lens-growth').innerText) }));
-  rec('BASE · GROWTH ENGINE: the response curve is drawn under the capacity with the Experiment point only (no Base point while they agree); "where the growth came from" splits acquisition from the installed base', curve.svg && !curve.basePt && curve.where, JSON.stringify(curve));
-  rec('BASE · MONETIZATION: composition (MRR = platform · fixed + usage · variable, per customer) sits above a rule; movement (before → new customers → churn → contraction → price → usage → adoption → now) and the cause bar beneath',
-      /COMPOSITION · WHAT MRR IS MADE OF[\s\S]*platform · fixed · \d+%[\s\S]*usage · variable · \d+%[\s\S]*per customer €[\d.]+k = €[\d.]+k platform \+ €[\d.]+k usage[\s\S]*MOVEMENT · WHY MRR CHANGED[\s\S]*\+ price[\s\S]*\+ usage[\s\S]*\+ adoption[\s\S]*INSTALLED-BASE GROWTH BY CAUSE[\s\S]*(usage-led|price-led|adoption-led|mixed)/.test(mo.txt) && mo.vs.length === 0,
-      mo.txt.slice(0, 160).replace(/\n/g, ' | '));
-  const paths = await D(pg, () => ({ two: document.querySelectorAll('#lens-cash .paths .path').length, merged: !!document.querySelector('#lens-cash .paths.merged'), plClosed: !document.getElementById('pl-details').open, cascadeIn: !!document.querySelector('#pl-slot .cascade') }));
-  rec('BASE · ECONOMICS & CASH: two paths side by side (Path 1 revenue → gross profit → EBITA; Path 2 billings → Δ deferred → collections → Δ receivables → cash FCF → cash), primary readouts above them, the waterfall closed beneath',
-      paths.two === 2 && !paths.merged && /PATH 1 · ECONOMICS[\s\S]*revenue\n⋈ gross margin[\s\S]*gross profit[\s\S]*EBITA[\s\S]*PATH 2 · CASH[\s\S]*billings · invoiced\n⋈ billed 12 mo advance[\s\S]*collections\n⋈ collected \+2 mo[\s\S]*cash FCF[\s\S]*cash · M36/.test(ca.txt) && /capital required/.test(ca.txt) && paths.plClosed && paths.cascadeIn && ca.vs.length === 0,
-      JSON.stringify(paths));
+  /* ---- COMPANY ---- */
+  const co = await lens(pg, 'company');
+  const fig = await D(pg, () => { const fw = document.getElementById('figwrap'); return { open: fw.open, title: document.getElementById('fig-title').textContent, hint: document.getElementById('fig-hint').textContent, canvasH: document.getElementById('scene').getBoundingClientRect().height }; });
+  rec('COMPANY: headline = ARR, YoY growth, NRR, gross margin (law), EBITA margin, cash · trough; no customer or ARPA descriptors here', /^€[\d.]+[km]?\nMRR\n\+[\d.]+% y\/y\non Base/.test(co.txt.split('\n').slice(3).join('\n')) && co.desc.join('|') === 'net dollar retention · R12M|gross margin · law|EBITA margin · R12M|cash · trough ' + eurF(eng.trough) + ' at M' + (await D(pg, () => window.__SP_DEBUG.expRes.months.reduce((a, x, i) => x.cashClosing < a.v ? { v: x.cashClosing, m: i + 1 } : a, { v: Infinity, m: 0 }).m)), JSON.stringify(co.desc));
+  rec('COMPANY: the model chip names the active layers instead of prose about absent ones; no marks or deltas on Base', /MODEL · ARR · CUSTOMERS · MONETIZATION · CASH/.test(co.txt) && !/carries no/.test(co.txt) && co.marks.length === 0, co.txt.slice(-120).replace(/\n/g, ' | '));
+  rec('COMPANY: the formation figure is open beneath the hero, titled Company formation, with the cohort-strata and YoY-line hint, and no cash plane (the canvas is one register)', fig.open && fig.title === 'Company formation · 60 months' && /opening base \+ successive cohorts as strata · YoY growth as a line/.test(fig.hint) && fig.canvasH >= 400 && (await D(pg, () => window.__SP_DEBUG.geo && window.__SP_DEBUG.geo.noCash === true)), JSON.stringify(fig));
+  const canvasProbe = await D(pg, () => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const ctx = cv.getContext('2d'); const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const px = (x, y) => { const d = ctx.getImageData(Math.round(x * dpr), Math.round(y * dpr), 1, 1).data; return d; }; let lit = 0; for (let y = r.height - 30; y > 20; y -= 4) { const d = px(r.width - 40, y); if (d[0] + d[1] + d[2] > 60) lit++; } return { lit }; });
+  rec('COMPANY: the right edge of the canvas carries the selected-month values (pixels are painted in the right margin)', canvasProbe.lit > 3, JSON.stringify(canvasProbe));
 
-  /* ---- A · RETENTION: logo retention 95% → 97% ---- */
-  await click(pg, '#rail-toggle'); await set(pg, 'f-logoRetentionAnnual', 0.97); await click(pg, '#rail-close'); await scrub(pg, 36);
-  const A = { co: await lens(pg, 'company'), cu: await lens(pg, 'customers'), gr: await lens(pg, 'growth'), mo: await lens(pg, 'monetization'), ca: await lens(pg, 'cash') };
-  const Ae = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), x = W.expRes.months[m - 1], b = W.baseRes.months[m - 1]; return { dCust: x.customers.closing - b.customers.closing, dARR: x.closingARR - b.closingARR, dCash: x.cashClosing - b.cashClosing, sameNew: Math.abs(x.newARR - b.newARR) < 1, sameSM: x.sm === b.sm }; });
-  rec('RETENTION · COMPANY: the hero states the MRR delta vs Base, the changed law reads "Logo retention ⋈ 95.0% → 97.0%" with the month the effect begins, and customers, NRR and cash carry their deltas',
-      Ae.dARR > 1 && /vs Base/.test(A.co.txt) && A.co.marks.join('|').includes('LOGO RETENTION ⋈ 95.0% → 97.0%') && /MRR leaves Base from M1/.test(A.co.txt) && A.co.vs.some(v => /^\+\d+ vs Base$/.test(v)) && A.co.vs.some(v => /pp vs Base/.test(v)) && A.co.vs.some(v => /^\+€[\d.]+[km]? vs Base$/.test(v)),
-      JSON.stringify({ marks: A.co.marks, vs: A.co.vs }));
-  rec('RETENTION · CUSTOMERS: the mark sits at the law that moved; the identity carries +customers and +MRR vs Base; logo retention, GRR and NRR carry pp deltas; the bridge\'s churn row reads ⋈ 97%',
-      A.cu.marks.join('|').includes('LOGO RETENTION ⋈ 95.0% → 97.0%') && A.cu.vs.some(v => v === '+' + Math.round(Ae.dCust) + ' vs Base') && A.cu.vs.filter(v => /pp vs Base/.test(v)).length >= 3 && /− left · churned⋈ 97%/.test(A.cu.txt) && A.cu.same.length === 0,
-      JSON.stringify({ marks: A.cu.marks, vs: A.cu.vs }));
-  rec('RETENTION · GROWTH ENGINE: no mark, no delta on the flow, and the finding is stated — ACQUISITION · unchanged vs Base', Ae.sameNew && Ae.sameSM && A.gr.marks.length === 0 && A.gr.vs.length === 0 && A.gr.same.join('|') === 'Acquisition · unchanged vs Base', JSON.stringify({ same: A.gr.same, vs: A.gr.vs }));
-  rec('RETENTION · MONETIZATION: no mark; the laws are stated unchanged while the base they act on moved', A.mo.marks.length === 0 && A.mo.same.join('|') === 'Monetization laws · unchanged vs Base' && /the base they act on moved/.test(A.mo.txt), JSON.stringify({ same: A.mo.same, marks: A.mo.marks }));
-  rec('RETENTION · ECONOMICS & CASH: no mark; EBITA and cash carry positive deltas vs Base on the readouts and at the end of each path', A.ca.marks.length === 0 && Ae.dCash > 1 && A.ca.vs.filter(v => /^\+€[\d.]+[km]? vs Base$/.test(v)).length >= 4 && /EBITA · [\d.]+% margin\n\+€/.test(A.ca.txt) && /cash · M36\n\+€/.test(A.ca.txt), JSON.stringify(A.ca.vs));
+  /* ---- CUSTOMERS ---- */
+  await click(pg, '.lensnav .btn[data-lens="customers"]');
+  const cu = await lens(pg, 'customers');
+  const figCu = await D(pg, () => document.getElementById('figwrap').open);
+  rec('CUSTOMERS: headline = customers, ARR/customer, ARR (each with YoY), logo retention, NRR; the formation figure collapses to a strip here', cu.desc.join('|') === 'customers|MRR per customer|MRR|logo retention · R12M|net dollar retention · R12M' && (cu.txt.match(/% y\/y/g) || []).length === 3 && !figCu, JSON.stringify({ desc: cu.desc, figCu }));
+  rec('CUSTOMERS: chart 1 is the customer-base development — a customers pane over an ARR/customer pane — and chart 2 the cumulative growth split; three svgs on one grammar, same width', cu.charts === 3 && /CUSTOMER BASE DEVELOPMENT[\s\S]*WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0/.test(cu.txt) && (await D(pg, () => { const w = [...document.querySelectorAll('#lens-customers svg.ch')].map(s => Math.round(s.getBoundingClientRect().width)); return w.every(x => x === w[0]) && w[0] > 500; })), JSON.stringify({ charts: cu.charts }));
+  rec('CUSTOMERS: the right-edge values at the selected month are the engine\'s — customers, ARR/customer, new customers, existing base, total — and the split sums to ARR − opening ARR', cu.rv.indexOf(Math.round(eng.cust).toLocaleString('en-GB')) >= 0 && cu.rv.indexOf(mrrS(eng.cumNew)) >= 0 && cu.rv.indexOf(mrrS(eng.cumEx)) >= 0 && cu.rv.indexOf(mrrS(eng.arr - eng.opening)) >= 0 && Math.abs(eng.cumNew + eng.cumEx - (eng.arr - eng.opening)) < 1e-6 && cu.rl.join('|').indexOf('new customers') >= 0 && cu.rl.join('|').indexOf('existing base') >= 0, JSON.stringify({ rv: cu.rv, rl: cu.rl, cumNew: eng.cumNew, cumEx: eng.cumEx }));
+  rec('CUSTOMERS: no bridges, no decomposition, no separate retention or movement charts', !/CUSTOMER BASE · LOGOS|CUSTOMER ECONOMICS|GROWTH = CUSTOMER GROWTH|− left · churned/.test(cu.txt) && cu.levers.length === 0, '');
+
+  /* ---- GROWTH ENGINE ---- */
+  await click(pg, '.lensnav .btn[data-lens="growth"]');
+  const gr = await lens(pg, 'growth');
+  rec('GROWTH ENGINE: headline = S&M/month, new ARR/month, average CAC, marginal CAC, payback — the two CACs distinct and measured (→)', gr.desc.join('|') === 'S&M · month|new MRR · month|average CAC · € per €1 of new ARR|marginal CAC · the next euro|payback · average' && gr.txt.includes('→ ' + eng.avg.toFixed(2) + '×') && gr.txt.includes('→ ' + eng.marg.toFixed(2) + '×') && eng.marg > eng.avg, JSON.stringify(gr.desc));
+  rec('GROWTH ENGINE: levers for S&M, the CAC coefficient and the capacity sit on the lens, mirroring the rail', gr.levers.join('|') === 'sm|cacPerARR|maxMonthlyNewARR', JSON.stringify(gr.levers));
+  rec('GROWTH ENGINE: two charts of the same height and width — acquisition efficiency (average, marginal, measured CAC) and CAC payback (average, marginal, realised by vintage) — with the selected-month values at the right edge', gr.charts === 2 && /ACQUISITION EFFICIENCY[\s\S]*ACQUISITION PAYBACK · AVERAGE, MARGINAL, REALISED/.test(gr.txt) && gr.rl.slice().sort().join('|') === 'average|average|marginal|marginal|measured' && gr.rv.indexOf(eng.avg.toFixed(2) + '×') >= 0 && gr.rv.indexOf(eng.marg.toFixed(2) + '×') >= 0 && (await D(pg, () => { const b = [...document.querySelectorAll('#lens-growth svg.ch')].map(s => s.getBoundingClientRect()); return Math.abs(b[0].width - b[1].width) < 1 && Math.abs(b[0].height - b[1].height) < 1 && Math.abs(b[0].left - b[1].left) < 1; })), JSON.stringify({ rv: gr.rv, rl: gr.rl }));
+  rec('GROWTH ENGINE: the acquisition-machine diagram is gone from the lens', !/S&M this month · capital in|MRR committed this month|MEASURED · AT THIS SPEND/.test(gr.txt), '');
+  /* drive S&M from the lens lever: the economics below reshape */
+  await pg.evaluate(() => { const i = document.querySelector('#lens-growth .lever input[data-for="sm"]'); i.value = 1200000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  const gr2 = await lens(pg, 'growth');
+  const q2 = await D(pg, () => ({ sm: window.__SP_DEBUG.expA.sm, avg: window.__SP_DEBUG.expRes.derived.acquisition.averageCAC, marg: window.__SP_DEBUG.expRes.derived.acquisition.marginalCAC, baseLines: document.querySelectorAll('#lens-growth svg.ch path[stroke-dasharray]').length }));
+  rec('GROWTH ENGINE: moving the S&M lever to €1.20m raises average and marginal CAC (marginal faster), marks the change, and the charts show the Base lines dashed beneath the Experiment', q2.sm === 1200000 && q2.avg > eng.avg && (q2.marg - eng.marg) > (q2.avg - eng.avg) && gr2.rv.indexOf(q2.avg.toFixed(2) + '×') >= 0 && gr2.marks.join('|').includes('S&M €700k → €1.20m') && q2.baseLines >= 4 && /Base/.test(gr2.legend.join('|')), JSON.stringify({ q2, marks: gr2.marks }));
   await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
 
-  /* ---- B · ACQUISITION: S&M €700k → €1.20m under the €1.5m capacity ---- */
-  await click(pg, '#rail-toggle'); await set(pg, 'f-sm', 1200000); await click(pg, '#rail-close'); await scrub(pg, 36);
-  const B = { co: await lens(pg, 'company'), cu: await lens(pg, 'customers'), gr: await lens(pg, 'growth'), ca: await lens(pg, 'cash') };
-  const Be = await D(pg, () => { const W = window.__SP_DEBUG, x = W.expRes.derived.acquisition, b = W.baseRes.derived.acquisition, m = W.selectedMonth(); return { util: x.utilisation, utilB: b.utilisation, avg: x.averageCAC, avgB: b.averageCAC, marg: x.marginalCAC, margB: b.marginalCAC, dCommitted: W.expRes.months[m - 1].acquisitionLawNewARR - W.baseRes.months[m - 1].acquisitionLawNewARR, dEbita: W.expRes.months[m - 1].cumulative.ebita - W.baseRes.months[m - 1].cumulative.ebita, basePt: !!document.querySelector('#lens-growth svg.curve circle[stroke-dasharray]') }; });
-  rec('ACQUISITION · GROWTH ENGINE: the mark reads "S&M €700k → €1.20m" on the flow; the constraint tightens (utilisation +pp vs Base); committed MRR rises less than proportionally; average CAC worsens and marginal CAC worsens faster; the response curve shows the Base point',
-      B.gr.marks.join('|').includes('S&M €700k → €1.20m') && Be.util > Be.utilB && B.gr.vs.some(v => /^\+[\d.]+ pp vs Base$/.test(v)) && Be.dCommitted > 1 && Be.dCommitted < 500000 * 0.4 && Be.avg > Be.avgB && (Be.marg - Be.margB) > (Be.avg - Be.avgB) &&
-      B.gr.txt.includes('Average CAC\n→ ' + Be.avg.toFixed(2) + '×\n+' + (Be.avg - Be.avgB).toFixed(2) + '× vs Base') && B.gr.txt.includes('Marginal CAC · next euro\n→ ' + Be.marg.toFixed(2) + '×\n+' + (Be.marg - Be.margB).toFixed(2) + '× vs Base') && Be.basePt && B.gr.same.length === 0,
-      JSON.stringify({ marks: B.gr.marks, vs: B.gr.vs, util: [Be.util, Be.utilB], avg: [Be.avg, Be.avgB], marg: [Be.marg, Be.margB] }));
-  rec('ACQUISITION · COMPANY and CUSTOMERS: the hero carries the MRR delta; customers carry +n vs Base without any mark on the customer laws', /vs Base/.test(B.co.txt) && B.co.marks.join('|').includes('S&M') && B.cu.marks.length === 0 && B.cu.vs.some(v => /^\+\d+ vs Base$/.test(v)), JSON.stringify(B.cu.vs));
-  rec('ACQUISITION · ECONOMICS & CASH: more capital in shows as EBITA and cash below Base (negative deltas), capital required above Base', Be.dEbita < -1 && B.ca.vs.some(v => /^−€[\d.]+[km]? vs Base$/.test(v)) && /capital required · opening cash drawn\n\+€/.test(B.ca.txt), JSON.stringify(B.ca.vs));
+  /* ---- MONETIZATION ---- */
+  await click(pg, '.lensnav .btn[data-lens="monetization"]');
+  const mo = await lens(pg, 'monetization');
+  const vShare = eng.variable / (eng.fixed + eng.variable);
+  rec('MONETIZATION: headline = ARR, ARR/customer, fixed %, variable %; levers for platform fee, usage growth, adoption', mo.desc.join('|') === 'MRR|MRR per customer|platform · fixed|usage · variable' && mo.txt.includes((Math.round((1 - vShare) * 100)) + '%\nplatform · fixed') && mo.levers.join('|') === 'monetization.components[0].priceAnnual|monetization.components[1].usageGrowthAnnual|monetization.components[1].adoptionAnnual', JSON.stringify({ desc: mo.desc, levers: mo.levers }));
+  rec('MONETIZATION: one stacked composition chart (platform · fixed beneath usage · variable) whose right-edge values are the month\'s fixed and variable ARR; no movement ladder, no cause bar', mo.charts === 1 && /MRR COMPOSITION/.test(mo.txt) && mo.rv.indexOf(mrr(eng.fixed)) >= 0 && mo.rv.indexOf(mrr(eng.variable)) >= 0 && /platform · \d+%/.test(mo.rl.join('|')) && /usage · \d+%/.test(mo.rl.join('|')) && !/MOVEMENT|GROWTH BY CAUSE|− churn/.test(mo.txt), JSON.stringify({ rv: mo.rv, rl: mo.rl }));
+  await pg.evaluate(() => { const i = document.querySelector('#lens-monetization .lever input[data-for="monetization.components[1].usageGrowthAnnual"]'); i.value = 0.30; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  const mo2 = await lens(pg, 'monetization');
+  const v2 = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), x = W.expRes.months[m - 1].monetization; return { share: x.variableARR / (x.fixedARR + x.variableARR), law: W.expRes.assumptions.monetization.components[1].usageGrowthAnnual }; });
+  rec('MONETIZATION: the usage-growth lever (20% → 30%) reshapes the composition — the variable share rises — with the mark on the lens and the Base total dashed', Math.abs(v2.law - 0.30) < 1e-9 && v2.share > vShare + 0.005 && mo2.marks.join('|').includes('USAGE GROWTH') && /Base/.test(mo2.legend.join('|')), JSON.stringify({ v2, vShare, marks: mo2.marks }));
   await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
 
-  /* ---- C · MONETIZATION: usage growth 20% → 30% ---- */
-  await click(pg, '#rail-toggle'); await set(pg, 'f-monetization.components[1].usageGrowthAnnual', 0.30); await click(pg, '#rail-close'); await scrub(pg, 36);
-  const C = { co: await lens(pg, 'company'), cu: await lens(pg, 'customers'), gr: await lens(pg, 'growth'), mo: await lens(pg, 'monetization'), ca: await lens(pg, 'cash') };
-  const Ce = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), x = W.expRes.months[m - 1], b = W.baseRes.months[m - 1]; const vs = q => q.monetization.variableARR / (q.monetization.fixedARR + q.monetization.variableARR); return { dShare: vs(x) - vs(b), dCust: x.customers.closing - b.customers.closing, dARR: x.closingARR - b.closingARR }; });
-  rec('MONETIZATION · MONETIZATION: the mark reads on the usage component (20% → 30%); the variable share carries +pp vs Base; the cause bar reads usage-led', C.mo.marks.join('|').includes('USAGE GROWTH') && /20\.0% → 30\.0%/.test(C.mo.marks.join('|')) && Ce.dShare > 0.005 && C.mo.vs.some(v => /^\+[\d.]+ pp vs Base$/.test(v)) && /usage-led/.test(C.mo.txt) && C.mo.same.length === 0, JSON.stringify({ marks: C.mo.marks, vs: C.mo.vs, dShare: Ce.dShare }));
-  rec('MONETIZATION · CUSTOMERS: customers are unchanged (no customer delta, the finding stated), MRR per customer carries the delta', Math.abs(Ce.dCust) < 0.05 && !C.cu.vs.some(v => /^\+\d+ vs Base$/.test(v)) && C.cu.same.join('|') === 'Customer base · unchanged vs Base' && C.cu.vs.some(v => /^\+€[\d.]+k? vs Base$/.test(v)), JSON.stringify({ same: C.cu.same, vs: C.cu.vs }));
-  rec('MONETIZATION · GROWTH ENGINE and ECONOMICS: acquisition is stated unchanged; EBITA and cash carry positive deltas', C.gr.same.join('|') === 'Acquisition · unchanged vs Base' && C.gr.marks.length === 0 && Ce.dARR > 1 && C.ca.vs.filter(v => /^\+€[\d.]+[km]? vs Base$/.test(v)).length >= 3, JSON.stringify({ same: C.gr.same, vs: C.ca.vs }));
-  await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
+  /* ---- ECONOMICS & CASH ---- */
+  await click(pg, '.lensnav .btn[data-lens="cash"]');
+  const ca = await lens(pg, 'cash');
+  const paths = await D(pg, () => ({ plClosed: !document.getElementById('pl-details').open, cascadeIn: !!document.querySelector('#pl-slot .cascade'), zero: document.querySelectorAll('#lens-cash svg.ch .zero').length, trough: [...document.querySelectorAll('#lens-cash svg.ch .mk')].map(e => e.textContent), align: (() => { const b = [...document.querySelectorAll('#lens-cash svg.ch')].map(s => s.getBoundingClientRect()); return b.length === 2 && Math.abs(b[0].width - b[1].width) < 1 && Math.abs(b[0].left - b[1].left) < 1; })() }));
+  rec('ECONOMICS & CASH: headline = revenue, EBITA, EBITA margin, cash, cash trough, capital required', ca.desc.join('|') === 'revenue · R12M|EBITA · R12M|EBITA margin · R12M|cash · M36|cash trough · M' + (await D(pg, () => window.__SP_DEBUG.expRes.months.reduce((a, x, i) => x.cashClosing < a.v ? { v: x.cashClosing, m: i + 1 } : a, { v: Infinity, m: 0 }).m)) + '|capital required · opening cash drawn', JSON.stringify(ca.desc));
+  rec('ECONOMICS & CASH: the economics chart carries revenue, gross profit and EBITA per month with the selected-month values; the cash chart is the balance with the trough marked and a zero line; both aligned; the waterfall is closed beneath', ca.charts === 2 && /ECONOMICS · MONTHLY[\s\S]*CASH/.test(ca.txt) && ca.rv.indexOf(eurF(eng.rev)) >= 0 && ca.rv.indexOf(eurF(eng.ebita)) >= 0 && ca.rv.indexOf(eurF(eng.cash)) >= 0 && paths.zero >= 1 && paths.trough.some(t => /^trough €-?[\d.]+[km]? · M\d+$/.test(t)) && paths.align && paths.plClosed && paths.cascadeIn, JSON.stringify({ rv: ca.rv, paths }));
+  rec('ECONOMICS & CASH: the flow diagrams are gone from the lens', !/PATH 1 · ECONOMICS|PATH 2 · CASH|billings · invoiced/.test(ca.txt), '');
 
-  /* ---- D · BILLING: billing term 12 → 1 month, the P&L untouched ---- */
-  await click(pg, '#rail-toggle'); await set(pg, 'f-billingTermMonths', 1); await click(pg, '#rail-close'); await scrub(pg, 36);
-  const Dl = { co: await lens(pg, 'company'), cu: await lens(pg, 'customers'), gr: await lens(pg, 'growth'), mo: await lens(pg, 'monetization'), ca: await lens(pg, 'cash') };
-  const De = await D(pg, () => { const W = window.__SP_DEBUG; let dE = 0, dA = 0, dC = 0; for (let t = 0; t < 60; t++) { dE = Math.max(dE, Math.abs(W.expRes.months[t].ebita - W.baseRes.months[t].ebita)); dA = Math.max(dA, Math.abs(W.expRes.months[t].closingARR - W.baseRes.months[t].closingARR)); dC = Math.max(dC, Math.abs(W.expRes.months[t].cashClosing - W.baseRes.months[t].cashClosing)); } return { dE, dA, dC }; });
-  rec('BILLING · COMPANY: MRR stays on Base (hero "on Base", "MRR stays on Base · cash from Mn"), the mark reads "Billing term ⋈ 12 mo → 1 mo", only cash carries a delta',
-      De.dA < 1e-6 && De.dE < 1e-6 && De.dC > 1e5 && /on Base/.test(Dl.co.txt) && /MRR stays on Base · cash from M\d+/.test(Dl.co.txt) && Dl.co.marks.join('|').includes('BILLING TERM') && /12 mo → 1 mo/.test(Dl.co.marks.join('|')) && Dl.co.vs.length === 1 && /vs Base$/.test(Dl.co.vs[0]),
-      JSON.stringify({ marks: Dl.co.marks, vs: Dl.co.vs, De }));
-  rec('BILLING · CUSTOMERS, GROWTH ENGINE, MONETIZATION: untouched — no marks, no deltas, no unchanged-lines needed', [Dl.cu, Dl.gr, Dl.mo].every(l => l.marks.length === 0 && l.vs.length === 0), JSON.stringify([Dl.cu.vs, Dl.gr.vs, Dl.mo.vs]));
-  rec('BILLING · ECONOMICS & CASH: the mark sits on Path 2; EBITA carries no delta while cash FCF, cash, the trough and capital required do; the finding is stated — P&L · unchanged vs Base, only the cash path moved',
-      Dl.ca.marks.join('|').includes('BILLING TERM') && !/EBITA · [\d.]+% margin\n[+−]€/.test(Dl.ca.txt) && /cash · M36\n[+−]€/.test(Dl.ca.txt) && /cash FCF · -?[\d.]+× EBITA\n[+−]€/.test(Dl.ca.txt) && /P&L · unchanged vs Base — only the cash path moved/i.test(Dl.ca.txt) && /⋈ billed 1 mo advance/.test(Dl.ca.txt),
-      JSON.stringify({ marks: Dl.ca.marks, vs: Dl.ca.vs }));
-  await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close');
+  /* ---- GRAMMAR across the instrument ---- */
+  const gram = await D(pg, () => { const svgs = [...document.querySelectorAll('#side svg.ch')]; return { n: svgs.length, ls: svgs.map(s => s.dataset.l + '/' + s.dataset.r), axes: svgs.map(s => [...s.querySelectorAll('.ax')].filter(t => /^Y[1-5]$/.test(t.textContent)).length), cursors: svgs.map(s => s.querySelectorAll('.cur').length), curX: svgs.map(s => s.querySelector('.cur') && s.querySelector('.cur').getAttribute('x1')) }; });
+  rec('GRAMMAR: every lens chart shares the same left/right margins, a Y1–Y5 axis and one cursor at the same x for the selected month', gram.n === 8 && gram.ls.every(x => x === gram.ls[0]) && gram.axes.every(a => a === 5) && gram.cursors.every(c => c === 1) && gram.curX.every(x => x === gram.curX[0]), JSON.stringify(gram));
+  await scrub(pg, 48);
+  const moved = await D(pg, () => ({ curX: [...document.querySelectorAll('#side svg.ch .cur')].map(c => c.getAttribute('x1')), tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent) }));
+  rec('GRAMMAR: moving the global month moves every chart\'s cursor together and every lens\'s basis tag', moved.curX.every(x => x === moved.curX[0]) && moved.curX[0] !== gram.curX[0] && moved.tags.join('|') === 'M48|M48|M48|M48|R12M', JSON.stringify(moved));
+  await pg.evaluate(() => { const s = document.querySelector('#lens-cash svg.ch'); const r = s.getBoundingClientRect(); s.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * 0.5, clientY: r.top + r.height * 0.5 })); }); await pg.waitForTimeout(300);
+  const clicked = await D(pg, () => window.__SP_DEBUG.selectedMonth());
+  rec('GRAMMAR: clicking a chart moves the month there (the chart is a scrubber too)', clicked > 20 && clicked < 40, String(clicked));
+  await scrub(pg, 36);
 
-  /* ---- OFF WORLDS: the reduced representations are visibly reduced ---- */
+  /* ---- OFF WORLDS ---- */
   await click(pg, '#rail-toggle'); await click(pg, '#pack-arr'); await click(pg, '#rail-close'); await scrub(pg, 36);
-  const off = await D(pg, () => ({ cu: document.getElementById('lens-customers').innerText, mo: document.getElementById('lens-monetization').innerText, ca: document.getElementById('lens-cash').innerText, reduced: document.querySelectorAll('#side .reduced').length, merged: !!document.querySelector('#lens-cash .paths.merged'), pathsOff: document.querySelectorAll('#lens-cash .path.off').length, ident: document.querySelectorAll('#lens-customers .ident .it').length }));
-  rec('OFF · CUSTOMERS reads INSTALLED BASE · MRR ONLY with "Customer Physics off — MRR is modelled without logos"; one balance, one leakage row, no identity of three terms', /INSTALLED BASE · MRR ONLY/.test(off.cu) && /Customer Physics off — MRR is modelled without logos/.test(off.cu) && /− leakage/.test(off.cu) && !/− left · churned/.test(off.cu) && off.ident === 1, '');
-  rec('OFF · MONETIZATION reads MONETIZATION OFF · ONE BALANCE with a single undivided bar and a reduced movement; ECONOMICS & CASH merges the two paths with "Cash Physics off — modelled FCF = EBITA"', /MONETIZATION OFF · ONE BALANCE/.test(off.mo) && /no components/.test(off.mo) && !/INSTALLED-BASE GROWTH BY CAUSE/.test(off.mo) && off.merged && off.pathsOff === 1 && /Cash Physics off — modelled FCF = EBITA/.test(off.ca) && off.reduced === 2, JSON.stringify({ merged: off.merged, pathsOff: off.pathsOff, reduced: off.reduced }));
+  const off = await D(pg, () => ({ cu: document.getElementById('lens-customers').innerText, mo: document.getElementById('lens-monetization').innerText, ca: document.getElementById('lens-cash').innerText, co: document.getElementById('lens-company').innerText, cuCharts: document.querySelectorAll('#lens-customers svg.ch').length, moCharts: document.querySelectorAll('#lens-monetization svg.ch').length, moLevers: document.querySelectorAll('#lens-monetization .lever').length }));
+  rec('OFF · CUSTOMERS states that customers and ARR/customer are not modelled, keeps only the cumulative growth split; MONETIZATION states one balance with a single-series chart and no levers; the model chip reads MODEL · ARR', /Customer physics off/i.test(off.cu) && /are not modelled/.test(off.cu) && off.cuCharts === 1 && /Monetization physics off/i.test(off.mo) && off.moCharts === 1 && off.moLevers === 0 && /MODEL · ARR\n/.test(off.co + '\n') && !/CUSTOMERS · MONETIZATION/.test(off.co), JSON.stringify({ cuCharts: off.cuCharts, moCharts: off.moCharts }));
+  rec('OFF · ECONOMICS & CASH says FCF = EBITA in the cash legend when cash physics is off', /FCF = EBITA · cash physics off/.test(off.ca), '');
   await pg.close();
 
-  /* ---- PHONE: the flows and the paths stack ---- */
+  /* ---- PHONE ---- */
   const q = await open(390, 844); await world(q);
-  const ph = await D(q, () => { const g = s => { const e = document.querySelector(s); return e ? getComputedStyle(e).gridTemplateColumns.split(' ').length : null; }; return { engine: g('#lens-growth .engine'), paths: g('#lens-cash .paths'), two: g('#lens-customers .two'), hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, stage: document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1 }; });
-  rec('PHONE 390: the growth-engine flow, the two paths and the two bridges each stack into one column; no horizontal scroll', ph.engine === 1 && ph.paths === 1 && ph.two === 1 && !ph.hscroll && !ph.stage, JSON.stringify(ph));
+  const ph = await D(q, () => ({ hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, stage: document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1, chartW: [...document.querySelectorAll('#side svg.ch')].map(s => Math.round(s.getBoundingClientRect().width)), side: document.getElementById('side').getBoundingClientRect().width }));
+  rec('PHONE 390: every chart fits the column; no horizontal scroll', ph.chartW.every(w => w <= ph.side + 1 && w > 200) && !ph.hscroll && !ph.stage, JSON.stringify(ph));
   await q.close();
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
   await br.close();

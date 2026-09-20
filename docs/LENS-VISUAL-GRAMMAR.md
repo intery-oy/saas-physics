@@ -70,3 +70,20 @@ Orange has no role. Amber is reserved for laws and constraints, so it cannot dom
 - Base is quieter than Experiment everywhere: dashed, thinner, muted; Experiment is solid and brighter.
 - Deltas are sparse: hero + changed mechanism + the consequence a lens exists to show.
 - When a layer is off, the lens changes shape, not just its text: fewer rows, a dotted object, a reduced heading (INSTALLED BASE, MONETIZATION OFF, FCF = EBITA).
+
+## Chart grammar (five-lens design)
+
+Every lens chart is drawn by one function on one frame, so the five pages read as one
+instrument:
+
+| Element | Rule |
+|---|---|
+| Frame | viewBox 640 × 200 (Customers panes 118, Monetization 230); plot margins L 54 · R 78 · T 10 · B 18; width 100% of the column, max 780px, so charts stacked on one page align to the pixel |
+| Time axis | Y1–Y5 at months 12 … 60, faint vertical rules; month 0 is the opening |
+| Value axis | four ticks on the left in the series' unit (€ basis-aware for recurring, plain € for flows and cash, × for CAC, mo for payback, count for customers); a zero line only when the range crosses zero |
+| Experiment | solid, 1.6–1.8px, indigo (or the series' semantic colour); areas at 16–42% opacity |
+| Base | the same series dashed `5 4`, muted indigo, drawn first; shown only when it differs from Experiment |
+| Selected month | one cursor line at the global month on every chart; right-edge values for each labelled series, pushed apart when they collide; click anywhere on a chart to move the month there |
+| Legend | swatches in the title row, right-aligned before the basis tag |
+| Company formation | the canvas keeps the cohort strata (indigo ramp, opening base at the bottom), the Base dashed, the YoY growth line on its own quiet right scale, right-edge ARR and YoY values, and no cash plane |
+| Levers | the rail's own controls mirrored on Growth engine (S&M, CAC coefficient, capacity) and Monetization (platform fee, usage growth, adoption); a drag never re-renders the bar it is on |

@@ -113,9 +113,10 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   rec('LENSES: five lenses in the order Company → Customers → Growth engine → Monetization → Economics & cash, each numbered, with a question and a basis tag',
       lenses.length === 5 && lenses.map(l => l.id).join(',') === 'lens-company,lens-customers,lens-growth,lens-monetization,lens-cash' && lenses.every((l, i) => l.n === String(i + 1) && /\?$/.test(l.q) && BASIS.test(l.basis)),
       JSON.stringify(lenses.map(l => [l.id, l.n, l.basis])));
-  rec('LENSES: Company leads with one hero number; Customers leads with the logo and ARR ladders (stock, flows, stock); no lens prints NaN, undefined, null or [object',
-      lenses[0].hero && /^€[\d.]+[km]?$/.test(lenses[0].hero) && lenses[1].ladders >= 8 && lenses.every(l => !/NaN|undefined|\[object|(^|\s)null(\s|$)/.test(l.txt)),
-      JSON.stringify([lenses[0].hero, lenses[1].ladders]));
+  const chartsPer = await pg.evaluate(() => [...document.querySelectorAll('#side .lens')].map(l => l.querySelectorAll('svg.ch').length));
+  rec('LENSES: Company leads with one hero number and the formation figure; Customers, Growth engine and Economics & cash each carry two 60-month charts (Customers three panes), Monetization one; no lens prints NaN, undefined, null or [object',
+      lenses[0].hero && /^€[\d.]+[km]?$/.test(lenses[0].hero) && chartsPer.join(',') === '0,3,2,1,2' && lenses.every(l => !/NaN|undefined|\[object|(^|\s)null(\s|$)/.test(l.txt)),
+      JSON.stringify([lenses[0].hero, chartsPer]));
   const nav = await pg.evaluate(() => [...document.querySelectorAll('#side .lensnav .btn')].map(b => b.textContent));
   rec('LENSES: the lens navigation names the five lenses in CFO words (no engine jargon)', nav.join('|') === 'Company|Customers|Growth engine|Monetization|Economics & cash', nav.join('|'));
 
@@ -135,11 +136,11 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
 
   /* ---- VALUES ---- */
   const vals = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.expRes.months[23];
-    return { hero: document.querySelector('#lens-company .hero .hv').textContent, cust: document.querySelector('#lens-company .desc .dv').textContent, arr: m.closingARR, custN: m.customers.closing, A: D.expA }; });
+    return { hero: document.querySelector('#lens-company .hero .hv').textContent, cust: document.querySelector('#lens-customers .desc .dv').firstChild.textContent, arr: m.closingARR, custN: m.customers.closing, A: D.expA }; });
   const indep = E.run(vals.A, { openingCustomers: 1000 }).months[23];
   const mrr = v => { v = v / 12; return v >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : v >= 1e3 ? '€' + Math.round(v / 1e3) + 'k' : '€' + Math.round(v); };
   rec('VALUES: the Company hero is the engine\'s closing ARR at the selected month on the MRR basis, and its first descriptor the closing customers; both tie to an independent Node run',
-      vals.hero === mrr(vals.arr) && vals.cust === vals.custN.toFixed(0) && Math.abs(vals.arr - indep.closingARR) < 1e-6 && Math.abs(vals.custN - indep.customers.closing) < 1e-9,
+      vals.hero === mrr(vals.arr) && vals.cust === Math.round(vals.custN).toLocaleString('en-GB') && Math.abs(vals.arr - indep.closingARR) < 1e-6 && Math.abs(vals.custN - indep.customers.closing) < 1e-9,
       JSON.stringify({ hero: vals.hero, expect: mrr(vals.arr), cust: vals.cust }));
 
   /* ---- TIME ---- */
@@ -149,7 +150,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await setScrub(pg, 8);
   const t8 = await pg.evaluate(() => ({ tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), cum: [...document.querySelectorAll('#side .basis')].map(e => e.textContent).filter(t => /CUM/.test(t)), r12: [...document.querySelectorAll('#side .basis')].map(e => e.textContent).filter(t => /R12M/.test(t)).length }));
   rec('TIME: moving the playhead moves every lens\'s basis tag and the transport label together (lenses 1–4 at the month, Economics & cash on the trailing window); before month 12 the trailing-window tags read CUM · M1–M8 instead of R12M',
-      t24.tags.slice(0, 4).every(t => t === 'M24') && t24.tags[4] === 'R12M' && t36.tags.slice(0, 4).every(t => t === 'M36') && t36.tags[4] === 'R12M' && /24/.test(t24.label) && /36/.test(t36.label) && t36.r12 >= 2 && t8.tags.slice(0, 4).every(t => t === 'M8') && t8.tags[4] === 'CUM · M1–M8' && t8.cum.length >= 2 && t8.cum.every(t => t === 'CUM · M1–M8') && t8.r12 === 0,
+      t24.tags.slice(0, 4).every(t => t === 'M24') && t24.tags[4] === 'R12M' && t36.tags.slice(0, 4).every(t => t === 'M36') && t36.tags[4] === 'R12M' && /24/.test(t24.label) && /36/.test(t36.label) && t36.r12 >= 1 && t8.tags.slice(0, 4).every(t => t === 'M8') && t8.tags[4] === 'CUM · M1–M8' && t8.cum.length >= 1 && t8.cum.every(t => t === 'CUM · M1–M8') && t8.r12 === 0,
       JSON.stringify([t24.tags, t36.tags, t8.cum, t8.r12]));
   await setScrub(pg, 24);
 

@@ -71,7 +71,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const lens1 = await pg.evaluate(() => ({ active: document.getElementById('side').dataset.active, shown: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id), on: document.querySelector('.lensnav .btn.on').dataset.lens }));
   rec('LENSES: choosing Customers shows that one lens and marks it in the navigation', lens1.active === 'customers' && lens1.shown.length === 1 && lens1.shown[0] === 'lens-customers' && lens1.on === 'customers', JSON.stringify(lens1));
   const order = await pg.evaluate(() => { const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), l = document.getElementById('lens-customers').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect(); return { h: h.top, n: n.top, l: l.top, f: f.top, figOpen: document.getElementById('figwrap').open }; });
-  rec('LENSES: hero above navigation above the active lens above the figure; the figure is open on Customers', order.h < order.n && order.n < order.l && order.l < order.f && order.figOpen, JSON.stringify(order));
+  rec('LENSES: hero above navigation above the active lens above the figure; the formation figure collapses to a strip on Customers, which has its own charts', order.h < order.n && order.n < order.l && order.l < order.f && !order.figOpen, JSON.stringify(order));
   await click(pg, '.lensnav .btn[data-lens="growth"]');
   const figG = await pg.evaluate(() => document.getElementById('figwrap').open);
   rec('LENSES: on Growth engine the figure collapses to a strip (context, not competition)', figG === false, String(figG));
