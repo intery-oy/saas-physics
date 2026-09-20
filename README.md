@@ -20,6 +20,8 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 | **Engine version** | v2.0 (`v2-economic-system`) — the frozen v1.3 ARR physics (`docs/BASELINE-v1.3.md`, `44f7652`) plus the Economic System layers, each nullable, each reproducing the layer below exactly: A Customer Physics, B Monetization Physics, C Cash Physics, D Interventions. `docs/BASELINE-v2.md` records the frozen checksums. |
 | **Reporting basis default** | **MRR** — a global, persistent MRR ⇄ ARR switch (§2 below) |
 
+**Opening page.** A first visit lands on an opening page — what the model is and is not, the six parts of the portal, how to read the marks and time-basis tags, three ways to start — with a six-step tour; *Guide* in the header brings it back. Seen-state and the MRR/ARR preference are the only things the page stores, in the browser.
+
 **Economic Legibility (branch `v2-economic-legibility`).** The same engine, re-represented so a CFO can
 read a scenario's economic structure in about thirty seconds: Observe is five lenses (Company ·
 Customers · Growth engine · Monetization · Economics & cash), Compare is a causal spine (what you

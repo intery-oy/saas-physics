@@ -22,6 +22,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + path.resolve(__dirname, 'saas-physics-v1.html')); await pg.waitForTimeout(900);
+  await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
   const side = async () => pg.evaluate(() => document.getElementById('side').innerText);
   const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(250); };
   const scrub = async v => setSlider('scrub', v);

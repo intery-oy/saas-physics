@@ -64,11 +64,12 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const file = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const errs = [];
-  async function open(w, h){
+  async function open(w, h, keepWelcome){
     const pg = await b.newPage({ viewport: { width: w, height: h } });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
     pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push(w + ': console: ' + msg.text()); });
     await pg.goto(file); await pg.waitForTimeout(800);
+    if(!keepWelcome) await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
     return pg;
   }
   const setScrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
@@ -77,6 +78,30 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const clickModel = async (pg, mx, my) => { await pg.evaluate(([mx, my]) => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
       const s = Math.min(r.width / 1260, r.height / 770), ox = (r.width - 1260 * s) / 2, oy = (r.height - 770 * s) / 2;
       cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + ox + mx * s, clientY: r.top + oy + my * s, bubbles: true })); }, [mx, my]); await pg.waitForTimeout(300); };
+
+  /* ---- OPENING PAGE ---- */
+  const w0 = await open(1440, 900, true);
+  const wl = await pg0(w0);
+  async function pg0(q){ return q.evaluate(() => { const W = document.getElementById('welcome'); const t = W.innerText;
+    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Company','Change','Compare','System','Inspect','Scenarios'].every(k => new RegExp(k + ' ·').test(t)),
+      marks: /⋈/.test(t) && /⌈⌉/.test(t) && /→/.test(t) && /↯/.test(t), time: /M36 · month/i.test(t) && /R12M/.test(t), start: /Three ways to start/i.test(t), noreal: /no real company/i.test(t) && /illustrative/i.test(t),
+      appHidden: document.elementFromPoint(720, 450) && !!document.elementFromPoint(720, 450).closest('#welcome') }; }); }
+  rec('OPENING PAGE: a first visit lands on the opening page — what this is and is not, the six parts of the portal, the marks, the time basis, three ways to start, and a statement that the data is illustrative — covering the app beneath',
+      wl.shown && wl.title && wl.what && wl.portal && wl.marks && wl.time && wl.start && wl.noreal && wl.appHidden, JSON.stringify(wl));
+  await w0.evaluate(() => document.getElementById('welcome-enter').click()); await w0.waitForTimeout(200);
+  const entered = await w0.evaluate(() => ({ hidden: getComputedStyle(document.getElementById('welcome')).display === 'none', flag: localStorage.getItem('saas-physics-welcomed') }));
+  await w0.reload(); await w0.waitForTimeout(800);
+  const again = await w0.evaluate(() => getComputedStyle(document.getElementById('welcome')).display === 'none');
+  await w0.evaluate(() => document.getElementById('guidebtn').click()); await w0.waitForTimeout(200);
+  const reopened = await w0.evaluate(() => getComputedStyle(document.getElementById('welcome')).display !== 'none');
+  rec('OPENING PAGE: Enter hides it and remembers the visit; a reload goes straight to the portal; Guide in the header brings it back', entered.hidden && entered.flag === '1' && again && reopened, JSON.stringify({ entered, again, reopened }));
+  await w0.evaluate(() => document.getElementById('welcome-tour').click()); await w0.waitForTimeout(400);
+  const tour = [];
+  for (let i = 0; i < 6; i++) { tour.push(await w0.evaluate(() => ({ step: document.getElementById('tour-step').textContent, hl: (document.querySelector('.tour-on') || {}).id || (document.querySelector('.tour-on') || {}).className || null, on: document.getElementById('tourcard').classList.contains('on') }))); await w0.evaluate(() => document.getElementById('tour-next').click()); await w0.waitForTimeout(250); }
+  const tourEnd = await w0.evaluate(() => ({ card: document.getElementById('tourcard').classList.contains('on'), hl: !!document.querySelector('.tour-on'), welcome: getComputedStyle(document.getElementById('welcome')).display === 'none' }));
+  rec('OPENING PAGE: the tour walks six stops — surfaces, World, Change, the figure, the lenses, time — highlighting each region, and leaves nothing behind when done',
+      tour.length === 6 && tour.every((s, i) => s.on && s.step.startsWith('Tour · ' + (i + 1) + ' of 6')) && tour[3].hl === 'scene' && tour[4].hl === 'side' && !tourEnd.card && !tourEnd.hl && tourEnd.welcome, JSON.stringify({ tour, tourEnd }));
+  await w0.close();
 
   const pg = await open(1440, 900);
   await pack(pg, 'full'); await setScrub(pg, 24);

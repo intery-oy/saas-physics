@@ -29,6 +29,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html'));
+  await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
   await pg.waitForTimeout(900);
   const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(250); };
   const setScrub = async v => setSlider('scrub', v);

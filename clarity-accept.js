@@ -20,6 +20,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + '');
+  await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
   await pg.waitForTimeout(900);
 
   /* ---- DISPLAY-RECONCILIATION: same quantity, same month, two surfaces ---- */

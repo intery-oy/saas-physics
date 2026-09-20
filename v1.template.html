@@ -345,8 +345,92 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .key-grid b{color:var(--ink);font-weight:500}
 .key .close{position:absolute;top:20px;right:26px}
 .note{font-size:10.5px;color:var(--ink-4);line-height:1.6;margin-top:12px}
+
+/* ---------- opening page and guided tour ---------- */
+.welcome{position:fixed;inset:0;z-index:60;background:var(--ground);overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+.welcome.on{display:block}
+.wl{max-width:880px;margin:0 auto;padding:34px 28px 56px}
+.wl h1{font-family:var(--display);font-weight:400;font-size:36px;margin:0 0 2px;letter-spacing:.005em}
+.wl .wsub{font-family:var(--display);font-style:italic;color:var(--ink-2);font-size:15px;margin:0 0 28px}
+.wl p{font-size:13.5px;line-height:1.7;color:var(--ink-2);max-width:70ch;margin:0 0 12px}
+.wl p b,.wl li b{color:var(--ink);font-weight:600}
+.wl h5{font-family:var(--ui);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 9px;font-weight:600}
+.wgrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px 40px;margin:28px 0 24px}
+.wgrid ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+.wgrid li{margin-bottom:7px}
+.wmarks{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 12px;font-size:12.5px;color:var(--ink-2);align-items:baseline}
+.wmarks .m{font-family:var(--mono);color:var(--law);font-size:13px} .wmarks .m.meas{color:var(--ink-2)} .wmarks .m.hyp{color:var(--hyp)} .wmarks .m.off{color:var(--ink-4)}
+.wl .wsmall{font-size:12.5px}
+.wstart{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 28px}
+.ws{border:1px solid var(--line);border-radius:4px;background:var(--panel);padding:13px 15px;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+.ws b.t{display:block;color:var(--ink);font-weight:600;margin-bottom:5px;font-size:13px}
+.ws .n{font-family:var(--mono);color:var(--exp);margin-right:7px}
+.wcta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 6px}
+.btn.primary{border-color:var(--exp);color:var(--exp);background:rgba(201,114,47,.09)}
+.wcta .btn.primary{padding:10px 18px;font-size:13px}
+.wcta .hint{font-size:11px}
+.wnote{font-size:11px;color:var(--ink-4);margin-top:24px;line-height:1.6;max-width:70ch}
+@media (max-width:760px){ .wgrid,.wstart{grid-template-columns:minmax(0,1fr)} .wl{padding:28px 16px 48px} .wl h1{font-size:29px} }
+.tour-on{outline:2px solid var(--exp)!important;outline-offset:3px;border-radius:3px}
+.tourcard{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:55;width:min(540px,calc(100% - 32px));background:var(--panel);border:1px solid var(--exp);border-radius:4px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.55);display:none}
+.tourcard.on{display:block}
+.tourcard .tt{font-family:var(--ui);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--exp);margin-bottom:5px}
+.tourcard .tx{font-size:12.5px;line-height:1.6;color:var(--ink-2)} .tourcard .tx b{color:var(--ink);font-weight:600}
+.tourcard .tb{display:flex;gap:8px;margin-top:10px} .tourcard .tb .sp{flex-grow:1}
 </style>
 
+<div class="welcome" id="welcome" role="dialog" aria-labelledby="welcome-title">
+  <div class="wl">
+    <h1 id="welcome-title">SaaS Physics</h1>
+    <p class="wsub">an economic system, observed</p>
+    <p><b>What this is.</b> A deterministic model of a subscription software company over sixty months. You set the laws the company obeys &mdash; how customers stay, how spend turns into new business, what each customer pays, when the cash arrives &mdash; and the model shows what company those laws create, month by month: ARR, customers, P&amp;L and cash.</p>
+    <p><b>What it is not.</b> Not a forecast and not a spreadsheet. Nothing is entered as an output: growth, retention ratios, margins and cash are consequences of the laws, and every figure on screen can be traced back to them. The worlds inside are illustrative; no real company&rsquo;s data is in here.</p>
+    <div class="wcta">
+      <button class="btn primary" id="welcome-enter">Enter</button>
+      <button class="btn" id="welcome-tour">Take the six-step tour</button>
+      <span class="hint">Reopen this page any time with <b>Guide</b> in the header.</span>
+    </div>
+    <div class="wgrid">
+      <div>
+        <h5>The portal</h5>
+        <ol>
+          <li><b>Company</b> &middot; the figure and five lenses: what kind of company this is, its customers, its growth engine, what its revenue is made of, what it earned and what cash it needed.</li>
+          <li><b>Change</b> &middot; the rail on the left. Pick a world, then set laws, constraints, inputs and one hypothesis. Measurements read beneath the law they observe and are never set.</li>
+          <li><b>Compare</b> &middot; move one control and, beneath the lenses, read what you changed &rarr; what the system did &rarr; what company emerged, against the unchanged Base.</li>
+          <li><b>System</b> &middot; the company as an economic machine: capital &rarr; acquisition &rarr; customers &rarr; monetization &rarr; ARR &rarr; P&amp;L &rarr; billing &rarr; cash. Click a node to open its layer.</li>
+          <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR from the company down to the cash it recovered.</li>
+          <li><b>Scenarios</b> &middot; fourteen canonical experiments, each changing one declared assumption.</li>
+        </ol>
+      </div>
+      <div>
+        <h5>How to read the marks</h5>
+        <div class="wmarks">
+          <span class="m">&#8904;</span><span>a law the world obeys &mdash; set by you</span>
+          <span class="m">&#8968;&#8969;</span><span>a constraint &mdash; a bound, never a benefit</span>
+          <span class="m meas">&rarr;</span><span>a measurement &mdash; read, never set</span>
+          <span class="m hyp">&#8623;</span><span>a hypothesis &mdash; costed, lagged, temporary</span>
+          <span class="m off">&middot; &middot;</span><span>off &mdash; a mechanism this world does not carry</span>
+        </div>
+        <h5 style="margin-top:18px">Time</h5>
+        <p class="wsmall">Every figure names its basis: <span class="basis">M36</span> a month&rsquo;s closing state, <span class="basis">M36 &middot; month</span> that month&rsquo;s flows, <span class="basis">R12M</span> the trailing twelve months, <span class="basis">CUM</span> since the start, <span class="basis">M60</span> the horizon. The transport at the bottom is the only clock.</p>
+        <h5 style="margin-top:18px">Basis</h5>
+        <p class="wsmall">Recurring revenue shows as MRR by default; the header switches to ARR. Nothing else changes.</p>
+      </div>
+    </div>
+    <h5>Three ways to start</h5>
+    <div class="wstart">
+      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>Choose <b>A &middot; Enterprise</b> under World, press play, stop around month 36 and read the first lens.</div>
+      <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>Move <b>S&amp;M investment</b> or <b>Logo retention</b> and read the comparison that appears beneath the lenses.</div>
+      <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, then click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
+    </div>
+    <p class="wnote">Illustrative model, deterministic, no randomness; the same engine runs the browser and the command-line checks. Nothing you set is sent anywhere. The page keeps only your MRR/ARR preference and whether you have seen this screen, in this browser.</p>
+  </div>
+</div>
+<div class="tourcard" id="tourcard" role="dialog" aria-live="polite">
+  <div class="tt" id="tour-step"></div>
+  <div class="tx" id="tour-text"></div>
+  <div class="tb"><button class="btn" id="tour-back">Back</button><span class="sp"></span><button class="btn" id="tour-skip">End tour</button><button class="btn primary" id="tour-next">Next</button></div>
+</div>
 <div class="app">
   <header class="head">
     <button class="btn" id="rail-toggle" aria-label="Open or close the Change rail">Change</button>
@@ -361,6 +445,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div>
     <button class="btn" id="leak-toggle" title="Cumulative historical leakage — off by default">Leakage shadow: Off</button>
     <button class="btn" id="keybtn">Method</button>
+    <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
   </header>
 
   <aside class="rail">
@@ -3908,6 +3993,44 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
      ADDED-LAST checks in attribution-accept.js, can verify against the exact
      objects and functions the UI renders from, not a re-derived copy.
      Nothing here can be assigned to; it changes no product behaviour. */
+  /* ---------- opening page and guided tour ---------- */
+  (function(){
+    var W = document.getElementById('welcome'), KEY = 'saas-physics-welcomed', app = document.querySelector('.app');
+    var seen = false; try { seen = localStorage.getItem(KEY) === '1'; } catch(e){}
+    function showWelcome(){ W.classList.add('on'); W.scrollTop = 0; }
+    function hideWelcome(){ W.classList.remove('on'); try { localStorage.setItem(KEY, '1'); } catch(e){} }
+    if(!seen && location.hash !== '#app') showWelcome();
+    document.getElementById('welcome-enter').addEventListener('click', hideWelcome);
+    document.getElementById('guidebtn').addEventListener('click', function(){ endTour(); showWelcome(); });
+    /* the tour: six stops, each one region of the portal, in the order a first reading takes */
+    var STEPS = [
+      { sel:'.head .nav', t:'Three surfaces', x:'<b>Company</b> is where you observe and change a company. <b>System</b> draws it as an economic machine. <b>Scenarios</b> are canonical experiments. Compare and Basis change how the same run is read, not the run.' },
+      { sel:'#packs', t:'World', x:'Which layers the Base world carries: ARR physics alone, customers beneath it, monetization, cash, a hypothesis \u2014 or one of three illustrative company shapes. Reset returns to the chosen world.', rail:true },
+      { sel:'#rail-change', t:'Change', x:'Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis \u2014 with its unit and direction. Move one and the whole future recalculates against the unchanged Base.', rail:true },
+      { sel:'#scene', t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
+      { sel:'#side', t:'The five lenses', x:'Company, Customers, Growth engine, Monetization, Economics & cash \u2014 each a question, a hero figure and readouts with their time basis. When Experiment differs from Base, the causal comparison appears beneath them.' },
+      { sel:'.transport', t:'Time', x:'Play, or drag the scrubber. Every basis tag on every lens follows the selected month. Month 36 is a good place to read a mature company.' }
+    ];
+    var step = -1, hl = null, card = document.getElementById('tourcard');
+    function clearHl(){ if(hl){ hl.classList.remove('tour-on'); hl = null; } }
+    function endTour(){ clearHl(); step = -1; card.classList.remove('on'); app.classList.remove('rail-open'); }
+    function showStep(i){
+      clearHl(); step = i; var s = STEPS[i], el = document.querySelector(s.sel);
+      var narrow = window.matchMedia('(max-width:1180px)').matches;
+      app.classList.toggle('rail-open', !!(s.rail && narrow));
+      if(el){ hl = el; el.classList.add('tour-on'); try { el.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch(e){} }
+      document.getElementById('tour-step').textContent = 'Tour \u00b7 ' + (i+1) + ' of ' + STEPS.length + ' \u00b7 ' + s.t;
+      document.getElementById('tour-text').innerHTML = s.x;
+      document.getElementById('tour-back').disabled = i === 0;
+      document.getElementById('tour-next').textContent = i === STEPS.length-1 ? 'Done' : 'Next';
+      card.classList.add('on');
+    }
+    document.getElementById('welcome-tour').addEventListener('click', function(){ hideWelcome(); if(layer !== 'stock') setLayer('stock'); showStep(0); });
+    document.getElementById('tour-next').addEventListener('click', function(){ if(step >= STEPS.length-1) endTour(); else showStep(step+1); });
+    document.getElementById('tour-back').addEventListener('click', function(){ if(step > 0) showStep(step-1); });
+    document.getElementById('tour-skip').addEventListener('click', endTour);
+  })();
+
   window.__SP_DEBUG = {
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
