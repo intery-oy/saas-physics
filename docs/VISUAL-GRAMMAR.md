@@ -111,6 +111,49 @@ arrows, laws as valves attached to the flow they govern, measurements as readout
 object they observe, interventions as arrows from outside. Each node opens its layer view; a
 breadcrumb keeps orientation.
 
+## 9g. System · Customers — the mechanism, annotated
+
+**The Model Ledger is the record. System is the mechanism, annotated with one month's canonical
+quantities.** That division decides everything on this page: it does not try to be a table, and
+the table does not try to be a diagram.
+
+Customers is built as **two registers on one set of columns**. A column is an **event** —
+`OPENING · + NEW LOGOS · − LOST LOGOS · − CONTRACTION · + EXPANSION · CLOSING` — and it is read
+downward: what the event did to **logos** above, what it did to **money** below, joined by the
+coupling that converts one into the other (`× ARPA`, `× ARR per new logo`, `× the ARPA they
+carried`). The logo mark and the money mark share the column's axis to within a pixel, so the eye
+can go straight from a count to the euros it carried.
+
+**Two columns carry no logo mark at all, and the empty cell is drawn.** Contraction and expansion
+move money without moving a logo: the same customers, paying differently. The absence *is* the
+economics, so it is stated — a dotted placeholder reading *no logo moves* — rather than left as a
+gap. Their coupling to the money register is drawn **gold**, the law colour: these laws reach the
+euros directly, without passing through a customer.
+
+**Scale — two scales, declared.** A stock and a flow here differ by a factor of forty. One linear
+scale makes every flow invisible; a hidden second scale is a lie. So stocks share one run-wide
+linear scale, flows share another, **the magnification between them is printed beside each
+register** (`▮ flows magnified ×42`), every bar carries its own figure, and no non-zero flow is
+drawn smaller than three pixels. Relative magnitude is exact *within* a register and *across
+months* — which is the comparison that means something. The closing stock carries a dotted rule
+at the **opening level**, so the month's net change is also legible at the stock's own true scale.
+Both scales are computed once per recompute, never per month, so scrubbing the clock shows the
+company growing instead of the axis rescaling under it.
+
+**The four object kinds are distinguishable by mark alone.** Stocks are bordered containers. Flows
+are solid bars, signed by colour and by a printed `+`/`−`. Laws are `⋈` valves **above the flow
+they govern**, with a short stem down to it, and they are the controls. Measurements are `→` lines
+**beneath** the columns they observe. A law a hypothesis has moved says so in the ontology's own
+mark (`↯ ret · base 92.0%`) — a valve shows the law *in force*, never the law you set.
+
+**A law this world does not use is not drawn.** Under Monetization the generic expansion
+coefficient is bypassed, so no valve claims it: the expansion column becomes the way *into* the
+Monetization layer instead, and contraction says it reaches usage revenue only. Under age-banded
+laws no single expansion rate is in force, so none is shown as a scalar — the bands are printed.
+
+Each register closes its own bridge in print, with the residual: `opening + new − lost = closing`
+for logos, `opening + new + expansion − churn − contraction = closing` for money.
+
 ## 9a. Inspect — the provenance chain
 
 A pinned cohort is one euro of company ARR traced down the ontology: **Company ARR** (this
@@ -260,6 +303,21 @@ pipeline between them and the spend month each landing came from. Under a lag th
 months' euros. A cold pipeline reads off the table directly — the first L months produce and land
 nothing while the pipeline fills; a warm start shows its landings stamped with spend months at or
 before zero.
+
+### A second scale is honest only when it is printed
+
+Encoding stocks and flows on one linear axis is not the honest choice when they differ by orders
+of magnitude — it is the choice that hides the flows. Two scales are honest when the page *says*
+there are two and *says what the exchange rate is*, every bar carries its figure, and relative
+magnitude stays exact inside each scale. What is never acceptable is a silent second scale, a
+non-zero flow drawn as nothing, or a scale recomputed per month so that growth looks like
+stillness.
+
+### An absence is a claim, so draw it
+
+Where the model says a thing does not happen — contraction moves no logo — the page draws the
+empty cell rather than omitting it. An omission reads as an oversight; a drawn absence reads as a
+finding. The same rule already governed the ontology's missing feedback links.
 
 ## 10. What is never done
 

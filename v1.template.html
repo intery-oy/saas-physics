@@ -2207,6 +2207,9 @@ details.pl .cascade{margin-top:8px}
    * ==================================================================== */
   var SYS = { W:1260, H:770 };
   var valveHits = [], nodeHits = [];   /* nodeHits: the ontology's clickable nodes {x,y,w,h,view} */
+  /* the Customers view publishes what it drew: values and geometry, so a test can
+     check BOTH that the numbers are canonical and that the bars landed where they belong. */
+  var customersModel = null;
   /* Cheap per-frame test: is the Experiment the same run as Base? Comparing the
      assumption objects directly avoids re-summarising 60 months twice a frame. */
   function sameAsBase(){
@@ -2248,7 +2251,8 @@ details.pl .cascade{margin-top:8px}
       var titles = { customers:'CUSTOMER PHYSICS · beneath the ARR', monetization:'MONETIZATION PHYSICS · where the revenue comes from', cash:'CASH PHYSICS · beneath EBITA', hypotheses:'HYPOTHESES · the laws in force, month by month' };
       ctx.fillText('SYSTEM · '+titles[v]+'   ·   month '+m+(isD?'   ·   Experiment (delta compare shows the company view only)':''), 30, 26);
       ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-      ctx.fillText('Same engine month as the company view, drawn at this layer\'s own scale. Rectangles are stocks, pipes are this month\'s flows, bowties are the laws you set.', 30, 42);
+      var SUBTITLE = { customers:'The Model Ledger is the record; this is the mechanism, annotated with this month\'s canonical quantities. ▭ stocks · ▮ flows · ⋈ laws you set · → measurements.' };
+      ctx.fillText(SUBTITLE[v] || 'Same engine month as the company view, drawn at this layer\'s own scale. Rectangles are stocks, pipes are this month\'s flows, bowties are the laws you set.', 30, 42);
       function box(x,y,w,h,label,value,tone){
         ctx.fillStyle='#0e1219'; ctx.strokeStyle=tone||'#3a4358'; ctx.lineWidth=1.3;
         ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
@@ -2264,24 +2268,210 @@ details.pl .cascade{margin-top:8px}
         ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText(value, lx, vert ? ly+12 : ly+20);
       }
       function note(x,y,text){ ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8'; ctx.fillText(text, x, y); }
-      if(v==='customers'){
-        var cu = mm.customers, P = expRes.derived.persistenceAnnualEffective;
-        cloud(110, 330, 'market / acquisition');
-        flow(160, 330, 300, 330, 'new customers · this month', cu.newCustomers.toFixed(1));
-        box(430, 330, 240, 170, 'STOCK · customers', cu.closing.toFixed(0), '#8b8df0');
-        note(320, 430, 'opening '+cu.opening.toFixed(0)+' + new '+cu.newCustomers.toFixed(1)+' − lost '+cu.logoChurn.toFixed(1)+' = '+cu.closing.toFixed(0));
-        flow(430, 415, 430, 560, 'lost logos · this month', cu.logoChurn.toFixed(1), 'rgba(152,162,184,.7)');
-        valve(430, 620, 'logo retention', fmtF('pct', lv('logoRetentionAnnual')), 'logoRetentionAnnual', -72, 44);
-        cloud(430, 700, 'leaves the system');
-        flow(550, 300, 700, 300, '× ARPA', reur(cu.arpaClosing)+' per customer');
-        box(820, 300, 200, 90, 'STOCK · '+basis, reur(mm.closingARR), '#8b8df0');
-        box(820, 430, 200, 80, 'leakage from lost logos', reur(cu.logoChurnARR), '#222b3d');
-        box(820, 530, 200, 80, 'leakage from contraction', reur(cu.contractionARR), '#222b3d');
-        valve(1010, 530, 'contraction', fmtF('pct', lv('contractionAnnual')), 'contractionAnnual', -72, 44);
-        link([[430+14, 620],[720, 530]], '', false);
-        box(1090, 300, 220, 90, 'persistence in force', P===null ? 'emergent (mix)' : pct(P,1)+' = L × (1 − C)', '#222b3d');
-        link([[520, 620],[1000, 345]], '', false);
-        note(30, SYS.H-40, 'Departing customers take the cohort\'s average revenue; survivors shrink by the contraction law. Persistence is no longer set: it is what these two produce.'+(P===null ? ' Under Monetization contraction reaches usage only, so it is emergent.' : ''));
+      if(v==='customers'){ drawCustomers(mm); }
+      /* ----------------------------------------------------------------- *
+       * CUSTOMERS — the MECHANISM, annotated with one month's quantities.
+       * (The Model Ledger is the record; this page is the machine.)
+       *
+       * Two registers on ONE set of columns. A column is an EVENT: what the
+       * event did to LOGOS above, what it did to MONEY below. Where an event
+       * moves money but no logo — contraction, expansion — the logo cell is
+       * drawn EMPTY. That absence is the economics, not a gap in the drawing.
+       *
+       * Scale. A stock and a flow here differ by a factor of forty. One linear
+       * scale would make every flow invisible; a hidden second scale would be
+       * a lie. So: stocks share one run-wide linear scale, flows share another,
+       * the magnification between them is PRINTED beside each register, and
+       * every bar carries its own figure. Relative magnitude is exact WITHIN a
+       * register and across months — which is the comparison that means
+       * something — and the closing stock carries a dotted rule at the opening
+       * level, so the month's net change is also legible at the true scale.
+       * ----------------------------------------------------------------- */
+      function drawCustomers(mm){
+        var cu = mm.customers, MON = !!mm.monetization, FLAT = expRes.bandsAreFlat;
+        var COL = [250, 422, 594, 766, 938, 1110], SW = 100, FW = 66;
+        var GOLD = '#d2a45c', IN = '#4fa37d', OUT = '#c2606a', STK = '#8b8df0';
+        var ev = [
+          { n:'OPENING',       kind:'stock', logo:cu.opening,      arr:mm.openingARR,     law:null,
+            cpl:['× ARPA', reurP(cu.arpaOpening)] },
+          { n:'+ NEW LOGOS',   kind:'in',    logo:cu.newCustomers, arr:mm.newARR,         law:'newLogoARPA',
+            cpl:['× ARR per new logo', fmtF('arpa', lv('newLogoARPA'))] },
+          { n:'− LOST LOGOS',  kind:'out',   logo:cu.logoChurn,    arr:cu.logoChurnARR,   law:'logoRetentionAnnual',
+            cpl:['× the ARPA they carried', 'they take it with them'] },
+          { n:'− CONTRACTION', kind:'out',   logo:null,            arr:cu.contractionARR, law:'contractionAnnual',
+            cpl:['same logos, less money', MON ? 'usage revenue only' : 'the whole balance'] },
+          { n:'+ EXPANSION',   kind:'in',    logo:null,            arr:mm.expansion,      law: (MON||!FLAT) ? null : 'expansionCoefficientAnnual',
+            cpl:['same logos, more money', MON ? 'price · usage · adoption ›' : (FLAT ? 'one coefficient' : 'one rate per age band')] },
+          { n:'CLOSING',       kind:'stock', logo:cu.closing,      arr:mm.closingARR,     law:null,
+            cpl:['× ARPA', reurP(cu.arpaClosing)] }
+        ];
+        /* ---- scales, declared: run-wide maxima, so scrubbing shows real growth ---- */
+        var sMaxL=1, fMaxL=1, sMaxA=1, fMaxA=1;
+        for(var qi=0; qi<expRes.horizon; qi++){
+          var q=expRes.months[qi], qc=q.customers; if(!qc) continue;
+          sMaxL=Math.max(sMaxL, qc.opening, qc.closing);
+          fMaxL=Math.max(fMaxL, qc.newCustomers, qc.logoChurn);
+          sMaxA=Math.max(sMaxA, q.openingARR, q.closingARR);
+          fMaxA=Math.max(fMaxA, q.newARR, q.expansion, qc.logoChurnARR, qc.contractionARR);
+        }
+        var FSH = 0.55;                                   /* the tallest flow fills this much of a register */
+        var RL = { base:332, h:112, sMax:sMaxL, fMax:fMaxL }, RA = { base:562, h:118, sMax:sMaxA, fMax:fMaxA };
+        RL.mag = FSH*RL.sMax/RL.fMax; RA.mag = FSH*RA.sMax/RA.fMax;
+        function hS(R,x){ return Math.max(1, Math.abs(x)/R.sMax*R.h); }
+        function hF(R,x){ return Math.abs(x)<1e-9 ? 0 : Math.max(3, Math.abs(x)/R.fMax*R.h*FSH); }
+        function fitv(t, x, y, maxW, px, col){
+          var sz=px; ctx.font=sz+'px "JetBrains Mono",monospace';
+          while(sz>7.5 && ctx.measureText(t).width>maxW){ sz-=0.5; ctx.font=sz+'px "JetBrains Mono",monospace'; }
+          ctx.fillStyle=col; ctx.textAlign='center'; ctx.fillText(t, x, y);
+        }
+        var model = { month:m, cols:[], registers:{ logos:{base:RL.base, h:RL.h, mag:RL.mag}, arr:{base:RA.base, h:RA.h, mag:RA.mag} }, laws:[] };
+
+        /* ---- the register baselines ---- */
+        [RL, RA].forEach(function(R){
+          ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(COL[0]-SW/2-24, R.base+0.5); ctx.lineTo(COL[5]+SW/2+24, R.base+0.5); ctx.stroke();
+        });
+        /* ---- register identity, in the left gutter ---- */
+        function gutter(y, name, sub, mag){
+          ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8'; ctx.fillText(name, 30, y);
+          ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText(sub, 30, y+14);
+          ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#414a60';
+          ctx.fillText('▭ stocks to scale', 30, y+36);
+          ctx.fillText('▮ flows magnified ×'+Math.round(mag), 30, y+50);
+        }
+        gutter(246, 'LOGOS', 'customers, counted', RL.mag);
+        gutter(462, basis.toUpperCase(), 'the installed base, in euros', RA.mag);
+
+        /* ---- the columns ---- */
+        ev.forEach(function(E2, i){
+          var x = COL[i], rec = { n:E2.n, x:x, kind:E2.kind };
+          /* column name */
+          ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif';
+          ctx.fillStyle = E2.kind==='stock' ? '#98a2b8' : E2.kind==='in' ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)';
+          ctx.fillText(E2.n, x, 192);
+          /* LOGOS cell */
+          if(E2.logo===null){
+            /* the deliberate absence: this event moves money and no logo */
+            ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.rect(x-FW/2, RL.base-16, FW, 16); ctx.stroke(); ctx.restore();
+            ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#414a60';
+            ctx.fillText('no logo moves', x, RL.base-4.5);
+            rec.logo = null; rec.logoEmpty = { x:x-FW/2, y:RL.base-16, w:FW, h:16 };
+          } else if(E2.kind==='stock'){
+            var h1 = hS(RL, E2.logo), y1 = RL.base-h1;
+            ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.4;
+            ctx.beginPath(); ctx.roundRect(x-SW/2, y1, SW, h1, 3); ctx.fill(); ctx.stroke();
+            fitv(E2.logo.toFixed(0), x, y1-8, SW, 13, '#e6e9f2');
+            rec.logo = { v:E2.logo, rect:{ x:x-SW/2, y:y1, w:SW, h:h1 } };
+          } else {
+            var h2 = hF(RL, E2.logo), y2 = RL.base-h2;
+            ctx.fillStyle = E2.kind==='in' ? IN : OUT; ctx.fillRect(x-FW/2, y2, FW, h2);
+            fitv((E2.kind==='in'?'+':'−')+Math.abs(E2.logo).toFixed(1), x, y2-8, SW, 11.5, '#e6e9f2');
+            rec.logo = { v:E2.logo, rect:{ x:x-FW/2, y:y2, w:FW, h:h2 } };
+          }
+          /* ARR cell */
+          var ay, ah;
+          if(E2.kind==='stock'){
+            ah = hS(RA, E2.arr); ay = RA.base-ah;
+            ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.4;
+            ctx.beginPath(); ctx.roundRect(x-SW/2, ay, SW, ah, 3); ctx.fill(); ctx.stroke();
+            fitv(reur(E2.arr), x, ay-8, SW+18, 13, '#e6e9f2');
+            rec.arr = { v:E2.arr, rect:{ x:x-SW/2, y:ay, w:SW, h:ah } };
+          } else {
+            ah = hF(RA, E2.arr); ay = RA.base-ah;
+            ctx.fillStyle = E2.kind==='in' ? IN : OUT; ctx.fillRect(x-FW/2, ay, FW, ah);
+            fitv((E2.kind==='in'?'+':'−')+reur(Math.abs(E2.arr)), x, ay-8, SW+18, 11.5, '#e6e9f2');
+            rec.arr = { v:E2.arr, rect:{ x:x-FW/2, y:ay, w:FW, h:ah } };
+          }
+          /* the coupling: every column is joined to its money by the same vertical.
+             Where the logo cell is empty the join is GOLD — the law reaches the
+             money directly, without touching a logo. */
+          var direct = E2.logo===null;
+          ctx.save(); ctx.setLineDash(direct?[4,4]:[3,3]); ctx.lineWidth=1;
+          ctx.strokeStyle = direct ? 'rgba(210,164,92,.75)' : 'rgba(91,104,196,.7)';
+          /* the label band is a gap in the line, not something the line runs through */
+          ctx.beginPath(); ctx.moveTo(x, RL.base+20); ctx.lineTo(x, 360); ctx.moveTo(x, 396); ctx.lineTo(x, ay-26); ctx.stroke(); ctx.restore();
+          ctx.fillStyle = direct ? 'rgba(210,164,92,.9)' : 'rgba(91,104,196,.9)'; ctx.beginPath();
+          ctx.moveTo(x, ay-20); ctx.lineTo(x-4, ay-28); ctx.lineTo(x+4, ay-28); ctx.closePath(); ctx.fill();
+          ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle = direct ? GOLD : '#8b8df0';
+          ctx.fillText(E2.cpl[0], x, 374);
+          ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = direct ? 'rgba(210,164,92,.8)' : '#98a2b8';
+          ctx.fillText(E2.cpl[1], x, 387);
+          /* the law that governs this flow, above the column it governs */
+          if(E2.law){
+            var LAB = { newLogoARPA:'⋈ ARR per new logo', logoRetentionAnnual:'⋈ logo retention',
+                        contractionAnnual:'⋈ contraction', expansionCoefficientAnnual:'⋈ expansion coefficient' }[E2.law];
+            var FF = (forceOf(E2.law)||{}).f || 'pct';
+            /* a law a hypothesis has moved says so, in the ontology's own mark */
+            var ivc = ((mm.interventions && mm.interventions.changes) || []).filter(function(c){ return c.target===E2.law; }).slice(-1)[0];
+            if(ivc){ ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#c885d8';
+                     ctx.fillText('↯ '+ivc.id+' · base '+fmtF(FF, ivc.from), x, 92); }
+            valve(x, 124, LAB, fmtF(FF, lv(E2.law)), E2.law, -72, 44);
+            ctx.strokeStyle='rgba(210,164,92,.55)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(x, 140); ctx.lineTo(x, 172); ctx.stroke();
+            model.laws.push({ key:E2.law, x:x, y:124, value:lv(E2.law), movedBy: ivc ? ivc.id : null });
+            rec.law = E2.law;
+          }
+          model.cols.push(rec);
+        });
+        /* the closing stock carries a dotted rule at the OPENING level: the band
+           above it is this month's net change, at the stock's own true scale. */
+        [[RL, cu.opening], [RA, mm.openingARR]].forEach(function(p){
+          var R=p[0], oy = R.base - hS(R, p[1]);
+          ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(230,233,242,.5)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(COL[5]-SW/2-8, oy+0.5); ctx.lineTo(COL[5]+SW/2+8, oy+0.5); ctx.stroke(); ctx.restore();
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(230,233,242,.55)';
+          ctx.fillText('opening level', COL[5]+SW/2+12, oy+3);
+        });
+        /* expansion under Monetization is not a coefficient here: it is the
+           price/usage/adoption machine. Make the column the way in. */
+        if(MON){ ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4';
+          ctx.fillText('open Monetization ›', COL[4], 160);
+          /* only the two labels that say so are clickable — a bar is a quantity, not a door */
+          nodeHits.push({ x:COL[4]-70, y:150, w:140, h:16, view:'monetization' });
+          nodeHits.push({ x:COL[4]-80, y:378, w:160, h:14, view:'monetization' }); }
+        /* ---- the two bridges, printed, with their residuals ---- */
+        var lRes = cu.opening + cu.newCustomers - cu.logoChurn - cu.closing;
+        var aRes = mm.openingARR + mm.newARR + mm.expansion - cu.logoChurnARR - cu.contractionARR - mm.closingARR;
+        model.bridges = { logo:lRes, arr:aRes };
+        function bridge(y, text, res, scale){
+          ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+          ctx.fillText(text, COL[0]-SW/2, y);
+          var w = ctx.measureText(text).width, ok = Math.abs(res) <= Math.max(1e-6, 1e-9*Math.abs(scale));
+          ctx.fillStyle = ok ? '#4fa37d' : '#c2606a';
+          ctx.fillText(ok ? '  ✓ closes' : '  ✗ '+res.toFixed(2), COL[0]-SW/2+w, y);
+        }
+        bridge(RL.base+18, cu.opening.toFixed(1)+'  +  '+cu.newCustomers.toFixed(1)+'  −  '+cu.logoChurn.toFixed(1)+'  =  '+cu.closing.toFixed(1)+'  logos', lRes, cu.closing);
+        bridge(RA.base+18, reur(mm.openingARR)+'  +  '+reur(mm.newARR)+'  +  '+reur(mm.expansion)+'  −  '+reur(cu.logoChurnARR)+'  −  '+reur(cu.contractionARR)+'  =  '+reur(mm.closingARR), aRes, mm.closingARR);
+
+        /* ---- measurements: what the flows measure out to, beneath the columns ---- */
+        var cm = m>=12 ? K.customerMeasures(expRes, m) : null, k12 = m>=12 ? K.measureR12M(expRes, m) : null;
+        var P = expRes.derived.persistenceAnnualEffective;
+        function meas(i, row, t){ ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8'; ctx.fillText(t, COL[i], 604+row*14); }
+        meas(0, 0, '→ ARPA '+reurP(cu.arpaOpening));
+        meas(1, 0, '→ new logos R12M '+(cm===null?'—':cm.newCustomersR12M.toFixed(0)));
+        meas(2, 0, '→ logo retention R12M '+(cm===null?'—':pct(cm.logoRetentionR12M,1)));
+        meas(2, 1, '→ $ churn · logos '+(cm===null?'—':pct(cm.dollarChurnFromLogosR12M,1)));
+        meas(3, 0, '→ $ churn · contraction '+(cm===null?'—':pct(cm.dollarChurnFromContractionR12M,1)));
+        meas(3, 1, '→ GRR R12M '+(k12===null?'—':pct(k12.grr,1)));
+        meas(4, 0, '→ expansion R12M '+(k12===null?'—':pct(k12.expansionRate,1)));
+        meas(5, 0, '→ ARPA '+reurP(cu.arpaClosing));
+        meas(5, 1, '→ NRR this month '+pct(mm.nrrMonthly,2));
+        meas(5, 2, '→ NRR R12M '+(k12===null?'—':pct(k12.nrr,1)));
+        /* persistence is DERIVED — it sits between the two laws that produce it */
+        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        ctx.fillText('→ persistence '+(P===null ? expRes.derived.persistenceSource : pct(P,1)+' = L × (1 − C)'), (COL[2]+COL[3])/2, 646);
+        if(cm===null){ ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('rolling measures need 12 months — month '+m+' is inside the first window', (COL[2]+COL[3])/2, 662); }
+
+        /* ---- what the reader must not infer ---- */
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('A column is an event: what it did to logos above, what it did to money below. Two events move money and no logo — that is why those cells are empty.', 30, 690);
+        ctx.fillText('Stocks share one run-wide scale, flows another magnified about '+Math.round((RL.mag+RA.mag)/2)+'×; every bar prints its own figure, and the dotted rule on the closing stock is the opening level.', 30, 704);
+        if(!FLAT){ ctx.fillStyle=GOLD; ctx.fillText('Age-banded laws are in force: '+expRes.bands.map(function(b){ return b.name+' '+pct(b.persistenceAnnual,1)+' / '+pct(b.expansionCoefficientAnnual,1); }).join('   ·   ')+' — no single expansion rate is set, so no valve is shown for it.', 30, 722); }
+        else if(MON){ ctx.fillStyle=GOLD; ctx.fillText('Monetization is on: expansion is produced by price, usage and adoption, not by the generic coefficient, and contraction reaches usage revenue only.', 30, 722); }
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
+        ctx.fillText('LEGEND   ▭ stock (bordered)   ▮ flow this month   ⋈ law you set   ┄ coupling   ┄ law reaching money without a logo   → measurement', 30, SYS.H-14);
+        customersModel = model;
       }
       if(v==='monetization'){
         var mo = mm.monetization, spec = expA.monetization, br = K.rowAt(expRes.cohorts[0], m), st = br && br.monetization ? br.monetization.state : null;
@@ -4557,7 +4747,30 @@ details.pl .cascade{margin-top:8px}
         'so a delta of exactly zero everywhere is the correct answer, and the strongest evidence the two scenarios really do share one engine.</div></div>';
       return;
     }
-    var h='<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
+    /* Notes for the Customers mechanism: the two conventions a reader cannot infer
+       from the drawing — why two columns carry no logo, and why flows are magnified. */
+    var cuNote = '';
+    if(sysView==='customers' && expRes.months[m-1].customers){
+      var cuN = expRes.months[m-1].customers, PN = expRes.derived.persistenceAnnualEffective;
+      function cblk(hd, body){ return '<div class="sgrp"><div class="eyebrow">'+esc(hd)+'</div><div class="hint" style="line-height:1.7;margin-top:6px">'+body+'</div></div>'; }
+      cuNote =
+        cblk('What this page is', 'The <b style="color:var(--ink)">Model Ledger</b> is the record — one row per month, every field the engine published. '+
+          'This is the <b style="color:var(--ink)">mechanism</b>, annotated with month '+m+'\'s canonical quantities. Nothing here is recalculated: every figure is a field of '+
+          '<b style="color:var(--ink)">months['+m+']</b> or a measurement from the KPI layer.')+
+        cblk('Why two columns carry no logo', 'A column is an event, read downward: what it did to logos, then what it did to money. '+
+          '<b style="color:var(--ink)">Contraction</b> and <b style="color:var(--ink)">expansion</b> move money without moving a logo — the same customers, paying differently — so their logo cell is empty, and the coupling to the money register is drawn in the law colour to say the law reaches the euros directly. '+
+          'Departing customers, by contrast, take their own ARR with them.')+
+        cblk('Why the flows are magnified', 'The installed base is '+reur(expRes.months[m-1].openingARR)+' and this month moved '+reur(expRes.months[m-1].newARR)+' of new business. '+
+          'On one linear scale every flow would be invisible. Stocks therefore share one run-wide scale and flows another, '+
+          'the magnification is <b style="color:var(--ink)">printed beside each register</b>, every bar carries its own figure, and relative magnitude stays exact inside each scale and across months. '+
+          'The dotted rule on the closing stock is the <b style="color:var(--ink)">opening level</b> — the band above it is the month\'s net change, at the stock\'s own true scale.')+
+        cblk('Persistence is not set here', (PN===null
+          ? 'It is <b style="color:var(--ink)">emergent</b>: '+esc(expRes.derived.persistenceSource)+'. Under Monetization contraction reaches usage revenue only, so no single annual rate is in force.'
+          : 'It is <b style="color:var(--ink)">derived</b>: logo retention '+pct(lawNow('logoRetentionAnnual'),1)+' × (1 − contraction '+pct(lawNow('contractionAnnual'),1)+') = '+pct(PN,1)+'. '+
+            'You set the two laws above the columns; persistence is what they produce.')+
+          ' ARPA moved from '+reurP(cuN.arpaOpening)+' to '+reurP(cuN.arpaClosing)+' this month.');
+    }
+    var h=cuNote+'<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
       r(basis, rn(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
       '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
 
@@ -5407,7 +5620,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; },
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
       unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum,
