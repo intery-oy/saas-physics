@@ -35,7 +35,12 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}   /* .pulsebar/.scenbar set display:flex and would otherwise outrank it */
-html,body{height:100%}
+/* The visible height, not the tall one. iOS reports 100vh (and a 100% html) as the viewport
+   WITHOUT its browser toolbars, so a layout pinned to it hangs its last row below the fold:
+   on an iPad the time transport sat exactly one toolbar under the bottom of the screen and
+   could not be reached. 100dvh is the height actually on screen. The old units stay first as
+   the fallback for browsers without dynamic viewport units. */
+html,body{height:100%;height:100dvh}
 body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--exp);outline-offset:2px}
@@ -44,7 +49,7 @@ button,input{font:inherit;color:inherit}
 .eyebrow{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
 
 /* ---------- shell ---------- */
-.app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;height:100vh}
+.app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;height:100vh;height:100dvh}
 .app.flow .rail{opacity:0;pointer-events:none}
 .lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
 .lawchip:hover{border-color:var(--exp);color:var(--ink)}
@@ -153,7 +158,8 @@ button,input{font:inherit;color:inherit}
 .cmpstrip .btn{margin-left:auto}
 .inspecthead{display:flex;align-items:baseline;gap:12px;padding:12px 0 6px}
 .inspecthead .btn{font-size:11px}
-.transport{display:flex;align-items:center;gap:13px;padding:10px 20px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:nowrap}
+/* viewport-fit is cover, so the last row clears the home indicator itself */
+.transport{display:flex;align-items:center;gap:13px;padding:10px 20px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel);flex-wrap:nowrap}
 .transport .btn-row{flex-wrap:nowrap}
 .transport .eyebrow{white-space:nowrap}
 
@@ -3840,10 +3846,36 @@ details.pl .cascade{margin-top:8px}
   function placeCascade(){ var c=document.querySelector('.cascade'), slot=document.getElementById('pl-slot'); if(c && slot){ slot.appendChild(c); c.hidden=false; } }
   var activeLens = 'company', figPref = {};
   var leverDown = false, sideStale = false, figLegend = '';
-  document.addEventListener('pointerdown', function(e){ if(e.target && e.target.closest && e.target.closest('#side .levers')) leverDown = true; });
-  window.addEventListener('pointerup', function(){ if(leverDown){ leverDown = false; if(sideStale) renderSide(); } });
+  /* A finger or a cursor is pressed on the stage. While time is running the clock rebuilds the
+     stage's markup about eleven times a second, and a rebuild between press and release destroys
+     the very node being pressed: the browser then dispatches no click at all. That is why, with
+     the clock running, the lens tabs, the disclosures and the charts could not be clicked — the
+     press was real, the click never existed. The clock therefore holds its rebuild while a press
+     is open and catches up the moment it closes. Lever drags keep their own live path: there the
+     consequence is meant to move under the finger. */
+  var pressHold = false, pressReleasing = false;
+  document.addEventListener('pointerdown', function(e){
+    var t = e.target; if(!t || !t.closest) return;
+    if(t.closest('#side .levers')){ leverDown = true; return; }
+    if(t.closest('.stage') && !t.closest('input')) pressHold = true;
+  });
+  function releasePress(){
+    if(leverDown){ leverDown = false; if(sideStale) renderSide(); }
+    /* The hold outlives the release by one task. A click is dispatched AFTER pointerup, so
+       lifting the hold here would let the clock's next frame rebuild the markup in the gap
+       between the two and swallow the click after all. */
+    if(pressHold && !pressReleasing){ pressReleasing = true;
+      setTimeout(function(){ pressHold = pressReleasing = false; if(sideStale){ renderSide(); renderCascade(); } }, 0);
+    }
+  }
+  window.addEventListener('pointerup', releasePress);
+  window.addEventListener('pointercancel', releasePress);
+  window.addEventListener('blur', releasePress);
   /* click on any lens chart: move the month there */
-  function chartScrub(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv || sv.dataset.x) return;   /* the response curve's x is money, not time */ var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); playing = false; tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); }
+  /* Stopping the clock has to stop the transport too, or the button keeps showing a pause
+     glyph over a stopped clock and the next press starts it while showing play. */
+  function stopClock(){ playing = false; var pb = document.getElementById('play'); if(pb){ pb.classList.remove('play'); playIcon(); } }
+  function chartScrub(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv || sv.dataset.x) return;   /* the response curve's x is money, not time */ var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); stopClock(); tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); }
   document.getElementById('side').addEventListener('click', chartScrub);
   document.getElementById('cohort-life').addEventListener('click', chartScrub);
   function setLens(id){
@@ -3875,6 +3907,7 @@ details.pl .cascade{margin-top:8px}
     setTimeout(function(){ resize(); render(); }, 0);
   }
   function renderSide(){
+    if(pressHold && !leverDown){ sideStale = true; return; }   /* not under an open press */
     parkCascade();
     if(layer==='flow'){ return renderFlowSide(); }
     if(layer==='cmp'){
@@ -3932,7 +3965,13 @@ details.pl .cascade{margin-top:8px}
       var oc=document.getElementById('lens-company'), nc=tmp.querySelector('#lens-company'); if(oc && nc) oc.innerHTML=nc.innerHTML;
       sideStale=true; syncLevers(); return;
     }
+    /* disclosures are the reader's state, not the clock's: a section opened while time runs
+       stays open when the next month rebuilds the markup. Keyed by id, else by the summary's
+       wording with its month number generalised, so the key survives the month changing. */
+    var dkey=function(d){ if(d.id) return d.id; var s2=d.querySelector('summary'); return s2 ? s2.textContent.replace(/\d+/g,'#').trim() : ''; };
+    var wasOpen={}; [].forEach.call(sideEl.querySelectorAll('details'), function(d){ var k=dkey(d); if(k) wasOpen[k]=d.open; });
     sideEl.innerHTML=h; sideStale=false;
+    [].forEach.call(sideEl.querySelectorAll('details'), function(d){ var k=dkey(d); if(k && wasOpen[k]!==undefined) d.open=wasOpen[k]; });
     sideEl.dataset.active = (pinned!==null && pinned<expS.C) ? 'inspect' : activeLens;
     placeCascade(); placeLevers();
     renderCausal(null, true);

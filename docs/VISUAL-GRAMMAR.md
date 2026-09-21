@@ -142,6 +142,27 @@ Every figure names its basis (§4). Lenses 1–4 are at the selected month; lens
 window (`R12M`, or `CUM · M1–Mn` before month 12). Moving the playhead moves every tag together.
 The transport label is the only clock.
 
+### The clock may not rebuild the surface under an open press
+
+Time running rebuilds the stage's markup about eleven times a second. A press is not
+instantaneous — a finger or a cursor rests on a control for something like a tenth of a second —
+and a rebuild inside that window destroys the node being pressed, after which the browser
+dispatches no click at all. The instrument then looks alive and answers nothing.
+
+Three rules follow, held by `live-accept.js`:
+
+1. **A press suspends the rebuild, not time.** While a pointer is down on the stage the clock
+   keeps advancing and the figure keeps drawing; only the markup waits. The hold is released one
+   task after the pointer, because the click is dispatched after the release — lifting it any
+   sooner reopens the same gap. A lever drag is the deliberate exception: there the consequence
+   is meant to move under the finger, so that path keeps its own live in-place swap.
+2. **A disclosure is the reader's state, not the clock's.** A section opened under a running
+   clock stays open as the months pass. Open state is carried across a rebuild by the section's
+   id, or by its summary wording with the month number generalised.
+3. **Stopping the clock stops the transport.** Anything that stops time — a chart clicked to a
+   month, the scrubber dragged — puts the play control back to a play glyph. A pause glyph over
+   a stopped clock is a lie the next press pays for.
+
 ## 9d. Breakpoints — reflow, never shrink
 
 | Width | Layout |
@@ -149,6 +170,14 @@ The transport label is the only clock.
 | > 1180 | three columns: Change rail · figure · lenses |
 | ≤ 1180 | the rail is a drawer (a *Change* toggle in the header; close button; tap the figure to close); figure and lenses side by side |
 | ≤ 760 | one column, the page scrolls: header · figure with waterfall · the five lenses stacked · transport pinned; the System ontology keeps its drawn size inside a horizontally scrolling frame |
+
+The page declares `width=device-width` — without it a phone lays the portal out at a 980px
+fallback and scales it down, so none of the breakpoints above ever run on a phone. Heights come
+from **the viewport actually on screen** (`100dvh`, with `100vh` behind it as the fallback): iOS
+reports `100vh` as the height *without* its browser toolbars, and a layout pinned to that hangs
+its last row — the time transport — below the fold. On a coarse pointer every target is enlarged
+to something a finger can hit, guarded by `(pointer:coarse)` so the desktop instrument is
+untouched. Held by `mobile-accept.js`.
 
 ## 9e. Acceptance worlds
 

@@ -370,6 +370,8 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 | `v2-checks.js` | v2 release gate (ALL-NULL-V13 vs `baseline-v1.3-full.json.gz`, the complete v1.3 state for twelve worlds) and the per-gate law checks. |
 | `v2-study.js` | The v2 experiments, printed with measured results. |
 | `v2-accept.js` | Playwright acceptance checks for the v2 product surfaces. |
+| `mobile-accept.js` | Playwright acceptance checks for the product on a phone and a tablet: the viewport declaration, entry, touch targets, fit at three phone widths, and the time transport's reach on a tablet. |
+| `live-accept.js` | Playwright acceptance checks for the instrument **while the clock is running** — every control on the stage must answer a press mid-run, without the clock stopping or a lever drag going dead. |
 | `scenarios.js` | Node CLI for Scenarios A–E and the 0.2/0.2.1 experiments. |
 | `state-sufficiency.js` | Node CLI for the v0.3 State Sufficiency Experiment. |
 | `v1.template.html` | The product surface (SaaS Physics v1). |

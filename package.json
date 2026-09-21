@@ -17,10 +17,11 @@
     "state": "node state-sufficiency.js",
     "all": "node v2-checks.js && node checks.js && node physics-checks.js && node mrr-native-checks.js && node basis-checks.js && node clarity-checks.js && node attribution-checks.js && node research-checks.js",
     "test": "npm run all",
-    "accept": "node clarity-accept.js && node attribution-accept.js && node physics-accept.js && node v2-accept.js && node v2-legibility-accept.js && node v2-hierarchy-accept.js && node v2-lens-accept.js && node v2-cohort-accept.js && node mobile-accept.js",
+    "accept": "node clarity-accept.js && node attribution-accept.js && node physics-accept.js && node v2-accept.js && node v2-legibility-accept.js && node v2-hierarchy-accept.js && node v2-lens-accept.js && node v2-cohort-accept.js && node mobile-accept.js && node live-accept.js",
     "legibility": "node v2-legibility-accept.js",
     "cohort": "node v2-cohort-accept.js",
     "mobile": "node mobile-accept.js",
+    "live": "node live-accept.js",
     "report": "node checks.js && node basis-checks.js && node state-sufficiency.js && node scenarios.js"
   }
 }

@@ -11,6 +11,7 @@
  *   FITS        no horizontal scroll at any phone width
  *   TARGETS     controls a finger can hit: buttons and sliders large enough on a coarse pointer
  *   WORKS       the five lenses, the Change drawer and Inspect all respond to taps
+ *   REACH       the time transport is on screen on a tablet, whose browser keeps a toolbar
  *
  * Run: node mobile-accept.js
  */
@@ -91,6 +92,38 @@ const PHONES = [[360, 740, 'small android'], [390, 844, 'iPhone 14'], [430, 932,
   }
   rec('FITS: at 360, 390 and 430 the portal fits its width — no horizontal scroll, nothing overflowing the screen, the transport on screen and the figure given real height',
       Object.values(fits).every(f => !f.hs && f.over.length === 0 && f.transport && f.scene > 200), JSON.stringify(fits));
+
+  /* ---- REACH: the transport on a tablet, where the browser keeps a toolbar ---- */
+  /* iOS reports 100vh as the viewport WITHOUT its toolbars, so a layout pinned to it hangs its
+     last row below the fold — which is where the time transport went on an iPad. The height has
+     to come from a dynamic viewport unit. The emulator has no toolbar, so it cannot reproduce
+     the symptom: the declaration is what is checked, alongside the layout it produces. */
+  const TABLETS = [[768, 1024, 'iPad mini portrait'], [820, 1180, 'iPad Air portrait'], [1180, 820, 'iPad Air landscape'], [1024, 1366, 'iPad Pro portrait']];
+  const reach = {};
+  for (const [w, h, name] of TABLETS) {
+    const q = await phone(w, h);
+    await q.tap('#welcome-enter'); await q.waitForTimeout(500);
+    reach[name] = await q.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;top:-9999px;left:0;width:1px;height:100dvh';
+      document.body.appendChild(probe); const dvh = probe.getBoundingClientRect().height; probe.remove();
+      const t = document.querySelector('.transport'), r = t.getBoundingClientRect();
+      const app = document.querySelector('.app');
+      const declares = u => { const out = []; for (const sh of document.styleSheets) { let rules; try { rules = sh.cssRules; } catch (e) { continue; }
+          for (const ru of rules) { if (ru.selectorText && ru.selectorText.split(',').map(x => x.trim()).indexOf(u) >= 0 && /dvh/.test(ru.cssText)) out.push(ru.selectorText); } } return out; };
+      return { dvh: Math.round(dvh), innerH: innerHeight, appH: Math.round(app.getBoundingClientRect().height),
+        appFromDvh: Math.abs(app.getBoundingClientRect().height - dvh) <= 1,
+        transportBottom: Math.round(r.bottom), onScreen: r.bottom <= innerHeight + 1 && r.top >= 0,
+        scrub: Math.round(document.getElementById('scrub').getBoundingClientRect().width),
+        play: Math.round(document.getElementById('play').getBoundingClientRect().height),
+        dvhRules: declares('.app').length > 0 && declares('html').concat(declares('body')).length > 0,
+        hs: document.documentElement.scrollWidth > innerWidth + 1 };
+    });
+    await q.close();
+  }
+  rec('REACH: on a tablet the time transport is on screen and usable — the layout takes its height from the viewport actually visible (a dynamic viewport unit), not from the taller one a browser reports with its toolbars hidden',
+      Object.values(reach).every(r => r.dvhRules && r.appFromDvh && r.onScreen && !r.hs && r.scrub > 120 && r.play >= 32),
+      JSON.stringify(reach));
 
   rec('no page errors on any phone', errs.length === 0, errs.join(' | '));
   await br.close();
