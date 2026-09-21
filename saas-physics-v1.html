@@ -6027,6 +6027,18 @@ details.pl .cascade{margin-top:8px}
    * the frozen engine already wrote, or capital.js's attribution of it.
    * ================================================================== */
   var cohortLifeStamp = null, cohortLifeRes = null, cohortLife = null;
+  /* One cohort's cumulative movements up to month `upto`, summed from the engine's own rows.
+     With Customer Physics on the engine produces the two losses separately (logo churn and
+     contraction); with it off there is one combined leakage flow and it stays combined. */
+  function cohortLosses(c, upto){
+    var contraction = 0, logoChurn = 0, leakage = 0, expansion = 0, customerSplit = false;
+    for(var i=0;i<c.rows.length;i++){
+      var r = c.rows[i]; if(r.t>upto) break;
+      leakage = r.cumLeakage; expansion = r.cumExpansion;
+      if(r.customers){ customerSplit = true; contraction += r.customers.contractionARR; logoChurn += r.customers.logoChurnARR; }
+    }
+    return { expansion:expansion, contraction:contraction, logoChurn:logoChurn, leakage:leakage, customerSplit:customerSplit };
+  }
   function cohortLifeOf(k){
     var c = expRes.cohorts[k]; if(!c) return null;
     var cc = CAP.cohortCapital(expRes, k);
@@ -6037,9 +6049,26 @@ details.pl .cascade{margin-top:8px}
     cc.series.forEach(function(sr){ if(sr.t<0 || sr.t>H) return;
       arr[sr.t]=sr.arr; orig[sr.t]=c.initialARR; cum[sr.t]=sr.cumGP;
       if(cc.acquisitionCost!==null) cost[sr.t]=cc.acquisitionCost; });
+    /* the cumulative layers that carry the original balance to the balance now:
+         original + expansion − contraction − logo churn = cohort ARR   (customer layer on)
+         original + expansion − leakage                  = cohort ARR   (customer layer off)
+       Each array is a level, so consecutive levels bound a layer and nothing overlaps. */
+    var stackTop=[], afterContraction=[], afterLogoChurn=[], afterLeakage=[], cC=0, cK=0;
+    for(i=0;i<=H;i++){ stackTop.push(null); afterContraction.push(null); afterLogoChurn.push(null); afterLeakage.push(null); }
+    c.rows.forEach(function(r){
+      if(r.t<0 || r.t>H) return;
+      if(r.customers){ cC += r.customers.contractionARR; cK += r.customers.logoChurnARR; }
+      stackTop[r.t]         = c.initialARR + r.cumExpansion;
+      afterContraction[r.t] = c.initialARR - cC;
+      afterLogoChurn[r.t]   = c.initialARR - cC - cK;
+      afterLeakage[r.t]     = c.initialARR - r.cumLeakage;
+    });
     var m = selectedMonth(), idx = birth===0 ? m-1 : m-birth, row = c.rows[idx] || null, now = null;
     cc.series.forEach(function(sr){ if(sr.t<=m) now=sr; });
+    var L = cohortLosses(c, m);
     return { k:k, c:c, cc:cc, arr:arr, orig:orig, cum:cum, cost:cost, m:m, row:row, now:now,
+             stackTop:stackTop, afterContraction:afterContraction, afterLogoChurn:afterLogoChurn, afterLeakage:afterLeakage,
+             losses:L, customerSplit:L.customerSplit,
              born: !!row, age: row ? row.age : null,
              acquisitionMonth: birth, initialARR: c.initialARR,
              currentARR: row ? row.closingARR : null,
@@ -6049,6 +6078,7 @@ details.pl .cascade{margin-top:8px}
              color: rgba(rampAt(birth/H), 1) };
   }
   function renderCohortLife(){
+    var negFmt = function(v){ return reurS(-v); };   /* a loss layer prints the magnitude it removed */
     var host = document.getElementById('cohort-life'); if(!host) return;
     var on = layer==='stock' && pinned!==null && pinned<expS.C;
     if(!on){ if(!host.hidden){ host.hidden=true; host.innerHTML=''; } cohortLifeStamp=null; cohortLife=null; return; }
@@ -6063,19 +6093,34 @@ details.pl .cascade{margin-top:8px}
       b1 = { m:M.m, a:M.initialARR, b:M.currentARR,
              color: Math.abs(d1)<1 ? 'var(--ink-3)' : (d1>0 ? 'var(--in)' : 'var(--out)'),
              label: Math.abs(d1)<1 ? 'as acquired' : reur(Math.abs(d1))+(d1>0 ? ' above original' : ' below original') }; }
+    /* the losses as cumulative layers hanging under the original balance: when the customer layer
+       is on the engine separates them, so contraction sits against the original and logo churn
+       under it; when it is off there is one leakage layer and it says so */
+    var lossLayers = M.customerSplit
+      ? [ { k:'band', lo:M.afterContraction, hi:M.orig, color:'var(--out)', opacity:0.14, edgeLo:true, label:'contraction', fmt:negFmt },
+          { k:'band', lo:M.afterLogoChurn, hi:M.afterContraction, color:'var(--out)', opacity:0.32, edgeLo:true, label:'churn', fmt:negFmt } ]
+      : [ { k:'band', lo:M.afterLeakage, hi:M.orig, color:'var(--out)', opacity:0.22, edgeLo:true, label:'leakage', fmt:negFmt } ];
     var svg1 = chart({ h:200, sel:M.m, yFmt:reur, aria:'one cohort, from acquisition through its recurring-revenue life',
-      series:[ { pts:M.orig, color:'var(--ink-3)', width:1, dash:'4 3', label:'original' },
-               { k:'area', pts:M.arr, color:M.color, width:1.8, opacity:0.32, label:'cohort '+basis } ],
+      series:[ { k:'band', lo:M.orig, hi:M.stackTop, color:'var(--in)', opacity:0.20, edge:true, label:'expansion', fmt:reurS },
+               { pts:M.orig, color:'var(--ink-3)', width:1, dash:'4 3', label:'original' } ]
+        .concat(lossLayers)
+        .concat([{ pts:M.arr, color:M.color, width:2, label:'cohort '+basis }]),
       marks: M.acquisitionMonth>0 ? [{ m:M.acquisitionMonth, v:M.initialARR, label:'acquired M'+M.acquisitionMonth, below:true }] : [],
       vrules: M.acquisitionMonth>0 ? [{ m:M.acquisitionMonth }] : [],
       bracket: b1 });
     var blk1 = chartBlock('Cohort '+basis+' life', 'M'+M.m+(M.born ? ' · age '+M.age : ' · not yet acquired'),
-      [{c:M.color,n:'cohort '+basis},{c:'var(--ink-3)',n:'original at acquisition'}], svg1)+
-      /* the path is the net of two flows: the engine's own cumulative expansion and leakage for this cohort */
+      [{c:M.color,n:'cohort '+basis},{c:'var(--ink-3)',n:'original at acquisition'},{c:'var(--in)',n:'expansion'}]
+        .concat(M.customerSplit ? [{c:'rgba(194,96,106,.45)',n:'contraction · survivors shrink'},{c:'var(--out)',n:'churn · customers lost'}]
+                        : [{c:'var(--out)',n:'leakage · contraction + churn combined'}]), svg1)+
+      /* the identity in words, on the engine's own cumulative flows for this cohort */
       (M.born
-        ? '<div class="comp-l"><span>Expansion since acquisition <b class="in">+'+reur(M.row.cumExpansion)+'</b></span>'+
-          '<span>Leakage since acquisition <b class="out">−'+reur(M.row.cumLeakage)+'</b></span>'+
-          '<span>'+basis+' now <b>'+reur(M.currentARR)+'</b></span></div>'
+        ? '<div class="comp-l"><span>Original <b>'+reur(M.initialARR)+'</b></span>'+
+          '<span>Expansion <b class="in">+'+reur(M.losses.expansion)+'</b></span>'+
+          (M.customerSplit
+            ? '<span>Contraction <b class="out">−'+reur(M.losses.contraction)+'</b></span>'+
+              '<span>Churn <b class="out">−'+reur(M.losses.logoChurn)+'</b></span>'
+            : '<span>Leakage <b class="out">−'+reur(M.losses.leakage)+'</b></span>')+
+          '<span>= '+basis+' now <b>'+reur(M.currentARR)+'</b></span></div>'
         : '<div class="comp-l"><span>Not yet acquired at M'+M.m+' — this cohort enters in month '+M.acquisitionMonth+'</span></div>');
     /* ---- chart 2 · the capital that bought it, and how much has come back ---- */
     var blk2;
@@ -6478,6 +6523,7 @@ details.pl .cascade{margin-top:8px}
     }
     function provenanceChain(c, snap, em){
       var share = em.closingARR>0 ? snap.currentARR/em.closingARR : 0;
+      var cLoss = cohortLosses(c, m);    /* the same cumulative movements the cohort figure draws */
       var out = '<div class="prov">';
       /* 1 · COMPANY ARR — where this euro sits */
       out += pstep('Company '+basis, reur(em.closingARR)+' · this cohort '+pct(share,1), '', 'ctx', 'M'+m);
@@ -6485,7 +6531,11 @@ details.pl .cascade{margin-top:8px}
       out += pstep('Cohort · vintage M'+c.acquisitionMonth, reur(snap.currentARR)+' now · '+pct(snap.retainedShare)+' of '+reur(c.initialARR)+' original',
         row('Original '+basis, reur(c.initialARR)) +
         row('+ expansion, cumulative', reur(snap.cumExpansion), 'in') +
-        row('− leakage, cumulative', reur(snap.cumLeakage), 'out') +
+        /* the step keeps its four defining rows: when the customer layer separates the two losses
+           they are named and valued inside one row, never merged into an unnamed "leakage" */
+        (cLoss.customerSplit
+          ? row('− contraction + churn, cumulative', reur(cLoss.contraction)+' contraction · '+reur(cLoss.logoChurn)+' churn', 'out')
+          : row('− leakage, cumulative', reur(snap.cumLeakage), 'out')) +
         row(basis+' now', reur(snap.currentARR)) +
         '<details class="more"><summary>Bought under · '+(c.acquisitionMonth===0 ? 'predates the simulation' : 'spend month '+c.spendMonth+(c.cacPerARRAtCreation!==null ? ' · CAC '+c.cacPerARRAtCreation.toFixed(2)+'×' : ''))+'</summary>' + provenanceRows(c) + '</details>', '', 'age '+snap.age, 'acquired');
       /* 3 · CUSTOMER ECONOMICS — the logos beneath the balance */
@@ -6493,7 +6543,7 @@ details.pl .cascade{margin-top:8px}
         out += pstep('Customer economics', snap.customers.toFixed(1)+' customers · ARPA '+reur(snap.arpa),
           row('Customer base', snap.customers.toFixed(1)+' from '+snap.initialCustomers.toFixed(1)+' at acquisition · '+pct(snap.customers/snap.initialCustomers)+' retained') +
           row('ARPA', reur(snap.arpa)) +
-          row('Leakage this month', reur(snap.logoChurnARR)+' lost logos · '+reur(snap.contractionARR)+' contraction', 'out') +
+          row('Churn + contraction this month', reur(snap.logoChurnARR)+' churn · '+reur(snap.contractionARR)+' contraction', 'out') +
           '<details class="more"><summary>Method · why a customer count can be fractional</summary><div class="hint">Customer counts are modeled cohort-level expected values, so fractional counts can occur. They represent the modeled customer base, not individual customer records.</div></details>', '', 'M'+m, 'retained');
       else
         out += pstep('Customer economics', 'no customer layer · the cohort is one balance; leakage is one persistence coefficient', '', 'off', null, 'retained');
@@ -7429,7 +7479,9 @@ details.pl .cascade{margin-top:8px}
     get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
-      unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum }; }
+      unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum,
+      customerSplit:cohortLife.customerSplit, losses:cohortLife.losses, stackTop:cohortLife.stackTop, afterContraction:cohortLife.afterContraction,
+      afterLogoChurn:cohortLife.afterLogoChurn, afterLeakage:cohortLife.afterLeakage, orig:cohortLife.orig }; }
   };
 })();
 </script>

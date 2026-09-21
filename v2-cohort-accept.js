@@ -10,6 +10,9 @@
  *                  YoY growth, no Base trajectory — the value axis itself is cohort-scale
  *   RECONCILIATION every plotted and printed number is the frozen engine's own cohort row
  *                  (closingARR, cumGrossProfit) or capital.js's attribution of it
+ *   DECOMPOSITION  the life chart carries the cumulative layers that make the balance:
+ *                  original + expansion − contraction − churn = cohort ARR with the customer
+ *                  layer on, original + expansion − leakage = cohort ARR with it off
  *   PAYBACK        the marked payback month is the first month cumulative GP >= acquisition cost,
  *                  and the gap readout flips from "still unrecovered" to "beyond acquisition cost"
  *   TIME           the global month keeps working while the cohort stays selected: the cursor
@@ -29,6 +32,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 /* the product's own formatters, replicated so the test asserts what the reader sees */
 const eur = v => { const a = Math.abs(v); return a >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : a >= 1e3 ? '€' + Math.round(v / 1e3) + 'k' : '€' + Math.round(v); };
 const mrr = v => eur(v / 12);                       /* the default basis is MRR; the engine stays ARR-native */
+/* the value the reader sees beside a named right-edge label on chart `i` */
+const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === name)[0]; return p ? p[1] : null; };
 
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
@@ -74,9 +79,13 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
       curX: svgs.map(s => s.querySelector('.cur') && s.querySelector('.cur').getAttribute('x1')),
       axTop: svgs.map(s => Math.max(...[...s.querySelectorAll('.ax')].map(t => num(t.textContent)).filter(v => v !== null))),
       rv: [...h.querySelectorAll('.rv')].map(e => e.textContent), rl: [...h.querySelectorAll('.rl')].map(e => e.textContent),
+      pairs: svgs.map(s => [...s.querySelectorAll('g.rg')].map(g => [g.querySelector('.rl').textContent, g.querySelector('.rv').textContent])),
+      areas: svgs.map(s => [...s.querySelectorAll('path.ar')].map(p => p.getAttribute('fill') + '@' + p.getAttribute('opacity'))),
+      lastLine: svgs.map(s => { const l = [...s.querySelectorAll('path.ln')]; const p = l[l.length - 1]; return p && p.getAttribute('stroke') + '/' + p.getAttribute('stroke-width'); }),
       marks: [...h.querySelectorAll('.mk')].map(e => e.textContent), bkl: [...h.querySelectorAll('.bkl')].map(e => e.textContent),
       vr: svgs.map(s => s.querySelectorAll('.vr').length), rows: [...h.querySelectorAll('.comp-l')].map(e => e.innerText.replace(/\n/g, ' ')),
       txt: h.innerText, steps: document.querySelectorAll('.dossier .pstep').length,
+      dossier: document.querySelector('.dossier') ? document.querySelector('.dossier').innerText : '',
       cl: window.__SP_DEBUG.cohortLife, pinned: window.__SP_DEBUG.pinned };
   });
   /* the frozen engine's own numbers for the pinned cohort, read straight off the run */
@@ -86,7 +95,15 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
     let pb = null, pbAge = null;
     if (c.acquisitionCost !== null) for (let i = 0; i < c.rows.length; i++) { if (c.rows[i].cumGrossProfit >= c.acquisitionCost) { pb = c.rows[i].t; pbAge = c.rows[i].age; break; } }
     const row = c.rows[idx(m)] || null;
-    return { k, m, acquisitionMonth: c.acquisitionMonth, initialARR: c.initialARR, cost: c.acquisitionCost, rows, pb, pbAge,
+    let cc2 = 0, ck = 0, split = false, worst = 0;
+    for (const r of c.rows) { if (r.customers) { split = true; cc2 += r.customers.contractionARR; ck += r.customers.logoChurnARR; }
+      if (r.t > m) continue; }
+    let sC = 0, sK = 0; const comp = {};
+    for (const r of c.rows) { if (r.customers) { sC += r.customers.contractionARR; sK += r.customers.logoChurnARR; }
+      const lhs = split ? c.initialARR + r.cumExpansion - sC - sK : c.initialARR + r.cumExpansion - r.cumLeakage;
+      worst = Math.max(worst, Math.abs(lhs - r.closingARR));
+      if (r.t === m) { comp.expansion = r.cumExpansion; comp.contraction = sC; comp.churn = sK; comp.leakage = r.cumLeakage; } }
+    return { k, m, acquisitionMonth: c.acquisitionMonth, initialARR: c.initialARR, cost: c.acquisitionCost, rows, pb, pbAge, split, comp, identityWorst: worst,
       now: row && { arr: row.closingARR, cum: row.cumGrossProfit, age: row.age, cumExpansion: row.cumExpansion, cumLeakage: row.cumLeakage },
       companyARR: W.expRes.months[m - 1].closingARR, cohorts: W.expRes.cohorts.length }; });
 
@@ -106,9 +123,9 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
   rec('ISOLATION: the approved provenance chain is untouched above the figure — six steps, still reading this cohort',
       f36.steps === 6, String(f36.steps));
 
-  rec('NO COMPANY SERIES: the figure plots this cohort only — two lines per chart, no Base trajectory, no company YoY growth, and the right-edge labels name only cohort series',
-      f36.lines.join(',') === '2,2' && f36.baseLines.every(n => n === 0) && !/y\/y|YOY/i.test(f36.txt) &&
-      f36.rl.map(s => s.toLowerCase()).join('|') === 'cohort mrr|original|acquisition cost|cumulative gross profit',
+  rec('NO COMPANY SERIES: the figure plots this cohort only — no Base trajectory, no company YoY growth, and every right-edge label names one of this cohort\'s own quantities',
+      f36.lines.join(',') === '5,2' && f36.baseLines.every(n => n === 0) && !/y\/y|YOY/i.test(f36.txt) &&
+      f36.rl.map(x => x.toLowerCase()).sort().join('|') === ['cohort mrr', 'original', 'expansion', 'contraction', 'churn', 'acquisition cost', 'cumulative gross profit'].sort().join('|'),
       JSON.stringify({ lines: f36.lines, base: f36.baseLines, rl: f36.rl }));
 
   rec('NO COMPANY SERIES: the value axis is cohort-scale, not company-scale — the top tick of the cohort MRR chart is a fraction of company MRR, and no printed value on the figure equals the company\'s MRR',
@@ -118,24 +135,51 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
   rec('COHORT ARR RECONCILIATION: the plotted series is the engine\'s own cohort row at every month, and the right-edge value is that month\'s closing ARR in the reporting basis',
       Object.keys(e36.rows).every(t => Math.abs(f36.cl.arr[t] - e36.rows[t].arr) < 1e-6) &&
       f36.cl.arr[e36.acquisitionMonth - 1] === 0 && f36.cl.currentARR === e36.now.arr &&
-      f36.rv[0] === mrr(e36.now.arr) && f36.rv[1] === mrr(e36.initialARR) && f36.cl.age === e36.now.age,
-      JSON.stringify({ rv: f36.rv.slice(0, 2), expect: [mrr(e36.now.arr), mrr(e36.initialARR)], rows: e36.rows }));
+      val(f36, 0, 'cohort MRR') === mrr(e36.now.arr) && val(f36, 0, 'original') === mrr(e36.initialARR) && f36.cl.age === e36.now.age,
+      JSON.stringify({ pairs: f36.pairs[0], expect: [mrr(e36.now.arr), mrr(e36.initialARR)], rows: e36.rows }));
 
   rec('COHORT ARR RECONCILIATION: the acquisition month is marked on the chart, and the two flows that produced the path — cumulative expansion and leakage since acquisition — are printed beneath it',
       f36.marks.indexOf('acquired M' + e36.acquisitionMonth) >= 0 && f36.vr[0] === 1 &&
-      f36.rows[0].includes('+' + mrr(e36.now.cumExpansion)) && f36.rows[0].includes('−' + mrr(e36.now.cumLeakage)) && f36.rows[0].includes(mrr(e36.now.arr)),
-      JSON.stringify({ marks: f36.marks, row: f36.rows[0], exp: mrr(e36.now.cumExpansion), leak: mrr(e36.now.cumLeakage) }));
+      f36.rows[0].includes('+' + mrr(e36.now.cumExpansion)) && f36.rows[0].includes(mrr(e36.now.arr)) &&
+      (e36.split ? f36.rows[0].includes('−' + mrr(e36.comp.contraction)) && f36.rows[0].includes('−' + mrr(e36.comp.churn))
+                 : f36.rows[0].includes('−' + mrr(e36.now.cumLeakage))),
+      JSON.stringify({ marks: f36.marks, row: f36.rows[0], exp: mrr(e36.now.cumExpansion), comp: e36.comp }));
 
   rec('CAPITAL RECOVERY RECONCILIATION: cumulative gross profit and the acquisition cost are the engine\'s own, in plain euro (never the reporting basis), and the recovered share is their ratio',
       Object.keys(e36.rows).every(t => Math.abs(f36.cl.cum[t] - e36.rows[t].cum) < 1e-6) &&
       f36.cl.acquisitionCost === e36.cost && f36.cl.cumGP === e36.now.cum &&
-      f36.rv[2] === eur(e36.cost) && f36.rv[3] === eur(e36.now.cum) &&
+      val(f36, 1, 'acquisition cost') === eur(e36.cost) && val(f36, 1, 'cumulative gross profit') === eur(e36.now.cum) &&
       f36.rows[1].includes((Math.min(1, e36.now.cum / e36.cost) * 100).toFixed(0) + '%') && f36.rows[1].includes(eur(e36.cost)),
-      JSON.stringify({ rv: f36.rv.slice(2), expect: [eur(e36.cost), eur(e36.now.cum)], row: f36.rows[1] }));
+      JSON.stringify({ pairs: f36.pairs[1], expect: [eur(e36.cost), eur(e36.now.cum)], row: f36.rows[1] }));
 
   rec('CAPITAL RECOVERY RECONCILIATION: before payback the gap at the selected month reads as the amount still unrecovered, and it equals acquisition cost minus cumulative gross profit',
       e36.now.cum < e36.cost && f36.bkl[1] === eur(e36.cost - e36.now.cum) + ' still unrecovered' && f36.cl.unrecovered === e36.cost - e36.now.cum,
       JSON.stringify({ bkl: f36.bkl, expect: eur(e36.cost - e36.now.cum) }));
+
+  /* ---------- DECOMPOSITION: the layers that carry the original balance to the balance now ---------- */
+  rec('DECOMPOSITION: with the customer layer on, the life chart carries three cumulative layers — expansion above the original, contraction under it, logo churn under that — and the cohort line is drawn last, on top of them',
+      e36.split && f36.areas[0].length === 3 && f36.areas[0][0] === 'var(--in)@0.2' && f36.areas[0][1] === 'var(--out)@0.14' && f36.areas[0][2] === 'var(--out)@0.32' &&
+      f36.lastLine[0].split('/')[1] === '2' && /rgba\(/.test(f36.lastLine[0]) &&
+      f36.pairs[0].map(p => p[0]).join('|') === ['expansion', 'cohort MRR', 'original', 'contraction', 'churn'].sort((a, b) => f36.pairs[0].findIndex(p => p[0] === a) - f36.pairs[0].findIndex(p => p[0] === b)).join('|'),
+      JSON.stringify({ areas: f36.areas[0], last: f36.lastLine[0], labels: f36.pairs[0].map(p => p[0]) }));
+
+  rec('DECOMPOSITION: every layer value at the selected month is the engine\'s own cumulative flow for this cohort, and the identity original + expansion − contraction − churn = cohort ARR closes at EVERY month of its life',
+      val(f36, 0, 'expansion') === '+' + mrr(e36.comp.expansion) && val(f36, 0, 'contraction') === '−' + mrr(e36.comp.contraction) &&
+      val(f36, 0, 'churn') === '−' + mrr(e36.comp.churn) && val(f36, 0, 'cohort MRR') === mrr(e36.now.arr) &&
+      e36.identityWorst < 1e-6 && Math.abs(e36.comp.contraction + e36.comp.churn - e36.now.cumLeakage) < 1e-6,
+      JSON.stringify({ shown: f36.pairs[0], engine: e36.comp, worst: e36.identityWorst }));
+
+  const geo1 = await D(() => { const s = [...document.querySelectorAll('#cohort-life svg.ch')][0], W = window.__SP_DEBUG, m = W.selectedMonth();
+    const L = +s.dataset.l, R = +s.dataset.r, xq = L + (m / 60) * (640 - L - R), r2 = v => Math.round(v * 100) / 100;
+    const at = d => { const p = d.replace(/[MLZ]/g, ' ').trim().split(/\s+/).map(Number), o = []; for (let i = 0; i + 1 < p.length; i += 2) if (Math.abs(p[i] - xq) < 0.35) o.push(p[i + 1]); return o; };
+    const bands = [...s.querySelectorAll('path.ar')].map(p => { const y = at(p.getAttribute('d')); return { fill: p.getAttribute('fill'), op: p.getAttribute('opacity'), top: r2(Math.min(...y)), bot: r2(Math.max(...y)) }; });
+    const cl = W.cohortLife, yOf = {};
+    return { bands, cl: { orig: cl.orig[m], top: cl.stackTop[m], aC: cl.afterContraction[m], aK: cl.afterLogoChurn[m], arr: cl.arr[m] } }; });
+  rec('DECOMPOSITION: the layers are contiguous and never overlap — expansion runs from the original level to original + expansion, contraction hangs from the original, churn hangs from the foot of contraction — and the levels they are drawn from satisfy the identity exactly',
+      Math.abs(geo1.bands[0].bot - geo1.bands[1].top) < 0.2 && Math.abs(geo1.bands[1].bot - geo1.bands[2].top) < 0.2 &&
+      geo1.bands[0].top < geo1.bands[0].bot && geo1.bands[2].top > geo1.bands[1].top &&
+      Math.abs((geo1.cl.top - (geo1.cl.orig - geo1.cl.aC) - (geo1.cl.aC - geo1.cl.aK)) - geo1.cl.arr) < 1e-6,
+      JSON.stringify(geo1));
 
   /* ---------- PAYBACK: the month the cohort earns its acquisition cost back ---------- */
   rec('PAYBACK: the marked payback month is the first month this cohort\'s cumulative gross profit reaches its acquisition cost, with the age it reached it at',
@@ -157,7 +201,7 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
       f50.pinned === f36.pinned && !f50.hidden && f50.cl.m === 50 && f50.cl.age === 50 - e36.acquisitionMonth && f50.cl.age === e50.now.age &&
       parseFloat(f50.curX[0]) > parseFloat(f36.curX[0]) && f50.curX[0] === f50.curX[1] &&
       f50.tags[0] === 'M50 · age ' + f50.cl.age && f50.tags[1] === 'CUM · M1–M50' &&
-      f50.rv[0] === mrr(e50.now.arr) && f50.cl.cumGP === e50.now.cum,
+      val(f50, 0, 'cohort MRR') === mrr(e50.now.arr) && f50.cl.cumGP === e50.now.cum,
       JSON.stringify({ pinned: f50.pinned, tags: f50.tags, age: f50.cl.age, curX: [f36.curX[0], f50.curX[0]] }));
 
   await scrub(Math.max(1, e36.acquisitionMonth - 6));
@@ -204,6 +248,32 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
       pinBase === 0 && fBase.cl.acquisitionMonth === 0 && fBase.charts === 1 && fBase.titles.join('|') === 'Cohort MRR life|Capital recovery' &&
       fBase.tags[1] === 'not attributable' && /predates the simulation/.test(fBase.txt) && fBase.title === 'Cohort life · opening base',
       JSON.stringify({ pinBase, charts: fBase.charts, titles: fBase.titles, tags: fBase.tags }));
+
+  rec('DECOMPOSITION: the Inspect panel names the same movements as the chart — cumulative expansion, contraction and churn on the cohort step, churn + contraction on the customer step — and no longer calls the split flow leakage',
+      /− contraction \+ churn, cumulative\s+€.* contraction · €.* churn/.test(f36.dossier) && /Churn \+ contraction this month/.test(f36.dossier) &&
+      !/− leakage, cumulative/.test(f36.dossier) && !/lost logos/.test(f36.dossier) &&
+      f36.dossier.includes(mrr(e36.comp.contraction)) && f36.dossier.includes(mrr(e36.comp.churn)),
+      JSON.stringify({ d: f36.dossier.slice(f36.dossier.indexOf('Original'), f36.dossier.indexOf('Original') + 200).replace(/\n/g, ' | ') }));
+
+  /* ---------- the ARR-only world: one combined flow, and it says so ---------- */
+  await click('#inspect-back');
+  await click('#rail-toggle'); await click('#pack-arr'); await click('#rail-close'); await scrub(36);
+  const pinArr = await D(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
+    const x = 64 + (20 / 60) * (r.width - 64 - 78);
+    for (let y = 26; y < r.height * 0.85; y += 3) {
+      cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return window.__SP_DEBUG.pinned; }
+    } return null; });
+  await pg.waitForTimeout(600);
+  const fArr = await fig(), eArr = await eng();
+  rec('DECOMPOSITION · CUSTOMER PHYSICS OFF: the life chart falls back to two layers — expansion above the original and one combined leakage below it — the readout and the Inspect panel say leakage, and original + expansion − leakage = cohort ARR at every month',
+      pinArr !== null && !eArr.split && fArr.areas[0].length === 2 && fArr.areas[0][1] === 'var(--out)@0.22' &&
+      fArr.rl.map(x => x.toLowerCase()).indexOf('leakage') >= 0 && fArr.rl.map(x => x.toLowerCase()).indexOf('churn') < 0 && fArr.rl.map(x => x.toLowerCase()).indexOf('contraction') < 0 &&
+      val(fArr, 0, 'leakage') === '−' + mrr(eArr.comp.leakage) && val(fArr, 0, 'expansion') === '+' + mrr(eArr.comp.expansion) && val(fArr, 0, 'cohort MRR') === mrr(eArr.now.arr) &&
+      /Leakage −/.test(fArr.rows[0]) && /− leakage, cumulative/.test(fArr.dossier) && !/churn/i.test(fArr.dossier) && eArr.identityWorst < 1e-6,
+      JSON.stringify({ areas: fArr.areas[0], labels: fArr.pairs[0], row: fArr.rows[0], worst: eArr.identityWorst }));
+  await click('#inspect-back');
+  await click('#rail-toggle'); await click('#pack-wA'); await click('#rail-close'); await scrub(36);
 
   /* ---------- LABELS: the cohort figure stays legible at desktop, tablet and phone ---------- */
   const widths = {};

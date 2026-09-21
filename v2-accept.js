@@ -91,7 +91,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     return { hit, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) };
   });
   rec('A · INSPECT: the pinned cohort\'s dossier shows the customer base (now, from at acquisition, % retained), ARPA, this month\'s lost-logo and contraction leakage, the ARR-per-logo stamped at spend, and the method note on fractional counts',
-      pinned.hit !== null && /Customer base\s+[\d.]+ from [\d.]+ at acquisition · [\d.]+% retained/.test(pinned.txt) && /\nARPA\s+€/.test(pinned.txt) && /lost logos · .* contraction/.test(pinned.txt) && /Customers acquired\s+[\d.]+ = .* ÷ .* per logo, stamped at spend/.test(pinned.txt) && /modeled cohort-level expected values/.test(pinned.txt) && !/customer equivalents|survive/.test(pinned.txt),
+      pinned.hit !== null && /Customer base\s+[\d.]+ from [\d.]+ at acquisition · [\d.]+% retained/.test(pinned.txt) && /\nARPA\s+€/.test(pinned.txt) && /Churn \+ contraction this month\s+€.* churn · €.* contraction/.test(pinned.txt) && /Customers acquired\s+[\d.]+ = .* ÷ .* per logo, stamped at spend/.test(pinned.txt) && /modeled cohort-level expected values/.test(pinned.txt) && !/customer equivalents|survive/.test(pinned.txt),
       pinned.hit === null ? 'no cohort hit' : pinned.txt.slice(pinned.txt.indexOf('Customer base'), pinned.txt.indexOf('Customer base') + 200).replace(/\n/g, ' | '));
 
   /* ---- A · SYSTEM ---- */
