@@ -1,4 +1,15 @@
-# SaaS Physics — Prototype 0.3
+# SaaS Physics
+
+**Current state (branch `main`).** Engine v2.0 — the frozen ARR physics plus four nullable Economic
+System layers (Customer, Monetization, Cash, Interventions), checksums in `docs/BASELINE-v2.md` — read
+through five lenses (Company · Customers · Growth engine · Monetization · Economics & cash), each a
+question, a headline row and one or two 60-month charts on one chart grammar, with Compare, System,
+Inspect and fourteen canonical experiments. Live at https://intery-oy.github.io/saas-physics/,
+deployed from `main` by `.github/workflows/pages.yml`. Run `npm run all` for the economic suites,
+`npm run accept` for the browser suites, `npm run build` to rebuild `saas-physics-v1.html`.
+The earlier Prototype 0.4 line (assumption packs, leave-behind kit) is archived unchanged as
+`archive/main-prototype-0.4`.
+
 
 A deterministic monthly economic engine for a SaaS business, plus a deliberately simple
 inspection interface. It answers one question:
@@ -22,7 +33,7 @@ pipeline, headcount, probabilistic simulation, AI commentary. **We are proving t
 
 **Opening page.** A first visit lands on an opening page — what the model is and is not, the six parts of the portal, how to read the marks and time-basis tags, three ways to start — with a six-step tour; *Guide* in the header brings it back. Seen-state and the MRR/ARR preference are the only things the page stores, in the browser.
 
-**Economic Legibility (branch `v2-economic-legibility`).** The same engine, re-represented so a CFO can
+**Economic Legibility (now `main`; developed on `v2-economic-legibility`).** The same engine, re-represented so a CFO can
 read a scenario's economic structure in about thirty seconds: Observe is five lenses (Company ·
 Customers · Growth engine · Monetization · Economics & cash), Compare is a causal spine (what you
 changed → what the system did → what company emerged), System opens on the economic ontology
