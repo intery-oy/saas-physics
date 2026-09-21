@@ -290,6 +290,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .comp i{display:block;height:100%;border-radius:1px;min-width:2px}
 .comp-l{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--ink-3);margin-top:4px}
 .comp-l b{font-family:var(--mono);color:var(--ink);font-weight:500}
+.comp-l b.in{color:var(--in)} .comp-l b.out{color:var(--out)}
+.cohortlife .comp-l{margin-top:6px;flex-wrap:wrap;gap:4px 18px}
 .lens-off{font-size:10.5px;color:var(--ink-4);font-style:italic;font-family:var(--display);margin-top:8px;line-height:1.5}
 /* ---------- five-lens redesign: one chart grammar, levers, model chip ---------- */
 .chb{margin-top:18px}
@@ -312,6 +314,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .ch .rv{font:10.5px var(--mono);font-weight:500}
 .ch .rl{font:8px var(--ui);fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
 .ch .mk{font:9px var(--mono);fill:var(--ink-2)}
+.ch .vr{stroke:var(--ink-4);stroke-dasharray:2 3;stroke-width:1}
+.ch .bk line{stroke-width:1}
+.ch .bkl{font:9.5px var(--mono)}
+/* Inspect · cohort life: the figure shows ONE cohort, never the company */
+.cohortlife{padding:0 0 4px}
+.cohortlife .chb:first-child{margin-top:8px}
 .lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:9.5px;color:var(--ink-3);margin-left:auto;margin-right:12px}
 .lg i{display:inline-block;width:10px;height:3px;margin-right:5px;vertical-align:middle;border-radius:1px}
 .lg i.dash{background:none!important;border-top:2px dashed var(--base);height:0}
@@ -640,6 +648,8 @@ details.pl .cascade{margin-top:8px}
         <canvas id="scene"></canvas>
         <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
       </div>
+      <!-- Inspect · the selected cohort's own figure replaces the company formation -->
+      <div class="cohortlife" id="cohort-life" hidden></div>
       <div class="figctl">
         <span class="eyebrow">Compare</span>
         <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
@@ -3227,7 +3237,14 @@ details.pl .cascade{margin-top:8px}
       else if(s.k==='dots'){ for(var m=0;m<=H;m++){ var v=s.pts[m]; if(v===null||v===undefined) continue; body+='<circle cx="'+x(m).toFixed(1)+'" cy="'+yf(v).toFixed(1)+'" r="1.8" fill="'+col+'" opacity=".7"/>'; } }
       else body+='<path class="ln'+(s.base?' base':'')+'" d="'+path(s.pts, yf)+'" stroke="'+col+'" stroke-width="'+(s.width||(s.base?1.1:1.8))+'"'+(s.base?' stroke-dasharray="5 4" opacity=".8"':'')+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
     });
-    (o.marks||[]).forEach(function(mk){ body+='<circle cx="'+x(mk.m).toFixed(1)+'" cy="'+y1(mk.v).toFixed(1)+'" r="4" fill="none" stroke="'+(mk.color||'var(--ink)')+'" stroke-width="1.2"/><text class="mk" x="'+(x(mk.m)+7).toFixed(1)+'" y="'+(y1(mk.v)+(mk.below?12:-6)).toFixed(1)+'">'+esc(mk.label)+'</text>'; });
+    /* in-plot label boxes, so a mark and a bracket never print over each other or over the right-edge values */
+    var occ=[], tw=function(t){ return String(t).length*5.6+4; };
+    function hits(b){ return occ.some(function(a){ return b.x1<a.x2 && a.x1<b.x2 && b.y1<a.y2 && a.y1<b.y2; }); }
+    function boxOf(t, px, py, right){ var w=tw(t); return { x1: right ? px : px-w, x2: right ? px+w : px, y1: py-9, y2: py+3 }; }
+    (o.marks||[]).forEach(function(mk){ var mx=x(mk.m), my=y1(mk.v), mRight = mx+7+tw(mk.label) < W-R-2, tx = mx+(mRight?7:-7), ty = my+(mk.below?12:-6);
+      occ.push(boxOf(mk.label, tx, ty, mRight));
+      body+='<circle cx="'+mx.toFixed(1)+'" cy="'+my.toFixed(1)+'" r="4" fill="none" stroke="'+(mk.color||'var(--ink)')+'" stroke-width="1.2"/>'+
+            '<text class="mk" x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+(mRight?'start':'end')+'">'+esc(mk.label)+'</text>'; });
     /* selected month: one cursor; right-edge values in 22-unit blocks that never overlap */
     var sel = o.sel, cur='';
     if(sel!==undefined && sel!==null){
@@ -3241,6 +3258,24 @@ details.pl .cascade{margin-top:8px}
       for(var j3=0;j3<labs.length;j3++){ if(labs[j3].y<top) labs[j3].y=top; if(j3>0 && labs[j3].y-labs[j3-1].y<GAP) labs[j3].y=labs[j3-1].y+GAP; }
       labs.forEach(function(l){ cur+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+esc(l.n)+'</text></g>'; });
     }
+    /* an event in the series' own history (acquisition, payback): one dotted rule */
+    (o.vrules||[]).forEach(function(vr){ var vx=x(vr.m).toFixed(1); cur+='<line class="vr" x1="'+vx+'" x2="'+vx+'" y1="'+T+'" y2="'+(T+ph)+'"/>'; });
+    /* the GAP as the object (docs/LENS-VISUAL-GRAMMAR.md · DELTA): a bracket at the selected month */
+    if(o.bracket && isFinite(o.bracket.a) && isFinite(o.bracket.b)){
+      var bk=o.bracket, bxx=x(bk.m), ya=y1(bk.a), yb=y1(bk.b), yTop=Math.min(ya,yb), yBot=Math.max(ya,yb), bc=bk.color||'var(--ink-2)';
+      cur+='<g class="bk" stroke="'+bc+'"><line x1="'+bxx.toFixed(1)+'" x2="'+bxx.toFixed(1)+'" y1="'+yTop.toFixed(1)+'" y2="'+yBot.toFixed(1)+'"/>'+
+           '<line x1="'+(bxx-4).toFixed(1)+'" x2="'+(bxx+4).toFixed(1)+'" y1="'+yTop.toFixed(1)+'" y2="'+yTop.toFixed(1)+'"/>'+
+           '<line x1="'+(bxx-4).toFixed(1)+'" x2="'+(bxx+4).toFixed(1)+'" y1="'+yBot.toFixed(1)+'" y2="'+yBot.toFixed(1)+'"/></g>';
+      var bRight = bxx+7+tw(bk.label) < W-R-2, by0 = Math.max(T+11, Math.min(T+ph-5, (yTop+yBot)/2+3.5)), bty = by0, bside = bRight;
+      /* the gap label takes the first free slot: its own side, then the other, then above or below */
+      var slots=[]; [bRight, !bRight].forEach(function(sd){ [0,-13,13,-26,26,-39,39].forEach(function(dy){ slots.push([sd, dy]); }); });
+      for(var si=0; si<slots.length; si++){
+        var sd2=slots[si][0], yy2=Math.max(T+11, Math.min(T+ph-5, by0+slots[si][1]));
+        if(sd2 && bxx+7+tw(bk.label) > W-R-2) continue;
+        if(!hits(boxOf(bk.label, bxx+(sd2?7:-7), yy2, sd2))){ bside=sd2; bty=yy2; break; }
+      }
+      cur+='<text class="bkl" x="'+(bxx+(bside?7:-7)).toFixed(1)+'" y="'+bty.toFixed(1)+'" text-anchor="'+(bside?'start':'end')+'" fill="'+bc+'">'+esc(bk.label)+'</text>';
+    }
     return '<svg class="ch" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+cur+'</svg>';
   }
   /* a chart block: title row (eyebrow · basis), legend, the svg */
@@ -3248,6 +3283,96 @@ details.pl .cascade{margin-top:8px}
     return '<div class="chb"><div class="fig-t"><span class="eyebrow">'+esc(title)+'</span>'+
       (legend && legend.length ? '<span class="lg">'+legend.map(function(l){ return '<i style="background:'+l.c+'"'+(l.dash?' class="dash"':'')+'></i>'+esc(l.n); }).join('')+'</span>' : '')+
       '<span class="basis">'+esc(tag)+'</span></div>'+svg+'</div>';
+  }
+  /* ================================================================== *
+   * COHORT LIFE — the figure while a cohort is inspected.
+   *
+   * Clicking a stratum changes the question from "how did this company
+   * form?" to "what happened to THIS cohort?", so the formation figure is
+   * replaced, not annotated: one cohort, alone, on two aligned charts —
+   * its recurring-revenue life, and the recovery of the capital that bought
+   * it. No company ARR, no other strata, no company YoY growth, no Base
+   * trajectory. Nothing here is new physics: every point is a cohort row
+   * the frozen engine already wrote, or capital.js's attribution of it.
+   * ================================================================== */
+  var cohortLifeStamp = null, cohortLifeRes = null, cohortLife = null;
+  function cohortLifeOf(k){
+    var c = expRes.cohorts[k]; if(!c) return null;
+    var cc = CAP.cohortCapital(expRes, k);
+    var arr=[], orig=[], cum=[], cost=[], i;
+    for(i=0;i<=H;i++){ arr.push(null); orig.push(null); cum.push(null); cost.push(null); }
+    var birth = c.acquisitionMonth;
+    if(birth>0) arr[birth-1] = 0;      /* the month before it existed: this cohort's own opening balance is zero */
+    cc.series.forEach(function(sr){ if(sr.t<0 || sr.t>H) return;
+      arr[sr.t]=sr.arr; orig[sr.t]=c.initialARR; cum[sr.t]=sr.cumGP;
+      if(cc.acquisitionCost!==null) cost[sr.t]=cc.acquisitionCost; });
+    var m = selectedMonth(), idx = birth===0 ? m-1 : m-birth, row = c.rows[idx] || null, now = null;
+    cc.series.forEach(function(sr){ if(sr.t<=m) now=sr; });
+    return { k:k, c:c, cc:cc, arr:arr, orig:orig, cum:cum, cost:cost, m:m, row:row, now:now,
+             born: !!row, age: row ? row.age : null,
+             acquisitionMonth: birth, initialARR: c.initialARR,
+             currentARR: row ? row.closingARR : null,
+             acquisitionCost: cc.acquisitionCost,
+             cumGP: now ? now.cumGP : null, unrecovered: now ? now.unrecovered : null,
+             paybackMonth: cc.paybackMonth, paybackAge: cc.paybackAge,
+             color: rgba(rampAt(birth/H), 1) };
+  }
+  function renderCohortLife(){
+    var host = document.getElementById('cohort-life'); if(!host) return;
+    var on = layer==='stock' && pinned!==null && pinned<expS.C;
+    if(!on){ if(!host.hidden){ host.hidden=true; host.innerHTML=''; } cohortLifeStamp=null; cohortLife=null; return; }
+    var stamp = pinned+'|'+selectedMonth()+'|'+basis;
+    if(host.dataset.stamp===stamp && cohortLifeRes===expRes && !host.hidden) return;
+    var M = cohortLifeOf(pinned); if(!M){ host.hidden=true; host.innerHTML=''; return; }
+    cohortLife = M; cohortLifeRes = expRes; host.dataset.stamp = stamp;
+    var vint = M.acquisitionMonth===0 ? 'the opening base' : 'vintage M'+M.acquisitionMonth;
+    /* ---- chart 1 · the cohort's recurring-revenue life against what it was born with ---- */
+    var b1 = null;
+    if(M.born){ var d1 = M.currentARR - M.initialARR;
+      b1 = { m:M.m, a:M.initialARR, b:M.currentARR,
+             color: Math.abs(d1)<1 ? 'var(--ink-3)' : (d1>0 ? 'var(--in)' : 'var(--out)'),
+             label: Math.abs(d1)<1 ? 'as acquired' : reur(Math.abs(d1))+(d1>0 ? ' above original' : ' below original') }; }
+    var svg1 = chart({ h:200, sel:M.m, yFmt:reur, aria:'one cohort, from acquisition through its recurring-revenue life',
+      series:[ { pts:M.orig, color:'var(--ink-3)', width:1, dash:'4 3', label:'original' },
+               { k:'area', pts:M.arr, color:M.color, width:1.8, opacity:0.32, label:'cohort '+basis } ],
+      marks: M.acquisitionMonth>0 ? [{ m:M.acquisitionMonth, v:M.initialARR, label:'acquired M'+M.acquisitionMonth, below:true }] : [],
+      vrules: M.acquisitionMonth>0 ? [{ m:M.acquisitionMonth }] : [],
+      bracket: b1 });
+    var blk1 = chartBlock('Cohort '+basis+' life', 'M'+M.m+(M.born ? ' · age '+M.age : ' · not yet acquired'),
+      [{c:M.color,n:'cohort '+basis},{c:'var(--ink-3)',n:'original at acquisition'}], svg1)+
+      /* the path is the net of two flows: the engine's own cumulative expansion and leakage for this cohort */
+      (M.born
+        ? '<div class="comp-l"><span>Expansion since acquisition <b class="in">+'+reur(M.row.cumExpansion)+'</b></span>'+
+          '<span>Leakage since acquisition <b class="out">−'+reur(M.row.cumLeakage)+'</b></span>'+
+          '<span>'+basis+' now <b>'+reur(M.currentARR)+'</b></span></div>'
+        : '<div class="comp-l"><span>Not yet acquired at M'+M.m+' — this cohort enters in month '+M.acquisitionMonth+'</span></div>');
+    /* ---- chart 2 · the capital that bought it, and how much has come back ---- */
+    var blk2;
+    if(M.acquisitionCost===null){
+      blk2 = '<div class="chb"><div class="fig-t"><span class="eyebrow">Capital recovery</span><span class="basis">not attributable</span></div>'+
+             '<div class="lens-off">The opening base predates the simulation: no acquisition cost was stamped on it, so its capital recovery cannot be attributed.</div></div>';
+    } else {
+      var b2 = null;
+      if(M.now){ var gap = M.cumGP - M.acquisitionCost;
+        b2 = { m:M.m, a:M.acquisitionCost, b:M.cumGP, color: gap>=0 ? 'var(--in)' : 'var(--out)',
+               label: gap>=0 ? eur(gap)+' beyond acquisition cost' : eur(-gap)+' still unrecovered' }; }
+      var svg2 = chart({ h:200, sel:M.m, yMin:0, yFmt:eur, aria:'cumulative gross profit against the acquisition cost of one cohort',
+        series:[ { pts:M.cost, color:'var(--out)', width:1, dash:'4 3', label:'acquisition cost' },
+                 { k:'area', pts:M.cum, color:'var(--in)', width:1.8, opacity:0.22, label:'cumulative gross profit' } ],
+        marks: M.paybackMonth!==null ? [{ m:M.paybackMonth, v:M.acquisitionCost, label:'payback M'+M.paybackMonth+' · age '+M.paybackAge }] : [],
+        vrules: M.paybackMonth!==null ? [{ m:M.paybackMonth }] : [],
+        bracket: b2 });
+      blk2 = chartBlock('Capital recovery', 'CUM · M1–M'+M.m,
+        [{c:'var(--in)',n:'cumulative gross profit'},{c:'var(--out)',n:'acquisition cost'}], svg2)+
+        (M.now
+          ? '<div class="comp-l"><span>Recovered <b>'+pct(Math.min(1, M.cumGP/M.acquisitionCost),0)+'</b> of '+eur(M.acquisitionCost)+'</span>'+
+            '<span>'+(M.paybackMonth===null ? 'No payback inside the 60-month horizon'
+                      : (M.paybackMonth<=M.m ? 'Paid back in <b>M'+M.paybackMonth+'</b> · age '+M.paybackAge
+                                             : 'Payback expected <b>M'+M.paybackMonth+'</b> · age '+M.paybackAge))+'</span></div>'
+          : '');
+    }
+    host.innerHTML = blk1 + blk2;
+    host.hidden = false;
   }
   function seriesOf(res, f){ var a=[null]; for(var i=0;i<H;i++) a.push(f(res.months[i], i+1)); return a; }
   function cumOf(res, f){ var a=[0], q=0; for(var i=0;i<H;i++){ q+=f(res.months[i]); a.push(q); } return a; }
@@ -3494,7 +3619,9 @@ details.pl .cascade{margin-top:8px}
   document.addEventListener('pointerdown', function(e){ if(e.target && e.target.closest && e.target.closest('#side .levers')) leverDown = true; });
   window.addEventListener('pointerup', function(){ if(leverDown){ leverDown = false; if(sideStale) renderSide(); } });
   /* click on any lens chart: move the month there */
-  document.getElementById('side').addEventListener('click', function(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv) return; var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); playing = false; tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); });
+  function chartScrub(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv) return; var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); playing = false; tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); }
+  document.getElementById('side').addEventListener('click', chartScrub);
+  document.getElementById('cohort-life').addEventListener('click', chartScrub);
   function setLens(id){
     activeLens = id;
     var side=document.getElementById('side'); side.dataset.active = id;
@@ -3510,8 +3637,17 @@ details.pl .cascade{margin-top:8px}
     var want = figPref[key]!==undefined ? figPref[key] : (layer!=='stock' || activeLens==='company' || inspect);
     if(layer==='stock' && !inspect && activeLens!=='company') want = true;   /* hidden by CSS off Company; stays open so Company returns to its chart */
     fw.classList.toggle('tall', layer==='stock' && activeLens==='company' && !inspect);
-    document.getElementById('fig-title').textContent = layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Company formation · 60 months';
+    var cvint = inspect && expRes.cohorts[pinned] ? (expRes.cohorts[pinned].acquisitionMonth===0 ? 'opening base' : 'vintage M'+expRes.cohorts[pinned].acquisitionMonth) : '';
+    document.getElementById('fig-title').textContent = inspect ? 'Cohort life · '+cvint : layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Company formation · 60 months';
+    document.getElementById('fig-hint').textContent = inspect
+      ? 'this cohort alone · its recurring-revenue life and the recovery of the capital that bought it · the month control still moves'
+      : 'opening base + successive cohorts as strata · YoY growth as a line · click a stratum to inspect that cohort';
+    /* Inspect isolates: the formation canvas and its controls step aside for the cohort's own charts */
+    var fbx=document.querySelector('.figbox'), fct=document.querySelector('.figctl');
+    if(fbx) fbx.style.display = inspect ? 'none' : '';
+    if(fct) fct.style.display = inspect ? 'none' : '';
     fw.dataset.silent='1'; fw.open = want; delete fw.dataset.silent;
+    renderCohortLife();
     setTimeout(function(){ resize(); render(); }, 0);
   }
   function renderSide(){
@@ -3556,7 +3692,7 @@ details.pl .cascade{margin-top:8px}
         (c.acquisitionMonth===0?'Opening base cohort':'Cohort acquired in month '+c.acquisitionMonth)+
         (snap ? '<span class="basis" style="margin-left:auto">M'+m+' · age '+snap.age+'</span>' : '')+'</h4>'+
         (snap ? provenanceChain(c, snap, em) : '<div class="hint">Not yet born at this moment.</div>')+
-        '<div class="hint" style="margin-top:8px">This euro of ARR has a history. Click again to release.</div></div></div>';
+        '<div class="hint" style="margin-top:8px">This euro of ARR has a history. The figure below follows this cohort alone; &lsaquo; Company returns to the formation.</div></div></div>';
     } else if(anatomy){
       h+='<div class="sgrp"><div class="hint">Anatomy is on — the strata have separated. Hover the mass to trace a vintage, click to hold its dossier here.</div></div>';
     }
@@ -4535,7 +4671,10 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; },
+    get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
+      initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
+      unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum }; }
   };
 })();
 </script>

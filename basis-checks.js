@@ -204,6 +204,8 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /eur\(eb\)/,
     /eur\(em\.cashClosing\)/,
     /yFmt:eur, aria:'cash balance over 60 months'/,               // Economics & cash · cash chart (five-lens design)
+    /yFmt:eur, aria:'cumulative gross profit against the acquisition cost of one cohort'/,   // Inspect · cohort life · capital-recovery chart
+    /eur\(gap\)\+' beyond acquisition cost'/,                       // Inspect · cohort life · the recovery gap at the selected month
     /eur\(cc\.acquisitionCost\)/,          // Inspect · capital recovery step (moved from the cohort rows in the legibility pass)
     /eur\(c\.acquisitionCost\)/,
     /eur\(now\.cumGP\)/,
@@ -241,6 +243,8 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /reur\(snap\.currentARR\)/,
     /reur\(snap\.cumExpansion\)/,
     /reur\(snap\.cumLeakage\)/,
+    /yFmt:reur, aria:'one cohort, from acquisition through its recurring-revenue life'/,   // Inspect · cohort life · ARR chart
+    /reur\(Math\.abs\(d1\)\)/,          // Inspect · cohort life · distance from the original balance
     /rd\(v\)/                             // consequence-panel row formatter
   ];
   var missingR = recurringPatterns.filter(function (re) { return !re.test(tpl); });

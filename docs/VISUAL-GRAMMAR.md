@@ -117,7 +117,9 @@ A pinned cohort is one euro of company ARR traced down the ontology: **Company A
 cohort's share) → **Cohort** (vintage, original → now with cumulative expansion and leakage, and what
 it was *bought under*: spend month, lag, acquisition cost, realised CAC, hypotheses at spend) →
 **Customer economics** → **Monetization** → **Contract · billing** → **Cash** (capital
-recovery). Each step is one dot on a vertical rule with its own basis tag (`M20`, `age 11`,
+recovery). The figure beneath changes with the question: the company formation is replaced by this
+cohort alone — its recurring-revenue life and the recovery of the capital that bought it — until
+&lsaquo; Company returns. Each step is one dot on a vertical rule with its own basis tag (`M20`, `age 11`,
 `M20 · month`, `CUM · M1–M20`). A step whose layer is off is drawn hollow and says what the cohort
 is instead ("no customer layer · the cohort is one balance") — never omitted. Method notes are
 disclosed behind a `▸` summary.
