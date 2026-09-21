@@ -16,6 +16,7 @@
  *   SHAPE        one row per model month, columns unique and grouped in causal order
  *   VIEWS        Core is a subset of Full; both keep the month column and the grouped header
  *   STICKY       the month column and both header rows stay put when the table is scrolled
+ *   ALIGNED      header and body share one column structure, and the numbers are on screen
  *   MONTH        a row moves the portal's month; the clock only re-marks, never rebuilds
  *   OFF          a layer that is off publishes nothing, and its block is absent rather than empty
  *
@@ -199,18 +200,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       core.groups.length === full.groups.length,
       JSON.stringify({ core: core.hdr.length, full: full.hdr.length, groups: core.groups.length }));
 
-  /* ---- STICKY ---- *
-   * Freezing is opt-in: on the engines that failed to paint the table, the sticky cells were the
-   * only ones that DID paint, so the plain table is the default and this is a switch. Both
-   * states have to work — plain scrolls everything, frozen keeps the month and the header. */
-  const plain = await pg.evaluate(async () => {
-    const sc = document.getElementById('ledgerscroll'), tb = document.querySelector('table.ldg');
-    sc.scrollLeft = 900; await new Promise(z => setTimeout(z, 150));
-    const mo = tb.tBodies[0].rows[10].cells[0], scr = sc.getBoundingClientRect(), r = mo.getBoundingClientRect();
-    sc.scrollLeft = 0;
-    return { freeze: tb.classList.contains('freeze'), pos: getComputedStyle(mo).position, scrolledAway: r.left < scr.left };
-  });
-  await pg.evaluate(() => document.getElementById('ldg-freeze').click()); await pg.waitForTimeout(600);
+  /* ---- STICKY ---- */
   const sticky = await pg.evaluate(async () => {
     const sc = document.getElementById('ledgerscroll'), tb = document.querySelector('table.ldg');
     const scrollable = sc.scrollWidth > sc.clientWidth + 50;
@@ -224,11 +214,45 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
     return { scrollable, monthCellStays: inside(moCell), monthHeadStays: inside(moHead), groupHeadStays: inside(grpHead), headOnTop, st, stH,
       scrollW: sc.scrollWidth, clientW: sc.clientWidth };
   });
-  rec('STICKY: the table scrolls horizontally; plain by default, and with Freeze on the month column and both header rows stay put — a column read a thousand pixels to the right still has a name and a month',
-      plain.freeze === false && plain.pos === 'static' && plain.scrolledAway &&
+  rec('STICKY: the table scrolls horizontally, and the month column and both header rows stay put — a column read a thousand pixels to the right still has a name and a month',
       sticky.scrollable && sticky.monthCellStays && sticky.monthHeadStays && sticky.groupHeadStays && sticky.headOnTop &&
-      sticky.st === 'sticky' && sticky.stH === 'sticky', JSON.stringify({ plain, sticky }));
-  await pg.evaluate(() => document.getElementById('ldg-freeze').click()); await pg.waitForTimeout(500);
+      sticky.st === 'sticky' && sticky.stH === 'sticky', JSON.stringify(sticky));
+
+  /* ---- ALIGNED ---- *
+   * The check that was missing, and the reason the ledger shipped unreadable twice. Every check
+   * until now asked what the DOM held and what the cascade computed; none asked where the
+   * browser actually PUT anything. Naming the column-header row `ch` collided with the SVG
+   * chart class — .ch{display:block} — which took the header row out of the table's row model:
+   * the header laid itself out independently, the body rows defined the real columns, and the
+   * month column swallowed four thousand pixels of slack, pushing every number off screen. The
+   * table was fully populated and completely unreadable, in every browser, and sixteen passing
+   * checks said it was fine. A table is aligned or it is not. */
+  const aligned = await pg.evaluate(() => {
+    const tb = document.querySelector('table.ldg'), out = { rows: [], parts: {} };
+    const geo = c => { const r = c.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; };
+    for (const el of [tb, tb.tHead, tb.tBodies[0], tb.tHead.rows[1], tb.tBodies[0].rows[0]])
+      out.parts[el.tagName.toLowerCase() + (el.rowIndex !== undefined ? ':row' : '')] = getComputedStyle(el).display;
+    const head = [...tb.tHead.rows[1].cells].map(geo);
+    let worst = 0, worstAt = '';
+    for (const r of [...tb.tBodies[0].rows].slice(0, 60)) {
+      const body = [...r.cells].map(geo);
+      if (body.length !== head.length) { worst = Infinity; worstAt = 'row ' + r.dataset.t + ' has ' + body.length + ' cells, header has ' + head.length; continue; }
+      for (let i = 0; i < head.length; i++) {
+        const dx = Math.abs(head[i][0] - body[i][0]), dw = Math.abs(head[i][1] - body[i][1]);
+        if (Math.max(dx, dw) > worst) { worst = Math.max(dx, dw); worstAt = 'M' + r.dataset.t + ' col ' + i + ' header ' + head[i] + ' body ' + body[i]; }
+      }
+    }
+    /* and the numbers have to be where a reader is looking: on screen, not parked off to the right */
+    const sc = document.getElementById('ledgerscroll'), scr = sc.getBoundingClientRect();
+    const r0 = tb.tBodies[0].rows[0];
+    const onScreen = [...r0.cells].filter(c => { const b = c.getBoundingClientRect();
+      return c.textContent.trim() && b.left >= scr.left - 1 && b.right <= scr.right + 1; }).length;
+    return { worst, worstAt, onScreen, cells: r0.cells.length, parts: out.parts,
+      headRowDisplay: getComputedStyle(tb.tHead.rows[1]).display, bodyRowDisplay: getComputedStyle(r0).display };
+  });
+  rec('ALIGNED: every column sits in the same place in the header and in every one of the sixty rows, the header row is a table row rather than a block, and the first screenful of a row actually carries numbers — a populated table that is laid out wrong reads exactly like an empty one',
+      aligned.worst <= 1 && aligned.headRowDisplay === 'table-row' && aligned.bodyRowDisplay === 'table-row' && aligned.onScreen >= 5,
+      JSON.stringify(aligned));
 
   /* ---- MONTH ---- */
   const month = await pg.evaluate(async () => {

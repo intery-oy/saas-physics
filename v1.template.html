@@ -179,22 +179,13 @@ button,input{font:inherit;color:inherit}
 .ledgerscroll{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 table.ldg{border-collapse:separate;border-spacing:0;font-family:var(--mono);font-size:10.5px;white-space:nowrap;background:var(--scene)}
 .ldg th,.ldg td{padding:2px 9px;text-align:right;border-bottom:1px solid var(--line-soft);font-weight:400}
-.ldg thead th{background:var(--panel);border-bottom:1px solid var(--line)}
-/* FREEZE is opt-in. The sticky cells were the only ones WebKit and Gecko painted in this
-   scroller — every ordinary cell came back blank — so the compatible construction is the
-   default and the frozen header and month column are a switch. Until the failing engines can
-   be tested here, the table being readable everywhere outranks the header staying put. */
-.ldg.freeze thead th{position:sticky;z-index:2}
-.ldg.freeze thead tr.gh th{top:0}
-.ldg.freeze thead tr.ch th{top:24px}
-.ldg thead tr.gh th{font-family:var(--ui);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding-top:7px;padding-bottom:5px}
-.ldg thead tr.ch th{font-size:9.5px;color:var(--ink-3);letter-spacing:.02em;padding-bottom:5px}
+.ldg thead th{position:sticky;background:var(--panel);z-index:2;border-bottom:1px solid var(--line)}
+.ldg thead tr.ldg-grp th{top:0;font-family:var(--ui);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding-top:7px;padding-bottom:5px}
+.ldg thead tr.ldg-col th{top:24px;font-size:9.5px;color:var(--ink-3);letter-spacing:.02em;padding-bottom:5px}
 .ldg tbody td{color:var(--ink-2);background:var(--scene)}
 .ldg .g0{border-left:1px solid var(--line)}          /* a group's first column */
-.ldg .mo{text-align:left;background:var(--scene);color:var(--ink);border-right:1px solid var(--line)}
-.ldg.freeze .mo{position:sticky;left:0;z-index:1}
-.ldg thead .mo{background:var(--panel)}
-.ldg.freeze thead .mo{z-index:4}
+.ldg .mo{position:sticky;left:0;text-align:left;background:var(--scene);color:var(--ink);z-index:1;border-right:1px solid var(--line)}
+.ldg thead .mo{background:var(--panel);z-index:4}
 .ldg tbody tr:hover td{background:var(--raised)}
 .ldg tbody tr:hover .mo{background:var(--raised)}
 .ldg tbody tr.on td{background:rgba(91,104,196,.16)}
@@ -722,7 +713,6 @@ details.pl .cascade{margin-top:8px}
           <div class="ledgerbar">
             <span class="eyebrow">Model Ledger</span>
             <div class="btn-row"><button class="btn on" id="ldg-core">Core</button><button class="btn" id="ldg-full">Full</button></div>
-            <div class="btn-row"><button class="btn" id="ldg-freeze" title="Keep the month column and the header in place while the table scrolls">Freeze header</button></div>
             <span class="lawnote" id="ldg-note"></span>
             <span class="spacer"></span>
             <span class="ldgstat" id="ldg-status">—</span>
@@ -3923,11 +3913,6 @@ details.pl .cascade{margin-top:8px}
    * and would prove nothing. A cell the engine does not publish is '—'.
    * ================================================================== */
   var ledgerView = 'core', ledgerStamp = '', ledgerRes = null, ledgerBad = 0, ledgerBuilds = 0;
-  /* Frozen header and month column, off by default — see the CSS note: they were the only cells
-     two of the three engines painted, so the plain table is what ships and the freeze is a
-     switch the reader can try. Remembered, because whoever needs it needs it every time. */
-  var ledgerFreeze = false;
-  try { ledgerFreeze = localStorage.getItem('saas-physics-ledger-freeze') === '1'; } catch(e){}
 
   /* --- formatting: full euros, because an auditor adds the column up --- */
   function lE(v){ return (v===null||v===undefined||!isFinite(v)) ? '—' : '€'+Math.round(v).toLocaleString('en-GB'); }
@@ -4169,13 +4154,13 @@ details.pl .cascade{margin-top:8px}
 
   function renderLedger(force){
     var host = document.getElementById('ledgerscroll'); if(!host) return;
-    var stamp = ledgerView+'|'+basis+'|'+activePack+'|'+expRes.horizon+'|'+ledgerFreeze;
+    var stamp = ledgerView+'|'+basis+'|'+activePack+'|'+expRes.horizon;
     if(!force && ledgerRes===expRes && ledgerStamp===stamp) { ledgerMark(); return; }
     ledgerRes = expRes; ledgerStamp = stamp; ledgerBad = 0; ledgerBuilds++;
     var rows = ledgerRowsOf(expRes, expA);
     var groups = ledgerColumns(ledgerSpec(expRes, expA));
 
-    var gh = '<tr class="gh">', ch = '<tr class="ch">';
+    var gh = '<tr class="ldg-grp">', ch = '<tr class="ldg-col">';
     groups.forEach(function(g){
       gh += '<th class="'+(g.cols[0].mo?'mo':'g0')+'" colspan="'+g.cols.length+'">'+esc(g.n)+'</th>';
       g.cols.forEach(function(c, i){ ch += '<th class="'+(c.mo?'mo':(i===0?'g0':''))+'">'+esc(c.n)+'</th>'; });
@@ -4198,7 +4183,7 @@ details.pl .cascade{margin-top:8px}
         '<td class="'+(broke?'chk bad':'chk')+' ').replace('"></td>', '">'+(broke ? broke+' broken' : 'ok')+'</td>');
       body += '<tr data-t="'+R.t+'">'+cells+'</tr>';
     }
-    host.innerHTML = '<table class="ldg'+(ledgerFreeze?' freeze':'')+'"><thead>'+gh+ch+'</thead><tbody>'+body+'</tbody></table>';
+    host.innerHTML = '<table class="ldg"><thead>'+gh+ch+'</thead><tbody>'+body+'</tbody></table>';
     ledgerMark();
     var off = [];
     if(!expRes.mechanisms.customerPhysics) off.push('Customers');
@@ -4228,13 +4213,9 @@ details.pl .cascade{margin-top:8px}
     if(el.hidden){ el.hidden = false; document.getElementById('lawhost').innerHTML=''; }
     document.getElementById('ldg-core').classList.toggle('on', ledgerView==='core');
     document.getElementById('ldg-full').classList.toggle('on', ledgerView==='full');
-    document.getElementById('ldg-freeze').classList.toggle('on', ledgerFreeze);
     renderLedger(false);
   }
   function setLedgerView(v){ if(v===ledgerView) return; ledgerView=v; renderLedger(true); syncLedger(); }
-  function setLedgerFreeze(on){ ledgerFreeze=!!on; try { localStorage.setItem('saas-physics-ledger-freeze', ledgerFreeze?'1':'0'); } catch(e){}
-    renderLedger(true); syncLedger(); }
-
   function parkCascade(){ var c=document.querySelector('.cascade'), p=document.getElementById('cascade-park'); if(c && p && c.parentNode!==p){ p.appendChild(c); } }
   function placeCascade(){ var c=document.querySelector('.cascade'), slot=document.getElementById('pl-slot'); if(c && slot){ slot.appendChild(c); c.hidden=false; } }
   var activeLens = 'company', figPref = {};
@@ -5297,7 +5278,6 @@ details.pl .cascade{margin-top:8px}
   /* Model Ledger: the two views, and a row as a way to move the month */
   document.getElementById('ldg-core').addEventListener('click', function(){ setLedgerView('core'); });
   document.getElementById('ldg-full').addEventListener('click', function(){ setLedgerView('full'); });
-  document.getElementById('ldg-freeze').addEventListener('click', function(){ setLedgerFreeze(!ledgerFreeze); });
   document.getElementById('ledgerscroll').addEventListener('click', function(e){
     var tr = e.target && e.target.closest ? e.target.closest('tr[data-t]') : null; if(!tr) return;
     stopClock(); tau = +tr.dataset.t; document.getElementById('scrub').value = tau; syncTime(); render();

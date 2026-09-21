@@ -221,6 +221,20 @@ A check prints the residual of an identity, so **0** means it closes. The named 
 | Cash | opening + FCF − closing = 0 |
 | Cash (Cash Physics on) | collections − cash costs − FCF = 0; deferred and receivables roll forward |
 
+**A class name is part of the global namespace.** The ledger shipped twice completely unreadable
+because its column-header row was called `ch`, which is the SVG chart class — `.ch{display:block}`
+— and that took the header row out of the table's row model: the header laid itself out
+independently, the body rows defined the real columns, and the month column swallowed four
+thousand pixels of slack, pushing every number off screen. Surfaces added to this single file
+prefix their class names (`ldg-`), and a table asserts that its header and body share one column
+structure.
+
+**Checking the DOM is not checking the rendering.** Sixteen checks compared every cell against
+canonical engine state, verified every identity and proved the identities could fail — against a
+table no browser could display. A check named VISIBLE passed because it measured the width of the
+one cell that was four thousand pixels wide. Geometry is the thing to assert: where the browser
+put the marks, not what the markup says.
+
 Tolerance is relative to the magnitudes reconciled — a residual of a few cents against a hundred
 million euros is double-precision noise, not a broken model. `ledger-accept.js` proves the checks
 can fail: it corrupts one published figure in the page's own run and requires the identities that
