@@ -212,7 +212,7 @@ payback      = CAC × 12 ÷ GM        (coefficient, average or marginal CAC)
 "off": it yields N = 0 with S&M still spent. Null: `maxMonthlyNewARR = null` (±Infinity is
 canonicalised to null; negative or NaN is rejected).
 
-Vocabulary: **CAC floor** (`cacPerARR`), **Average CAC**, **Marginal CAC**, **Cohort
+Vocabulary: **Opening pipeline** (`openingPipelineMonths`, an initial condition: the spend already in flight at month 0), **CAC floor** (`cacPerARR`), **Average CAC**, **Marginal CAC**, **Cohort
 CAC (realised)**, **Measured CAC · trailing 12**; **Coefficient / Average / Marginal
 payback**, **Cohort payback**. See `FINDINGS.md` #27.
 

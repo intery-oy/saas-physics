@@ -124,7 +124,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 ## 11. And back to the frozen ARR world — is every layer off again?
 
-- Pack: ARR physics. Mechanisms: {"expansionCost":false,"acquisitionSaturation":false,"acquisitionLag":false,"customerPhysics":false,"monetization":false,"genericExpansionBypassed":false,"cashPhysics":false,"interventions":false}
+- Pack: ARR physics. Mechanisms: {"expansionCost":false,"acquisitionSaturation":false,"acquisitionLag":false,"warmStart":false,"customerPhysics":false,"monetization":false,"genericExpansionBypassed":false,"cashPhysics":false,"interventions":false}
 - cash · M36: €19.17m
 - net dollar retention · R12M: → 99.0%
 

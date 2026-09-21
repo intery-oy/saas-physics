@@ -1407,6 +1407,10 @@ details.pl .cascade{margin-top:8px}
  *   v1.1 → v1.2  BOUNDED ACQUISITION. One constraint, maxMonthlyNewARR: a
  *     saturating acquisition response with cacPerARR kept as the low-spend
  *     primitive. Null: disabled (null / non-finite) — the linear law.
+ *   v1.3 → v1.4  WARM START. One initial condition, openingPipelineMonths: the
+ *     months of spend already in flight at month 0. No law changes; only the
+ *     state the window opens with. null/0 reproduces v1.3 exactly.
+ *
  *   v1.2 → v1.3  ACQUISITION TIMING. One timing parameter, acquisitionLagMonths:
  *     S&M spent at t creates a pending acquisition that becomes a cohort at
  *     t + L. Explicit engine state, not a chart shift. Null: 0.
@@ -1471,7 +1475,8 @@ details.pl .cascade{margin-top:8px}
       cacPerARR:                  'Acquisition spend per €1 of New ARR at low spend — dimensionless acquisition productivity (v1.2: the low-spend limit of the saturating response)',
       expansionCostPerARR:        'v1.1 — € of realisation cost per €1 of expansion ARR. Reaches economics only; never the ARR transition. 0 = free expansion (the v1.0 world).',
       maxMonthlyNewARR:           'v1.2 — acquisition capacity: the New ARR per month the response approaches as S&M → ∞. null = no bound (the v1.0 linear law). A BOUND on an optimistic mechanism, never a benefit.',
-      acquisitionLagMonths:       'v1.3 — months between S&M spend and the cohort it creates. Changes WHEN ARR appears, never how much per euro. 0 = same-month (the v1.0 world).'
+      acquisitionLagMonths:       'v1.3 — months between S&M spend and the cohort it creates. Changes WHEN ARR appears, never how much per euro. 0 = same-month (the v1.0 world).',
+      openingPipelineMonths:      'v1.4 — months of spend already in flight at month 0: the pipeline a going concern carries into the window. An INITIAL CONDITION, never a law: it adds no productivity per euro, it only says the company was already selling before month 1. null/0 = an empty pipeline (the v1.3 cold start).'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control)',
@@ -1503,6 +1508,7 @@ details.pl .cascade{margin-top:8px}
     expansionCostPerARR:        0,       // v1.1  € of cost per €1 of expansion ARR; 0 = free (v1.0)
     maxMonthlyNewARR:           null,    // v1.2  € of New ARR per month the response saturates toward; null = unbounded (v1.0)
     acquisitionLagMonths:       0,       // v1.3  months from S&M spend to cohort creation; 0 = same month (v1.0)
+    openingPipelineMonths:      null,    // v1.4  months of spend in flight at month 0; null = empty pipeline (v1.3)
     /* v2 Gate A — CUSTOMER PHYSICS, at its NULL setting (the v1.3 world). With
        logoRetentionAnnual set, persistenceAnnual is NOT READ: dollar persistence
        is generated as L(1 − C) by customers.js. */
@@ -1715,6 +1721,16 @@ details.pl .cascade{margin-top:8px}
     if (L === undefined) a.acquisitionLagMonths = DEFAULT_ASSUMPTIONS.acquisitionLagMonths;
     else if (typeof L !== 'number' || !isFinite(L) || L < 0 || Math.floor(L) !== L)
       throw new RangeError('acquisitionLagMonths must be an integer >= 0 (got ' + String(L) + ')');
+    /* v1.4 — the opening pipeline is bounded by the lag itself: spend older than
+       the lag would already have matured, before the window the model can see. */
+    var PW = a.openingPipelineMonths;
+    if (PW === undefined) a.openingPipelineMonths = DEFAULT_ASSUMPTIONS.openingPipelineMonths;
+    else if (PW !== null) {
+      if (typeof PW !== 'number' || !isFinite(PW) || PW < 0 || Math.floor(PW) !== PW)
+        throw new RangeError('openingPipelineMonths must be null (an empty pipeline) or an integer >= 0 (got ' + String(PW) + ')');
+      if (PW > a.acquisitionLagMonths)
+        throw new RangeError('openingPipelineMonths (' + PW + ') cannot exceed acquisitionLagMonths (' + a.acquisitionLagMonths + '): spend older than the lag would have matured before month 1');
+    }
     var cap = a.maxMonthlyNewARR;
     if (cap === undefined || cap === null || cap === Infinity || cap === -Infinity) a.maxMonthlyNewARR = null;
     else if (typeof cap !== 'number' || isNaN(cap) || cap < 0)
@@ -1769,8 +1785,13 @@ details.pl .cascade{margin-top:8px}
   function realiseCohort(t, matured, bandName, grossMargin) {
     var realisedARR = 0, realisedSpend = 0, first = matured[0];
     var realisedCustomers = 0, anyCustomers = false;
+    /* v1.4 — a batch that matured from the OPENING PIPELINE was paid for before
+       month 1. Its euros are not in this window's S&M, so it carries no
+       acquisition cost here, exactly as the opening base carries none. */
+    var preWindow = true;
     for (var i = 0; i < matured.length; i++) {
       var e = matured[i];
+      if (e.preWindow !== true) preWindow = false;
       e.realised = true; e.cohortId = 'M' + t;
       realisedARR += e.newARR; realisedSpend += e.sm;
       if (e.spendMonth < first.spendMonth) first = e;
@@ -1791,8 +1812,10 @@ details.pl .cascade{margin-top:8px}
          cost per €1 of ARR (= acquisitionCost / initialARR), which equals the
          coefficient only while the bound was off at spend; the coefficient
          and the capacity at spend are stamped separately. */
-      acquisitionCost: realisedSpend,
-      cacPerARRAtCreation: realisedARR > 0 ? realisedSpend / realisedARR : null,
+      acquisitionCost: preWindow ? null : realisedSpend,
+      cacPerARRAtCreation: preWindow ? null : (realisedARR > 0 ? realisedSpend / realisedARR : null),
+      /* v1.4 — bought before the window: the cost is outside it, the ARR is inside */
+      preWindow: preWindow,
       cacCoefficientAtCreation: first.cacPerARRAtSpend,
       capacityAtSpend: first.maxMonthlyNewARRAtSpend,
       spendMonth: first.spendMonth,
@@ -1989,6 +2012,40 @@ details.pl .cascade{margin-top:8px}
       };
     });
     var openingDeferred = CASH ? cohorts.reduce(function (q, c) { return q + c.billingUnits.reduce(function (w, u) { return w + u.deferred; }, 0); }, 0) : null;
+
+    /* ------------------------------------------------------------------ *
+     * v1.4 WARM START — the pipeline a going concern is already carrying.
+     *
+     * With a lag, every month of spend lands LAG months later. A company that
+     * already has an installed base was also already selling, so at month 0 it
+     * holds LAG months of spend in flight. Starting that stock at zero is not a
+     * law of the world, it is an initial condition, and an inconsistent one:
+     * the cash layer already derives the contract book a going concern carries
+     * (staggered renewals, opening deferred balance) rather than zeroing it.
+     *
+     * openingPipelineMonths says how many months of that prior spend exist.
+     * Each seeded entry is an ORDINARY pending entry, built by the same
+     * function and stamped with the laws as declared (no hypothesis predates
+     * the window), maturing in months LAG−n+1 … LAG so the stream is
+     * continuous from month 1 when n = LAG.
+     *
+     * Its euros stay OUTSIDE the window: sm = 0, so this window's S&M, EBITA,
+     * cash and deployed capital are untouched and every capital identity still
+     * closes on spend the window can see. The real amount is kept as priorSM,
+     * reported, never summed into anything. The cohort it becomes therefore
+     * carries no acquisition cost, the same disclosed state the opening base
+     * has always had.
+     * ------------------------------------------------------------------ */
+    var PIPE = (a.openingPipelineMonths === null || a.openingPipelineMonths === undefined) ? 0 : a.openingPipelineMonths;
+    var openingPipelineARR = 0;
+    for (var pwM = LAG - PIPE + 1; pwM <= LAG; pwM++) {
+      var pwE = pendingEntry(a, pwM - LAG, LAG, newARR, newLogoARPA, moInitial, []);
+      pwE.sm = 0;              /* spent before month 1: not this window's S&M */
+      pwE.priorSM = a.sm;      /* what it cost, outside the window — reported only */
+      pwE.preWindow = true;
+      openingPipelineARR += pwE.newARR;
+      ledger.push(pwE); pending.push(pwE);
+    }
 
     var months = [];
     var cash = s.openingCash;
@@ -2326,6 +2383,7 @@ details.pl .cascade{margin-top:8px}
         expansionCost: a.expansionCostPerARR > 0,
         acquisitionSaturation: saturationEnabled(a),
         acquisitionLag: a.acquisitionLagMonths > 0,
+        warmStart: PIPE > 0,                        /* v1.4: the pipeline starts loaded */
         customerPhysics: CUON,                      /* v2 Gate A */
         monetization: MON,                          /* v2 Gate B */
         genericExpansionBypassed: MON,              /* v2 Gate B: expansionCoefficientAnnual not read */
@@ -2388,6 +2446,10 @@ details.pl .cascade{margin-top:8px}
         acquisition: acq,
         /* v1.3 — timing */
         acquisitionLagMonths: LAG,
+        /* v1.4 — the initial condition of the pipeline */
+        openingPipelineMonths: PIPE,
+        openingPipelineARR: openingPipelineARR,     /* New ARR in flight at month 0 */
+        openingPipelinePriorSM: PIPE * a.sm,        /* what it cost, before the window */
         /* v1.1 — what expansion realisation costs in this world */
         expansionCostPerARR: a.expansionCostPerARR
       },
@@ -3756,7 +3818,18 @@ details.pl .cascade{margin-top:8px}
         addedLast:  expRes.months[m-1].cashClosing - c.withoutRes.months[m-1].cashClosing };
     });
   }
+  /* v1.4 — the opening pipeline is bounded by the lag that creates it. The rail can
+     reach states the engine must reject (drop the lag under a loaded pipeline), so the
+     one funnel every change passes through normalises it rather than throwing. */
+  function pipeFit(A2){
+    var L = A2.acquisitionLagMonths || 0, P = A2.openingPipelineMonths;
+    if(P===null || P===undefined) return A2;
+    if(L<=0) return setK(A2, 'openingPipelineMonths', null);
+    if(P>L) return setK(A2, 'openingPipelineMonths', L);
+    return A2;
+  }
   function recompute(prevExp){
+    expA = pipeFit(expA); baseA = pipeFit(baseA);
     baseRes = E.run(baseA, baseStart); expRes = E.run(expA, expStart);
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
     capAgg = aggCapital(expRes);
@@ -3765,7 +3838,8 @@ details.pl .cascade{margin-top:8px}
          its timing — so they belong to the ACQUISITION group. Expansion cost
          moves no recurring state and sits in neither group by construction. */
       var acqA = Object.assign({}, baseA, { sm: expA.sm, cacPerARR: expA.cacPerARR,
-                                            maxMonthlyNewARR: expA.maxMonthlyNewARR, acquisitionLagMonths: expA.acquisitionLagMonths });
+                                            maxMonthlyNewARR: expA.maxMonthlyNewARR, acquisitionLagMonths: expA.acquisitionLagMonths,
+                                            openingPipelineMonths: expA.openingPipelineMonths });   /* v1.4: the pipeline is an acquisition-group initial condition */
       var ibA  = Object.assign({}, baseA, { persistenceAnnual: expA.persistenceAnnual, expansionCoefficientAnnual: expA.expansionCoefficientAnnual,
                                             /* v2 Gate A: the customer laws generate persistence, so they are installed-base levers */
                                             logoRetentionAnnual: expA.logoRetentionAnnual, contractionAnnual: expA.contractionAnnual, newLogoARPA: expA.newLogoARPA,
@@ -3867,11 +3941,11 @@ details.pl .cascade{margin-top:8px}
   function worldMon(fixedFee, fixedGrowth, usage){ return { components:[ { name:'platform', kind:'fixed', units:1, priceAnnual:fixedFee, priceGrowthAnnual:fixedGrowth }, Object.assign({ name:'usage', kind:'variable' }, usage) ] }; }
   var WORLDS = [
     { id:'wA', name:'A · Enterprise', world:true, start:function(){ return { openingCustomers:120, openingCash:10000000 }; },
-      a:function(){ return { sm:700000, rd:700000, ga:350000, cacPerARR:1.6, grossMargin:0.78, maxMonthlyNewARR:1500000, acquisitionLagMonths:4,
+      a:function(){ return { sm:700000, rd:700000, ga:350000, cacPerARR:1.6, grossMargin:0.78, maxMonthlyNewARR:1500000, acquisitionLagMonths:4, openingPipelineMonths:4,
         logoRetentionAnnual:0.95, contractionAnnual:0.03,
         monetization: worldMon(90000, 0.04, { penetration:0.7, units:400, priceAnnual:150, priceGrowthAnnual:0.02, usageGrowthAnnual:0.20, unitsCap:1200, adoptionAnnual:0.12, penetrationCap:0.95 }),
         billingTermMonths:12, billingTiming:'advance', collectionDelayMonths:2 }; },
-      note:'World A · enterprise SaaS: 120 customers at ~€132k, a €90k platform fee plus metered usage, billed annually in advance and collected two months later, a four-month sales lag, capacity-bound acquisition, 95% logo retention. Illustrative, not a benchmark.' },
+      note:'World A · enterprise SaaS: 120 customers at ~€132k, a €90k platform fee plus metered usage, billed annually in advance and collected two months later, a four-month sales lag with the pipeline it implies already in flight at month 0, capacity-bound acquisition, 95% logo retention. Illustrative, not a benchmark.' },
     { id:'wB', name:'B · Usage / AI', world:true, start:function(){ return { openingCustomers:2500, openingCash:10000000 }; },
       a:function(){ return { sm:700000, rd:900000, ga:300000, cacPerARR:0.9, grossMargin:0.60,
         logoRetentionAnnual:0.85, contractionAnnual:0.10,
@@ -3943,7 +4017,9 @@ details.pl .cascade{margin-top:8px}
                /* v1.2 — a BOUND on the response, never a benefit. null = off = the linear law. */
                {k:'maxMonthlyNewARR', label:'Acquisition capacity', sub:'the ceiling on New ARR per month: the response bends toward it as S&M grows and never reaches it · off = linear, unbounded', min:250000, max:5000000, step:50000, f:'cap', nullable:true, onValue:2000000},
                /* v1.3 — timing only. 0 = same month. */
-               {k:'acquisitionLagMonths', label:'Acquisition lag', sub:'months between S&M spend and the cohort it creates · 0 = same month', min:0, max:12, step:1, f:'mo'} ] },
+               {k:'acquisitionLagMonths', label:'Acquisition lag', sub:'months between S&M spend and the cohort it creates · 0 = same month', min:0, max:12, step:1, f:'mo'},
+               /* v1.4 — an INITIAL CONDITION, not a law: was this company already selling before month 1? */
+               {k:'openingPipelineMonths', label:'Opening pipeline', sub:'months of spend already in flight at month 0 · a company that was already selling carries a full pipeline in · off = it starts empty and nothing books until the lag has passed', min:0, max:12, step:1, f:'mo', nullable:true, onValue:function(){ return Math.max(1, getK(expA,'acquisitionLagMonths')||4); }} ] },
     /* v2 Gate C — CASH PHYSICS. Beneath the P&L: when the cash arrives. Billing
        term and timing set deferred revenue; the collection delay sets
        receivables. Off = FCF = EBITA. Touches nothing above the cash line. */
@@ -4006,13 +4082,13 @@ details.pl .cascade{margin-top:8px}
   var FORCE_KIND = { sm:'inp', rd:'inp', ga:'inp', maxMonthlyNewARR:'cons', 'monetization.components[1].unitsCap':'cons', 'monetization.components[1].penetrationCap':'cons',
                      monetization:'sw', interventions:'sw', 'monetization.components[0].priceAnnual':'inp' };
   var FORCE_UNIT = { sm:'€ / mo', rd:'€ / mo', ga:'€ / mo', persistenceAnnual:'% / yr', expansionCoefficientAnnual:'% / yr', logoRetentionAnnual:'% / yr', contractionAnnual:'% / yr',
-                     newLogoARPA:'€ / logo', cacPerARR:'€ per € ARR', maxMonthlyNewARR:'€ ARR / mo', acquisitionLagMonths:'months', grossMargin:'% of revenue', expansionCostPerARR:'€ per € ARR',
+                     newLogoARPA:'€ / logo', cacPerARR:'€ per € ARR', maxMonthlyNewARR:'€ ARR / mo', acquisitionLagMonths:'months', openingPipelineMonths:'months in flight at M0', grossMargin:'% of revenue', expansionCostPerARR:'€ per € ARR',
                      'monetization.components[0].priceAnnual':'€ / customer / yr', 'monetization.components[0].priceGrowthAnnual':'% / yr', 'monetization.components[1].priceGrowthAnnual':'% / yr',
                      'monetization.components[1].usageGrowthAnnual':'% / yr', 'monetization.components[1].unitsCap':'units', 'monetization.components[1].adoptionAnnual':'% / yr', 'monetization.components[1].penetrationCap':'% of customers',
                      billingTermMonths:'months', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
                      'interventions[0].durationMonths':'months', 'interventions[0].cost.oneOff':'€', 'interventions[0].cost.monthly':'€ / mo' };
   var FORCE_DIR = { sm:'↑ more new ARR, more cash out', persistenceAnnual:'↑ less leakage', expansionCoefficientAnnual:'↑ more expansion', logoRetentionAnnual:'↑ fewer logos lost', contractionAnnual:'↑ more leakage from survivors',
-                    newLogoARPA:'↑ fewer, larger new logos', cacPerARR:'↑ less new ARR per € of S&M', maxMonthlyNewARR:'a ceiling, never a benefit', acquisitionLagMonths:'↑ later cohorts, same spend',
+                    newLogoARPA:'↑ fewer, larger new logos', cacPerARR:'↑ less new ARR per € of S&M', maxMonthlyNewARR:'a ceiling, never a benefit', acquisitionLagMonths:'↑ later cohorts, same spend', openingPipelineMonths:'what the company was already selling',
                     grossMargin:'↑ more gross profit per € of revenue', expansionCostPerARR:'↑ more cost per € expanded', 'monetization.components[0].priceAnnual':'↑ higher opening ARPA',
                     'monetization.components[0].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].usageGrowthAnnual':'↑ more usage expansion, until the cap',
                     'monetization.components[1].unitsCap':'a ceiling on usage', 'monetization.components[1].adoptionAnnual':'↑ more adoption expansion, until the cap', 'monetization.components[1].penetrationCap':'a ceiling on adoption',
@@ -4394,7 +4470,10 @@ details.pl .cascade{margin-top:8px}
     }
     if(key==='lag'){
       return a.acquisitionLagMonths>0
-        ? 'S&M spent in month t creates its cohort in month t + '+Math.round(a.acquisitionLagMonths)+'. The last '+Math.round(a.acquisitionLagMonths)+' months of spend mature beyond M60 and stay pending — never pulled forward. (#17)'
+        ? 'S&M spent in month t creates its cohort in month t + '+Math.round(a.acquisitionLagMonths)+'. The last '+Math.round(a.acquisitionLagMonths)+' months of spend mature beyond M60 and stay pending — never pulled forward. '+
+          (a.openingPipelineMonths>0
+            ? 'At the other end the window opens with '+Math.round(a.openingPipelineMonths)+' months of spend already in flight — the pipeline a company that was already selling carries in. That spend happened before M1, so it is in no cost line here and the cohorts it creates carry no acquisition cost inside the window.'
+            : 'At the other end the pipeline opens EMPTY: nothing books until the lag has passed, which understates a company that was already selling before M1.')+' (#17)'
         : 'Acquisition is same-month while the lag is 0. (#17)';
     }
     if(key==='cust'){
@@ -5011,7 +5090,7 @@ details.pl .cascade{margin-top:8px}
         { id:'capital', title:'CAPITAL · SPEND', lines:['S&M '+eur(mm.sm)+' /mo','R&D '+eur(mm.rd)+' · G&A '+eur(mm.ga)], kind:'source', view:'company',
           laws:[], meas:[] },
         { id:'acq', title:'ACQUISITION', lines:[reur(mm.acquisitionLawNewARR)+' committed', lagOn ? reur(mm.pendingNewARR)+' pending · '+expRes.derived.acquisitionLagMonths+' mo' : 'no lag'], kind:'flow', view:'company',
-          laws:['⋈ CAC floor '+lawNow('cacPerARR').toFixed(2)+'×', satOn ? '⌈⌉ capacity '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : '⌈⌉ capacity off', lagOn ? '⋈ lag '+expRes.derived.acquisitionLagMonths+' mo' : null],
+          laws:['⋈ CAC floor '+lawNow('cacPerARR').toFixed(2)+'×', satOn ? '⌈⌉ capacity '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : '⌈⌉ capacity off', lagOn ? '⋈ lag '+expRes.derived.acquisitionLagMonths+' mo'+(expRes.derived.openingPipelineMonths>0 ? ' · pipeline '+expRes.derived.openingPipelineMonths+' mo at M0' : ' · empty pipeline at M0') : null],
           meas:['→ Average CAC '+qx.averageCAC.toFixed(2)+'×', '→ Marginal CAC '+qx.marginalCAC.toFixed(2)+'×', '→ payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo'] },
         { id:'cust', title:'CUSTOMERS', lines: cuOn ? [mm.customers.closing.toFixed(0)+' customers', '+'+mm.customers.newCustomers.toFixed(1)+' · −'+mm.customers.logoChurn.toFixed(1)+' this month'] : ['no customer layer','leakage is one number'], kind: cuOn?'stock':'off', view:'customers',
           laws: cuOn ? ['⋈ logo retention '+pct(lawNow('logoRetentionAnnual'),0), '⋈ contraction '+pct(lawNow('contractionAnnual'),0)] : ['⋈ persistence '+pct(lawNow('persistenceAnnual'),0)],
@@ -6388,7 +6467,9 @@ details.pl .cascade{margin-top:8px}
     for(var t=1;t<=H;t++){ var rx=responseAt(expRes, expA, t), gx=gmAt(expRes, expA, t), rb=responseAt(baseRes, baseA, t), gb=gmAt(baseRes, baseA, t);
       avgX.push(rx.averageCAC); margX.push(rx.marginalCAC); pbAX.push(rx.averageCAC*12/gx); pbMX.push(rx.marginalCAC*12/gx);
       avgB.push(rb.averageCAC); margB.push(rb.marginalCAC); pbAB.push(rb.averageCAC*12/gb); pbMB.push(rb.marginalCAC*12/gb);
-      var am=K.acquisitionMeasures(expRes, t); measX.push(t >= 12 + expRes.derived.acquisitionLagMonths ? am.measuredCACR12M : null); }
+      /* the trailing twelve needs twelve months in which spend and arrivals line up: that is the
+         lag the pipeline did NOT cover, so a warm pipeline shortens the wait rather than hiding it */
+      var am=K.acquisitionMeasures(expRes, t); measX.push(t >= 12 + Math.max(0, expRes.derived.acquisitionLagMonths - expRes.derived.openingPipelineMonths) ? am.measuredCACR12M : null); }
     var realised=[]; for(var i=0;i<=H;i++) realised.push(null);
     expRes.cohorts.forEach(function(c, k){ if(c.acquisitionMonth>0 && c.acquisitionCost!==null){ var cc=CAP.cohortCapital(expRes, k); if(cc.paybackAge!==null) realised[c.acquisitionMonth]=cc.paybackAge; } });
     var acqDiff = Math.abs(avgX[m]-avgB[m])>1e-6 || Math.abs(margX[m]-margB[m])>1e-6 || Math.abs(pbAX[m]-pbAB[m])>1e-6;
@@ -6447,7 +6528,8 @@ details.pl .cascade{margin-top:8px}
       /* the law's cost beside the cost the run actually realised */
       '<span>Measured CAC · trailing 12 <b>'+(measX[m]===null ? '—' : '→ '+xF(measX[m]))+'</b></span>'+
       /* the curve says how much this month's spend buys; the lag says when it arrives */
-      (expRes.derived.acquisitionLagMonths>0 ? '<span>arrives <b>'+expRes.derived.acquisitionLagMonths+' months later</b></span>' : '')+'</div>';
+      (expRes.derived.acquisitionLagMonths>0 ? '<span>arrives <b>'+expRes.derived.acquisitionLagMonths+' months later</b></span>'+
+        '<span>pipeline at M0 <b>'+(expRes.derived.openingPipelineMonths>0 ? expRes.derived.openingPipelineMonths+' months in flight' : 'empty')+'</b></span>' : '')+'</div>';
     if(!satOn) h += '<div class="offnote">No capacity: the response is linear, the curve is a straight line through the origin, and average and marginal CAC coincide at the CAC floor.</div>';
     h += '</div>';
 
@@ -6651,7 +6733,7 @@ details.pl .cascade{margin-top:8px}
           ? row('− contraction + churn, cumulative', reur(cLoss.contraction)+' contraction · '+reur(cLoss.logoChurn)+' churn', 'out')
           : row('− leakage, cumulative', reur(snap.cumLeakage), 'out')) +
         row(basis+' now', reur(snap.currentARR)) +
-        '<details class="more"><summary>Bought under · '+(c.acquisitionMonth===0 ? 'predates the simulation' : 'spend month '+c.spendMonth+(c.cacPerARRAtCreation!==null ? ' · CAC '+c.cacPerARRAtCreation.toFixed(2)+'×' : ''))+'</summary>' + provenanceRows(c) + '</details>', '', 'age '+snap.age, 'acquired');
+        '<details class="more"><summary>Bought under · '+(c.acquisitionMonth===0 ? 'predates the simulation' : c.preWindow ? 'spend before month 1' : 'spend month '+c.spendMonth+(c.cacPerARRAtCreation!==null ? ' · CAC '+c.cacPerARRAtCreation.toFixed(2)+'×' : ''))+'</summary>' + provenanceRows(c) + '</details>', '', 'age '+snap.age, 'acquired');
       /* 3 · CUSTOMER ECONOMICS — the logos beneath the balance */
       if(snap.customers!==null)
         out += pstep('Customer economics', snap.customers.toFixed(1)+' customers · ARPA '+reur(snap.arpa),
@@ -6684,6 +6766,11 @@ details.pl .cascade{margin-top:8px}
        it actually bought per euro. All stamped at creation, never recomputed. */
     function provenanceRows(c){
       if(c.acquisitionMonth===0) return row('Acquisition cost', 'unknown — predates the simulation');
+      /* v1.4: bought out of the opening pipeline — the spend is real, it is just outside the window */
+      if(c.preWindow) return row('Spend incurred', 'before month 1 · the pipeline this world opened with') +
+                             row('Cohort created', 'month '+c.acquisitionMonth+' · '+c.lagMonths+' months after that spend') +
+                             row('Acquisition cost', 'outside this window — the euro was spent before it opens') +
+                             (c.cacCoefficientAtCreation!==null ? row('CAC floor at spend', c.cacCoefficientAtCreation.toFixed(2)+'×') : '');
       /* CAC is € of S&M per €1 of ARR. It is a ratio and NEVER passes through
          the MRR/ARR display basis (basis.js) — the number is the same in both. */
       var out = row('Spend incurred', 'month '+c.spendMonth+(c.lagMonths>0 ? ' · pending '+c.lagMonths+' months' : ' · same month')) +
@@ -6706,7 +6793,9 @@ details.pl .cascade{margin-top:8px}
     }
     function capitalStep(c, mm){
       if(c.acquisitionCost===null)
-        return pstep('Cash · capital recovery', 'no stamped acquisition cost · the opening base predates the simulation, so its capital recovery cannot be attributed', '', 'off', null, 'capital recovered');
+        return pstep('Cash · capital recovery', c.preWindow
+          ? 'bought out of the opening pipeline · the spend that created it happened before month 1, so there is no cost inside this window to recover'
+          : 'no stamped acquisition cost · the opening base predates the simulation, so its capital recovery cannot be attributed', '', 'off', null, 'capital recovered');
       var cc=CAP.cohortCapital(expRes, expRes.cohorts.indexOf(c));
       var now=null; cc.series.forEach(function(s){ if(s.t<=mm) now=s; });
       if(!now) return '';
@@ -6873,7 +6962,7 @@ details.pl .cascade{margin-top:8px}
    * A "same output, different system" block appears when the headline
    * agrees and the mechanisms do not. Every figure is engine output.
    * ------------------------------------------------------------------ */
-  var CAUSAL_LAYER = { sm:'acquisition', cacPerARR:'acquisition', maxMonthlyNewARR:'acquisition', acquisitionLagMonths:'acquisition',
+  var CAUSAL_LAYER = { sm:'acquisition', cacPerARR:'acquisition', maxMonthlyNewARR:'acquisition', acquisitionLagMonths:'acquisition', openingPipelineMonths:'acquisition',
     persistenceAnnual:'installed base', expansionCoefficientAnnual:'installed base', bands:'installed base',
     logoRetentionAnnual:'customers', contractionAnnual:'customers', newLogoARPA:'customers',
     monetization:'monetization', grossMargin:'economics', expansionCostPerARR:'economics', rd:'economics', ga:'economics',
@@ -7373,14 +7462,14 @@ details.pl .cascade{margin-top:8px}
       'in a system with interactions — they are not forced to sum to the total.</div>' : '';
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+t1+t2+'</details></div>';
   }
-  var LABEL={sm:'S&M', cacPerARR:'CAC floor', persistenceAnnual:'Persistence',
+  var LABEL={sm:'S&M', cacPerARR:'CAC floor', openingPipelineMonths:'Opening pipeline', persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
-             expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
+             expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag', openingPipelineMonths:'Opening pipeline',
              logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization',
              billingTermMonths:'Billing term', billingTiming:'Billing timing', collectionDelayMonths:'Collection delay', interventions:'Hypothesis',
              'monetization.components[0]':'Platform component', 'monetization.components[1]':'Usage component'};
   var LABEL_FMT={sm:'eur', cacPerARR:'x', persistenceAnnual:'pct', expansionCoefficientAnnual:'pct', grossMargin:'pct', rd:'eur', ga:'eur',
-                 expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo',
+                 expansionCostPerARR:'x', maxMonthlyNewARR:'cap', acquisitionLagMonths:'mo', openingPipelineMonths:'mo',
                  logoRetentionAnnual:'pct', contractionAnnual:'pct', newLogoARPA:'arpa', monetization:'onoff',
                  billingTermMonths:'mo', billingTiming:'timing', collectionDelayMonths:'mo', interventions:'hyp'};
 

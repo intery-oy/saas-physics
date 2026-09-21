@@ -14,6 +14,9 @@
  *   INSPECT          a lagged cohort's dossier shows spend month, wait, creation
  *   SYSTEM           both compare modes render with the mechanisms on, and the
  *                    pending stock reads the engine's pendingNewARR
+ *   WARM START       the opening pipeline: the default world carries one, the control drives it,
+ *                    a cohort bought out of it says so, and dropping the lag empties it instead
+ *                    of throwing
  *   NULL-ON-SCREEN   Reset returns every mechanism to null
  *   no page errors across the whole run
  */
@@ -180,6 +183,63 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const bounds9 = await pg.evaluate(() => document.getElementById('side').textContent);
   rec('BOUNDARIES: scenario 9 discloses the lag boundary with the live lag and the horizon rule',
       bounds9.includes('creates its cohort in month t + 6') && bounds9.includes('mature beyond M60 and stay pending'), '');
+
+  /* ---- WARM START: the pipeline a going concern opens with ---- */
+  await jsClick('#nav-company');   /* the earlier sections left the portal on another layer */
+  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(200);
+  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.getElementById('pack-wA').click()); await pg.waitForTimeout(600);
+  const warm = await pg.evaluate(() => { const D = window.__SP_DEBUG, M = D.expRes.months;
+    return { pipe: D.expRes.derived.openingPipelineMonths, lag: D.expRes.derived.acquisitionLagMonths, mech: D.expRes.mechanisms.warmStart,
+      inFlight: D.expRes.derived.openingPipelineARR, priorSM: D.expRes.derived.openingPipelinePriorSM,
+      first: M.slice(0, 5).map(m => m.newARR), pending1: M[0].pendingNewARR,
+      ctl: (document.getElementById('v-openingPipelineMonths') || {}).textContent,
+      tog: (document.getElementById('t-openingPipelineMonths') || {}).textContent,
+      cumSM: M[59].cumulative.sm, m60: M[59].closingARR, cohorts: D.expRes.cohorts.length }; });
+  rec('WARM START: the Enterprise world opens with the pipeline its four-month lag implies already in flight — new ARR from month 1, the pipeline stock at its steady level, the control reading 4 mo, and the mechanism reported on',
+      warm.pipe === 4 && warm.lag === 4 && warm.mech === true && warm.first.every(v => v > 0) && warm.tog === 'on' && /4 mo/.test(String(warm.ctl)) &&
+      Math.abs(warm.pending1 - 4 * warm.first[0]) < 1e-6 && Math.abs(warm.inFlight - 4 * warm.first[0]) < 1e-6 && warm.priorSM === 4 * 700000,
+      JSON.stringify({ pipe: warm.pipe, ctl: warm.ctl, tog: warm.tog, first: warm.first.map(Math.round), inFlight: Math.round(warm.inFlight) }));
+
+  const coldAgain = await (async () => { await pg.evaluate(() => { const t = document.getElementById('t-openingPipelineMonths'); if (t) t.click(); }); await pg.waitForTimeout(500);
+    return pg.evaluate(() => { const D = window.__SP_DEBUG, M = D.expRes.months;
+      return { pipe: D.expRes.derived.openingPipelineMonths, mech: D.expRes.mechanisms.warmStart, first: M.slice(0, 5).map(m => m.newARR),
+        cumSM: M[59].cumulative.sm, m60: M[59].closingARR, cohorts: D.expRes.cohorts.length }; }); })();
+  rec('WARM START: switching the pipeline off empties it — the first four months book nothing, four fewer cohorts exist and ARR at the horizon falls, while the S&M spent inside the window is unchanged',
+      coldAgain.pipe === 0 && coldAgain.mech === false && coldAgain.first.slice(0, 4).every(v => v === 0) && coldAgain.first[4] > 0 &&
+      coldAgain.cumSM === warm.cumSM && coldAgain.cohorts === warm.cohorts - 4 && coldAgain.m60 < warm.m60,
+      JSON.stringify({ pipe: coldAgain.pipe, first: coldAgain.first.map(Math.round), cohorts: coldAgain.cohorts, m60: [Math.round(warm.m60), Math.round(coldAgain.m60)] }));
+
+  await pg.evaluate(() => { const t = document.getElementById('t-openingPipelineMonths'); if (t) t.click(); }); await pg.waitForTimeout(400);
+  await setSlider('f-acquisitionLagMonths', 0); await pg.waitForTimeout(400);
+  const clamped = await pg.evaluate(() => ({ pipe: window.__SP_DEBUG.expA.openingPipelineMonths, lag: window.__SP_DEBUG.expA.acquisitionLagMonths,
+    tog: (document.getElementById('t-openingPipelineMonths') || {}).textContent }));
+  rec('WARM START: dropping the lag to zero under a loaded pipeline empties the pipeline instead of raising the engine\'s boundary error — there is no pipeline without a lag',
+      clamped.lag === 0 && (clamped.pipe === null || clamped.pipe === 0) && errs.length === 0, JSON.stringify(clamped));
+
+  /* a cohort bought out of the opening pipeline says so, and has no cost inside the window to recover */
+  await pg.evaluate(() => document.getElementById('pack-wA').click()); await pg.waitForTimeout(600);
+  await setScrub(36);
+  /* the newest stratum at month 2 IS a pipeline cohort: scan down from the top of the mass */
+  const pre = await pg.evaluate(() => { const D = window.__SP_DEBUG, cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
+    const x = 64 + (2 / 60) * (r.width - 64 - 78);
+    for (let y = 26; y < r.height * 0.9; y += 2) {
+      cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      if (cv.style.cursor !== 'pointer') continue;
+      cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      if (D.pinned !== null && D.expRes.cohorts[D.pinned].preWindow)
+        return { k: D.pinned, am: D.expRes.cohorts[D.pinned].acquisitionMonth, cost: D.expRes.cohorts[D.pinned].acquisitionCost, cac: D.expRes.cohorts[D.pinned].cacPerARRAtCreation };
+      if (D.pinned !== null) cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+    }
+    return null; });
+  await pg.waitForTimeout(500);
+  const preTxt = await pg.evaluate(() => { const d = document.querySelector('.dossier'); if (!d) return ''; d.querySelectorAll('details').forEach(x => { x.open = true; }); return d.innerText; });
+  rec('WARM START: a cohort bought out of the opening pipeline carries no acquisition cost and no realised CAC, and the Inspect chain says the spend happened before month 1 rather than calling it an opening base',
+      pre !== null && pre.cost === null && pre.cac === null && /before month 1/.test(preTxt) && /outside this window/.test(preTxt) &&
+      /bought out of the opening pipeline/.test(preTxt) && !/predates the simulation/.test(preTxt),
+      JSON.stringify(pre) + ' | ' + preTxt.slice(preTxt.indexOf('Spend incurred'), preTxt.indexOf('Spend incurred') + 160).replace(/\n/g, ' | '));
+  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(300);
+  await pg.evaluate(() => { document.getElementById('pack-arr').click(); }); await pg.waitForTimeout(500);
 
   /* ---- NULL-ON-SCREEN ---- */
   await jsClick('#reset'); await pg.waitForTimeout(300);

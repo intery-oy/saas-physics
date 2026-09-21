@@ -8,7 +8,7 @@ that file and `baseline-v1.3-full.json.gz` remain the witness every v2 commit re
 
 | File | sha256 | lines | vs v1.3 |
 |---|---|---|---|
-| `engine.js` | `56463b6bae8bad1ce9a259f503748146e148337433dc4a16a6ee897a4899f50e` | 1340 | changed — layer dispatch (A/B/C), `lawAt(t)` (D); every v1.3 line kept for the null world |
+| `engine.js` | `1ad74e54bfc8c653ad9aa7ca1fcbe01fc322a0685cdc87355fd56954886e4990` | 1402 | changed — v1.4 warm start: `openingPipelineMonths`, an initial condition; null reproduces v1.3 field for field |
 | `kpi.js` | `b48a4a7ec36e15f7f128f4202d727842f88d17f0645480bccb71518f8545f359` | 531 | changed — `customerMeasures`, `monetizationMeasures`, `cashMeasures`, `interventionMeasures` |
 | `integrity.js` | `bae107a51a0d7ead6fd16254529c59a5884ba940561a8bfdcf50a667437632d5` | 666 | **unchanged** |
 | `capital.js` | `c9ff52248de50a7cdf11ca5f21c6017c0bab0f68b15a061969912db23982eb96` | 181 | **unchanged** |
@@ -19,10 +19,19 @@ that file and `baseline-v1.3-full.json.gz` remain the witness every v2 commit re
 | `cash.js` | `2e3ac7a8c497a819064b85a63dc7c9e84ef251ae917023daa3c0421df1279f03` | 111 | new — Gate C |
 | `interventions.js` | `095331919a07023346e7883779907e98df03e33f8d23b75de86d01f5b069821b` | 189 | new — Gate D |
 | `build.js` | `7926d13f33daa6743f56a6ebcfb0b80a75af103b63a6dfe759d352e12af88fd1` | 42 | changed — inlines the four layer modules before the engine |
-| `v1.template.html` | `6835cfa0d8bb26771203526d2bc26c6f12890340aad66a31d19d434dff6fc5f7` | 3340 | changed — layer-grouped Change rail, packs, Observe/Inspect/Compare per layer, hierarchical System map, Scenarios 10–14 |
-| `saas-physics-v1.html` (built) | `5a8a7fd1d3b3915c8ffbf3fdba81f0701cd5ff2235153253cf97b9dc62291497` | — | rebuilt from the above |
+| `v1.template.html` | `7b372345fbf3db856e0a7702c578b91f398d2c3e9004ead43d4595bc3740784a` | 4902 | changed — five-lens instrument, cohort life, acquisition response curve, the opening-pipeline control |
+| `saas-physics-v1.html` (built) | `76b1c6615c432b931aaf96b95213a059e9d03ecaddcedcab032c873003e4d2fe` | — | rebuilt from the above |
 | `baseline-v1.3-full.json.gz` (witness) | `b8c4716c49f57e0503112d2901653850834a148e3284ae3539ff5cbbabf4777b` | — | the complete v1.3 state, from the engine at `44f7652` |
 | `baseline-v1.0-full.json.gz` (witness) | `970cc4d7c6dcbd01be79a487e5c8002cb811ee427a499870e629647704b35f08` | — | unchanged |
+
+## Re-freeze — v1.4 warm start
+
+`engine.js` was re-frozen once after this baseline, for one initial condition:
+`openingPipelineMonths`, the months of spend in flight at month 0 (docs/RN-WARM-START.md). The
+freeze is not weakened by it. The release gate still replays the complete v1.3 witness field for
+field at the null setting, and the new condition is proven not to reach any cost line: cumulative
+S&M, R&D and G&A are identical to the cold run and deployed capital still equals the cumulative
+S&M the window can see. The checksums above are the re-frozen ones.
 
 ## The null rule, proven
 

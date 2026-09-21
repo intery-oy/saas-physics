@@ -39,6 +39,10 @@
  *   v1.1 → v1.2  BOUNDED ACQUISITION. One constraint, maxMonthlyNewARR: a
  *     saturating acquisition response with cacPerARR kept as the low-spend
  *     primitive. Null: disabled (null / non-finite) — the linear law.
+ *   v1.3 → v1.4  WARM START. One initial condition, openingPipelineMonths: the
+ *     months of spend already in flight at month 0. No law changes; only the
+ *     state the window opens with. null/0 reproduces v1.3 exactly.
+ *
  *   v1.2 → v1.3  ACQUISITION TIMING. One timing parameter, acquisitionLagMonths:
  *     S&M spent at t creates a pending acquisition that becomes a cohort at
  *     t + L. Explicit engine state, not a chart shift. Null: 0.
@@ -103,7 +107,8 @@
       cacPerARR:                  'Acquisition spend per €1 of New ARR at low spend — dimensionless acquisition productivity (v1.2: the low-spend limit of the saturating response)',
       expansionCostPerARR:        'v1.1 — € of realisation cost per €1 of expansion ARR. Reaches economics only; never the ARR transition. 0 = free expansion (the v1.0 world).',
       maxMonthlyNewARR:           'v1.2 — acquisition capacity: the New ARR per month the response approaches as S&M → ∞. null = no bound (the v1.0 linear law). A BOUND on an optimistic mechanism, never a benefit.',
-      acquisitionLagMonths:       'v1.3 — months between S&M spend and the cohort it creates. Changes WHEN ARR appears, never how much per euro. 0 = same-month (the v1.0 world).'
+      acquisitionLagMonths:       'v1.3 — months between S&M spend and the cohort it creates. Changes WHEN ARR appears, never how much per euro. 0 = same-month (the v1.0 world).',
+      openingPipelineMonths:      'v1.4 — months of spend already in flight at month 0: the pipeline a going concern carries into the window. An INITIAL CONDITION, never a law: it adds no productivity per euro, it only says the company was already selling before month 1. null/0 = an empty pipeline (the v1.3 cold start).'
     },
     CONTROL: {
       sm: 'Monthly S&M investment (management control)',
@@ -135,6 +140,7 @@
     expansionCostPerARR:        0,       // v1.1  € of cost per €1 of expansion ARR; 0 = free (v1.0)
     maxMonthlyNewARR:           null,    // v1.2  € of New ARR per month the response saturates toward; null = unbounded (v1.0)
     acquisitionLagMonths:       0,       // v1.3  months from S&M spend to cohort creation; 0 = same month (v1.0)
+    openingPipelineMonths:      null,    // v1.4  months of spend in flight at month 0; null = empty pipeline (v1.3)
     /* v2 Gate A — CUSTOMER PHYSICS, at its NULL setting (the v1.3 world). With
        logoRetentionAnnual set, persistenceAnnual is NOT READ: dollar persistence
        is generated as L(1 − C) by customers.js. */
@@ -347,6 +353,16 @@
     if (L === undefined) a.acquisitionLagMonths = DEFAULT_ASSUMPTIONS.acquisitionLagMonths;
     else if (typeof L !== 'number' || !isFinite(L) || L < 0 || Math.floor(L) !== L)
       throw new RangeError('acquisitionLagMonths must be an integer >= 0 (got ' + String(L) + ')');
+    /* v1.4 — the opening pipeline is bounded by the lag itself: spend older than
+       the lag would already have matured, before the window the model can see. */
+    var PW = a.openingPipelineMonths;
+    if (PW === undefined) a.openingPipelineMonths = DEFAULT_ASSUMPTIONS.openingPipelineMonths;
+    else if (PW !== null) {
+      if (typeof PW !== 'number' || !isFinite(PW) || PW < 0 || Math.floor(PW) !== PW)
+        throw new RangeError('openingPipelineMonths must be null (an empty pipeline) or an integer >= 0 (got ' + String(PW) + ')');
+      if (PW > a.acquisitionLagMonths)
+        throw new RangeError('openingPipelineMonths (' + PW + ') cannot exceed acquisitionLagMonths (' + a.acquisitionLagMonths + '): spend older than the lag would have matured before month 1');
+    }
     var cap = a.maxMonthlyNewARR;
     if (cap === undefined || cap === null || cap === Infinity || cap === -Infinity) a.maxMonthlyNewARR = null;
     else if (typeof cap !== 'number' || isNaN(cap) || cap < 0)
@@ -401,8 +417,13 @@
   function realiseCohort(t, matured, bandName, grossMargin) {
     var realisedARR = 0, realisedSpend = 0, first = matured[0];
     var realisedCustomers = 0, anyCustomers = false;
+    /* v1.4 — a batch that matured from the OPENING PIPELINE was paid for before
+       month 1. Its euros are not in this window's S&M, so it carries no
+       acquisition cost here, exactly as the opening base carries none. */
+    var preWindow = true;
     for (var i = 0; i < matured.length; i++) {
       var e = matured[i];
+      if (e.preWindow !== true) preWindow = false;
       e.realised = true; e.cohortId = 'M' + t;
       realisedARR += e.newARR; realisedSpend += e.sm;
       if (e.spendMonth < first.spendMonth) first = e;
@@ -423,8 +444,10 @@
          cost per €1 of ARR (= acquisitionCost / initialARR), which equals the
          coefficient only while the bound was off at spend; the coefficient
          and the capacity at spend are stamped separately. */
-      acquisitionCost: realisedSpend,
-      cacPerARRAtCreation: realisedARR > 0 ? realisedSpend / realisedARR : null,
+      acquisitionCost: preWindow ? null : realisedSpend,
+      cacPerARRAtCreation: preWindow ? null : (realisedARR > 0 ? realisedSpend / realisedARR : null),
+      /* v1.4 — bought before the window: the cost is outside it, the ARR is inside */
+      preWindow: preWindow,
       cacCoefficientAtCreation: first.cacPerARRAtSpend,
       capacityAtSpend: first.maxMonthlyNewARRAtSpend,
       spendMonth: first.spendMonth,
@@ -621,6 +644,40 @@
       };
     });
     var openingDeferred = CASH ? cohorts.reduce(function (q, c) { return q + c.billingUnits.reduce(function (w, u) { return w + u.deferred; }, 0); }, 0) : null;
+
+    /* ------------------------------------------------------------------ *
+     * v1.4 WARM START — the pipeline a going concern is already carrying.
+     *
+     * With a lag, every month of spend lands LAG months later. A company that
+     * already has an installed base was also already selling, so at month 0 it
+     * holds LAG months of spend in flight. Starting that stock at zero is not a
+     * law of the world, it is an initial condition, and an inconsistent one:
+     * the cash layer already derives the contract book a going concern carries
+     * (staggered renewals, opening deferred balance) rather than zeroing it.
+     *
+     * openingPipelineMonths says how many months of that prior spend exist.
+     * Each seeded entry is an ORDINARY pending entry, built by the same
+     * function and stamped with the laws as declared (no hypothesis predates
+     * the window), maturing in months LAG−n+1 … LAG so the stream is
+     * continuous from month 1 when n = LAG.
+     *
+     * Its euros stay OUTSIDE the window: sm = 0, so this window's S&M, EBITA,
+     * cash and deployed capital are untouched and every capital identity still
+     * closes on spend the window can see. The real amount is kept as priorSM,
+     * reported, never summed into anything. The cohort it becomes therefore
+     * carries no acquisition cost, the same disclosed state the opening base
+     * has always had.
+     * ------------------------------------------------------------------ */
+    var PIPE = (a.openingPipelineMonths === null || a.openingPipelineMonths === undefined) ? 0 : a.openingPipelineMonths;
+    var openingPipelineARR = 0;
+    for (var pwM = LAG - PIPE + 1; pwM <= LAG; pwM++) {
+      var pwE = pendingEntry(a, pwM - LAG, LAG, newARR, newLogoARPA, moInitial, []);
+      pwE.sm = 0;              /* spent before month 1: not this window's S&M */
+      pwE.priorSM = a.sm;      /* what it cost, outside the window — reported only */
+      pwE.preWindow = true;
+      openingPipelineARR += pwE.newARR;
+      ledger.push(pwE); pending.push(pwE);
+    }
 
     var months = [];
     var cash = s.openingCash;
@@ -958,6 +1015,7 @@
         expansionCost: a.expansionCostPerARR > 0,
         acquisitionSaturation: saturationEnabled(a),
         acquisitionLag: a.acquisitionLagMonths > 0,
+        warmStart: PIPE > 0,                        /* v1.4: the pipeline starts loaded */
         customerPhysics: CUON,                      /* v2 Gate A */
         monetization: MON,                          /* v2 Gate B */
         genericExpansionBypassed: MON,              /* v2 Gate B: expansionCoefficientAnnual not read */
@@ -1020,6 +1078,10 @@
         acquisition: acq,
         /* v1.3 — timing */
         acquisitionLagMonths: LAG,
+        /* v1.4 — the initial condition of the pipeline */
+        openingPipelineMonths: PIPE,
+        openingPipelineARR: openingPipelineARR,     /* New ARR in flight at month 0 */
+        openingPipelinePriorSM: PIPE * a.sm,        /* what it cost, before the window */
         /* v1.1 — what expansion realisation costs in this world */
         expansionCostPerARR: a.expansionCostPerARR
       },

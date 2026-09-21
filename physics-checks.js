@@ -387,6 +387,86 @@ function walkCompare(ref, cur, path, acc) {
 })();
 
 /* ------------------------------------------------------------------ *
+ * WARM-START — the pipeline a going concern carries into the window.
+ *
+ * openingPipelineMonths is an INITIAL CONDITION, not a law. It must:
+ *   null/0   reproduce the cold-start world exactly, field for field
+ *   n = LAG  make the acquisition stream continuous from month 1
+ *   never    put a euro of pre-window spend inside this window's S&M, EBITA,
+ *            cash or deployed capital, and never attribute an acquisition cost
+ *            to a cohort whose spend the window cannot see
+ * ------------------------------------------------------------------ */
+(function warmStart() {
+  var CAP = require('./capital.js');
+  var LAG = 4, AL = Object.assign({}, A, { acquisitionLagMonths: LAG });
+  var cold = E.run(AL), warm = E.run(Object.assign({}, AL, { openingPipelineMonths: LAG }));
+  var nulled = E.run(Object.assign({}, AL, { openingPipelineMonths: null }));
+  var zeroed = E.run(Object.assign({}, AL, { openingPipelineMonths: 0 }));
+  var N = E.acquisitionResponse(AL).newARR;
+
+  ok('WARM-START', 'null and 0 reproduce the cold-start world exactly — every month record identical, field for field',
+     JSON.stringify(nulled.months) === JSON.stringify(cold.months) && JSON.stringify(zeroed.months) === JSON.stringify(cold.months),
+     'months compared: ' + cold.months.length + ' x2');
+
+  var continuous = warm.months.every(function (m) { return Math.abs(m.newARR - N) < EPS; });
+  var coldEmpty = cold.months.slice(0, LAG).every(function (m) { return m.newARR === 0; });
+  ok('WARM-START', 'with the pipeline full the acquisition stream is continuous from month 1 — the cold world books nothing for the first LAG months, the warm world books the steady response in every month',
+     continuous && coldEmpty, 'warm N(1..H) = €' + (N / 1e6).toFixed(4) + 'm every month; cold M1–M' + LAG + ' = €0');
+
+  var pipeFull = warm.months.every(function (m, i) { return i >= warm.horizon - LAG || Math.abs(m.pendingNewARR - LAG * N) < EPS; });
+  ok('WARM-START', 'the pipeline stock opens at its steady-state level (LAG x N) instead of filling up from empty',
+     pipeFull && Math.abs(warm.months[0].pendingNewARR - LAG * N) < EPS && Math.abs(cold.months[0].pendingNewARR - N) < EPS,
+     'warm M1 pending €' + (warm.months[0].pendingNewARR / 1e6).toFixed(3) + 'm vs cold €' + (cold.months[0].pendingNewARR / 1e6).toFixed(3) + 'm');
+
+  var last = warm.months[warm.horizon - 1], lastC = cold.months[cold.horizon - 1];
+  var spendSame = ['sm', 'rd', 'ga'].every(function (k) { return Math.abs(last.cumulative[k] - lastC.cumulative[k]) < EPS; });
+  /* EBITA is NOT identical, and must not be: the window holds more ARR at the same spend, so it
+     earns more gross profit. What must be identical is every cost line the window's inputs set. */
+  ok('WARM-START', 'no pre-window euro enters this window\'s costs: cumulative S&M, R&D and G&A are identical to the cold run, and EBITA differs only upward, because the same spend now carries more ARR',
+     spendSame && last.cumulative.ebita > lastC.cumulative.ebita, 'cumulative S&M €' + (last.cumulative.sm / 1e6).toFixed(2) + 'm in both; EBITA €' +
+     (lastC.cumulative.ebita / 1e6).toFixed(2) + 'm → €' + (last.cumulative.ebita / 1e6).toFixed(2) + 'm');
+
+  var pre = warm.cohorts.filter(function (c) { return c.preWindow === true; });
+  var costs = pre.every(function (c) { return c.acquisitionCost === null && c.cacPerARRAtCreation === null && c.spendMonth <= 0; });
+  var stamped = pre.every(function (c) { return c.cacCoefficientAtCreation === AL.cacPerARR && c.interventionsAtSpend.length === 0; });
+  ok('WARM-START', 'cohorts bought before the window carry no acquisition cost and no realised CAC — the same disclosed state the opening base has — while still carrying the law they were bought under',
+     pre.length === LAG && costs && stamped, pre.length + ' pre-window cohorts, spend months ' + pre.map(function (c) { return c.spendMonth; }).join(','));
+
+  var deployed = 0, worstCap = 0;
+  for (var t = 1; t <= warm.horizon; t++) {
+    deployed = warm.months[t - 1].cumulative.sm;
+    var pc = CAP.portfolioCapital(warm, t);
+    worstCap = Math.max(worstCap, Math.abs(pc.deployed - deployed));
+  }
+  ok('WARM-START', 'the capital identity still closes at every month: capital deployed equals cumulative S&M the window can see, with the pre-window cohorts outside the attribution',
+     worstCap < 1e-6, 'worst |deployed − cumulative S&M| = €' + worstCap.toExponential(2));
+
+  var addedCohorts = warm.cohorts.length - cold.cohorts.length;
+  var addedARR = last.cumulative.newARR - lastC.cumulative.newARR;
+  ok('WARM-START', 'what the warm start adds is exactly one pipeline: LAG more cohorts and LAG x N more cumulative New ARR, no more',
+     addedCohorts === LAG && Math.abs(addedARR - LAG * N) < EPS,
+     '+' + addedCohorts + ' cohorts, +€' + (addedARR / 1e6).toFixed(4) + 'm New ARR (LAG x N = €' + (LAG * N / 1e6).toFixed(4) + 'm)');
+
+  var partial = E.run(Object.assign({}, AL, { openingPipelineMonths: 2 }));
+  var gap = partial.months.slice(0, LAG).filter(function (m) { return m.newARR === 0; }).length;
+  ok('WARM-START', 'a partly loaded pipeline leaves exactly LAG − n empty months at the start (a company that paused selling before the window)',
+     gap === LAG - 2 && Math.abs(partial.months[2].newARR - N) < EPS, 'n=2, LAG=4 → ' + gap + ' empty months, then the steady response');
+
+  /* the growth hump the cold start manufactures: its width is the lag, and it is gone when the pipeline is warm */
+  function rises(res) { var y = res.months.map(function (m) { return m.arrGrowthYoY; }).filter(function (v) { return v !== null; }), n = 0;
+    for (var i = 1; i < y.length; i++) if (y[i] > y[i - 1] + 1e-12) n++; return n; }
+  ok('WARM-START', 'the cold start manufactures a growth hump exactly LAG months wide; with the pipeline warm, YoY growth decays monotonically from the first month it is defined',
+     rises(cold) === LAG && rises(warm) === 0 && rises(E.run(Object.assign({}, A, { acquisitionLagMonths: 6, openingPipelineMonths: 6 }))) === 0,
+     'cold rises ' + rises(cold) + ' months, warm rises ' + rises(warm));
+
+  var bad = [[-1, 'negative'], [2.5, 'fractional'], [NaN, 'NaN'], ['4', 'non-numeric'], [Infinity, 'infinite'], [LAG + 1, 'older than the lag']];
+  var rejected = bad.every(function (p) { try { E.run(Object.assign({}, AL, { openingPipelineMonths: p[0] })); return false; } catch (e) { return e instanceof RangeError; } });
+  var noLag = (function () { try { E.run(Object.assign({}, A, { acquisitionLagMonths: 0, openingPipelineMonths: 1 })); return false; } catch (e) { return e instanceof RangeError; } })();
+  ok('WARM-START', 'the engine boundary REJECTS a negative, fractional, NaN, non-numeric or infinite pipeline, one older than the lag, and any pipeline at all without a lag — never clamps',
+     rejected && noLag, 'six invalid values and the no-lag case all raise RangeError');
+})();
+
+/* ------------------------------------------------------------------ *
  * GROWTH-DECOMPOSITION — the Customers lens decomposes cumulative growth
  * into three components that must close on the engine's own stock:
  *

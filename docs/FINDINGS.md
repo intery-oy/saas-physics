@@ -419,6 +419,7 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 | Canonical name | Definition | Source |
 |---|---|---|
 | **CAC floor** | `cacPerARR`, the low-spend limit of average CAC — the cheapest acquisition the law allows | assumption |
+| **Opening pipeline** | `openingPipelineMonths`, the months of spend in flight at month 0 — an initial condition, never a law. null/0 = an empty pipeline | assumption |
 | **Average CAC** | S&M ÷ New ARR at the current spend (= coefficient + S&M ÷ capacity) | `derived.acquisition` |
 | **Marginal CAC** | 1 ÷ dN/dS&M, closed form | `derived.acquisition` |
 | **Cohort CAC (realised)** | a cohort's acquisition cost ÷ its initial ARR, stamped from its pending entry | `cohort.cacPerARRAtCreation` |

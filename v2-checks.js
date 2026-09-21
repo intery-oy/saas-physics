@@ -79,8 +79,13 @@ function maxDiff(r1, r2, f) { var w = 0; for (var q = 0; q < r1.months.length; q
                 r.months.every(function (m) { return m.customers === null; }) &&
                 r.cohorts.every(function (c) { return c.customers === null && c.initialCustomers === null && c.finalCustomers === null && c.rows.every(function (rw) { return rw.customers === null; }); }) &&
                 r.acquisitionLedger.every(function (e) { return e.newLogoARPAAtSpend === null; }) &&
-                E.summarise(r).finalCustomers === null && K.customerMeasures(r, 36) === null;
-    ok('ALL-NULL-V13', k + ': the v2-only state is null (no customer record on any month, cohort, row or ledger entry; persistence read from input; no customer measure)', nulls, '');
+                E.summarise(r).finalCustomers === null && K.customerMeasures(r, 36) === null &&
+                /* v1.4: the pipeline opens empty at null — no pre-window entry, no pre-window cohort */
+                r.mechanisms.warmStart === false && r.derived.openingPipelineMonths === 0 && r.derived.openingPipelineARR === 0 &&
+                r.derived.openingPipelinePriorSM === 0 && r.assumptions.openingPipelineMonths === null &&
+                r.cohorts.every(function (c) { return c.preWindow !== true; }) &&
+                r.acquisitionLedger.every(function (e) { return e.preWindow !== true && e.spendMonth >= 1; });
+    ok('ALL-NULL-V13', k + ': the v2-only state is null (no customer record on any month, cohort, row or ledger entry; persistence read from input; no customer measure; the acquisition pipeline opens empty)', nulls, '');
   });
   ok('ALL-NULL-V13', 'total fields compared against the complete v1.3 snapshot (' + FULL._meta.engineCommit + ')', total > 500000 && allOK, total + ' fields across ' + Object.keys(worlds).length + ' worlds');
   ok('ALL-NULL-V13', 'the default assumption object IS the all-null world', E.run().mechanisms.customerPhysics === false && A.logoRetentionAnnual === null && A.contractionAnnual === 0 && A.newLogoARPA === null, JSON.stringify(E.run().mechanisms));
