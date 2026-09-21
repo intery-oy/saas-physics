@@ -1,4 +1,8 @@
 <meta charset="utf-8">
+<!-- without this a phone lays the page out at 980px and scales it down: every phone breakpoint
+     below never ran on a phone, and the opening page's Enter button rendered ~15px tall -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <title>SaaS Physics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -419,6 +423,18 @@ details.pl .cascade{margin-top:8px}
   .lens{padding:14px 16px 15px}
   .cascade{padding:9px 16px 10px}
   .crow{grid-template-columns:96px minmax(0,1fr) 80px}
+}
+/* touch: the same layout, with targets a finger can actually hit. Guarded by the pointer
+   type, so nothing about the desktop instrument changes. */
+@media (pointer:coarse){
+  .btn{min-height:36px;padding:9px 12px}
+  .nulltog{min-height:32px;padding:6px 11px}
+  .btn-row{gap:8px}
+  .lensnav{gap:8px}
+  .figwrap>summary,.bnd>summary,details.more>summary{min-height:36px;display:flex;align-items:center}
+  input[type=range]{height:34px}
+  input[type=range]::-webkit-slider-thumb{width:20px;height:20px;margin-top:-9px}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px}
 }
 /* ---------- Change as model construction ---------- */
 .rail-legend{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:7px;font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
