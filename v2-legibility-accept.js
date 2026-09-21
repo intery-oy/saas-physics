@@ -189,7 +189,10 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await clickModel(pg, 30 + 2 * 150 + 64, 330 + 56); const vOff = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   rec('DRILL-DOWN: in the ARR-only world an off node (CUSTOMERS, dotted) opens nothing — absent mechanisms are shown, never navigable', vOff0 === 'ontology' && vOff === 'ontology', JSON.stringify([vOff0, vOff]));
   const views = await pg.evaluate(() => [...document.querySelectorAll('#sysviews .btn')].map(b => b.textContent));
-  rec('DRILL-DOWN: the System view list starts with Ontology, then the layers', views[0] === 'Ontology' && views.length === 6, views.join('|'));
+  /* the list is Ontology, the layers, and — last, because it is a table rather than a drawing —
+     the Model Ledger */
+  rec('DRILL-DOWN: the System view list starts with Ontology, then the layers, and ends with the Model Ledger',
+      views[0] === 'Ontology' && views[views.length - 1] === 'Model Ledger' && views.length === 7, views.join('|'));
   await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
 
   /* ---- PROVENANCE (Inspect) ---- */

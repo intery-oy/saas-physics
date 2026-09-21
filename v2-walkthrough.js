@@ -71,10 +71,17 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   /* 6. the System map, layer by layer */
   await click('#nav-company'); await click('#pack-full'); await scrub(20); await click('#nav-system');
   const views = [];
-  for (const v of ['ontology', 'company', 'customers', 'monetization', 'cash', 'hypotheses']) { await click('#sysview-' + v); const ok = await pg.evaluate(() => window.__SP_DEBUG.sysView); views.push(v + (ok === v ? ' ✓' : ' ✗')); }
+  for (const v of ['ontology', 'company', 'customers', 'monetization', 'cash', 'hypotheses', 'ledger']) { await click('#sysview-' + v); const ok = await pg.evaluate(() => window.__SP_DEBUG.sysView); views.push(v + (ok === v ? ' ✓' : ' ✗')); }
+  /* the Model Ledger is a table, not a drawing: record its shape, then step back to a drawn
+     layer so the notes below are the layer notes again */
+  const ldg = await pg.evaluate(() => { const tb = document.querySelector('table.ldg'); if (!tb) return 'absent';
+    return tb.tBodies[0].rows.length + ' months × ' + tb.tHead.rows[1].cells.length + ' columns in Core, grouped as ' +
+      [...tb.tHead.rows[0].cells].map(c => c.textContent).join(' → ') + ' · ' + document.getElementById('ldg-status').textContent; });
+  await click('#sysview-hypotheses');
   t = await side();
   step('Can I see each layer as its own system?',
-       ['System layer, world + Hypothesis, month 20. Sub-views drawn without error: ' + views.join(', ') + '.'].concat([grab(t, 'Customer physics ·', 120), grab(t, 'Monetization physics ·', 120), grab(t, 'Cash physics ·', 120), grab(t, 'Hypotheses ·', 120)]));
+       ['System layer, world + Hypothesis, month 20. Sub-views drawn without error: ' + views.join(', ') + '.',
+        'Model Ledger: ' + ldg + '.'].concat([grab(t, 'Customer physics ·', 120), grab(t, 'Monetization physics ·', 120), grab(t, 'Cash physics ·', 120), grab(t, 'Hypotheses ·', 120)]));
 
   /* 7. back to the base world */
   await click('#nav-company'); await click('#pack-arr'); await scrub(36); t = await side();

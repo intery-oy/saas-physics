@@ -163,6 +163,41 @@ button,input{font:inherit;color:inherit}
 .transport .btn-row{flex-wrap:nowrap}
 .transport .eyebrow{white-space:nowrap}
 
+/* ---------- Model Ledger — the auditor's table ----------
+   Dense, monospaced, horizontally scrolled. One row per model month, columns
+   grouped in causal order. Deliberately not a dashboard: no colour coding of
+   magnitude, no sparklines, nothing decorative. The month column and both
+   header rows stay put so a column read 90 columns to the right still has a
+   name and a month. */
+.ledger{position:absolute;inset:0;z-index:2;display:none;flex-direction:column;background:var(--scene)}
+.ledgerbar{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex:none;flex-wrap:wrap;row-gap:6px}
+.ledgerbar .btn{font-size:10.5px;padding:4px 10px}
+.ledgerbar .lawnote{font-size:10.5px;color:var(--ink-3);line-height:1.5}
+.ldgstat{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border:1px solid var(--line);border-radius:2px;color:var(--ink-3)}
+.ldgstat.ok{border-color:var(--in);color:var(--in)}
+.ldgstat.bad{border-color:var(--warn);color:var(--warn)}
+.ledgerscroll{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+table.ldg{border-collapse:separate;border-spacing:0;font-family:var(--mono);font-size:10.5px;white-space:nowrap;background:var(--scene)}
+.ldg th,.ldg td{padding:2px 9px;text-align:right;border-bottom:1px solid var(--line-soft);font-weight:400}
+.ldg thead th{position:sticky;background:var(--panel);z-index:2;border-bottom:1px solid var(--line)}
+.ldg thead tr.gh th{top:0;font-family:var(--ui);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding-top:7px;padding-bottom:5px}
+.ldg thead tr.ch th{top:24px;font-size:9.5px;color:var(--ink-3);letter-spacing:.02em;padding-bottom:5px}
+.ldg td{color:var(--ink-2)}
+.ldg .g0{border-left:1px solid var(--line)}          /* a group's first column */
+.ldg .mo{position:sticky;left:0;text-align:left;background:var(--scene);color:var(--ink);z-index:1;border-right:1px solid var(--line)}
+.ldg thead .mo{background:var(--panel);z-index:4}
+.ldg tbody tr:hover td{background:var(--raised)}
+.ldg tbody tr:hover .mo{background:var(--raised)}
+.ldg tbody tr.on td{background:rgba(91,104,196,.16)}
+.ldg tbody tr.on .mo{background:rgba(91,104,196,.28);color:var(--ink)}
+.ldg tbody tr{cursor:pointer}
+.ldg .k{color:var(--ink)}                             /* a stock: the figure the month closes on */
+.ldg .dim{color:var(--ink-4)}
+.ldg .chk{color:var(--in)}
+.ldg .chk.bad{color:var(--warn);font-weight:500}
+.ldg .txt{text-align:left;color:var(--ink-3)}
+.app.flow .ledger{display:flex}   /* the table is a System surface; it cannot leak onto the other layers */
+
 /* ---------- forces ---------- */
 .grp{padding:14px 18px;border-bottom:1px solid var(--line-soft)}
 .exp-summary{display:flex;flex-direction:column;gap:4px}
@@ -673,6 +708,17 @@ details.pl .cascade{margin-top:8px}
       <div class="figbox">
         <canvas id="scene"></canvas>
         <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
+        <!-- System · Model Ledger: one row per model month, projected from canonical engine state -->
+        <div class="ledger" id="ledger" hidden>
+          <div class="ledgerbar">
+            <span class="eyebrow">Model Ledger</span>
+            <div class="btn-row"><button class="btn on" id="ldg-core">Core</button><button class="btn" id="ldg-full">Full</button></div>
+            <span class="lawnote" id="ldg-note"></span>
+            <span class="spacer"></span>
+            <span class="ldgstat" id="ldg-status">—</span>
+          </div>
+          <div class="ledgerscroll" id="ledgerscroll"></div>
+        </div>
       </div>
       <!-- Inspect · the selected cohort's own figure replaces the company formation -->
       <div class="cohortlife" id="cohort-life" hidden></div>
@@ -4955,6 +5001,10 @@ details.pl .cascade{margin-top:8px}
     return JSON.stringify(baseRes.bands) === JSON.stringify(expRes.bands);
   }
   function drawSystem(){
+    /* the Model Ledger is a table, not a drawing: it covers the canvas and the
+       canvas is not asked to draw anything underneath it */
+    if(sysView==='ledger'){ syncLedger(); return; }
+    syncLedger();
     valveHits = [];
     var isD = compare==='delta';
     var m = selectedMonth();
@@ -5812,7 +5862,10 @@ details.pl .cascade{margin-top:8px}
     { id:'customers', name:'Customers', on:function(){ return !!expRes && expRes.mechanisms.customerPhysics; } },
     { id:'monetization', name:'Monetization', on:function(){ return !!expRes && expRes.mechanisms.monetization; } },
     { id:'cash', name:'Cash', on:function(){ return !!expRes && expRes.mechanisms.cashPhysics; } },
-    { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && expRes.mechanisms.interventions; } }
+    { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && expRes.mechanisms.interventions; } },
+    /* not a drawing: the ledger is the same months as a table, for reading a
+       figure back to the state it came from */
+    { id:'ledger', name:'Model Ledger', on:function(){ return true; } }
   ];
   function buildSysViews(){
     var host=document.getElementById('sysviews'); host.innerHTML='';
@@ -6630,6 +6683,328 @@ details.pl .cascade{margin-top:8px}
   }
 
   /* the P&L waterfall lives inside Economics & cash; between renders it is parked so innerHTML never destroys it */
+  /* ================================================================== *
+   * §11 — MODEL LEDGER. An auditor's truth surface, not a visualization.
+   *
+   * One row per model month; columns grouped in causal order, and inside
+   * each economic block the same four kinds in the same order: OPENING
+   * STOCK · FLOWS DURING THE MONTH · ENDING STOCK · DERIVED RATIOS,
+   * closed by a CHECK.
+   *
+   * ARCHITECTURE RULE, and the reason this surface is worth anything:
+   * THE LEDGER NEVER RECALCULATES THE ECONOMICS. Every cell is a field
+   * the engine published — res.months[t-1], res.derived, res.cohorts,
+   * res.acquisitionLedger — or a measurement from the KPI layer. The only
+   * arithmetic performed here is the bridge residuals, whose entire
+   * purpose is to test that the engine's own numbers close; if the ledger
+   * computed the quantities it reconciles, the checks would be circular
+   * and would prove nothing. A cell the engine does not publish is '—'.
+   * ================================================================== */
+  var ledgerView = 'core', ledgerStamp = '', ledgerRes = null, ledgerBad = 0, ledgerBuilds = 0;
+
+  /* --- formatting: full euros, because an auditor adds the column up --- */
+  function lE(v){ return (v===null||v===undefined||!isFinite(v)) ? '—' : '€'+Math.round(v).toLocaleString('en-GB'); }
+  function lR(v){ return (v===null||v===undefined||!isFinite(v)) ? '—' : lE(rc(v)); }   /* recurring-revenue quantity, in the display basis */
+  function lN(v,d){ if(v===null||v===undefined||!isFinite(v)) return '—'; d=d===undefined?1:d; return v.toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function lP(v,d){ return (v===null||v===undefined||!isFinite(v)) ? '—' : (v*100).toFixed(d===undefined?2:d)+'%'; }
+  function lX(v,d){ return (v===null||v===undefined||!isFinite(v)) ? '—' : v.toFixed(d===undefined?3:d)+'×'; }
+  function lMo(t){ return t===null||t===undefined ? '—' : (t<=0 ? 'M'+t+' · pre-window' : 'M'+t); }
+
+  /* A CHECK is a reconciliation of published figures. It prints the residual,
+     which is 0 when the identity closes. The tolerance is relative to the
+     magnitudes being reconciled: a residual of a few cents against a hundred
+     million euros is double-precision noise, not a broken model. */
+  function lChk(residual, scale){
+    if(residual===null||residual===undefined||!isFinite(residual)) return '<td class="chk dim">—</td>';
+    var tol = Math.max(1e-6, 1e-9*Math.abs(scale||0));
+    var ok = Math.abs(residual) <= tol;
+    if(!ok) ledgerBad++;
+    return '<td class="chk'+(ok?'':' bad')+'">'+(ok ? '0' : (residual>0?'+':'−')+Math.abs(residual).toFixed(2))+'</td>';
+  }
+  /* the law in force this month: the assumption, or what an active hypothesis
+     moved it to — read from months[].interventions.changes, which is the
+     engine's own record of the resolution, exactly as the System valves read it */
+  function ledgerLawAt(m, key, a){
+    var iv = m.interventions;
+    if(iv){ var ch = iv.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; if(ch) return ch.to; }
+    return getK(a, key);
+  }
+  function ledgerCohortAt(res, t){
+    for(var i=0;i<res.cohorts.length;i++){ if(res.cohorts[i].acquisitionMonth===t) return res.cohorts[i]; }
+    return null;
+  }
+
+  /* --- the row context: canonical state, gathered, never derived --- */
+  function ledgerRowsOf(res, a){
+    var D = res.derived, rows = [];
+    for(var t=1;t<=res.horizon;t++){
+      var m = res.months[t-1], p = t>1 ? res.months[t-2] : null, coh = ledgerCohortAt(res, t);
+      rows.push({
+        t: t, m: m, prev: p, a: a, coh: coh,
+        /* the pending-acquisition stock this month OPENED with: last month's
+           closing stock, or — at month 1 — the opening pipeline the engine
+           seeded, which is exactly what a warm start means */
+        pendOpenARR:   t===1 ? (D.openingPipelineARR||0) : p.pendingNewARR,
+        pendOpenSpend: t===1 ? 0 : p.pendingSpend,
+        /* what the batch that matured this month cost. A pre-window cohort was
+           paid for before month 1 and carries no cost inside the window. */
+        realisedSpend: coh && coh.acquisitionCost!==null ? coh.acquisitionCost : 0,
+        kR12: t>=12 ? K.measureR12M(res, t) : null,
+        kCu:  (t>=12 && res.mechanisms.customerPhysics) ? K.customerMeasures(res, t) : null,
+        kAcq: K.acquisitionMeasures(res, t)
+      });
+    }
+    return rows;
+  }
+
+  /* --- the column specification. c:1 marks a Core column. --- */
+  function ledgerSpec(res, a){
+    var CU = res.mechanisms.customerPhysics, MO = res.mechanisms.monetization,
+        CA = res.mechanisms.cashPhysics, IV = res.mechanisms.interventions;
+    var BQ = basis;                      /* recurring quantities print in the display basis */
+    var G = [];
+
+    G.push({ n:'Time · laws in force', c:[
+      { n:'Month', c:1, mo:1, f:function(R){ return 'M'+R.t; } },
+      { n:'Year',  c:1, t:1,  f:function(R){ return 'Y'+R.m.year; } },
+      { n:'Quarter',      t:1, f:function(R){ return 'Q'+R.m.quarter; } },
+      { n:'CAC floor (per €1 ARR)', f:function(R){ return lX(ledgerLawAt(R.m,'cacPerARR',R.a)); } },
+      { n:'Acquisition capacity, '+BQ+'/mo', f:function(R){ var v=ledgerLawAt(R.m,'maxMonthlyNewARR',R.a); return v===null?'off':lR(v); } },
+      { n:'Lag (months)',      f:function(R){ return String(R.a.acquisitionLagMonths); } },
+      { n:'Gross margin',      f:function(R){ return lP(ledgerLawAt(R.m,'grossMargin',R.a),1); } }
+    ].concat(CU ? [
+      { n:'Logo retention /yr', f:function(R){ return lP(ledgerLawAt(R.m,'logoRetentionAnnual',R.a),2); } },
+      { n:'Contraction /yr',    f:function(R){ return lP(ledgerLawAt(R.m,'contractionAnnual',R.a),2); } }
+    ] : [
+      { n:'Persistence /yr',    f:function(R){ return lP(ledgerLawAt(R.m,'persistenceAnnual',R.a),2); } },
+      { n:'Expansion /yr',      f:function(R){ return lP(ledgerLawAt(R.m,'expansionCoefficientAnnual',R.a),2); } }
+    ]).concat(IV ? [
+      { n:'Hypotheses in force', c:1, t:1, f:function(R){ var A=R.m.interventions.active; return A.length ? A.join(' ') : '—'; } },
+      { n:'Laws moved', t:1, f:function(R){ var c=R.m.interventions.changes; return c.length ? esc(c.map(function(x){ return x.target; }).join(' ')) : '—'; } }
+    ] : []) });
+
+    /* ACQUISITION — the block the ARR shape of the first year lives in.
+       Produced and landed are separate columns on purpose: under a lag they
+       are different months' euros, and the pending stock between them is the
+       engine's own state, not an inference from a shifted curve. */
+    G.push({ n:'Acquisition · spend → pipeline → landing', c:[
+      { n:'S&M €', c:1, f:function(R){ return lE(R.m.sm); } },
+      { n:BQ+' produced', c:1, f:function(R){ return lR(R.m.acquisitionLawNewARR); } },
+      { n:'Pipeline opening', c:1, f:function(R){ return lR(R.pendOpenARR); } },
+      { n:BQ+' landed', c:1, k:1, f:function(R){ return lR(R.m.newARR); } },
+      { n:'from spend month', c:1, t:1, f:function(R){ return lMo(R.m.realisedFromSpendMonth); } },
+      { n:'Pipeline closing', c:1, k:1, f:function(R){ return lR(R.m.pendingNewARR); } },
+      { n:'Pipeline check', c:1, chk:function(R){ return [R.pendOpenARR + R.m.acquisitionLawNewARR - R.m.newARR - R.m.pendingNewARR, R.pendOpenARR + R.m.pendingNewARR + R.m.newARR]; } },
+      { n:'Pipeline entries', f:function(R){ return String(R.m.pendingCount); } },
+      { n:'Pipeline spend opening', f:function(R){ return lE(R.pendOpenSpend); } },
+      { n:'Spend realised €', f:function(R){ return R.coh && R.coh.acquisitionCost===null ? 'pre-window' : lE(R.realisedSpend); } },
+      { n:'Pipeline spend closing', f:function(R){ return lE(R.m.pendingSpend); } },
+      { n:'Spend check', chk:function(R){ return [R.pendOpenSpend + R.m.sm - R.realisedSpend - R.m.pendingSpend, R.pendOpenSpend + R.m.pendingSpend + R.m.sm]; } },
+      { n:'Cohort created', t:1, f:function(R){ return R.coh ? R.coh.id : '—'; } },
+      { n:'Cohort CAC (realised)', f:function(R){ return R.coh ? (R.coh.cacPerARRAtCreation===null ? 'pre-window' : lX(R.coh.cacPerARRAtCreation)) : '—'; } },
+      { n:'Capacity used', f:function(R){ return R.kAcq.utilisation===null ? 'off' : lP(R.kAcq.utilisation,1); } },
+      { n:'Measured CAC · trailing 12', f:function(R){ return lX(R.kAcq.measuredCACR12M); } },
+      { n:'Average CAC', f:function(R){ return lX(R.kAcq.averageCAC); } },
+      { n:'Marginal CAC', f:function(R){ return lX(R.kAcq.marginalCAC); } }
+    ] });
+
+    if(CU) G.push({ n:'Customers', c:[
+      { n:'Opening customers', c:1, f:function(R){ return lN(R.m.customers.opening); } },
+      { n:'+ New logos', c:1, f:function(R){ return lN(R.m.customers.newCustomers); } },
+      { n:'− Logo churn', c:1, f:function(R){ return lN(R.m.customers.logoChurn); } },
+      { n:'= Closing customers', c:1, k:1, f:function(R){ return lN(R.m.customers.closing); } },
+      { n:'Customer check', c:1, chk:function(R){ var c=R.m.customers; return [c.opening + c.newCustomers - c.logoChurn - c.closing, c.opening + c.closing]; } },
+      { n:'ARPA opening', c:1, f:function(R){ return lE(R.m.customers.arpaOpening); } },
+      { n:'ARPA closing', c:1, f:function(R){ return lE(R.m.customers.arpaClosing); } },
+      { n:'Cum. new logos', f:function(R){ return lN(R.m.customers.cumulative.newCustomers); } },
+      { n:'Cum. logo churn', f:function(R){ return lN(R.m.customers.cumulative.logoChurnCustomers); } },
+      { n:'Logo retention R12M', f:function(R){ return R.kCu ? lP(R.kCu.logoRetentionR12M,2) : '—'; } }
+    ] });
+
+    G.push({ n:BQ+' · the recurring-revenue bridge', c:[
+      { n:'Opening '+BQ, c:1, f:function(R){ return lR(R.m.openingARR); } },
+      { n:'+ New '+BQ, c:1, f:function(R){ return lR(R.m.newARR); } },
+      { n:'+ Expansion', c:1, f:function(R){ return lR(R.m.expansion); } }
+    ].concat(CU ? [
+      { n:'− Contraction', c:1, f:function(R){ return lR(R.m.customers.contractionARR); } },
+      { n:'− Churn', c:1, f:function(R){ return lR(R.m.customers.logoChurnARR); } },
+      { n:'Split check', chk:function(R){ return [R.m.customers.contractionARR + R.m.customers.logoChurnARR - R.m.leakage, R.m.leakage]; } }
+    ] : [
+      { n:'− Leakage', c:1, f:function(R){ return lR(R.m.leakage); } }
+    ]).concat([
+      { n:'= Closing '+BQ, c:1, k:1, f:function(R){ return lR(R.m.closingARR); } },
+      { n:BQ+' check', c:1, chk:function(R){ var b=E.bridge(res, R.t); return [b.residual, R.m.openingARR + R.m.closingARR]; } },
+      { n:'Retained', f:function(R){ return lR(R.m.retainedARR); } },
+      { n:'Leakage (total)', f:function(R){ return lR(R.m.leakage); } },
+      { n:'Retained check', chk:function(R){ return [R.m.openingARR - R.m.leakage - R.m.retainedARR, R.m.openingARR]; } },
+      { n:'MRR-native opening', f:function(R){ return lE(R.m.openingMRR); } },
+      { n:'MRR-native closing', f:function(R){ return lE(R.m.closingMRR); } },
+      { n:'MRR-native check', chk:function(R){ return [R.m.openingMRR + R.m.newMRR + R.m.expansionMRR - R.m.leakageMRR - R.m.closingMRR, R.m.openingMRR + R.m.closingMRR]; } },
+      { n:'Cum. new '+BQ, f:function(R){ return lR(R.m.cumulative.newARR); } },
+      { n:'Cum. expansion', f:function(R){ return lR(R.m.cumulative.expansion); } },
+      { n:'Cum. leakage', f:function(R){ return lR(R.m.cumulative.leakage); } }
+    ]) });
+
+    G.push({ n:'Retention', c:[
+      { n:'NRR monthly', c:1, f:function(R){ return lP(R.m.nrrMonthly,3); } },
+      { n:'NRR annualised', c:1, f:function(R){ return lP(R.m.nrrAnnualised,2); } },
+      { n:'GRR R12M', c:1, f:function(R){ return R.kR12 ? lP(R.kR12.grr,2) : '—'; } },
+      { n:'Expansion R12M', f:function(R){ return R.kR12 ? lP(R.kR12.expansionRate,2) : '—'; } },
+      { n:'NRR R12M', c:1, f:function(R){ return R.kR12 ? lP(R.kR12.nrr,2) : '—'; } },
+      { n:'Eligible cohorts', f:function(R){ return R.kR12 ? String(R.kR12.eligibleCohortCount) : '—'; } },
+      { n:'R12M bridge check', chk:function(R){ return R.kR12 ? [R.kR12.bridgeResidual, R.kR12.openingARR] : [null,0]; } }
+    ] });
+
+    if(MO) G.push({ n:'Monetization', c:[
+      { n:'Fixed', c:1, f:function(R){ return lR(R.m.monetization.fixedARR); } },
+      { n:'Variable', c:1, f:function(R){ return lR(R.m.monetization.variableARR); } },
+      { n:'Variable share', c:1, f:function(R){ return lP(R.m.monetization.variableShare,1); } },
+      { n:'Composition check', c:1, chk:function(R){ return [R.m.monetization.fixedARR + R.m.monetization.variableARR - R.m.closingARR, R.m.closingARR]; } },
+      { n:'+ Price', f:function(R){ return lR(R.m.monetization.priceARR); } },
+      { n:'+ Usage', f:function(R){ return lR(R.m.monetization.usageARR); } },
+      { n:'+ Adoption', f:function(R){ return lR(R.m.monetization.adoptionARR); } },
+      { n:'Expansion check', chk:function(R){ var o=R.m.monetization; return [o.priceARR + o.usageARR + o.adoptionARR - R.m.expansion, R.m.expansion]; } },
+      { n:'Cum. price', f:function(R){ return lR(R.m.monetization.cumulative.priceARR); } },
+      { n:'Cum. usage', f:function(R){ return lR(R.m.monetization.cumulative.usageARR); } },
+      { n:'Cum. adoption', f:function(R){ return lR(R.m.monetization.cumulative.adoptionARR); } }
+    ] });
+
+    G.push({ n:'Revenue & P&L', c:[
+      { n:'Revenue', c:1, f:function(R){ return lE(R.m.revenue); } },
+      { n:'− COGS', c:1, f:function(R){ return lE(R.m.cogs); } },
+      { n:'= Gross profit', c:1, f:function(R){ return lE(R.m.grossProfit); } },
+      { n:'GP check', chk:function(R){ return [R.m.revenue - R.m.cogs - R.m.grossProfit, R.m.revenue]; } },
+      { n:'− S&M', c:1, f:function(R){ return lE(R.m.sm); } },
+      { n:'− R&D', c:1, f:function(R){ return lE(R.m.rd); } },
+      { n:'− G&A', c:1, f:function(R){ return lE(R.m.ga); } },
+      { n:'− Expansion cost', f:function(R){ return lE(R.m.expansionCost); } },
+      { n:'− Hypothesis cost', f:function(R){ return lE(R.m.interventionCost); } },
+      { n:'= EBITA', c:1, k:1, f:function(R){ return lE(R.m.ebita); } },
+      { n:'EBITA check', c:1, chk:function(R){ var m=R.m; return [m.revenue - m.cogs - m.sm - m.rd - m.ga - m.expansionCost - m.interventionCost - m.ebita, m.revenue]; } },
+      { n:'EBITA margin', c:1, f:function(R){ return lP(R.m.ebitaMargin,1); } },
+      { n:'Avg '+BQ+' in month', f:function(R){ return lR(R.m.avgARR); } },
+      { n:'Revenue check', chk:function(R){ return [R.m.avgARR/12 - R.m.revenue, R.m.revenue]; } },
+      { n:'Cum. revenue', f:function(R){ return lE(R.m.cumulative.revenue); } },
+      { n:'Cum. gross profit', f:function(R){ return lE(R.m.cumulative.grossProfit); } },
+      { n:'Cum. EBITA', f:function(R){ return lE(R.m.cumulative.ebita); } }
+    ] });
+
+    G.push({ n:'Cash', c:[
+      { n:'Opening cash', c:1, f:function(R){ return lE(R.m.cashOpening); } },
+      { n:'+ FCF', c:1, f:function(R){ return lE(R.m.fcf); } },
+      { n:'= Closing cash', c:1, k:1, f:function(R){ return lE(R.m.cashClosing); } },
+      { n:'Cash check', c:1, chk:function(R){ return [R.m.cashOpening + R.m.fcf - R.m.cashClosing, R.m.cashClosing]; } },
+      { n:'FCF − EBITA', c:1, f:function(R){ return lE(R.m.fcf - R.m.ebita); } }
+    ].concat(CA ? [
+      { n:'Billings', c:1, f:function(R){ return lE(R.m.cash.billings); } },
+      { n:'Collections', c:1, f:function(R){ return lE(R.m.cash.collections); } },
+      { n:'− Cash costs', f:function(R){ return lE(R.m.cash.cashCosts); } },
+      { n:'FCF check', chk:function(R){ var c=R.m.cash; return [c.collections - c.cashCosts - c.cashFCF, c.collections]; } },
+      { n:'Deferred opening', f:function(R){ return lE(R.m.cash.deferredOpening); } },
+      { n:'Deferred closing', f:function(R){ return lE(R.m.cash.deferredClosing); } },
+      { n:'Deferred check', chk:function(R){ var c=R.m.cash; return [c.deferredOpening + c.billings - R.m.revenue - c.deferredClosing, c.deferredClosing]; } },
+      { n:'Receivables opening', f:function(R){ return lE(R.m.cash.receivablesOpening); } },
+      { n:'Receivables closing', f:function(R){ return lE(R.m.cash.receivablesClosing); } },
+      { n:'Receivables check', chk:function(R){ var c=R.m.cash; return [c.receivablesOpening + c.billings - c.collections - c.receivablesClosing, c.receivablesClosing]; } },
+      { n:'Billings − revenue', f:function(R){ return lE(R.m.cash.billingsMinusRevenue); } },
+      { n:'Cum. billings', f:function(R){ return lE(R.m.cash.cumulative.billings); } },
+      { n:'Cum. collections', f:function(R){ return lE(R.m.cash.cumulative.collections); } }
+    ] : [
+      { n:'Identity', t:1, f:function(R){ return 'FCF = EBITA'; } }
+    ]) });
+
+    G.push({ n:'Derived', c:[
+      { n:BQ+' growth MoM', c:1, f:function(R){ return lP(R.m.arrGrowthMoM,2); } },
+      { n:BQ+' growth YoY', c:1, f:function(R){ return R.m.arrGrowthYoY===null ? '—' : lP(R.m.arrGrowthYoY,1); } },
+      { n:'Cohorts alive', c:1, f:function(R){ return String(R.m.cohortCount); } },
+      { n:'Burn', f:function(R){ return lE(R.m.burn); } },
+      { n:'Pipeline '+BQ, f:function(R){ return lR(R.m.pendingNewARR); } },
+      { n:'Average payback (months)', f:function(R){ return lN(R.kAcq.averagePaybackMonths,1); } },
+      { n:'Marginal payback (months)', f:function(R){ return lN(R.kAcq.marginalPaybackMonths,1); } },
+      { n:'Spend R12M', f:function(R){ return lE(R.kAcq.spendR12M); } },
+      { n:BQ+' landed, trailing 12', f:function(R){ return lR(R.kAcq.realisedNewARRR12M); } }
+    ] });
+
+    G.push({ n:'Integrity', c:[
+      { n:'Row', c:1, row:1 }
+    ] });
+    return G;
+  }
+
+  function ledgerColumns(G){
+    var out = [];
+    G.forEach(function(g, gi){
+      var cols = g.c.filter(function(c){ return ledgerView==='full' || c.c; });
+      if(cols.length) out.push({ n:g.n, cols:cols, gi:gi });
+    });
+    return out;
+  }
+
+  function renderLedger(force){
+    var host = document.getElementById('ledgerscroll'); if(!host) return;
+    var stamp = ledgerView+'|'+basis+'|'+activePack+'|'+expRes.horizon;
+    if(!force && ledgerRes===expRes && ledgerStamp===stamp) { ledgerMark(); return; }
+    ledgerRes = expRes; ledgerStamp = stamp; ledgerBad = 0; ledgerBuilds++;
+    var rows = ledgerRowsOf(expRes, expA);
+    var groups = ledgerColumns(ledgerSpec(expRes, expA));
+
+    var gh = '<tr class="gh">', ch = '<tr class="ch">';
+    groups.forEach(function(g){
+      gh += '<th class="'+(g.cols[0].mo?'mo':'g0')+'" colspan="'+g.cols.length+'">'+esc(g.n)+'</th>';
+      g.cols.forEach(function(c, i){ ch += '<th class="'+(c.mo?'mo':(i===0?'g0':''))+'">'+esc(c.n)+'</th>'; });
+    });
+    gh += '</tr>'; ch += '</tr>';
+
+    var body = '';
+    for(var i=0;i<rows.length;i++){
+      var R = rows[i], bad0 = ledgerBad, cells = '';
+      groups.forEach(function(g){
+        g.cols.forEach(function(c, ci){
+          var cl = (c.mo?'mo':'') + (ci===0 && !c.mo?' g0':'') + (c.k?' k':'') + (c.t?' txt':'');
+          if(c.row){ cells += '<td class="ROWSTATUS'+cl+'"></td>'; return; }
+          if(c.chk){ var pair = c.chk(R); cells += lChk(pair[0], pair[1]).replace('<td class="chk', '<td class="chk'+(ci===0?' g0':'')); return; }
+          cells += '<td class="'+cl+'">'+c.f(R)+'</td>';
+        });
+      });
+      var broke = ledgerBad - bad0;
+      cells = cells.replace('<td class="ROWSTATUS',
+        '<td class="'+(broke?'chk bad':'chk')+' ').replace('"></td>', '">'+(broke ? broke+' broken' : 'ok')+'</td>');
+      body += '<tr data-t="'+R.t+'">'+cells+'</tr>';
+    }
+    host.innerHTML = '<table class="ldg"><thead>'+gh+ch+'</thead><tbody>'+body+'</tbody></table>';
+    ledgerMark();
+    var off = [];
+    if(!expRes.mechanisms.customerPhysics) off.push('Customers');
+    if(!expRes.mechanisms.monetization) off.push('Monetization');
+    if(!expRes.mechanisms.cashPhysics) off.push('Cash');
+    var ncol = groups.reduce(function(s,g){ return s+g.cols.length; }, 0);
+    document.getElementById('ldg-note').innerHTML =
+      esc(rows.length+' months × '+ncol+' columns · every cell is engine state, never a second calculation · recurring quantities in '+basis+
+          ' · checks reconcile the engine\'s unrounded figures, so hand-adding a printed column can differ by a euro of rounding')+
+      (off.length ? esc(' · layers off: '+off.join(', ')+' (those blocks have nothing to publish)') : '');
+    var st = document.getElementById('ldg-status');
+    st.textContent = ledgerBad ? ledgerBad+' checks broken' : 'all checks close';
+    st.className = 'ldgstat '+(ledgerBad?'bad':'ok');
+  }
+  /* the selected month is a class swap, so the clock never rebuilds the table */
+  function ledgerMark(){
+    var host = document.getElementById('ledgerscroll'); if(!host) return;
+    var m = selectedMonth(), cur = host.querySelector('tr.on');
+    if(cur && +cur.dataset.t === m) return;
+    if(cur) cur.classList.remove('on');
+    var tr = host.querySelector('tr[data-t="'+m+'"]'); if(tr) tr.classList.add('on');
+  }
+  function syncLedger(){
+    var el = document.getElementById('ledger'); if(!el) return;
+    var on = layer==='flow' && sysView==='ledger';
+    if(!on){ if(!el.hidden) el.hidden = true; return; }
+    if(el.hidden){ el.hidden = false; document.getElementById('lawhost').innerHTML=''; }
+    document.getElementById('ldg-core').classList.toggle('on', ledgerView==='core');
+    document.getElementById('ldg-full').classList.toggle('on', ledgerView==='full');
+    renderLedger(false);
+  }
+  function setLedgerView(v){ if(v===ledgerView) return; ledgerView=v; renderLedger(true); syncLedger(); }
+
   function parkCascade(){ var c=document.querySelector('.cascade'), p=document.getElementById('cascade-park'); if(c && p && c.parentNode!==p){ p.appendChild(c); } }
   function placeCascade(){ var c=document.querySelector('.cascade'), slot=document.getElementById('pl-slot'); if(c && slot){ slot.appendChild(c); c.hidden=false; } }
   var activeLens = 'company', figPref = {};
@@ -6873,8 +7248,27 @@ details.pl .cascade{margin-top:8px}
 
   /* ---------- §17 reconciliation + §11 Δ-stock accumulator ---------- */
   function renderFlowSide(){
+    if(sysView==='ledger') return renderLedgerSide();
     var d = pulseData(), isD = compare==='delta';
     return renderSystemSide(d, isD);
+  }
+  /* Notes for the ledger: what each block reconciles, and why a check is worth
+     reading. The table itself carries no prose — an auditor's table should not. */
+  function renderLedgerSide(){
+    function blk(h, body){ return '<div class="sgrp"><div class="eyebrow">'+esc(h)+'</div><div class="hint" style="line-height:1.7;margin-top:6px">'+body+'</div></div>'; }
+    document.getElementById('side').innerHTML =
+      '<div class="lens herolens" style="padding-bottom:6px"><div class="lens-head exphead"><span class="lens-n">Model Ledger</span>'+
+      '<span class="lens-q">Where did every figure in this month come from?</span><span class="basis">'+expRes.horizon+' months</span></div></div>'+
+      blk('What this is', 'One row per model month, columns grouped in the order the economics happen: time and the laws in force, acquisition, customers, '+basis+', retention, monetization, revenue and P&amp;L, cash, derived measures. '+
+        'Inside each block the columns run <b style="color:var(--ink)">opening stock → flows during the month → ending stock → derived ratios</b>, closed by a check.')+
+      blk('It is a projection, not a second model', 'Every cell is a field the engine published — <b style="color:var(--ink)">months[t]</b>, <b style="color:var(--ink)">derived</b>, <b style="color:var(--ink)">cohorts</b>, <b style="color:var(--ink)">acquisitionLedger</b> — or a measurement from the KPI layer. '+
+        'Nothing is recalculated here. The only arithmetic is the check columns, and that is the point: a residual computed from the engine\'s own published figures tests the engine. A ledger that recomputed what it reconciles would prove nothing.')+
+      blk('Reading a check', 'A check prints the residual of an identity, so <b style="color:var(--in)">0</b> means it closes. '+
+        'The '+basis+' block closes <b style="color:var(--ink)">opening + new + expansion − contraction − churn − closing = 0</b>; customers close on logos; cash closes on <b style="color:var(--ink)">opening + FCF − closing</b>, and under Cash Physics also on collections, deferred revenue and receivables. '+
+        'Tolerance is relative to the magnitudes reconciled — a residual of a few cents against a hundred million euros is double-precision noise, not a broken model.')+
+      blk('Timing is explicit', 'Acquisition separates <b style="color:var(--ink)">ARR produced</b> (what this month\'s spend bought) from <b style="color:var(--ink)">ARR landed</b> (what arrived in the stock this month), with the pending pipeline between them and the spend month each landing came from. '+
+        'Under a lag those are different months\' euros, which is what makes the first year\'s shape legible: with a cold pipeline the early months produce and land nothing, and pending climbs; with a warm start the landings carry spend months at or before zero.')+
+      blk('Using it', 'Core shows the economically important columns; Full exposes everything the engine publishes for that month. Click a row to move the whole portal to that month. The table scrolls horizontally; the month column and both header rows stay put.');
   }
 
   function renderSystemSide(d, isD){
@@ -7604,7 +7998,7 @@ details.pl .cascade{margin-top:8px}
   function syncTime(){
     var m=Math.round(tau);
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
-    syncMeasuredKPI(); renderSide(); renderCascade();
+    syncMeasuredKPI(); renderSide(); renderCascade(); ledgerMark();
   }
 
   function setLayer(l){
@@ -7618,6 +8012,7 @@ details.pl .cascade{margin-top:8px}
     if(l!=='flow') appEl.classList.remove('notes');
     appEl.classList.remove('rail-open');
     document.getElementById('pulsebar').hidden = l!=='flow';
+    syncLedger();                      /* the Model Ledger belongs to System; leaving System puts it away */
     document.getElementById('scenbar').hidden = l!=='scen';
     document.getElementById('leak-toggle').style.display = (l==='stock'||l==='cmp') ? '' : 'none';
     document.querySelector('.cascade').hidden = l!=='stock';
@@ -7660,6 +8055,13 @@ details.pl .cascade{margin-top:8px}
   document.getElementById('rail-detail').addEventListener('click', function(){ document.querySelector('.rail').classList.toggle('detail'); });
   document.getElementById('scrim').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ document.querySelector('.app').classList.remove('rail-open'); document.querySelector('.app').classList.remove('notes'); } });
+  /* Model Ledger: the two views, and a row as a way to move the month */
+  document.getElementById('ldg-core').addEventListener('click', function(){ setLedgerView('core'); });
+  document.getElementById('ldg-full').addEventListener('click', function(){ setLedgerView('full'); });
+  document.getElementById('ledgerscroll').addEventListener('click', function(e){
+    var tr = e.target && e.target.closest ? e.target.closest('tr[data-t]') : null; if(!tr) return;
+    stopClock(); tau = +tr.dataset.t; document.getElementById('scrub').value = tau; syncTime(); render();
+  });
   buildPacks(); buildSysViews(); syncPackButtons(); syncSysViews();
   window.addEventListener('resize', function(){ resize(); });
 
@@ -7734,7 +8136,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; },
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
       unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum,

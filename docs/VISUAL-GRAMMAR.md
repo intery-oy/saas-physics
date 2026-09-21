@@ -188,6 +188,51 @@ metered usage with falling unit price, monthly in arrears, 60% gross margin, con
 **C · SMB** (many small customers, monthly in advance, cheap capacity-bound acquisition, high
 churn). Each pack's note says so on the rail.
 
+## 9f. The Model Ledger — the auditor's table
+
+A seventh System view, and the only surface in the product that is not a drawing. One row per
+model month; ten column groups in causal order — time and the laws in force, acquisition,
+customers, recurring revenue, retention, monetization, revenue and P&L, cash, derived measures,
+integrity. Inside every economic block the columns run in the same order: **opening stock →
+flows during the month → ending stock → derived ratios**, closed by a check.
+
+It is deliberately not a dashboard. No colour coding of magnitude, no sparklines, no rounding to
+millions: full euros with thousand separators, because an auditor adds the column up. Core shows
+the economically important columns, Full everything the engine publishes for that month. The
+month column and both header rows are sticky, so a column read a thousand pixels to the right
+still has a name and a month.
+
+**It is a projection, never a second model.** Every cell is a field the engine published —
+`months[t]`, `derived`, `cohorts`, `acquisitionLedger` — or a measurement from `kpi.js`. The only
+arithmetic the ledger performs is the bridge residuals, and that is the whole point: a residual
+computed from the engine's own published figures tests the engine. A ledger that recomputed what
+it reconciles would be circular and would prove nothing. Where a layer is off the engine publishes
+nothing, so that block is absent rather than a column of dashes.
+
+A check prints the residual of an identity, so **0** means it closes. The named identities:
+
+| Block | Identity |
+|---|---|
+| Recurring revenue | opening + new + expansion − contraction − churn − closing = 0 |
+| Customers | opening + new logos − logo churn − closing = 0 |
+| Acquisition pipeline | pipeline opening + produced − landed − pipeline closing = 0 |
+| Acquisition spend | pipeline spend opening + S&M − spend realised − pipeline spend closing = 0 |
+| P&L | revenue − COGS − S&M − R&D − G&A − expansion cost − hypothesis cost − EBITA = 0 |
+| Cash | opening + FCF − closing = 0 |
+| Cash (Cash Physics on) | collections − cash costs − FCF = 0; deferred and receivables roll forward |
+
+Tolerance is relative to the magnitudes reconciled — a residual of a few cents against a hundred
+million euros is double-precision noise, not a broken model. `ledger-accept.js` proves the checks
+can fail: it corrupts one published figure in the page's own run and requires the identities that
+read it to break and the row to be flagged.
+
+**Timing is explicit**, which is what the ledger is for: acquisition separates *produced* (what
+this month's spend bought) from *landed* (what arrived in the stock this month), with the pending
+pipeline between them and the spend month each landing came from. Under a lag those are different
+months' euros. A cold pipeline reads off the table directly — the first L months produce and land
+nothing while the pipeline fills; a warm start shows its landings stamped with spend months at or
+before zero.
+
 ## 10. What is never done
 
 No dual axes. No colour as the only encoding. No number on every point. No decorative gradient

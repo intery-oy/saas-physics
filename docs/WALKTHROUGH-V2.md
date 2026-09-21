@@ -116,7 +116,8 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 
 ## 10. Can I see each layer as its own system?
 
-- System layer, world + Hypothesis, month 20. Sub-views drawn without error: ontology ✓, company ✓, customers ✓, monetization ✓, cash ✓, hypotheses ✓.
+- System layer, world + Hypothesis, month 20. Sub-views drawn without error: ontology ✓, company ✓, customers ✓, monetization ✓, cash ✓, hypotheses ✓, ledger ✓.
+- Model Ledger: 60 months × 52 columns in Core, grouped as Time · laws in force → Acquisition · spend → pipeline → landing → Customers → MRR · the recurring-revenue bridge → Retention → Monetization → Revenue & P&L → Cash → Derived → Integrity · all checks close.
 - Customer physics · logo retention 92.0%, contraction 5.0%. The persistence valve is no longer set: it reads emergent, ge
 - Monetization physics · on. The expansion valve is bypassed: the expansion pipe carries price + usage + adoption — €6k + 
 - Cash physics · 12-month term in advance, +1 mo to collect. The FCF box is cash FCF: EBITA €326k + €254k of timing this m

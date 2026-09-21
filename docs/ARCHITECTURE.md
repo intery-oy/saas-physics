@@ -372,6 +372,7 @@ these into one bucket called "KPIs" is what makes SaaS models unreadable:
 | `v2-accept.js` | Playwright acceptance checks for the v2 product surfaces. |
 | `mobile-accept.js` | Playwright acceptance checks for the product on a phone and a tablet: the viewport declaration, entry, touch targets, fit at three phone widths, and the time transport's reach on a tablet. |
 | `live-accept.js` | Playwright acceptance checks for the instrument **while the clock is running** — every control on the stage must answer a press mid-run, without the clock stopping or a lever drag going dead. |
+| `ledger-accept.js` | Playwright acceptance checks for the **Model Ledger**: that every cell is the engine state the page is holding (compared cell by cell in eight worlds), that every bridge closes, that the checks can actually fail, and that the clock re-marks the table rather than rebuilding it. |
 | `scenarios.js` | Node CLI for Scenarios A–E and the 0.2/0.2.1 experiments. |
 | `state-sufficiency.js` | Node CLI for the v0.3 State Sufficiency Experiment. |
 | `v1.template.html` | The product surface (SaaS Physics v1). |
