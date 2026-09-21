@@ -113,6 +113,7 @@ button,input{font:inherit;color:inherit}
 .spacer{flex-grow:1}
 .chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--line);border-radius:2px;color:var(--ink-3)}
 .chip.on{border-color:var(--exp);color:var(--exp)}
+.chip.build{font-size:9.5px;color:var(--ink-4);border-color:var(--line-soft);letter-spacing:.06em}
 
 /* Change is a mode, not furniture: a drawer over the surface at every width */
 .rail{position:fixed;left:0;top:0;bottom:0;width:460px;max-width:100%;z-index:20;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:0 0 16px;transform:translateX(-100%);transition:transform .2s;box-shadow:8px 0 28px rgba(0,0,0,.5)}
@@ -670,6 +671,8 @@ details.pl .cascade{margin-top:8px}
     <div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div>
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
+    <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
+    <span class="chip build" id="build-chip" title="The commit this page was built from">74bc08b</span>
   </header>
 
   <aside class="rail">

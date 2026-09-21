@@ -9,6 +9,15 @@ var LAYER_MODULES = ['customers.js', 'monetization.js', 'cash.js', 'intervention
 var engine = LAYER_MODULES.map(function (f) { return fs.readFileSync(f, 'utf8'); }).join('\n')
            + '\n' + fs.readFileSync('engine.js', 'utf8');
 var kpi = fs.readFileSync('kpi.js', 'utf8');
+/* BUILD MARKER. A cached page is indistinguishable from a deployed one without it: a whole
+   round of this project's debugging was spent on reports from a build that had already been
+   replaced. The commit is stamped in at build time, shown in the header, and falls back to
+   'dev' outside a git checkout. */
+var BUILD = (function () {
+  try { return require('child_process').execFileSync('git', ['rev-parse', '--short', 'HEAD'],
+    { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || 'dev'; }
+  catch (e) { return 'dev'; }
+})();
 var integrity = fs.readFileSync('integrity.js', 'utf8');   // browser branch resolves via globals
 var out = tpl.replace('/*__ENGINE__*/', function () { return engine; })
              .replace('/*__KPI__*/', function () { return kpi; })
@@ -37,6 +46,7 @@ var v1 = fs.readFileSync('v1.template.html', 'utf8')
   .replace('/*__KPI__*/', function () { return kpi; })
   .replace('/*__CAPITAL__*/', function () { return capital; })
   .replace('/*__SYSTEMSTATE__*/', function () { return fs.readFileSync('systemstate.js', 'utf8'); })
-  .replace('/*__BASIS__*/', function () { return fs.readFileSync('basis.js', 'utf8'); });
+  .replace('/*__BASIS__*/', function () { return fs.readFileSync('basis.js', 'utf8'); })
+  .replace(/__BUILD__/g, function () { return BUILD; });
 fs.writeFileSync('saas-physics-v1.html', v1);
 console.log('built saas-physics-v1.html — ' + (v1.length / 1024).toFixed(1) + ' KB');
