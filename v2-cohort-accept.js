@@ -303,6 +303,35 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   rec('LABELS: on both cohort charts the marks, the gap readout and the right-edge values never print over each other, the charts use the full column and nothing overflows — at 1440, 1024, 768 and 390',
       Object.values(widths).every(r => r.coll === 0 && r.narrow === 0 && !r.hs && r.pinned !== null), JSON.stringify(widths));
 
+  /* ---------- SCOPE ---------- *
+   * Inspect commandeers the figure box — it hides the formation canvas to put the cohort's own
+   * figure in its place. That hold belongs to Company. Nothing released it on the way out, so a
+   * cohort left pinned followed the reader to System, Compare and Scenarios as a display:none
+   * they never set, blanking whatever those layers draw in the box. */
+  const p3 = await br.newPage({ viewport: { width: 1440, height: 900 } });
+  p3.on('pageerror', e => errs.push('scope: ' + e.message));
+  await p3.goto(URL); await p3.waitForTimeout(700);
+  await p3.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p3.waitForTimeout(500);
+  await p3.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 84);
+    for (let y = 30; y < r.height * 0.7; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
+  await p3.waitForTimeout(700);
+  const look = () => p3.evaluate(() => { const cv = document.getElementById('scene').getBoundingClientRect(), cl = document.getElementById('cohort-life');
+    return { pinned: window.__SP_DEBUG.pinned, canvas: Math.round(cv.width * cv.height), cohortFigure: !cl.hidden, dossier: !!document.querySelector('.dossier') }; });
+  const scope = { pinned: await look() };
+  for (const nav of ['nav-system', 'nav-compare', 'nav-scen']) {
+    await p3.evaluate(n => document.getElementById(n).click(), nav); await p3.waitForTimeout(600);
+    scope[nav] = await look();
+  }
+  await p3.evaluate(() => document.getElementById('nav-company').click()); await p3.waitForTimeout(700);
+  scope.back = await look();
+  await p3.close();
+  rec('SCOPE: a cohort left pinned does not follow the reader out of Company — System, Compare and Scenarios each get their own figure back, the cohort figure steps aside, and returning to Company restores Inspect exactly as it was',
+      scope.pinned.canvas === 0 && scope.pinned.cohortFigure && scope.pinned.dossier &&
+      ['nav-system', 'nav-compare', 'nav-scen'].every(n => scope[n].canvas > 10000 && !scope[n].cohortFigure && scope[n].pinned === scope.pinned.pinned) &&
+      scope.back.canvas === 0 && scope.back.cohortFigure && scope.back.dossier && scope.back.pinned === scope.pinned.pinned,
+      JSON.stringify(scope));
+
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
   await br.close();
 

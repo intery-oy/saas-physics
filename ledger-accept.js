@@ -277,6 +277,37 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       nest.figboxChildren.join('|') === 'scene|lawhost|ledger',
       JSON.stringify({ leak, back, nest }));
 
+  /* ---- VISIBLE: the table has to be on screen, not merely built ---- */
+  /* A pinned cohort used to leave display:none on the figure box, which the ledger lives inside:
+     the table built all 60 rows and the reader saw an empty panel. Built is not shown. */
+  const vis = {};
+  for (const [w, h, name] of [[1600, 950, 'desktop'], [1280, 800, 'laptop'], [1024, 1366, 'tablet portrait'], [1180, 820, 'tablet landscape']]) {
+    const q = await br.newPage({ viewport: { width: w, height: h } });
+    q.on('pageerror', e => errs.push(name + ': ' + e.message));
+    await q.goto(URL); await q.waitForTimeout(700);
+    await q.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await q.waitForTimeout(450);
+    /* pin a cohort first — the state that used to blank it — then go and open the ledger */
+    await q.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 84);
+      for (let y = 30; y < r.height * 0.7; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+        if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
+    await q.waitForTimeout(600);
+    await q.evaluate(() => document.getElementById('nav-system').click()); await q.waitForTimeout(400);
+    await q.evaluate(() => document.getElementById('sysview-ledger').click()); await q.waitForTimeout(700);
+    vis[name] = await q.evaluate(() => {
+      const led = document.getElementById('ledger'), tb = document.querySelector('table.ldg');
+      const lr = led.getBoundingClientRect();
+      const cell = tb ? tb.tBodies[0].rows[0].cells[0] : null, cr = cell ? cell.getBoundingClientRect() : null;
+      return { pinned: window.__SP_DEBUG.pinned, area: Math.round(lr.width * lr.height), rows: tb ? tb.tBodies[0].rows.length : 0,
+        firstCellPainted: !!cr && cr.width > 10 && cr.height > 5,
+        onScreen: lr.width > 300 && lr.height > 200 && lr.top < innerHeight && lr.left < innerWidth,
+        headerPainted: tb ? tb.tHead.rows[1].cells[3].getBoundingClientRect().width > 10 : false };
+    });
+    await q.close();
+  }
+  rec('VISIBLE: the table is on screen and painted, not merely built — including when the reader arrives with a cohort still pinned, the state that used to hand the ledger a hidden container and an empty panel',
+      Object.values(vis).every(v => v.rows === 60 && v.area > 200000 && v.onScreen && v.firstCellPainted && v.headerPainted && v.pinned !== null),
+      JSON.stringify(vis));
+
   rec('no page errors', errs.length === 0, errs.join(' | '));
   await br.close();
 

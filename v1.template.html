@@ -5224,6 +5224,15 @@ details.pl .cascade{margin-top:8px}
     if(l!=='flow') appEl.classList.remove('notes');
     appEl.classList.remove('rail-open');
     document.getElementById('pulsebar').hidden = l!=='flow';
+    /* Inspect commandeers the figure box: it hides the formation canvas and puts the cohort's own
+       figure in its place. That hold belongs to the Company layer alone, and nothing released it
+       on the way out — renderSide returns early for every other layer, so syncFigure never ran.
+       A cohort left pinned therefore followed the reader to System, Compare and Scenarios as a
+       display:none they never set, blanking whatever those layers draw in the box: the machine,
+       and now the Model Ledger. Leaving Company releases it; returning re-applies it. */
+    var fbx0=document.querySelector('.figbox'), fct0=document.querySelector('.figctl'), cl0=document.getElementById('cohort-life');
+    if(l!=='stock'){ if(fbx0) fbx0.style.display=''; if(fct0) fct0.style.display='';
+                     if(cl0 && !cl0.hidden){ cl0.hidden=true; cl0.innerHTML=''; cohortLifeStamp=null; cohortLife=null; } }
     syncLedger();                      /* the Model Ledger belongs to System; leaving System puts it away */
     document.getElementById('scenbar').hidden = l!=='scen';
     document.getElementById('leak-toggle').style.display = (l==='stock'||l==='cmp') ? '' : 'none';
