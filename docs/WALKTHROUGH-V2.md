@@ -22,7 +22,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - EBITA · R12M: €9.98m
 - Installed-base net · month · → −€3k · net-shrinking · Expansion 
 - WHERE DID MRR GROWTH COME FROM? · CUMULATIVE SINCE M0 · new cu
-- ACQUISITION EFFICIENCY · average CAC · marginal CAC · Measured CAC
+- ACQUISITION RESPONSE · NEW MRR PER € OF S&M · response curve · average CAC · slope from the or
 - ECONOMICS OVER TIME · MONTHLY · revenue · gross profit · EBITA · M36
 
 ## 2. How much of the loss is customers leaving, and how much is customers shrinking?

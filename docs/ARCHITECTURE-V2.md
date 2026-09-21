@@ -65,7 +65,7 @@ COMPANY (run)
 | **Primary state** | cohort customers `n`; cohort MRR (until Monetization is on); per-customer components (Monetization on); pending-acquisition entries; deferred / contract-asset balance per cohort; receivables; cash |
 | **Derived state** | company ARR (Σ), ARPA, cohort MRR under Monetization, component mix, deferred total, headroom used, persistence under Customers (= L(1−C)) |
 | **Flow** | new ARR, logo churn, contraction, expansion (generic, or price/usage/adoption), revenue, billings, collections, expansion cost, intervention cost, cash FCF |
-| **Transition (law)** | logo retention L, contraction C, expansion e; fixed/variable price growth, usage growth, adoption rate, unit/penetration caps; CAC coefficient, capacity; persistence (only while Customers is null) |
+| **Transition (law)** | logo retention L, contraction C, expansion e; fixed/variable price growth, usage growth, adoption rate, unit/penetration caps; CAC floor, capacity; persistence (only while Customers is null) |
 | **Policy / assumption** | S&M, R&D, G&A; billing term, timing, collection delay; opening customers; ARR per new logo; interventions (hypotheses, never laws) |
 | **Measurement (Layer B, never settable)** | R12M GRR/NRR + its logo / contraction / expansion decomposition, R12M logo retention, ARPA path, monetization mix and price/usage/adoption R12M, cash conversion, coefficient / average / marginal / cohort payback |
 | **Optional mechanism** | every v2 layer, each with a null that reproduces the layer below |

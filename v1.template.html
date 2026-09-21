@@ -314,6 +314,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .ch .rv{font:10.5px var(--mono);font-weight:500}
 .ch .rl{font:8px var(--ui);fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
 .ch .mk{font:9px var(--mono);fill:var(--ink-2)}
+.ch .axcap{font:8.5px var(--ui);fill:var(--ink-4);letter-spacing:.1em;text-transform:uppercase}
+.ch .cap{stroke:var(--law);stroke-width:1;stroke-dasharray:4 3}
+.ch .capl{font:8.5px var(--mono);fill:var(--law)}
+.ch .sl{fill:none}
 .ch .vr{stroke:var(--ink-4);stroke-dasharray:2 3;stroke-width:1}
 .ch .bk line{stroke-width:1}
 .ch .bkl{font:9.5px var(--mono)}
@@ -705,7 +709,7 @@ details.pl .cascade{margin-top:8px}
           <ul>
             <li>ARR and its cohort composition, revenue, gross profit, EBITA, FCF, cash.</li>
             <li>R12M GRR, expansion and NRR — <b>measured</b>, never entered.</li>
-            <li><b>Coefficient payback</b>, an output of CAC coefficient × 12 ÷ GM — never an input. Under a capacity the product also shows <b>average</b> and <b>marginal payback</b> (the same construction on average and marginal CAC); the capital track shows each cohort's <b>realised payback</b>. Every CAC is € of S&amp;M per €1 of ARR, in either display basis.</li>
+            <li><b>Floor payback</b>, an output of the CAC floor × 12 ÷ GM — never an input. Under a capacity the product also shows <b>average</b> and <b>marginal payback</b> (the same construction on average and marginal CAC); the capital track shows each cohort's <b>realised payback</b>. Every CAC is € of S&amp;M per €1 of ARR, in either display basis.</li>
           </ul>
         </div>
         <div>
@@ -810,7 +814,7 @@ details.pl .cascade{margin-top:8px}
         <div>
           <h5>History</h5>
           <ul>
-            <li><b>1.0</b> — cohort ARR: one persistence coefficient, one expansion coefficient, linear same-month acquisition, FCF = EBITA. Coefficient payback was an input; inverting it into an output was the most important correction this project made.</li>
+            <li><b>1.0</b> — cohort ARR: one persistence coefficient, one expansion coefficient, linear same-month acquisition, FCF = EBITA. The payback implied by that coefficient was an input; inverting it into an output was the most important correction this project made.</li>
             <li><b>1.1–1.3</b> — three nullable mechanisms: expansion realisation cost (finding #14), acquisition capacity (#10), acquisition lag (#17). All three null reproduces 1.0 exactly.</li>
             <li><b>2</b> — the Economic System: four nullable layers beneath cohort ARR — Customer physics (#18), Monetization physics (#13, #21), Cash physics (#15), Hypotheses. Each off reproduces the world beneath it exactly; the frozen Base is the ARR-physics world.</li>
             <li><b>Legibility and hierarchy passes</b> — five lenses, the causal Compare, the ontology, provenance, the experiment grammar and the drawer changed how the same run is read. No economic quantity changed: the baseline checksums in <span style="font-family:var(--mono);font-size:11px">docs/BASELINE-v2.md</span> are unchanged.</li>
@@ -1106,7 +1110,7 @@ details.pl .cascade{margin-top:8px}
     {k:'expansionCoefficientAnnual', label:'expansion coefficient', when:function(a){ return !a.monetization; }},
     {k:'monetization.components[1].priceGrowthAnnual', label:'usage price growth', when:function(a){ return !!a.monetization; }},
     {k:'monetization.components[0].priceAnnual', label:'platform fee (new logos)', when:function(a){ return !!a.monetization; }},
-    {k:'cacPerARR', label:'CAC coefficient', when:function(){ return true; }},
+    {k:'cacPerARR', label:'CAC floor', when:function(){ return true; }},
     {k:'sm', label:'S&M', when:function(){ return true; }},
     {k:'grossMargin', label:'gross margin', when:function(){ return true; }}
   ];
@@ -1209,9 +1213,9 @@ details.pl .cascade{margin-top:8px}
                {k:'monetization.components[1].adoptionAnnual', label:'Adoption', sub:'share of the remaining non-adopters who adopt usage each year', min:0, max:0.5, step:0.01, f:'pct', needs:'monetization'},
                {k:'monetization.components[1].penetrationCap', label:'Penetration cap', sub:'share of a cohort\'s customers usage can reach', min:0.8, max:1, step:0.01, f:'pct', needs:'monetization'} ] },
     { kind:'Acquisition response', layer:'arr', note:'How much recurring state S&M creates, whether that response is bounded, and when the ARR appears. Each has a null setting that is the v1.0 world.',
-      forces:[ {k:'cacPerARR', label:'CAC coefficient', sub:'acquisition-law coefficient: € of S&M per €1 of New ARR at low spend', min:0.3, max:3, step:0.05, f:'x'},
+      forces:[ {k:'cacPerARR', label:'CAC floor', sub:'the cheapest acquisition the law allows: € of S&M per €1 of New ARR as spend approaches zero · average CAC starts here and only rises as capacity binds', min:0.3, max:3, step:0.05, f:'x'},
                /* v1.2 — a BOUND on the response, never a benefit. null = off = the linear law. */
-               {k:'maxMonthlyNewARR', label:'Acquisition capacity', sub:'New ARR per month the response approaches as S&M grows · off = linear, unbounded', min:250000, max:5000000, step:50000, f:'cap', nullable:true, onValue:2000000},
+               {k:'maxMonthlyNewARR', label:'Acquisition capacity', sub:'the ceiling on New ARR per month: the response bends toward it as S&M grows and never reaches it · off = linear, unbounded', min:250000, max:5000000, step:50000, f:'cap', nullable:true, onValue:2000000},
                /* v1.3 — timing only. 0 = same month. */
                {k:'acquisitionLagMonths', label:'Acquisition lag', sub:'months between S&M spend and the cohort it creates · 0 = same month', min:0, max:12, step:1, f:'mo'} ] },
     /* v2 Gate C — CASH PHYSICS. Beneath the P&L: when the cash arrives. Billing
@@ -2281,7 +2285,7 @@ details.pl .cascade{margin-top:8px}
         { id:'capital', title:'CAPITAL · SPEND', lines:['S&M '+eur(mm.sm)+' /mo','R&D '+eur(mm.rd)+' · G&A '+eur(mm.ga)], kind:'source', view:'company',
           laws:[], meas:[] },
         { id:'acq', title:'ACQUISITION', lines:[reur(mm.acquisitionLawNewARR)+' committed', lagOn ? reur(mm.pendingNewARR)+' pending · '+expRes.derived.acquisitionLagMonths+' mo' : 'no lag'], kind:'flow', view:'company',
-          laws:['⋈ CAC coefficient '+lawNow('cacPerARR').toFixed(2)+'×', satOn ? '⌈⌉ capacity '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : '⌈⌉ capacity off', lagOn ? '⋈ lag '+expRes.derived.acquisitionLagMonths+' mo' : null],
+          laws:['⋈ CAC floor '+lawNow('cacPerARR').toFixed(2)+'×', satOn ? '⌈⌉ capacity '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : '⌈⌉ capacity off', lagOn ? '⋈ lag '+expRes.derived.acquisitionLagMonths+' mo' : null],
           meas:['→ Average CAC '+qx.averageCAC.toFixed(2)+'×', '→ Marginal CAC '+qx.marginalCAC.toFixed(2)+'×', '→ payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo'] },
         { id:'cust', title:'CUSTOMERS', lines: cuOn ? [mm.customers.closing.toFixed(0)+' customers', '+'+mm.customers.newCustomers.toFixed(1)+' · −'+mm.customers.logoChurn.toFixed(1)+' this month'] : ['no customer layer','leakage is one number'], kind: cuOn?'stock':'off', view:'customers',
           laws: cuOn ? ['⋈ logo retention '+pct(lawNow('logoRetentionAnnual'),0), '⋈ contraction '+pct(lawNow('contractionAnnual'),0)] : ['⋈ persistence '+pct(lawNow('persistenceAnnual'),0)],
@@ -2577,7 +2581,7 @@ details.pl .cascade{margin-top:8px}
     flatLine(xPend+wPend/2, ax, yNew, d.newARR);
     arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(139,141,240,.9)','rgba(102,112,138,.85)'));
     valve(168, yNew, 'S&M per month', fmtF('eur', lv('sm')), 'sm', -72, 44);
-    valve(255, yNew, 'CAC coefficient', fmtF('x', lv('cacPerARR')), 'cacPerARR', -72, 44);
+    valve(255, yNew, 'CAC floor', fmtF('x', lv('cacPerARR')), 'cacPerARR', -72, 44);
     valve(340, yNew, 'capacity / month', satOn ? eur(lv('maxMonthlyNewARR')) : 'off', 'maxMonthlyNewARR', -72, 44);
     if(!satOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('linear, unbounded', 340, yNew+55); }
     /* the pending-acquisition stock */
@@ -2917,7 +2921,7 @@ details.pl .cascade{margin-top:8px}
     {k:'contractionAnnual', label:'contraction', f:'pct', min:0, max:0.3, step:0.005},
     {k:'expansionCoefficientAnnual', label:'expansion', f:'pct', min:0, max:0.4, step:0.005},
     {k:'sm', label:'S&M', f:'eur', min:0, max:2500000, step:25000},
-    {k:'cacPerARR', label:'CAC coefficient', f:'x', min:0.3, max:3, step:0.05},
+    {k:'cacPerARR', label:'CAC floor', f:'x', min:0.3, max:3, step:0.05},
     {k:'maxMonthlyNewARR', label:'capacity', f:'cap', min:250000, max:5000000, step:50000, nullable:true, onValue:2000000},
     {k:'acquisitionLagMonths', label:'lag', f:'mo', min:0, max:12, step:1},
     {k:'grossMargin', label:'gross margin', f:'pct', min:0.4, max:0.95, step:0.005},
@@ -3283,6 +3287,79 @@ details.pl .cascade{margin-top:8px}
     }
     return '<svg class="ch" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+cur+'</svg>';
   }
+  /* ---- THE ACQUISITION RESPONSE, ON ITS OWN AXES ----------------------------------------
+     x is S&M per month, y is New ARR per month — not time. Every point is the engine's own
+     E.acquisitionResponse() evaluated at the laws in force this month, so the curve, the
+     operating points, the ceiling and the two slopes all come out of one function:
+
+       N(S&M) = S&M / (CAC floor + S&M / capacity)        capacity on
+       N(S&M) = S&M / CAC floor                           capacity off
+
+     average CAC  = S&M / N        → the slope of the chord from the origin through the point
+     marginal CAC = 1 / (dN/dS&M)  → the slope of the tangent at the point
+     The chord is always steeper than the tangent once the bound binds: that gap IS the reason
+     average and marginal CAC differ, and it is drawn rather than asserted.
+     The frame is the instrument's: same viewBox, same margins, so it aligns with the charts
+     above and below it. -------------------------------------------------------------------- */
+  function acqResponse(o){
+    var W=CHG.W, L=CHG.L, R=CHG.R, T=CHG.T, B=CHG.B, Hh=o.h||220, pw=W-L-R, ph=Hh-T-B;
+    var xMax=o.xMax, yMax=o.yMax, fmt=o.yFmt||eur, xf=o.xFmt||eur;
+    function X(v){ return L + Math.max(0, Math.min(1, v/xMax))*pw; }
+    function Y(v){ return T + ph - Math.max(0, Math.min(1, v/yMax))*ph; }
+    function pathOf(pts){ var d=''; pts.forEach(function(p,i){ d+=(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1); }); return d; }
+    /* a ray from (x0,y0) with slope s, cut where it leaves the plot */
+    function ray(x0, y0, s, toX){ var x1=toX, y1=y0+s*(toX-x0);
+      if(y1>yMax){ y1=yMax; x1=x0+(yMax-y0)/s; } if(y1<0){ y1=0; x1=x0+(0-y0)/s; }
+      if(x1>xMax){ x1=xMax; y1=y0+s*(xMax-x0); } if(x1<0){ x1=0; y1=y0+s*(0-x0); }
+      return [x1,y1]; }
+    var g='';
+    /* the operating point's own spend label owns its place on the axis; a tick under it is dropped */
+    var opLabX = o.op ? Math.max(L+((String(xf(o.op.sm)).length+5)*3.1), Math.min(W-R-10, X(o.op.sm))) : 0;
+    var taken = o.op ? [{ x:opLabX, w:(String(xf(o.op.sm)).length+5)*3.1 }] : [];
+    /* grid: four spend gridlines and four value ticks, both in money */
+    for(var i=1;i<=4;i++){ var gv=xMax*i/4, gx=X(gv), gw=String(xf(gv)).length*3.1;
+      g+='<line class="gy" x1="'+gx.toFixed(1)+'" x2="'+gx.toFixed(1)+'" y1="'+T+'" y2="'+(T+ph)+'"/>';
+      if(!taken.some(function(tk){ return Math.abs(tk.x-gx) < tk.w+gw+4; }))
+        g+='<text class="ax" x="'+gx.toFixed(1)+'" y="'+(Hh-4)+'" text-anchor="'+(i===4?'end':'middle')+'">'+esc(xf(gv))+'</text>'; }
+    for(var k=0;k<=3;k++){ var v=yMax*k/3, yy=Y(v).toFixed(1);
+      g+='<line class="gx" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax" x="'+(L-6)+'" y="'+(Y(v)+3.5).toFixed(1)+'" text-anchor="end">'+esc(fmt(v))+'</text>'; }
+    /* the axes say what they are: this chart is not a time series */
+    g+='<text class="axcap" x="'+(L+4)+'" y="'+(T+9)+'">'+esc(o.ylab)+'</text>'+
+       '<text class="axcap" x="'+(W-R-4)+'" y="'+(T+ph-5)+'" text-anchor="end">'+esc(o.xlab)+'</text>';
+    var body='';
+    /* the Base law, when the experiment moved the law itself: the whole curve moves */
+    if(o.baseCurve) body+='<path class="ln base" d="'+pathOf(o.baseCurve)+'" stroke="var(--base)" stroke-width="1.1" stroke-dasharray="5 4" opacity=".8"/>';
+    /* the ceiling the response approaches and never reaches */
+    if(o.cap!==null && o.showCap){ var cy=Y(o.cap).toFixed(1);
+      body+='<line class="cap" x1="'+L+'" x2="'+(W-R)+'" y1="'+cy+'" y2="'+cy+'"/>'+
+            '<text class="capl" x="'+(L+4)+'" y="'+(Y(o.cap)+11).toFixed(1)+'">⌈⌉ capacity ceiling</text>'; }
+    body+='<path class="ln" d="'+pathOf(o.curve)+'" stroke="var(--exp)" stroke-width="1.8"/>';
+    /* the two slopes at the operating point: chord from the origin (average), tangent here (marginal) */
+    var op=o.op, lab=[];
+    if(op && op.sm>0 && op.n>0){
+      var ch=ray(0, 0, op.n/op.sm, xMax);
+      body+='<path class="ln sl" d="M'+X(0).toFixed(1)+' '+Y(0).toFixed(1)+'L'+X(ch[0]).toFixed(1)+' '+Y(ch[1]).toFixed(1)+'" stroke="var(--ink-3)" stroke-width="1"/>';
+      lab.push({ x:X(ch[0]), y:Y(ch[1])-6, t:o.avgLabel, c:'var(--ink-3)' });
+      var t0=ray(op.sm, op.n, op.dn, 0), t1=ray(op.sm, op.n, op.dn, xMax);
+      body+='<path class="ln sl" d="M'+X(t0[0]).toFixed(1)+' '+Y(t0[1]).toFixed(1)+'L'+X(t1[0]).toFixed(1)+' '+Y(t1[1]).toFixed(1)+'" stroke="var(--ink)" stroke-width="1" stroke-dasharray="1 2"/>';
+      lab.push({ x:X(t1[0]), y:Y(t1[1])+11, t:o.margLabel, c:'var(--ink-2)' });
+    }
+    /* where each run is standing on the curve */
+    var pts='';
+    if(o.basePoint){ pts+='<line class="vr" x1="'+X(o.basePoint.sm).toFixed(1)+'" x2="'+X(o.basePoint.sm).toFixed(1)+'" y1="'+Y(o.basePoint.n).toFixed(1)+'" y2="'+(T+ph)+'"/>'+
+      '<circle cx="'+X(o.basePoint.sm).toFixed(1)+'" cy="'+Y(o.basePoint.n).toFixed(1)+'" r="4" fill="none" stroke="var(--base)" stroke-width="1.5" stroke-dasharray="2 2"/>'+
+      '<text class="mk" x="'+X(o.basePoint.sm).toFixed(1)+'" y="'+(T+ph-6)+'" text-anchor="middle" fill="var(--base)">Base '+esc(xf(o.basePoint.sm))+'</text>'; }
+    if(op){ pts+='<line class="vr" x1="'+X(op.sm).toFixed(1)+'" x2="'+X(op.sm).toFixed(1)+'" y1="'+Y(op.n).toFixed(1)+'" y2="'+(T+ph)+'"/>'+
+      '<circle cx="'+X(op.sm).toFixed(1)+'" cy="'+Y(op.n).toFixed(1)+'" r="4.5" fill="var(--exp)" stroke="var(--scene)" stroke-width="2"/>'+
+      '<text class="mk" x="'+opLabX.toFixed(1)+'" y="'+(T+ph+12)+'" text-anchor="middle">S&amp;M '+esc(xf(op.sm))+'</text>'; }
+    lab.forEach(function(l){ pts+='<text class="bkl" x="'+Math.min(W-R-2, l.x).toFixed(1)+'" y="'+Math.max(T+10, Math.min(T+ph-3, l.y)).toFixed(1)+'" text-anchor="end" fill="'+l.c+'">'+esc(l.t)+'</text>'; });
+    /* the readouts in the right margin, at the heights they belong to */
+    var rg=(o.right||[]).slice().sort(function(a,b){ return Y(a.v)-Y(b.v); }), ry=[];
+    rg.forEach(function(r2,i2){ var y=Y(r2.v); if(i2 && y-ry[i2-1]<22) y=ry[i2-1]+22; ry.push(Math.max(T+9, Math.min(T+ph-12, y)));
+      pts+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(ry[i2]+3.5).toFixed(1)+'" fill="'+r2.c+'">'+esc(r2.t)+'</text>'+
+           '<text class="rl" x="'+(W-R+6)+'" y="'+(ry[i2]+13).toFixed(1)+'">'+esc(r2.n)+'</text></g>'; });
+    return '<svg class="ch" data-x="spend" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+pts+'</svg>';
+  }
   /* a chart block: title row (eyebrow · basis), legend, the svg */
   function chartBlock(title, tag, legend, svg){
     return '<div class="chb"><div class="fig-t"><span class="eyebrow">'+esc(title)+'</span>'+
@@ -3300,6 +3377,7 @@ details.pl .cascade{margin-top:8px}
    * trajectory. Nothing here is new physics: every point is a cohort row
    * the frozen engine already wrote, or capital.js's attribution of it.
    * ================================================================== */
+  var acqCurveModel = null;          /* the response curve as drawn: the engine's own samples */
   var cohortLifeStamp = null, cohortLifeRes = null, cohortLife = null;
   /* One cohort's cumulative movements up to month `upto`, summed from the engine's own rows.
      With Customer Physics on the engine produces the two losses separately (logo churn and
@@ -3427,7 +3505,8 @@ details.pl .cascade{margin-top:8px}
   function seriesOf(res, f){ var a=[null]; for(var i=0;i<H;i++) a.push(f(res.months[i], i+1)); return a; }
   function cumOf(res, f){ var a=[0], q=0; for(var i=0;i<H;i++){ q+=f(res.months[i]); a.push(q); } return a; }
   /* the acquisition response under the laws in force at month t (a hypothesis may have moved them) — the engine's own function, evaluated per month */
-  function responseAt(res, A, t){ var m=res.months[t-1], a=Object.assign({}, A); if(m.interventions && m.interventions.changes) m.interventions.changes.forEach(function(c){ if(c.target==='sm'||c.target==='cacPerARR'||c.target==='maxMonthlyNewARR') a[c.target]=c.to; }); return E.acquisitionResponse(a); }
+  function acqLawsAt(res, A, t){ var m=res.months[t-1], a=Object.assign({}, A); if(m.interventions && m.interventions.changes) m.interventions.changes.forEach(function(c){ if(c.target==='sm'||c.target==='cacPerARR'||c.target==='maxMonthlyNewARR') a[c.target]=c.to; }); return a; }
+  function responseAt(res, A, t){ return E.acquisitionResponse(acqLawsAt(res, A, t)); }
   function gmAt(res, A, t){ var m=res.months[t-1], g=A.grossMargin; if(m.interventions && m.interventions.changes) m.interventions.changes.forEach(function(c){ if(c.target==='grossMargin') g=c.to; }); return g; }
   function pctF(v){ return (v*100).toFixed(0)+'%'; }
   function xF(v){ return v.toFixed(2)+'×'; }
@@ -3598,17 +3677,52 @@ details.pl .cascade{margin-top:8px}
       '</div>';
     leverBar('growth', ['sm','cacPerARR','maxMonthlyNewARR']);
     h += '<div class="lever-slot" data-lens="growth"></div>';
-    h += chartBlock('Acquisition efficiency', Mt, [{n:'average CAC', c:'var(--exp)'}, {n:'marginal CAC', c:'var(--law)'}, {n:'Measured CAC · trailing 12', c:'var(--ink-3)'}].concat(acqDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
-      chart({ h:HC, sel:m, yFmt:xF, yMin:0, aria:'average and marginal CAC over 60 months', series:[
-        { k:'line', pts:measX, color:'var(--ink-3)', width:1, label:'measured', fmt:xF },
-        { k:'line', pts:avgX, color:'var(--exp)', label:'average', fmt:xF }, { k:'line', pts:margX, color:'var(--law)', label:'marginal', fmt:xF } ]
-        .concat(acqDiff ? [{ k:'line', pts:avgB, color:'var(--base)', base:true }, { k:'line', pts:margB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
+    /* THE RESPONSE CURVE. The mechanism is diminishing returns to S&M, so the x-axis is S&M —
+       not time. The laws are the ones in force this month; move the S&M lever and the operating
+       point slides along the curve, move the CAC floor or the capacity and the curve itself moves. */
+    var aX = acqLawsAt(expRes, expA, m), aB = acqLawsAt(baseRes, baseA, m);
+    var qx = E.acquisitionResponse(aX), qb = E.acquisitionResponse(aB);
+    var capX = qx.capacity, smOp = Math.max(qx.sm, qb.sm, 1);
+    var xMaxA = satOn ? Math.min(Math.max(3*smOp, aX.cacPerARR*capX), 12*smOp) : 3*smOp;
+    var nAt = function(a, sm){ return E.acquisitionResponse(a, sm).newARR; };
+    var nTop = nAt(aX, xMaxA), showCap = satOn && capX!==null && nTop >= 0.22*capX;
+    var yMaxA = showCap ? capX*1.08 : nTop*1.12;
+    var curveX=[], curveB=[], lawMoved = Math.abs(aX.cacPerARR-aB.cacPerARR)>1e-9 || aX.maxMonthlyNewARR!==aB.maxMonthlyNewARR;
+    for(var ci=0; ci<=96; ci++){ var smi=xMaxA*ci/96; curveX.push([smi, nAt(aX, smi)]); if(lawMoved) curveB.push([smi, nAt(aB, smi)]); }
+    acqCurveModel = { xMax:xMaxA, yMax:yMaxA, cap:capX, showCap:showCap, enabled:qx.enabled, lawMoved:lawMoved,
+                      floor:aX.cacPerARR, baseFloor:aB.cacPerARR, baseCap:aB.maxMonthlyNewARR, samples:curveX,
+                      op:{ sm:qx.sm, n:qx.newARR, avg:qx.averageCAC, marg:qx.marginalCAC, dn:qx.dNewARRdSM, used:qx.utilisation },
+                      base:{ sm:qb.sm, n:qb.newARR } };
+    var rightA = [{ v:qx.newARR, t:reur(qx.newARR), n:'new '+basis, c:'var(--exp)' }];
+    if(showCap) rightA.push({ v:capX, t:reur(capX), n:'capacity', c:'var(--law)' });
+    if(Math.abs(qb.newARR-qx.newARR)>1) rightA.push({ v:qb.newARR, t:reur(qb.newARR), n:'Base', c:'var(--base)' });
+    h += chartBlock('Acquisition response · new '+basis+' per € of S&M', Mt,
+      [{n:'response curve', c:'var(--exp)'}, {n:'average CAC · slope from the origin', c:'var(--ink-3)'}, {n:'marginal CAC · slope here', c:'var(--ink)'}]
+        .concat(showCap ? [{n:'capacity ceiling', c:'var(--law)'}] : []).concat(lawMoved ? [{n:'Base law', c:'var(--base)', dash:true}] : []),
+      acqResponse({ h:HC, xMax:xMaxA, yMax:yMaxA, yFmt:reur, xFmt:eur,
+        aria:'the acquisition response: new ARR per month against S&M per month, with the operating point, the capacity ceiling and the average and marginal cost of acquisition as slopes',
+        ylab:'new '+basis+' / month', xlab:'S&M / month →',
+        curve:curveX, baseCurve: lawMoved ? curveB : null, cap:capX, showCap:showCap,
+        op:{ sm:qx.sm, n:qx.newARR, dn:qx.dNewARRdSM },
+        basePoint: (Math.abs(qb.sm-qx.sm)>1 || Math.abs(qb.newARR-qx.newARR)>1) ? { sm:qb.sm, n:qb.newARR } : null,
+        avgLabel:'average CAC '+xF(qx.averageCAC), margLabel:'marginal CAC '+xF(qx.marginalCAC),
+        right:rightA }));
     h += chartBlock('Acquisition payback · average, marginal, realised', Mt, [{n:'average payback', c:'var(--exp)'}, {n:'marginal payback', c:'var(--law)'}, {n:'realised · cohort by vintage', c:'var(--ink-3)'}].concat(acqDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
       chart({ h:HC, sel:m, yFmt:moF, yMin:0, aria:'payback months over 60 months', series:[
         { k:'dots', pts:realised, color:'var(--ink-3)' },
         { k:'line', pts:pbAX, color:'var(--exp)', label:'average', fmt:moF1 }, { k:'line', pts:pbMX, color:'var(--law)', label:'marginal', fmt:moF1 } ]
         .concat(acqDiff ? [{ k:'line', pts:pbAB, color:'var(--base)', base:true }, { k:'line', pts:pbMB, color:'var(--base)', base:true, dash:'2 3' }] : []) }));
-    if(!satOn) h += '<div class="offnote">No capacity: acquisition is linear, so average and marginal CAC coincide.</div>';
+    /* the response in words, on the engine's own numbers for this month */
+    h += '<div class="comp-l"><span>S&M <b>'+eur(qx.sm)+'</b></span>'+
+      '<span>new '+basis+' <b>'+reur(qx.newARR)+'</b></span>'+
+      '<span>average CAC <b>'+xF(qx.averageCAC)+'</b></span>'+
+      '<span>marginal CAC <b>'+xF(qx.marginalCAC)+'</b></span>'+
+      (satOn && qx.utilisation!==null ? '<span>capacity used <b>'+pct(qx.utilisation,0)+'</b></span>' : '')+
+      /* the law's cost beside the cost the run actually realised */
+      '<span>Measured CAC · trailing 12 <b>'+(measX[m]===null ? '—' : '→ '+xF(measX[m]))+'</b></span>'+
+      /* the curve says how much this month's spend buys; the lag says when it arrives */
+      (expRes.derived.acquisitionLagMonths>0 ? '<span>arrives <b>'+expRes.derived.acquisitionLagMonths+' months later</b></span>' : '')+'</div>';
+    if(!satOn) h += '<div class="offnote">No capacity: the response is linear, the curve is a straight line through the origin, and average and marginal CAC coincide at the CAC floor.</div>';
     h += '</div>';
 
     /* ================= 4. MONETIZATION ================= */
@@ -3693,7 +3807,7 @@ details.pl .cascade{margin-top:8px}
   document.addEventListener('pointerdown', function(e){ if(e.target && e.target.closest && e.target.closest('#side .levers')) leverDown = true; });
   window.addEventListener('pointerup', function(){ if(leverDown){ leverDown = false; if(sideStale) renderSide(); } });
   /* click on any lens chart: move the month there */
-  function chartScrub(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv) return; var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); playing = false; tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); }
+  function chartScrub(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv || sv.dataset.x) return;   /* the response curve's x is money, not time */ var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); playing = false; tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); }
   document.getElementById('side').addEventListener('click', chartScrub);
   document.getElementById('cohort-life').addEventListener('click', chartScrub);
   function setLens(id){
@@ -3850,7 +3964,7 @@ details.pl .cascade{margin-top:8px}
                 row('Cohort created', 'month '+c.acquisitionMonth) +
                 row('Acquisition cost', eur(c.acquisitionCost));
       if(c.cacPerARRAtCreation!==null)
-        out += row('Cohort CAC (realised)', c.cacPerARRAtCreation.toFixed(2)+'× · CAC coefficient '+c.cacCoefficientAtCreation.toFixed(2)+'×'+
+        out += row('Cohort CAC (realised)', c.cacPerARRAtCreation.toFixed(2)+'× · CAC floor '+c.cacCoefficientAtCreation.toFixed(2)+'×'+
                    (c.capacityAtSpend!==null ? ' · capacity '+eur(c.capacityAtSpend)+'/mo at spend' : ''));
       /* v2 Gate D — the hypotheses in force when this cohort's spend was committed */
       if(c.interventionsAtSpend && c.interventionsAtSpend.length)
@@ -4111,7 +4225,7 @@ details.pl .cascade{margin-top:8px}
       sec('acquisition', touched.acquisition || hypL.acquisition);
       push(num('new '+basis+' per month · law', qb.newARR, qx.newARR, reur, +1));
       var mo1 = function(v){return v.toFixed(1)+' mo';}, xx = function(v){return v.toFixed(2)+'×';};
-      push(num('Coefficient payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, mo1, -1));
+      push(num('Floor payback', baseRes.derived.cacPaybackMonths, expRes.derived.cacPaybackMonths, mo1, -1));
       if(E.saturationEnabled(baseA)||E.saturationEnabled(expA)){
         push(num('Average CAC', qb.averageCAC, qx.averageCAC, xx, -1)); push(num('Average payback', qb.averagePaybackMonths, qx.averagePaybackMonths, mo1, -1));
         push(num('Marginal CAC', qb.marginalCAC, qx.marginalCAC, xx, -1)); push(num('Marginal payback', qb.marginalPaybackMonths, qx.marginalPaybackMonths, mo1, -1));
@@ -4261,7 +4375,7 @@ details.pl .cascade{margin-top:8px}
     }
     if(has('trough'))  rows.push(row('Cash trough', eur(b.cashTrough)+' (M'+b.cashTroughMonth+') → '+eur(x.cashTrough)+' (M'+x.cashTroughMonth+')', x.cashTrough - b.cashTrough));
     if(has('cash'))    rows.push(row('Ending cash', x.endingCash - b.endingCash));
-    if(has('payback')) rows.push(row('Coefficient payback',
+    if(has('payback')) rows.push(row('Floor payback',
       baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',
       -(expRes.derived.cacPaybackMonths - baseRes.derived.cacPaybackMonths)));
     if(has('payback') && (E.saturationEnabled(expA)||E.saturationEnabled(baseA))) rows.push(row('Average payback', qb.averagePaybackMonths.toFixed(1)+' → '+qx.averagePaybackMonths.toFixed(1)+' months', -(qx.averagePaybackMonths - qb.averagePaybackMonths)));
@@ -4469,7 +4583,7 @@ details.pl .cascade{margin-top:8px}
       cz('Cumulative gross profit', eur(b.cumGrossProfit)+' → '+eur(x.cumGrossProfit), d.cumGrossProfit) +
       (costAny ? cz('Cumulative expansion realisation cost', eur(b.cumExpansionCost)+' → '+eur(x.cumExpansionCost), -d.cumExpansionCost) : '') +
       cz('Year-5 FCF', eur(b.finalYearFCF)+' → '+eur(x.finalYearFCF), d.finalYearFCF) +
-      cz('Coefficient payback', baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',
+      cz('Floor payback', baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',
          -(expRes.derived.cacPaybackMonths-baseRes.derived.cacPaybackMonths)) +
       (satAny ? cz('Average payback', qb.averagePaybackMonths.toFixed(1)+' → '+qx.averagePaybackMonths.toFixed(1)+' months', -(qx.averagePaybackMonths-qb.averagePaybackMonths)) +
                 cz('Marginal payback', qb.marginalPaybackMonths.toFixed(1)+' → '+qx.marginalPaybackMonths.toFixed(1)+' months', -(qx.marginalPaybackMonths-qb.marginalPaybackMonths)) : '') +
@@ -4533,7 +4647,7 @@ details.pl .cascade{margin-top:8px}
       'in a system with interactions — they are not forced to sum to the total.</div>' : '';
     return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>What is driving the delta?</summary>'+t1+t2+'</details></div>';
   }
-  var LABEL={sm:'S&M', cacPerARR:'CAC coefficient', persistenceAnnual:'Persistence',
+  var LABEL={sm:'S&M', cacPerARR:'CAC floor', persistenceAnnual:'Persistence',
              expansionCoefficientAnnual:'Expansion', grossMargin:'Gross margin', rd:'R&D', ga:'G&A',
              expansionCostPerARR:'Expansion realisation cost', maxMonthlyNewARR:'Acquisition capacity', acquisitionLagMonths:'Acquisition lag',
              logoRetentionAnnual:'Logo retention', contractionAnnual:'Contraction', newLogoARPA:'ARR per new logo', monetization:'Monetization',
@@ -4750,7 +4864,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; },
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
       unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum,

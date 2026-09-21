@@ -34,7 +34,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   await scrub(36);
   let t = await side();
   step('Where is the company at month 36, and what do the ARR-only KPIs say?',
-       ['World: ARR physics (the frozen Base). Company lens, month 36, MRR basis.'].concat(desc(t, ['MRR', 'cash · M36', 'EBITA margin · R12M', 'gross margin · law'])).concat(desc(t, ['gross dollar retention · R12M', 'net dollar retention · R12M', 'S&M · month', 'new MRR · month', 'average CAC', 'marginal CAC', 'payback · average', 'revenue · R12M', 'EBITA · R12M'])).concat([grab(t, 'Installed-base net', 60), grab(t, 'WHERE DID MRR GROWTH COME FROM', 60), grab(t, 'ACQUISITION EFFICIENCY', 60), grab(t, 'ECONOMICS OVER TIME', 60)]));
+       ['World: ARR physics (the frozen Base). Company lens, month 36, MRR basis.'].concat(desc(t, ['MRR', 'cash · M36', 'EBITA margin · R12M', 'gross margin · law'])).concat(desc(t, ['gross dollar retention · R12M', 'net dollar retention · R12M', 'S&M · month', 'new MRR · month', 'average CAC', 'marginal CAC', 'payback · average', 'revenue · R12M', 'EBITA · R12M'])).concat([grab(t, 'Installed-base net', 60), grab(t, 'WHERE DID MRR GROWTH COME FROM', 60), grab(t, 'ACQUISITION RESPONSE', 90), grab(t, 'ECONOMICS OVER TIME', 60)]));
 
   /* 2. customers beneath it */
   await click('#pack-customers'); await scrub(36); t = await side();

@@ -418,12 +418,12 @@ See [`KPI-SUFFICIENCY.md`](KPI-SUFFICIENCY.md).
 
 | Canonical name | Definition | Source |
 |---|---|---|
-| **CAC coefficient** | `cacPerARR`, the low-spend acquisition-law coefficient | assumption |
+| **CAC floor** | `cacPerARR`, the low-spend limit of average CAC — the cheapest acquisition the law allows | assumption |
 | **Average CAC** | S&M ÷ New ARR at the current spend (= coefficient + S&M ÷ capacity) | `derived.acquisition` |
 | **Marginal CAC** | 1 ÷ dN/dS&M, closed form | `derived.acquisition` |
 | **Cohort CAC (realised)** | a cohort's acquisition cost ÷ its initial ARR, stamped from its pending entry | `cohort.cacPerARRAtCreation` |
 | **Measured CAC · trailing 12** | Σ S&M ÷ Σ realised New ARR over the window — carries the lag | `K.acquisitionMeasures` |
-| **Coefficient payback** | CAC coefficient × 12 ÷ GM — the v1.0 `cacPaybackMonths`, 18.0 months at Base, unchanged | `derived` |
+| **Floor payback** | CAC floor × 12 ÷ GM — the v1.0 `cacPaybackMonths`, 18.0 months at Base, unchanged | `derived` |
 | **Average payback** / **Marginal payback** | the same construction on average / marginal CAC | `derived.acquisition` |
 | **Cohort payback** | the month a cohort's cumulative gross profit first covers its cost | `capital.cohortCapital` |
 

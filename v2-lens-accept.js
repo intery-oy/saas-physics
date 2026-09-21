@@ -8,6 +8,9 @@
  *   STRUCTURE   per lens: question · headline row · [controls] · the specified charts, nothing
  *               else — no formation canvas or Compare strip beneath the other four lenses
  *   COUNTS      Company 1 canvas · Customers 2 · Growth engine 2 · Monetization 1 · Economics 2
+ *   RESPONSE    Growth engine chart 1 is not a time series: x is S&M per month, y is New ARR per
+ *               month, and it must BE the engine's acquisition function — the operating points,
+ *               the ceiling and the average/marginal slopes all read off that one curve
  *   GEOMETRY    on two-chart pages the charts have identical left, width and height; every chart
  *               on the instrument shares the same margins and Y1–Y5 positions
  *   TIME        one cursor per chart at the same x; the global month moves them all; a click on
@@ -41,7 +44,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       figVisible: vis(document.getElementById('figwrap')), stripVisible: vis(document.getElementById('causal-slot')),
       cursors: svgs.map(s => s.querySelectorAll('.cur').length), curX: svgs.map(s => (s.querySelector('.cur') || {}).getAttribute && s.querySelector('.cur').getAttribute('x1')),
       margins: svgs.map(s => s.dataset.l + '/' + s.dataset.r), y1x: svgs.map(s => [...s.querySelectorAll('.ax')].filter(t => t.textContent === 'Y1').map(t => t.getAttribute('x'))[0]),
-      baseLines: svgs.map(s => s.querySelectorAll('path.ln.base').length), solid: svgs.map(s => [...s.querySelectorAll('path.ln:not(.base)')].every(p => !p.getAttribute('stroke-dasharray'))),
+      baseLines: svgs.map(s => s.querySelectorAll('path.ln.base').length), solid: svgs.map(s => [...s.querySelectorAll('path.ln:not(.base):not(.sl)')].every(p => !p.getAttribute('stroke-dasharray')))   /* .sl are slope annotations, not series */,
       rv: [...l.querySelectorAll('svg.ch .rv')].map(e => e.textContent), rl: [...l.querySelectorAll('svg.ch .rl')].map(e => e.textContent),
       titles: [...l.querySelectorAll('.chb .eyebrow')].map(e => e.textContent), legend: [...l.querySelectorAll('.lg')].map(e => e.innerText.replace(/\n/g, ' ')),
       hl: [...l.querySelectorAll('.hl .dl')].map(e => e.textContent), levers: [...l.querySelectorAll('.lever')].map(e => e.dataset.k), q: (l.querySelector('.lens-q') || {}).textContent,
@@ -72,7 +75,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   await world(pg);
   const eng = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), em = W.expRes.months[m - 1], s = W.expRes.months; let cumNew = 0, cumExp = 0, cumLoss = 0; for (let i = 0; i < m; i++) { cumNew += s[i].newARR; cumExp += s[i].expansion; cumLoss += s[i].leakage; } const cumEx = cumExp - cumLoss;
     const tr = s.reduce((a, x, i) => x.cashClosing < a.v ? { v: x.cashClosing, m: i + 1 } : a, { v: Infinity, m: 0 });
-    return { m, mech: W.expRes.mechanisms, arr: em.closingARR, yoy: em.arrGrowthYoY, cust: em.customers.closing, cash: em.cashClosing, fixed: em.monetization.fixedARR, variable: em.monetization.variableARR, cumNew, cumEx, cumExp, cumLoss, opening: s[0].openingARR, avg: W.expRes.derived.acquisition.averageCAC, marg: W.expRes.derived.acquisition.marginalCAC, gm: W.expRes.assumptions.grossMargin, ebita: em.ebita, rev: em.revenue, gp: em.grossProfit, trough: tr.v, troughM: tr.m }; });
+    return { m, mech: W.expRes.mechanisms, arr: em.closingARR, yoy: em.arrGrowthYoY, cust: em.customers.closing, cash: em.cashClosing, fixed: em.monetization.fixedARR, variable: em.monetization.variableARR, cumNew, cumEx, cumExp, cumLoss, opening: s[0].openingARR, sm0: em.sm, avg: W.expRes.derived.acquisition.averageCAC, marg: W.expRes.derived.acquisition.marginalCAC, gm: W.expRes.assumptions.grossMargin, ebita: em.ebita, rev: em.revenue, gp: em.grossProfit, trough: tr.v, troughM: tr.m }; });
   rec('WORLD: the acceptance world has Customer, Monetization and Cash physics on, at month 36, with acquisition capacity and lag in force', eng.mech.customerPhysics && eng.mech.monetization && eng.mech.cashPhysics && eng.mech.acquisitionSaturation && eng.mech.acquisitionLag && eng.m === 36, JSON.stringify(eng.mech));
 
   /* ---- COMPANY ---- */
@@ -124,13 +127,58 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   /* ---- GROWTH ENGINE ---- */
   await click(pg, '.lensnav .btn[data-lens="growth"]');
   const gr = await page(pg, 'growth');
-  rec('GROWTH ENGINE · structure: question · headline (S&M, new ARR, average CAC, marginal CAC, payback) · one control strip (S&M, CAC coefficient, capacity) · chart 1 · chart 2 · nothing else', /How efficiently is growth investment becoming new MRR\?/.test(gr.q) && gr.hl.join('|') === 'S&M · month|new MRR · month|average CAC|marginal CAC|payback · average' && gr.levers.join('|') === 'sm|cacPerARR|maxMonthlyNewARR' && gr.blocks.join(',') === 'lens-head,hl,lever-slot,chb,chb' && gr.charts === 2 && !gr.figVisible && !gr.stripVisible && gr.prose === 0, JSON.stringify(gr.blocks));
-  rec('GROWTH ENGINE · chart 1 acquisition efficiency (average vs marginal CAC, measured as thin reference) and chart 2 acquisition payback (average, marginal, realised dots), identical geometry; values at the right edge are the engine\'s', gr.titles[0] === 'Acquisition efficiency' && /^Acquisition payback/.test(gr.titles[1]) && sameGeo(gr.rects) && gr.rv.indexOf(eng.avg.toFixed(2) + '×') >= 0 && gr.rv.indexOf(eng.marg.toFixed(2) + '×') >= 0 && gr.rv.indexOf((eng.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && gr.rv.indexOf((eng.marg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && eng.marg > eng.avg, JSON.stringify({ titles: gr.titles, rv: gr.rv }));
+  rec('GROWTH ENGINE · structure: question · headline (S&M, new ARR, average CAC, marginal CAC, payback) · one control strip (S&M, CAC floor, capacity) · the response curve · the payback chart · one readout line · nothing else', /How efficiently is growth investment becoming new MRR\?/.test(gr.q) && gr.hl.join('|') === 'S&M · month|new MRR · month|average CAC|marginal CAC|payback · average' && gr.levers.join('|') === 'sm|cacPerARR|maxMonthlyNewARR' && gr.blocks.join(',') === 'lens-head,hl,lever-slot,chb,chb,comp-l' && gr.charts === 2 && !gr.figVisible && !gr.stripVisible && gr.prose === 0, JSON.stringify(gr.blocks));
+  rec('GROWTH ENGINE · chart 1 is the acquisition RESPONSE — x is S&M per month, y is new ARR per month, no clock — and chart 2 is the payback time series; both keep the instrument\'s frame and geometry',
+      /^Acquisition response/.test(gr.titles[0]) && /^Acquisition payback/.test(gr.titles[1]) && sameGeo(gr.rects) &&
+      (await D(pg, () => { const a = [...document.querySelectorAll('#lens-growth svg.ch')]; return a[0].dataset.x === 'spend' && a[0].querySelectorAll('.cur').length === 0 && !a[0].textContent.includes('Y1') && a[1].querySelectorAll('.cur').length === 1 && [...a[1].querySelectorAll('.ax')].some(t => t.textContent === 'Y1') && a[0].getAttribute('viewBox') === a[1].getAttribute('viewBox') && a[0].dataset.l === a[1].dataset.l && a[0].dataset.r === a[1].dataset.r; })) &&
+      gr.rv.indexOf((eng.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && gr.rv.indexOf((eng.marg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && eng.marg > eng.avg,
+      JSON.stringify({ titles: gr.titles, rv: gr.rv }));
+  const curve = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), W = window.__SP_DEBUG, c = W.acqCurve;
+    /* the closed form the engine documents, written out independently here */
+    const law = sm => c.enabled ? sm / (c.floor + sm / c.cap) : sm / c.floor;
+    const worst = c.samples.reduce((a, [sm, n]) => Math.max(a, Math.abs(n - law(sm))), 0);
+    const pts = s.querySelector('path.ln:not(.sl):not(.base)').getAttribute('d').replace(/[ML]/g, ' ').trim().split(/\s+/).map(Number);
+    const dot = [...s.querySelectorAll('circle')];
+    return { worst, samples: c.samples.length, drawn: pts.length / 2, op: c.op, cap: c.cap, showCap: c.showCap, xMax: c.xMax, yMax: c.yMax,
+      slopes: [...s.querySelectorAll('.bkl')].map(e => e.textContent), mark: [...s.querySelectorAll('.mk')].map(e => e.textContent),
+      rg: [...s.querySelectorAll('g.rg')].map(g => [g.querySelector('.rl').textContent, g.querySelector('.rv').textContent]),
+      capLine: s.querySelectorAll('.cap').length, dots: dot.length, axcap: [...s.querySelectorAll('.axcap')].map(e => e.textContent),
+      monotone: c.samples.every((p, i) => i === 0 || p[1] >= c.samples[i - 1][1]),
+      concave: c.samples.slice(2).every((p, i) => (p[1] - c.samples[i + 1][1]) <= (c.samples[i + 1][1] - c.samples[i][1]) + 1e-6) }; });
+  rec('GROWTH ENGINE · the drawn curve IS the engine\'s acquisition law — every sample equals S&M ÷ (CAC floor + S&M ÷ capacity), the curve rises and bends over (diminishing returns), the operating point is the engine\'s response to this month\'s spend, and the capacity ceiling is drawn where the engine puts it',
+      curve.worst < 1e-6 && curve.samples === 97 && curve.drawn === 97 && curve.monotone && curve.concave &&
+      Math.abs(curve.op.avg - eng.avg) < 1e-9 && Math.abs(curve.op.marg - eng.marg) < 1e-9 && curve.capLine === 1 && curve.showCap &&
+      curve.rg.some(r => r[0] === 'capacity' && r[1] === mrr(curve.cap)) && curve.rg.some(r => r[0] === 'new MRR' && r[1] === mrr(curve.op.n)) &&
+      curve.mark.join('|') === 'S&M ' + eurF(curve.op.sm) && curve.axcap.join('|') === 'new MRR / month|S&M / month →',
+      JSON.stringify({ worst: curve.worst, rg: curve.rg, mark: curve.mark, slopes: curve.slopes }));
+  rec('GROWTH ENGINE · the two slopes on the curve are the two CACs: the chord from the origin is average CAC, the tangent at the operating point is marginal CAC, and the tangent is the flatter of the two because marginal is worse',
+      curve.slopes.join('|') === 'average CAC ' + eng.avg.toFixed(2) + '×|marginal CAC ' + eng.marg.toFixed(2) + '×' &&
+      Math.abs(1 / curve.op.dn - eng.marg) < 1e-9 && Math.abs(curve.op.n / curve.op.sm - 1 / eng.avg) < 1e-12 && curve.op.dn < curve.op.n / curve.op.sm,
+      JSON.stringify({ slopes: curve.slopes, dn: curve.op.dn, chord: curve.op.n / curve.op.sm }));
   rec('GROWTH ENGINE · on Base no dashed Base lines are drawn; Experiment lines are solid', gr.baseLines.every(n => n === 0) && gr.solid.every(Boolean) && !/Base/.test(gr.legend.join('|')), JSON.stringify({ baseLines: gr.baseLines, legend: gr.legend }));
   await D(pg, () => { const i = document.querySelector('#lens-growth .lever input[data-for="sm"]'); i.value = 1200000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const gr2 = await page(pg, 'growth');
   const q2 = await D(pg, () => ({ sm: window.__SP_DEBUG.expA.sm, avg: window.__SP_DEBUG.expRes.derived.acquisition.averageCAC, marg: window.__SP_DEBUG.expRes.derived.acquisition.marginalCAC }));
-  rec('GROWTH ENGINE · moving the S&M lever to €1.20m: average CAC rises, marginal CAC rises faster (the spread widens toward the capacity); both charts draw Base dashed and thin beneath the solid Experiment', q2.sm === 1200000 && q2.avg > eng.avg && (q2.marg - eng.marg) > (q2.avg - eng.avg) && gr2.rv.indexOf(q2.avg.toFixed(2) + '×') >= 0 && gr2.baseLines.every(n => n >= 2) && /Base/.test(gr2.legend.join('|')) && (await D(pg, () => [...document.querySelectorAll('#lens-growth path.ln.base')].every(p => p.getAttribute('stroke-dasharray') && parseFloat(p.getAttribute('stroke-width')) <= 1.2))), JSON.stringify({ q2, baseLines: gr2.baseLines }));
+  const c2 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
+    return { op: c.op, base: c.base, lawMoved: c.lawMoved, floor: c.floor, cap: c.cap, baseCurves: s.querySelectorAll('path.ln.base').length,
+      dots: [...s.querySelectorAll('circle')].map(x => x.getAttribute('fill')), mark: [...s.querySelectorAll('.mk')].map(e => e.textContent) }; });
+  rec('GROWTH ENGINE · moving the S&M lever to €1.20m slides the operating point ALONG the curve — average CAC rises, marginal rises faster, the Base operating point appears where the run used to stand, and the curve itself does not move because the law did not change',
+      q2.sm === 1200000 && q2.avg > eng.avg && (q2.marg - eng.marg) > (q2.avg - eng.avg) &&
+      c2.op.sm === 1200000 && Math.abs(c2.op.avg - q2.avg) < 1e-9 && c2.base.sm === eng.sm0 && !c2.lawMoved && c2.baseCurves === 0 &&
+      c2.dots.length === 2 && c2.dots.indexOf('none') >= 0 && c2.mark.length === 2 &&
+      gr2.rv.indexOf((q2.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && /Base/.test(gr2.legend.join('|')),
+      JSON.stringify({ q2, op: c2.op, base: c2.base, lawMoved: c2.lawMoved }));
+  /* the law itself: a cheaper floor lifts the whole curve, a lower capacity bends it sooner */
+  await D(pg, () => { const i = document.querySelector('#lens-growth .lever input[data-for="cacPerARR"]'); i.value = 0.8; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  const c3 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
+    const law = sm => c.enabled ? sm / (c.floor + sm / c.cap) : sm / c.floor;
+    return { floor: c.floor, lawMoved: c.lawMoved, baseCurves: s.querySelectorAll('path.ln.base').length, n: c.op.n, worst: c.samples.reduce((a, [sm, n]) => Math.max(a, Math.abs(n - law(sm))), 0) }; });
+  await D(pg, () => { const i = document.querySelector('#lens-growth .lever input[data-for="maxMonthlyNewARR"]'); i.value = 600000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  const c4 = await D(pg, () => { const c = window.__SP_DEBUG.acqCurve; return { cap: c.cap, used: c.op.used, marg: c.op.marg, n: c.op.n }; });
+  rec('GROWTH ENGINE · changing the law changes the CURVE: a cheaper CAC floor lifts it (more new ARR for the same spend) and draws the Base law dashed beneath it; a lower capacity bends it sooner, so the same spend buys less and marginal CAC climbs',
+      c3.floor === 0.8 && c3.lawMoved && c3.baseCurves === 1 && c3.n > c2.op.n && c3.worst < 1e-6 &&
+      c4.cap === 600000 && c4.n < c3.n && c4.marg > c2.op.marg && c4.used > c2.op.used,
+      JSON.stringify({ c3, c4 }));
   await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
 
   /* ---- MONETIZATION ---- */
@@ -154,10 +202,14 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('ECONOMICS & CASH · no flow diagrams, no primary waterfall', !/PATH 1|PATH 2|billings · invoiced/.test(ca.txt) && cashBits.plClosed, '');
 
   /* ---- ONE INSTRUMENT ---- */
-  const all = await D(pg, () => { const svgs = [...document.querySelectorAll('#side svg.ch')]; return { n: svgs.length, margins: svgs.map(s => s.dataset.l + '/' + s.dataset.r), y1: svgs.map(s => [...s.querySelectorAll('.ax')].filter(t => t.textContent === 'Y1')[0].getAttribute('x')), vb: svgs.map(s => s.getAttribute('viewBox')), curX: svgs.map(s => s.querySelector('.cur').getAttribute('x1')), cursors: svgs.map(s => s.querySelectorAll('.cur').length) }; });
-  rec('INSTRUMENT · every chart shares one viewBox height, the same margins, the same Y1–Y5 x positions and one cursor at the same x', all.n === 7 && all.margins.every(x => x === all.margins[0]) && all.y1.every(x => x === all.y1[0]) && all.vb.every(v => v === all.vb[0]) && all.cursors.every(c => c === 1) && all.curX.every(x => x === all.curX[0]), JSON.stringify(all));
+  const all = await D(pg, () => { const every = [...document.querySelectorAll('#side svg.ch')], t = every.filter(s => !s.dataset.x), sp = every.filter(s => s.dataset.x === 'spend');
+    return { n: every.length, time: t.length, spend: sp.length, margins: every.map(s => s.dataset.l + '/' + s.dataset.r), vb: every.map(s => s.getAttribute('viewBox')),
+      y1: t.map(s => [...s.querySelectorAll('.ax')].filter(x => x.textContent === 'Y1')[0].getAttribute('x')),
+      curX: t.map(s => s.querySelector('.cur').getAttribute('x1')), cursors: t.map(s => s.querySelectorAll('.cur').length),
+      spendClock: sp.map(s => s.querySelectorAll('.cur').length) }; });
+  rec('INSTRUMENT · every chart shares one viewBox height and the same margins; the six time charts share the Y1–Y5 x positions and one cursor at the same x; the response curve keeps the frame but carries no clock, because its x-axis is money', all.n === 7 && all.time === 6 && all.spend === 1 && all.margins.every(x => x === all.margins[0]) && all.y1.every(x => x === all.y1[0]) && all.vb.every(v => v === all.vb[0]) && all.cursors.every(c => c === 1) && all.curX.every(x => x === all.curX[0]) && all.spendClock.every(c => c === 0), JSON.stringify(all));
   await scrub(pg, 48);
-  const moved = await D(pg, () => ({ curX: [...document.querySelectorAll('#side svg.ch .cur')].map(c => c.getAttribute('x1')), tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), legend: window.__SP_DEBUG.figLegend }));
+  const moved = await D(pg, () => ({ curX: [...document.querySelectorAll('#side svg.ch:not([data-x]) .cur')].map(c => c.getAttribute('x1')), tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), legend: window.__SP_DEBUG.figLegend }));
   rec('TIME · moving the global month moves every chart\'s cursor together, every lens\'s basis tag and the formation legend', moved.curX.every(x => x === moved.curX[0]) && moved.curX[0] !== all.curX[0] && moved.tags.join('|') === 'M48|M48|M48|M48|R12M', JSON.stringify(moved));
   await D(pg, () => { const s = document.querySelector('#lens-cash svg.ch'); const r = s.getBoundingClientRect(); s.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * 0.5, clientY: r.top + r.height * 0.5 })); }); await pg.waitForTimeout(300);
   const clicked = await D(pg, () => window.__SP_DEBUG.selectedMonth());
@@ -172,6 +224,21 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     for (const id of ['customers', 'growth', 'monetization', 'cash']) { await click(q, '.lensnav .btn[data-lens="' + id + '"]'); const p = await page(q, id); res[id] = { collide: p.collide, geo: p.rects.length < 2 || sameGeo(p.rects), w: p.rects[0] && p.rects[0].width, fig: p.figVisible }; }
     const hs = await D(q, () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 || document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1);
     rec('LABELS ' + w + ': no right-edge label collisions on any lens; two-chart pages keep identical geometry; charts use the full column; no horizontal scroll; no formation canvas beneath the other lenses', Object.values(res).every(r => r.collide === 0 && r.geo && r.w > (w <= 768 ? 500 : 700) && !r.fig) && !hs, JSON.stringify(res));
+    /* the response curve carries in-plot labels the other charts do not: the axis captions, the
+       ceiling tag, the two slope readings and the spend under the operating point */
+    await click(q, '.lensnav .btn[data-lens="growth"]');
+    const curveLab = {};
+    for (const sm of [0, 700000, 1500000, 2500000]) {
+      await D(q, v => { const i = document.querySelector('#lens-growth .lever input[data-for="sm"]'); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }, sm);
+      await q.waitForTimeout(320);
+      curveLab['sm' + sm] = await D(q, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), box = s.getBoundingClientRect();
+        const els = [...s.querySelectorAll('g.rg, text.bkl, text.mk, text.capl, text.axcap, text.ax')];
+        let c = 0; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { const a = els[i].getBoundingClientRect(), d = els[j].getBoundingClientRect();
+          if (a.top < d.bottom && d.top < a.bottom && a.left < d.right && d.left < a.right) c++; }
+        return { c, out: els.some(e => { const r = e.getBoundingClientRect(); return r.right > box.right + 1 || r.left < box.left - 1; }) }; });
+    }
+    rec('LABELS ' + w + ': on the response curve the axis captions, the ceiling tag, the two slope readings and the spend under the operating point never print over each other or leave the frame — at €0, €700k, €1.50m and €2.50m of S&M',
+        Object.values(curveLab).every(r => r.c === 0 && !r.out), JSON.stringify(curveLab));
     await q.close();
   }
 

@@ -78,8 +78,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       Math.abs(obs.expCost - im.expansionCost) < 1e-6 && Math.abs(obs.pending - im.pendingNewARR) < 1e-6, 'page ' + obs.expCost + '/' + obs.pending + ' node ' + im.expansionCost + '/' + im.pendingNewARR);
   const fmtEur = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
   const gcond = await pg.evaluate(() => { const g = document.getElementById('lens-growth'), q = window.__SP_DEBUG.expRes.derived.acquisition; const wf = [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent);
-    return { cost: wf.some(t => /Expansion realisation cost/.test(t)), cap: /⌈⌉Acquisition capacity\n€2\.00m\/mo\nON/.test(g.innerText), law: /⋈CAC coefficient/.test(g.innerText), meas: g.innerText.includes('average CAC') && g.innerText.includes('marginal CAC'), spread: q.marginalCAC > q.averageCAC, rv: [...g.querySelectorAll('svg.ch .rv')].map(e => e.textContent) }; });
-  rec('OBSERVE: the Growth engine shows the capacity lever on at €2.00m, the CAC coefficient as a law beside the average and marginal measurements, marginal above average under the bound, and the P&L waterfall carries the expansion-cost line — only because the mechanisms are on',
+    return { cost: wf.some(t => /Expansion realisation cost/.test(t)), cap: /⌈⌉Acquisition capacity\n€2\.00m\/mo\nON/.test(g.innerText), law: /⋈CAC floor/.test(g.innerText), meas: g.innerText.includes('average CAC') && g.innerText.includes('marginal CAC'), spread: q.marginalCAC > q.averageCAC, rv: [...g.querySelectorAll('svg.ch .rv')].map(e => e.textContent) }; });
+  rec('OBSERVE: the Growth engine shows the capacity lever on at €2.00m, the CAC floor as a law beside the average and marginal measurements, marginal above average under the bound, and the P&L waterfall carries the expansion-cost line — only because the mechanisms are on',
       gcond.cost && gcond.cap && gcond.law && gcond.meas && gcond.spread, JSON.stringify(gcond));
   const pb = await pg.evaluate(() => { const q = window.__SP_DEBUG.expRes.derived.acquisition; return { avg: q.averagePaybackMonths, marg: q.marginalPaybackMonths }; });
   rec('OBSERVE: average and marginal payback on screen equal the engine\'s acquisitionResponse (avg CAC × 12 ÷ GM, marginal CAC × 12 ÷ GM)',
@@ -134,7 +134,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const cacARR = await pg.evaluate(() => { const t = (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText); const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
   await jsClick('#basis-mrr'); await pg.waitForTimeout(200);
   rec('CAC-UNITS: switching the MRR/ARR display basis leaves the cohort CAC string unchanged (CAC is per €1 of ARR, never ×12)',
-      cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC coefficient 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
+      cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC floor 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
   await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); });   /* Inspect is its own surface: back to the lenses */
   await pg.waitForTimeout(300);
   const alive = await pg.evaluate(() => { const m = String(window.__SP_DEBUG.figLegend).match(/OPENING BASE \+ (\d+) COHORTS/); return m ? +m[1] + 1 : null; });   /* the formation legend counts the cohorts drawn */
@@ -169,7 +169,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="bounded"]').click()); await pg.waitForTimeout(500);
   const s8 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, cap: window.__SP_DEBUG.expA.maxMonthlyNewARR, q: window.__SP_DEBUG.expRes.derived.acquisition }));
   rec('SCENARIO 8: the bound is on at €2.0m, the panel shows average vs marginal CAC and the response-curve table, and no optimum is declared',
-      s8.cap === 2000000 && s8.txt.includes('Average CAC') && s8.txt.includes('Marginal CAC') && s8.txt.includes('Coefficient payback') && s8.txt.includes('Average payback') && s8.txt.includes('Marginal payback') && s8.txt.includes('Acquisition response in the Experiment') &&
+      s8.cap === 2000000 && s8.txt.includes('Average CAC') && s8.txt.includes('Marginal CAC') && s8.txt.includes('Floor payback') && s8.txt.includes('Average payback') && s8.txt.includes('Marginal payback') && s8.txt.includes('Acquisition response in the Experiment') &&
       s8.txt.includes(s8.q.marginalCAC.toFixed(2) + '×') && !/optimal|should stop|should invest/i.test(s8.txt), s8.txt.slice(0, 100).replace(/\n/g, ' | '));
   await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="lag"]').click()); await pg.waitForTimeout(500);
   const s9 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), lag: window.__SP_DEBUG.expA.acquisitionLagMonths, pend: window.__SP_DEBUG.expRes.pendingAtHorizon.newARR }));

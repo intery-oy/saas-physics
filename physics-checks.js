@@ -219,9 +219,11 @@ function walkCompare(ref, cur, path, acc) {
   var tpl = fs.readFileSync(__dirname + '/v1.template.html', 'utf8');
   ok('CAC-UNITS', 'no CAC figure in the template is multiplied by the basis (no "AtCreation*(basis" / "CAC*(basis" pattern)',
      !/cacPerARRAtCreation\s*\*\s*\(basis|cacCoefficientAtCreation\s*\*\s*\(basis|CAC\s*\*\s*\(basis/.test(tpl), '');
-  ok('CAC-UNITS', 'the canonical CAC vocabulary is used on screen: "CAC coefficient", "Average CAC", "Marginal CAC", "Cohort CAC (realised)", "Measured CAC · trailing 12"; and paybacks are qualified',
-     /CAC coefficient/.test(tpl) && /Average CAC/.test(tpl) && /Marginal CAC/.test(tpl) && /Cohort CAC \(realised\)/.test(tpl) && /Measured CAC · trailing 12/.test(tpl) &&
-     /Coefficient payback/.test(tpl) && /Average payback/.test(tpl) && /Marginal payback/.test(tpl) && /Cohort payback/.test(tpl) && !/'CAC payback'/.test(tpl), '');
+  /* the coefficient is named for what it economically IS: the floor under average CAC, the
+     cheapest acquisition the law allows, reached only as spend approaches zero. */
+  ok('CAC-UNITS', 'the canonical CAC vocabulary is used on screen: "CAC floor", "Average CAC", "Marginal CAC", "Cohort CAC (realised)", "Measured CAC · trailing 12"; and paybacks are qualified',
+     /CAC floor/.test(tpl) && /Average CAC/.test(tpl) && /Marginal CAC/.test(tpl) && /Cohort CAC \(realised\)/.test(tpl) && /Measured CAC · trailing 12/.test(tpl) &&
+     /Floor payback/.test(tpl) && /Average payback/.test(tpl) && /Marginal payback/.test(tpl) && /Cohort payback/.test(tpl) && !/'CAC payback'/.test(tpl) && !/CAC coefficient/.test(tpl), '');
 })();
 
 /* ------------------------------------------------------------------ *
