@@ -52,6 +52,15 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const eurF = v => { const a = Math.abs(v); return (v < 0 ? '€-' : '€') + (a >= 1e6 ? (a / 1e6).toFixed(2) + 'm' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : Math.round(a)); };
   const sameGeo = r => r.length === 2 && Math.abs(r[0].left - r[1].left) < 0.6 && Math.abs(r[0].width - r[1].width) < 0.6 && Math.abs(r[0].height - r[1].height) < 0.6;
 
+  /* ---- DEFAULT WORLD: a fresh page load, no world chosen ---- */
+  const fresh = await open(1440, 900); await scrub(fresh, 36);
+  const boot = await D(fresh, () => ({ pack: window.__SP_DEBUG.activePack, mech: window.__SP_DEBUG.expRes.mechanisms, on: (document.querySelector('#worldlist .btn.on') || {}).textContent, model: (document.querySelector('#lens-company .model') || {}).textContent }));
+  await click(fresh, '.lensnav .btn[data-lens="customers"]');
+  const bootCu = await page(fresh, 'customers');
+  rec('DEFAULT WORLD: a fresh page load opens on A · Enterprise with Customer, Monetization and Cash physics ON — the model chip reads MODEL · ARR · CUSTOMERS · MONETIZATION · CASH', boot.pack === 'wA' && boot.mech.customerPhysics && boot.mech.monetization && boot.mech.cashPhysics && /A · Enterprise/.test(boot.on) && /MODEL · ARR · Customers · Monetization · Cash/i.test(boot.model), JSON.stringify(boot));
+  rec('DEFAULT WORLD: opening Customers on a fresh load shows the full lens — five headline items, chart 1 customer base development, chart 2 where ARR growth came from, no fallback note', bootCu.hl.join('|') === 'customers|MRR per customer|MRR|logo retention · R12M|net dollar retention · R12M' && bootCu.charts === 2 && bootCu.titles.join('|') === 'Customer base development|Where MRR growth came from · cumulative since M0' && sameGeo(bootCu.rects) && !/physics off/i.test(bootCu.txt), JSON.stringify({ hl: bootCu.hl, titles: bootCu.titles, charts: bootCu.charts }));
+  await fresh.close();
+
   const pg = await open(1440, 900);
   await world(pg);
   const eng = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), em = W.expRes.months[m - 1], s = W.expRes.months; let cumNew = 0, cumEx = 0; for (let i = 0; i < m; i++) { cumNew += s[i].newARR; cumEx += s[i].expansion - s[i].leakage; }

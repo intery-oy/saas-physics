@@ -70,6 +70,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push(w + ': console: ' + msg.text()); });
     await pg.goto(file); await pg.waitForTimeout(800);
     if(!keepWelcome) await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
+    if(!keepWelcome) await pg.evaluate(() => { document.getElementById('pack-arr').click(); });   /* these checks pick their worlds explicitly, starting from ARR physics; the portal itself opens on the Enterprise world */
     return pg;
   }
   const setScrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };

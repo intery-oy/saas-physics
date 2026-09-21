@@ -21,6 +21,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + '');
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
+  await pg.evaluate(() => { document.getElementById('pack-arr').click(); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });

@@ -571,7 +571,7 @@ details.pl .cascade{margin-top:8px}
     </div>
     <h5>Three ways to start</h5>
     <div class="wstart">
-      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>Open <b>Change</b>, choose <b>A &middot; Enterprise</b> under World, close the drawer, press play and stop around month 36.</div>
+      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>The portal opens on <b>A &middot; Enterprise</b> with every layer on. Press play and stop around month 36; the other worlds are under World in <b>Change</b>.</div>
       <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>In <b>Change</b>, move <b>S&amp;M investment</b> or <b>Logo retention</b>, close the drawer and open <b>Compare</b>.</div>
       <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
     </div>
@@ -7172,7 +7172,9 @@ details.pl .cascade{margin-top:8px}
     requestAnimationFrame(frame);
   }
 
-  buildForces(); buildScenarios(); buildLawChips(); playIcon(); resize(); recompute(); syncTime();
+  buildForces(); buildScenarios(); buildLawChips(); playIcon(); resize();
+  applyPack('wA');   /* the default world: Enterprise SaaS with Customer, Monetization and Cash physics on; the ARR-only pack stays available under World */
+  syncTime();
   requestAnimationFrame(frame);
 
   /* Acceptance-test hook only — read-only getters onto the closured state, so
