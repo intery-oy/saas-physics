@@ -199,7 +199,18 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       core.groups.length === full.groups.length,
       JSON.stringify({ core: core.hdr.length, full: full.hdr.length, groups: core.groups.length }));
 
-  /* ---- STICKY ---- */
+  /* ---- STICKY ---- *
+   * Freezing is opt-in: on the engines that failed to paint the table, the sticky cells were the
+   * only ones that DID paint, so the plain table is the default and this is a switch. Both
+   * states have to work — plain scrolls everything, frozen keeps the month and the header. */
+  const plain = await pg.evaluate(async () => {
+    const sc = document.getElementById('ledgerscroll'), tb = document.querySelector('table.ldg');
+    sc.scrollLeft = 900; await new Promise(z => setTimeout(z, 150));
+    const mo = tb.tBodies[0].rows[10].cells[0], scr = sc.getBoundingClientRect(), r = mo.getBoundingClientRect();
+    sc.scrollLeft = 0;
+    return { freeze: tb.classList.contains('freeze'), pos: getComputedStyle(mo).position, scrolledAway: r.left < scr.left };
+  });
+  await pg.evaluate(() => document.getElementById('ldg-freeze').click()); await pg.waitForTimeout(600);
   const sticky = await pg.evaluate(async () => {
     const sc = document.getElementById('ledgerscroll'), tb = document.querySelector('table.ldg');
     const scrollable = sc.scrollWidth > sc.clientWidth + 50;
@@ -213,9 +224,11 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
     return { scrollable, monthCellStays: inside(moCell), monthHeadStays: inside(moHead), groupHeadStays: inside(grpHead), headOnTop, st, stH,
       scrollW: sc.scrollWidth, clientW: sc.clientWidth };
   });
-  rec('STICKY: the table scrolls horizontally, and the month column and both header rows stay put — a column read a thousand pixels to the right still has a name and a month',
+  rec('STICKY: the table scrolls horizontally; plain by default, and with Freeze on the month column and both header rows stay put — a column read a thousand pixels to the right still has a name and a month',
+      plain.freeze === false && plain.pos === 'static' && plain.scrolledAway &&
       sticky.scrollable && sticky.monthCellStays && sticky.monthHeadStays && sticky.groupHeadStays && sticky.headOnTop &&
-      sticky.st === 'sticky' && sticky.stH === 'sticky', JSON.stringify(sticky));
+      sticky.st === 'sticky' && sticky.stH === 'sticky', JSON.stringify({ plain, sticky }));
+  await pg.evaluate(() => document.getElementById('ldg-freeze').click()); await pg.waitForTimeout(500);
 
   /* ---- MONTH ---- */
   const month = await pg.evaluate(async () => {
