@@ -672,7 +672,7 @@ details.pl .cascade{margin-top:8px}
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
     <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">74bc08b</span>
+    <span class="chip build" id="build-chip" title="The commit this page was built from">0bb5569</span>
   </header>
 
   <aside class="rail">
@@ -5176,7 +5176,7 @@ details.pl .cascade{margin-top:8px}
         { id:'arr', title:'ARR · REVENUE', lines:[reur(mm.closingARR)+' '+basis, 'revenue '+eur(mm.revenue)+' /mo'], kind:'stock', view:'company',
           laws:[], meas:['→ GRR '+(kpi?pct(kpi.grr,1):'—')+' · NRR '+(kpi?pct(kpi.nrr,1):'—'), '→ growth '+(mm.arrGrowthYoY===null?'—':pct(mm.arrGrowthYoY,1)+' y/y')] },
         { id:'pl', title:'P&L', lines:['gross profit '+eur(mm.grossProfit), 'EBITA '+eur(mm.ebita)], kind:'flow', view:'company',
-          laws:['⋈ gross margin '+pct(lawNow('grossMargin'),0), mm.expansionCost>0 ? '⋈ expansion cost '+lawNow('expansionCostPerARR').toFixed(2)+'×' : null], meas:['→ EBITA margin '+(mm.revenue>0?pct(mm.ebita/mm.revenue,0):'—')] },
+          laws:['⋈ gross margin '+pct(lawNow('grossMargin'),0), mm.expansionCost>0 ? '⋈ expansion cost '+lawNow('expansionCostPerARR').toFixed(2)+'×' : null], meas:['→ EBITA margin '+(mm.revenue>0?pct(mm.ebitaMargin,0):'—')] },
         { id:'bill', title:'BILLING · COLLECTION', lines: caOn ? ['billed '+eur(mm.cash.billings), 'collected '+eur(mm.cash.collections)] : ['no cash layer','cash = EBITA'], kind: caOn?'mech':'off', view:'cash',
           laws: caOn ? ['⋈ '+expRes.derived.cash.billingTermMonths+' mo in '+expRes.derived.cash.billingTiming, expRes.derived.cash.collectionDelayMonths>0 ? '⋈ collected +'+expRes.derived.cash.collectionDelayMonths+' mo' : '⋈ collected on invoice'] : [],
           meas: caOn ? ['deferred '+eur(Math.abs(mm.cash.deferredClosing)), 'receivables '+eur(mm.cash.receivablesClosing)] : [] },
@@ -6743,7 +6743,7 @@ details.pl .cascade{margin-top:8px}
     for(var t=1;t<=res.horizon;t++){
       var m = res.months[t-1], p = t>1 ? res.months[t-2] : null, coh = ledgerCohortAt(res, t);
       rows.push({
-        t: t, m: m, prev: p, a: a, coh: coh,
+        t: t, m: m, prev: p, a: a, coh: coh, res: res,
         /* the pending-acquisition stock this month OPENED with: last month's
            closing stock, or — at month 1 — the opening pipeline the engine
            seeded, which is exactly what a warm start means */
@@ -6764,6 +6764,9 @@ details.pl .cascade{margin-top:8px}
   function ledgerSpec(res, a){
     var CU = res.mechanisms.customerPhysics, MO = res.mechanisms.monetization,
         CA = res.mechanisms.cashPhysics, IV = res.mechanisms.interventions;
+    /* An age-banded world has no single persistence. Printing the base scalar here named a rate
+       that is in force nowhere — 90% while the cohorts were living under 75, 88 and 95. */
+    var BANDED = !res.bandsAreFlat;
     var BQ = basis;                      /* recurring quantities print in the display basis */
     var G = [];
 
@@ -6778,7 +6781,7 @@ details.pl .cascade{margin-top:8px}
     ].concat(CU ? [
       { n:'Logo retention /yr', f:function(R){ return lP(ledgerLawAt(R.m,'logoRetentionAnnual',R.a),2); } },
       { n:'Contraction /yr',    f:function(R){ return lP(ledgerLawAt(R.m,'contractionAnnual',R.a),2); } }
-    ] : [
+    ] : BANDED ? bandLawColumns(res) : [
       { n:'Persistence /yr',    f:function(R){ return lP(ledgerLawAt(R.m,'persistenceAnnual',R.a),2); } },
       { n:'Expansion /yr',      f:function(R){ return lP(ledgerLawAt(R.m,'expansionCoefficientAnnual',R.a),2); } }
     ]).concat(IV ? [
@@ -6802,6 +6805,10 @@ details.pl .cascade{margin-top:8px}
       { n:'Pipeline spend opening', f:function(R){ return lE(R.pendOpenSpend); } },
       { n:'Spend realised €', f:function(R){ return R.coh && R.coh.acquisitionCost===null ? 'pre-window' : lE(R.realisedSpend); } },
       { n:'Pipeline spend closing', f:function(R){ return lE(R.m.pendingSpend); } },
+      /* the euros that bought the ARR landing in the first months of a warm start. They were
+         spent before M1, so they are in no cost line in this window — which is exactly why the
+         cohorts they created carry no acquisition cost, and why cohort cost falls short of S&M. */
+      { n:'S&M before M1 (pre-window)', f:function(R){ return lE(R.res.derived.openingPipelinePriorSM || 0); } },
       { n:'Spend check', chk:function(R){ return [R.pendOpenSpend + R.m.sm - R.realisedSpend - R.m.pendingSpend, R.pendOpenSpend + R.m.pendingSpend + R.m.sm]; } },
       { n:'Cohort created', t:1, f:function(R){ return R.coh ? R.coh.id : '—'; } },
       { n:'Cohort CAC (realised)', f:function(R){ return R.coh ? (R.coh.cacPerARRAtCreation===null ? 'pre-window' : lX(R.coh.cacPerARRAtCreation)) : '—'; } },
@@ -6886,7 +6893,9 @@ details.pl .cascade{margin-top:8px}
       { n:'EBITA check', c:1, chk:function(R){ var m=R.m; return [m.revenue - m.cogs - m.sm - m.rd - m.ga - m.expansionCost - m.interventionCost - m.ebita, m.revenue]; } },
       { n:'EBITA margin', c:1, f:function(R){ return lP(R.m.ebitaMargin,1); } },
       { n:'Avg '+BQ+' in month', f:function(R){ return lR(R.m.avgARR); } },
-      { n:'Revenue check', chk:function(R){ return [R.m.avgARR/12 - R.m.revenue, R.m.revenue]; } },
+      /* the midpoint convention, stated as an identity rather than left implicit:
+         revenue = average of the opening and closing recurring-revenue balances, per month */
+      { n:'Revenue = avg ' + BQ + (BQ === 'ARR' ? ' ÷ 12' : '') + ' · check', chk:function(R){ return [R.m.avgARR/12 - R.m.revenue, R.m.revenue]; } },
       { n:'Cum. revenue', f:function(R){ return lE(R.m.cumulative.revenue); } },
       { n:'Cum. gross profit', f:function(R){ return lE(R.m.cumulative.grossProfit); } },
       { n:'Cum. EBITA', f:function(R){ return lE(R.m.cumulative.ebita); } }
@@ -6919,7 +6928,10 @@ details.pl .cascade{margin-top:8px}
     G.push({ n:'Derived', c:[
       { n:BQ+' growth MoM', c:1, f:function(R){ return lP(R.m.arrGrowthMoM,2); } },
       { n:BQ+' growth YoY', c:1, f:function(R){ return R.m.arrGrowthYoY===null ? '—' : lP(R.m.arrGrowthYoY,1); } },
-      { n:'Cohorts alive', c:1, f:function(R){ return String(R.m.cohortCount); } },
+      /* months[t].cohortCount is cohorts CREATED up to t — the opening base plus every acquisition
+         cohort since, whatever its balance. It is not a count of cohorts still carrying ARR, and
+         calling it that read 61 in a world that acquired nothing. Renamed, not recomputed. */
+      { n:'Cohorts created to date', c:1, f:function(R){ return String(R.m.cohortCount); } },
       { n:'Burn', f:function(R){ return lE(R.m.burn); } },
       { n:'Pipeline '+BQ, f:function(R){ return lR(R.m.pendingNewARR); } },
       { n:'Average payback (months)', f:function(R){ return lN(R.kAcq.averagePaybackMonths,1); } },
@@ -6934,6 +6946,27 @@ details.pl .cascade{margin-top:8px}
     return G;
   }
 
+  /* One column per band per law: the law as it actually is, not collapsed into a scalar.
+     res.bands is the engine's own resolved band table — nothing is recomputed here. */
+  function bandLawLabel(b, i, bands){
+    var lo = i === 0 ? 0 : bands[i-1].maxAgeExclusive;
+    var hi = b.maxAgeExclusive;
+    var span = (hi === null || hi === undefined || !isFinite(hi)) ? (lo + '+ mo') : (lo + '–' + (hi - 1) + ' mo');
+    return (b.name || 'Band ' + (i + 1)) + ' (' + span + ')';
+  }
+  function bandLawColumns(res){
+    var out = [], bs = res.bands;
+    bs.forEach(function(b, i){
+      var lbl = bandLawLabel(b, i, bs);
+      out.push({ n:'Persistence /yr · ' + lbl, c:1, f:function(){ return lP(b.persistenceAnnual, 2); } });
+    });
+    bs.forEach(function(b, i){
+      var lbl = bandLawLabel(b, i, bs);
+      out.push({ n:'Expansion /yr · ' + lbl, c:1, f:function(){ return lP(b.expansionCoefficientAnnual, 2); } });
+    });
+    out.push({ n:'Age bands', c:1, t:1, f:function(){ return String(bs.length) + ' by cohort age'; } });
+    return out;
+  }
   function ledgerColumns(G){
     var out = [];
     G.forEach(function(g, gi){
@@ -6983,6 +7016,10 @@ details.pl .cascade{margin-top:8px}
     var ncol = groups.reduce(function(s,g){ return s+g.cols.length; }, 0);
     document.getElementById('ldg-note').innerHTML =
       esc(rows.length+' months × '+ncol+' columns · every cell is engine state, never a second calculation · recurring quantities in '+basis+
+          ' · revenue is the midpoint convention, (opening '+basis+' + closing '+basis+') ÷ 2'+(basis==='ARR'?' ÷ 12':'')+
+          (expRes.derived.openingPipelinePriorSM > 0
+            ? ' · the pipeline open at M1 was bought before the window for ' + lE(expRes.derived.openingPipelinePriorSM) + ', which is in no cost line here'
+            : '')+
           ' · checks reconcile the engine\'s unrounded figures, so hand-adding a printed column can differ by a euro of rounding')+
       (off.length ? esc(' · layers off: '+off.join(', ')+' (those blocks have nothing to publish)') : '');
     var st = document.getElementById('ldg-status');
@@ -7265,6 +7302,17 @@ details.pl .cascade{margin-top:8px}
         'Inside each block the columns run <b style="color:var(--ink)">opening stock → flows during the month → ending stock → derived ratios</b>, closed by a check.')+
       blk('It is a projection, not a second model', 'Every cell is a field the engine published — <b style="color:var(--ink)">months[t]</b>, <b style="color:var(--ink)">derived</b>, <b style="color:var(--ink)">cohorts</b>, <b style="color:var(--ink)">acquisitionLedger</b> — or a measurement from the KPI layer. '+
         'Nothing is recalculated here. The only arithmetic is the check columns, and that is the point: a residual computed from the engine\'s own published figures tests the engine. A ledger that recomputed what it reconciles would prove nothing.')+
+      blk('Two conventions worth knowing', 'Revenue is the <b style="color:var(--ink)">midpoint</b> of the month: '+
+        '<b style="color:var(--ink)">(opening '+basis+' + closing '+basis+') ÷ 2'+(basis==='ARR'?' ÷ 12':'')+'</b>. A cohort born this month therefore earns half a month, '+
+        'and the Revenue check is that identity, not a separate estimate. '+
+        (expRes.derived.openingPipelinePriorSM > 0
+          ? 'And the pipeline standing open at month 1 was <b style="color:var(--ink)">bought before the window</b>, for '+lE(expRes.derived.openingPipelinePriorSM)+': '+
+            'those euros appear in no cost line here, which is why the cohorts they create carry no acquisition cost and why cohort cost falls short of the S&amp;M expensed. '+
+            'The column <b style="color:var(--ink)">S&amp;M before M1</b> carries that figure so the capital story closes across the M0 boundary.'
+          : 'The pipeline starts empty in this world, so every euro of acquisition inside the window was also spent inside it.'))+
+      (expRes.bandsAreFlat ? '' : blk('This world has age-banded laws',
+        'Persistence and expansion are not one number here: they are set per <b style="color:var(--ink)">cohort age band</b>, and a cohort moves between bands as it ages. '+
+        'The ledger prints one column per band per law rather than a single rate, because no single rate is in force.'))+
       blk('Reading a check', 'A check prints the residual of an identity, so <b style="color:var(--in)">0</b> means it closes. '+
         'The '+basis+' block closes <b style="color:var(--ink)">opening + new + expansion − contraction − churn − closing = 0</b>; customers close on logos; cash closes on <b style="color:var(--ink)">opening + FCF − closing</b>, and under Cash Physics also on collections, deferred revenue and receivables. '+
         'Tolerance is relative to the magnitudes reconciled — a residual of a few cents against a hundred million euros is double-precision noise, not a broken model.')+

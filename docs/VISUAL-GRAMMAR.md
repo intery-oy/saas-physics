@@ -240,6 +240,20 @@ million euros is double-precision noise, not a broken model. `ledger-accept.js` 
 can fail: it corrupts one published figure in the page's own run and requires the identities that
 read it to break and the row to be flagged.
 
+**A multidimensional law is never collapsed into a scalar.** Where persistence and expansion are
+set per cohort age band, the ledger prints one column per band per law — it does not print the
+flat base assumption, which in an age-banded world is a rate in force nowhere.
+
+**Conventions the reader cannot infer are stated on the surface.** Revenue is the midpoint of the
+month — the average of the opening and closing recurring-revenue balances — so a cohort born this
+month earns half a month; the identity is named in the check column and in the bar, in whichever
+basis is displayed. And where the acquisition pipeline opens warm, the euros that bought it were
+spent before month 1: the ledger carries that figure, because it is what explains cohort
+acquisition cost falling short of the S&M expensed inside the window.
+
+**A column name is the concept it carries.** `cohortCount` is cohorts created to date, not
+cohorts still carrying revenue, and the column says so.
+
 **Timing is explicit**, which is what the ledger is for: acquisition separates *produced* (what
 this month's spend bought) from *landed* (what arrived in the stock this month), with the pending
 pipeline between them and the spend month each landing came from. Under a lag those are different

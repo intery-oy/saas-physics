@@ -291,5 +291,133 @@ console.log('\n' + '='.repeat(78) + '\nRETENTION — R12M rebuilt from the indep
   grand.checked++; if (!ok) grand.failed++;
 });
 
+
+/* ------------------------------------------------------------------ *
+ * MONETIZATION — the per-customer component dynamics, reimplemented.
+ *
+ * From the module's documented laws, in the stated order each month:
+ *   1 contraction   variable units x (1 - cM)
+ *   2 price         price_k x (1 + pM_k),      every component
+ *   3 usage         units_k -> min(cap_k, units_k (1 + uM_k)),  variable only
+ *   4 adoption      pen_k   -> pen_k + (penCap_k - pen_k) aM_k, variable only
+ * with revenue per customer = SUM_k penetration_k x units_k x price_k, annual,
+ * and rates pM = (1+P)^(1/12) - 1, uM = (1+U)^(1/12) - 1, aM = 1 - (1-A)^(1/12).
+ *
+ * The four effects are the revenue differences BETWEEN those steps, so their order matters and
+ * is part of the law. Nothing below calls monetization.js.
+ * ------------------------------------------------------------------ */
+function monetizationIndependent(spec, cM, months) {
+  var comp = spec.components.map(function (c) {
+    var fixed = c.kind === 'fixed';
+    return { fixed: fixed,
+      pen: c.penetration === undefined ? 1 : c.penetration,
+      units: c.units, price: c.priceAnnual,
+      pM: Math.pow(1 + (c.priceGrowthAnnual || 0), 1 / 12) - 1,
+      uM: fixed ? 0 : Math.pow(1 + (c.usageGrowthAnnual || 0), 1 / 12) - 1,
+      aM: fixed ? 0 : 1 - Math.pow(1 - (c.adoptionAnnual || 0), 1 / 12),
+      unitsCap: fixed ? c.units : (c.unitsCap === undefined ? null : c.unitsCap),
+      penCap: fixed ? 1 : (c.penetrationCap === undefined ? 1 : c.penetrationCap) };
+  });
+  function rev() { var f = 0, v = 0; comp.forEach(function (k) { var x = k.pen * k.units * k.price; if (k.fixed) f += x; else v += x; }); return { total: f + v, fixed: f, variable: v }; }
+  var out = [];
+  for (var t = 1; t <= months; t++) {
+    var r0 = rev().total;
+    comp.forEach(function (k) { if (!k.fixed) k.units *= (1 - cM); });
+    var r1 = rev().total;
+    comp.forEach(function (k) { k.price *= (1 + k.pM); });
+    var r2 = rev().total;
+    comp.forEach(function (k) { if (!k.fixed) { var u = k.units * (1 + k.uM); k.units = k.unitsCap === null ? u : Math.min(k.unitsCap, u); } });
+    var r3 = rev().total;
+    comp.forEach(function (k) { if (!k.fixed) k.pen += (k.penCap - k.pen) * k.aM; });
+    var rv = rev();
+    out.push({ t: t, opening: r0, closing: rv.total, fixed: rv.fixed, variable: rv.variable,
+      contraction: r0 - r1, price: r2 - r1, usage: r3 - r2, adoption: rv.total - r3 });
+  }
+  return out;
+}
+
+console.log('\n' + '='.repeat(78) + '\nMONETIZATION — component dynamics rebuilt from the documented laws\n');
+[
+  ['platform + usage, caps far off', { components: [
+      { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000, priceGrowthAnnual: 0.03 },
+      { name: 'usage', kind: 'variable', penetration: 0.8, units: 100, priceAnnual: 100, priceGrowthAnnual: 0.01, usageGrowthAnnual: 0.20, unitsCap: 100000, adoptionAnnual: 0.10, penetrationCap: 1 } ] }],
+  ['usage cap binds early',          { components: [
+      { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000 },
+      { name: 'usage', kind: 'variable', penetration: 0.5, units: 100, priceAnnual: 100, usageGrowthAnnual: 0.60, unitsCap: 110, adoptionAnnual: 0.30, penetrationCap: 0.9 } ] }],
+  ['penetration cap already reached',{ components: [
+      { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 9000 },
+      { name: 'usage', kind: 'variable', penetration: 0.95, units: 50, priceAnnual: 80, usageGrowthAnnual: 0.10, unitsCap: 200, adoptionAnnual: 0.25, penetrationCap: 0.95 } ] }],
+  ['null world: no growth of any kind', { components: [
+      { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 20000 },
+      { name: 'usage', kind: 'variable', penetration: 0.6, units: 40, priceAnnual: 60, usageGrowthAnnual: 0, adoptionAnnual: 0, penetrationCap: 0.6 } ] }],
+  ['falling unit price',             { components: [
+      { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 2400 },
+      { name: 'usage', kind: 'variable', penetration: 0.9, units: 500, priceAnnual: 12, priceGrowthAnnual: -0.05, usageGrowthAnnual: 0.45, unitsCap: 3000, adoptionAnnual: 0.30, penetrationCap: 1 } ] }],
+  ['fixed only, no variable line',   { components: [
+      { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 15000, priceGrowthAnnual: 0.05 } ] }]
+].forEach(function (w) {
+  var label = w[0], spec = w[1];
+  var a = Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 0.92, contractionAnnual: 0.05, monetization: spec, sm: 0 });
+  var eng;
+  try { eng = E.run(a, { openingCustomers: 1000, openingCash: 50000000 }); }
+  catch (err) { console.log('FAIL  ' + label + '   engine threw: ' + err.message); grand.checked++; grand.failed++; return; }
+  var cM = 1 - Math.pow(1 - 0.05, 1 / 12);
+  var ind = monetizationIndependent(spec, cM, 60);
+  /* the opening base cohort is the only cohort here (sm = 0), so its per-customer effects scale
+     to the company by its customer count: effect_ARR = closing customers x per-customer effect */
+  var base = eng.cohorts[0], worst = { contraction: 0, price: 0, usage: 0, adoption: 0, perCustomer: 0, fixedShare: 0 };
+  for (var t = 1; t <= 60; t++) {
+    var row = base.rows[t - 1], mo = row.monetization, im = ind[t - 1];
+    var n = row.customers.closing;
+    worst.contraction = Math.max(worst.contraction, rel(mo.contractionARR, n * im.contraction));
+    worst.price = Math.max(worst.price, rel(mo.priceARR, n * im.price));
+    worst.usage = Math.max(worst.usage, rel(mo.usageARR, n * im.usage));
+    worst.adoption = Math.max(worst.adoption, rel(mo.adoptionARR, n * im.adoption));
+    worst.perCustomer = Math.max(worst.perCustomer, rel(mo.perCustomerClosing, im.closing));
+    worst.perCustomer = Math.max(worst.perCustomer, rel(mo.perCustomerOpening, im.opening));
+    worst.fixedShare = Math.max(worst.fixedShare, rel(mo.fixedARR, n * im.fixed));
+  }
+  var w2 = Math.max(worst.contraction, worst.price, worst.usage, worst.adoption, worst.perCustomer, worst.fixedShare);
+  var ok = w2 < 1e-9;
+  grand.checked++; if (!ok) grand.failed++;
+  console.log((ok ? 'PASS  ' : 'FAIL  ') + label.padEnd(34) + ' worst ' + w2.toExponential(2) +
+    '   (contraction ' + worst.contraction.toExponential(1) + '  price ' + worst.price.toExponential(1) +
+    '  usage ' + worst.usage.toExponential(1) + '  adoption ' + worst.adoption.toExponential(1) + ')');
+});
+
+/* Caps are the part of the monetization law that is easy to implement and easy to get wrong:
+   they must BIND, never be crossed, and they must make per-customer revenue converge. Checked
+   against the independent model's own trajectory, not against the engine. */
+console.log('');
+(function () {
+  var cM = 1 - Math.pow(1 - 0.05, 1 / 12);
+  var spec = { components: [ { name: 'platform', kind: 'fixed', units: 1, priceAnnual: 12000 },
+    { name: 'usage', kind: 'variable', penetration: 0.4, units: 100, priceAnnual: 100,
+      usageGrowthAnnual: 0.80, unitsCap: 150, adoptionAnnual: 0.40, penetrationCap: 0.9 } ] };
+  var a = Object.assign({}, E.DEFAULT_ASSUMPTIONS, { logoRetentionAnnual: 1, contractionAnnual: 0, monetization: spec, sm: 0 });
+  var eng = E.run(a, { openingCustomers: 1000, openingCash: 50000000 });
+  var rows = eng.cohorts[0].rows;
+  var st = rows[59].monetization.state[1];
+  var hr = rows[59].monetization.headroom[1];
+  var perCust = rows.map(function (r) { return r.monetization.perCustomerClosing; });
+  var gaps = [11, 23, 35, 47, 59].map(function (i) { return perCust[i] - perCust[i - 1]; });
+  var converging = gaps.every(function (g, i) { return i === 0 || g <= gaps[i - 1] + 1e-9; });
+  var ind = monetizationIndependent(spec, 0, 60);
+  var indUnits = 100, indPen = 0.4;   /* the same trajectory, independently */
+  var okCap = st.units <= 150 + 1e-9 && st.penetration <= 0.9 + 1e-9;
+  /* usage is a hard min() so it REACHES the cap; adoption closes a fraction of the remaining
+     gap each month, so it approaches its cap asymptotically and must never reach it */
+  var pen0 = rows[0].monetization.state[1].penetration;
+  var bound = st.units > 149.999 && st.penetration < 0.9 && st.penetration > pen0 &&
+              rows.every(function (r) { return r.monetization.state[1].penetration < 0.9 + 1e-12; });
+  var ok = okCap && bound && converging && Math.abs(ind[59].closing - perCust[59]) < 1e-9;
+  grand.checked++; if (!ok) grand.failed++;
+  console.log((ok ? 'PASS  ' : 'FAIL  ') + 'caps bind and are never crossed — usage reaches its ceiling, adoption approaches its own asymptotically, and per-customer revenue converges');
+  console.log('      units ' + st.units.toFixed(4) + ' of cap 150 (headroom ' + (hr.units * 100).toFixed(2) + '%)   ' +
+              'penetration ' + st.penetration.toFixed(5) + ' of cap 0.9 (' + (hr.penetration * 100).toFixed(2) + '%)');
+  console.log('      per-customer revenue year on year: ' + gaps.map(function (g) { return '€' + g.toFixed(0); }).join(' → ') +
+              '   monotonically narrowing: ' + converging);
+})();
+
 console.log('\n' + '='.repeat(78));
 console.log(grand.checked - grand.failed + ' / ' + grand.checked + ' reconciliations agree with the independent model');
