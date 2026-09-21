@@ -384,6 +384,51 @@ function walkCompare(ref, cur, path, acc) {
      troughMin.sm > 0 && troughMin.trough < rows[0].trough, 'deepest trough €' + (troughMin.trough / 1e6).toFixed(2) + 'm at S&M €' + (troughMin.sm / 1e6).toFixed(2) + 'm/mo');
 })();
 
+/* ------------------------------------------------------------------ *
+ * GROWTH-DECOMPOSITION — the Customers lens decomposes cumulative growth
+ * into three components that must close on the engine's own stock:
+ *
+ *   existing-base net = Σ expansion − Σ leakage            (contraction + churn)
+ *   total net growth  = Σ new + existing-base net
+ *                     = closing ARR(T) − opening ARR(M1)
+ *
+ * Asserted at EVERY month of every world the product ships, so the chart can
+ * never drift from the stock it claims to explain. Leakage is one flow: the
+ * decomposition never splits contraction from churn.
+ * ------------------------------------------------------------------ */
+(function growthDecomposition() {
+  var worlds = [
+    ['ARR only', A],
+    ['customers', Object.assign({}, A, { logoRetentionAnnual: 0.92, contractionAnnual: 0.05, newLogoARPA: 20000 })],
+    ['capacity + lag', Object.assign({}, A, { maxMonthlyNewARR: 600000, acquisitionLagMonths: 4 })],
+    ['zero acquisition', Object.assign({}, A, { sm: 0 })],
+    ['no expansion', Object.assign({}, A, { expansionCoefficientAnnual: 0 })]
+  ];
+  var worst = 0, worstAt = '', months = 0, anyNeg = false;
+  worlds.forEach(function (w) {
+    var res = E.run(w[1]), cn = 0, ce = 0, cl = 0, opening = res.months[0].openingARR;
+    res.months.forEach(function (m, i) {
+      cn += m.newARR; ce += m.expansion; cl += m.leakage;
+      var r = Math.abs((cn + ce - cl) - (m.closingARR - opening));
+      if (r > worst) { worst = r; worstAt = w[0] + ' M' + (i + 1); }
+      if (cn < -1e-9 || ce < -1e-9 || cl < -1e-9) anyNeg = true;
+      months++;
+    });
+  });
+  ok('GROWTH-DECOMPOSITION', 'new + expansion − (contraction + churn) equals closing ARR − opening ARR at every month of every shipped world',
+     worst < 1e-6, months + ' months over ' + worlds.length + ' worlds, worst residual ' + worst.toExponential(2) + (worstAt ? ' at ' + worstAt : ''));
+  ok('GROWTH-DECOMPOSITION', 'each cumulative component keeps its sign — new and expansion are never negative, leakage is never negative (it is drawn below zero, not stored below zero)',
+     !anyNeg, 'checked over ' + months + ' months');
+  /* the combined leakage flow is exactly the customer layer's churn + contraction when that layer is on */
+  var cw = E.run(worlds[1][1]), lworst = 0;
+  cw.months.forEach(function (m) {
+    if (!m.customers) return;
+    lworst = Math.max(lworst, Math.abs(m.leakage - (m.customers.logoChurnARR + m.customers.contractionARR)));
+  });
+  ok('GROWTH-DECOMPOSITION', 'the single leakage flow the chart draws below zero is exactly logo churn + contraction when the customer layer is on (one component, never split)',
+     lworst < 1e-6, 'worst |leakage − (logoChurn + contraction)| = ' + lworst.toExponential(2));
+})();
+
 console.log('\nSaaS Physics v1.1–v1.3 — physics extension checks\n' + '='.repeat(96));
 var pass = 0;
 out.forEach(function (r, i) {

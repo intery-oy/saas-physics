@@ -6190,15 +6190,37 @@ details.pl .cascade{margin-top:8px}
     h += nav;
 
     /* ================= 2. CUSTOMERS ================= */
-    var cumNewX = cumOf(expRes, function(x){ return x.newARR; }), cumExX = cumOf(expRes, function(x){ return x.expansion-x.leakage; });
-    var cumNewB = cumOf(baseRes, function(x){ return x.newARR; }), cumExB = cumOf(baseRes, function(x){ return x.expansion-x.leakage; });
-    var totX = cumNewX.map(function(v,i){ return v+cumExX[i]; }), totB = cumNewB.map(function(v,i){ return v+cumExB[i]; });
+    /* WHERE DID GROWTH COME FROM — the cumulative economic decomposition of the
+       recurring-revenue movement since M0. Three components, each a cumulative sum of
+       the frozen engine's own monthly flows, and two identities the reader can see:
+
+         existing-base net  =  expansion − (contraction + churn)
+         total net growth   =  new customers + existing-base net
+                            =  closing '+basis+' now − opening '+basis+' at M0
+
+       Contraction and churn are the engine's single leakage flow and are never split here.
+       Gains stack above zero (expansion, then new customers on top of it); the loss extends
+       below zero; the thin line is the net that survives. */
+    var cumNewX  = cumOf(expRes, function(x){ return x.newARR; });
+    var cumExpX  = cumOf(expRes, function(x){ return x.expansion; });
+    var cumLossX = cumOf(expRes, function(x){ return x.leakage; });          /* contraction + churn, combined */
+    var zeroX    = cumNewX.map(function(){ return 0; });
+    var negX     = cumLossX.map(function(v){ return -v; });
+    var posTopX  = cumExpX.map(function(v,i){ return v+cumNewX[i]; });        /* expansion, then new customers above it */
+    var totX     = posTopX.map(function(v,i){ return v+negX[i]; });
+    var cumNewB  = cumOf(baseRes, function(x){ return x.newARR; });
+    var cumExpB  = cumOf(baseRes, function(x){ return x.expansion; });
+    var cumLossB = cumOf(baseRes, function(x){ return x.leakage; });
+    var totB     = cumNewB.map(function(v,i){ return v+cumExpB[i]-cumLossB[i]; });
     var totDiff = Math.abs(totX[m]-totB[m])>1;
-    var growthChart = chartBlock('Where '+basis+' growth came from · cumulative since M0', Mt, [{n:'new customers', c:'var(--exp)'}, {n:'existing base · expansion − contraction − churn', c:'var(--ink-3)'}].concat(totDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
-      chart({ h:HC, sel:m, yFmt:reur, aria:'cumulative ARR growth split into new customers and the existing base', series:[
-        { k:'band', lo:cumNewX.map(function(){ return 0; }), hi:cumNewX, color:'var(--exp)', opacity:0.32, edge:true, label:'new customers', fmt:reurS },
-        { k:'band', lo:cumNewX, hi:totX, color:'var(--ink-3)', opacity:0.35, label:'existing base', fmt:reurS },
-        { k:'line', pts:totX, color:'var(--ink)', width:1.2, label:'total net change', fmt:reurS } ]
+    var negFmt = function(v){ return reurS(-v); };
+    var growthChart = chartBlock('Where did '+basis+' growth come from? · cumulative since M0', Mt,
+      [{n:'new customers', c:'var(--exp)'}, {n:'existing base · expansion', c:'var(--in)'}, {n:'existing base · contraction + churn', c:'var(--out)'}, {n:'total net growth', c:'var(--ink)'}].concat(totDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
+      chart({ h:HC, sel:m, yFmt:reur, aria:'cumulative ARR growth decomposed into new customers, expansion, and contraction plus churn', series:[
+        { k:'band', lo:negX, hi:zeroX, color:'var(--out)', opacity:0.20, label:'leakage', fmt:negFmt },
+        { k:'band', lo:zeroX, hi:cumExpX, color:'var(--in)', opacity:0.20, label:'expansion', fmt:reurS },
+        { k:'band', lo:cumExpX, hi:posTopX, color:'var(--exp)', opacity:0.32, edge:true, label:'new '+basis, fmt:reurS },
+        { k:'line', pts:totX, color:'var(--ink)', width:1.4, label:'net growth', fmt:reurS } ]
         .concat(totDiff ? [{ k:'line', pts:totB, color:'var(--base)', base:true }] : []) }));
     if(cuOn){
       var cu = em.customers, arpa = em.closingARR/cu.closing;

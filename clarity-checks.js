@@ -124,7 +124,9 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
   /* strip /* ... *\/ block comments and // line comments so only strings the
      browser can actually render remain */
   var noComments = tpl.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
-  var DISCLOSED = /combines churn and contraction|so churn and contraction cannot be separated/;
+  /* "existing base · contraction + churn" is itself a disclosure: it names the two together as the
+     one combined leakage flow the engine produces, which is exactly what this rule protects. */
+  var DISCLOSED = /combines churn and contraction|so churn and contraction cannot be separated|existing base · contraction \+ churn/;
   var CUSTOMER_CTX = /[Ll]ogo|[Cc]ustomer|[Uu]sage|[Mm]onetization|platform|\bmv\.|rowsB|[Cc]ontractionA(nnual|RR)|logoChurn|dollarChurnFrom|contractionShare|cmd\b|cmo\b|cu\.|mcu2?\./;
   function mentions(src, re, allow) {
     var all = [], allowed = 0, m4, r2 = new RegExp(re.source, 'g');

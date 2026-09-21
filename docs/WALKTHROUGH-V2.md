@@ -21,7 +21,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - revenue · R12M: €41.73m
 - EBITA · R12M: €9.98m
 - Installed-base net · month · → −€3k · net-shrinking · Expansion 
-- WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0 · new custome
+- WHERE DID MRR GROWTH COME FROM? · CUMULATIVE SINCE M0 · new cu
 - ACQUISITION EFFICIENCY · average CAC · marginal CAC · Measured CAC
 - ECONOMICS OVER TIME · MONTHLY · revenue · gross profit · EBITA · M36
 
@@ -34,7 +34,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - logo retention · R12M: → 92.0%
 - net dollar retention · R12M: → 96.1%
 - CUSTOMER BASE DEVELOPMENT · customers · MRR per customer · right
-- WHERE MRR GROWTH CAME FROM · CUMULATIVE SINCE M0 · new customers · existing base · expansion −
+- WHERE DID MRR GROWTH COME FROM? · CUMULATIVE SINCE M0 · new customers · existing base · expans
 
 ## 3. Could two companies with identical ARR, GRR and NRR be losing customers at different rates?
 
