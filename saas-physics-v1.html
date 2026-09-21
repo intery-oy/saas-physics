@@ -420,15 +420,21 @@ details.pl .cascade{margin-top:8px}
 .exp-layer:first-child{margin-top:0}
 .exp-row b .law{color:var(--law)} .exp-row b .hyp{color:var(--hyp)}
 /* ---------- Inspect as a provenance chain ---------- */
-.prov{margin-top:8px}
-.pstep{position:relative;padding:0 0 12px 14px;border-left:1px solid var(--line)}
+.prov{margin-top:10px;counter-reset:stage}
+/* the chain reads as five numbered stages beneath one context line (Company ARR):
+   COHORT ↓ CUSTOMER ECONOMICS ↓ MONETIZATION ↓ CONTRACT · BILLING ↓ CAPITAL RECOVERY */
+.pstep{position:relative;padding:0 0 18px 18px;border-left:1px solid #222a3c}
 .pstep:last-child{padding-bottom:2px}
-.pstep::before{content:"";position:absolute;left:-4.5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--stock);border:1px solid var(--panel)}
-.pstep.pm::before{border-radius:1px;background:var(--panel);border:1.5px solid var(--stock)}
-.pstep.off::before{background:transparent;border:1px dotted var(--ink-4)}
-.pstep .pl{display:flex;align-items:baseline;gap:8px;font-family:var(--ui);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);line-height:1.2}
+.pstep::before{counter-increment:stage;content:counter(stage);position:absolute;left:-8.5px;top:-1px;width:14px;height:14px;border-radius:50%;background:var(--raised);border:1px solid var(--ink-4);color:var(--ink-2);font-family:var(--mono);font-size:8.5px;line-height:14px;text-align:center}
+.pstep.ctx::before{counter-increment:none;content:"";left:-4.5px;top:4px;width:8px;height:8px;background:var(--stock);border:1px solid var(--panel)}
+.pstep.off::before{background:transparent;border:1px dotted var(--ink-4);color:var(--ink-4)}
+.pstep:not(:last-child)::after{content:"↓";position:absolute;left:-5px;bottom:2px;font-family:var(--mono);font-size:10px;line-height:1;color:var(--ink-3);background:var(--sunk);padding:1px 0}
+.pstep .pl{display:flex;align-items:baseline;gap:8px;font-family:var(--ui);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);line-height:1.3}
+.pstep.ctx .pl{font-weight:500;color:var(--ink-3)}
+.pstep .pl .pv{font-family:var(--display);font-style:italic;font-weight:400;font-size:11px;letter-spacing:0;text-transform:none;color:var(--ink-3)}
 .pstep .pl .basis{margin-left:auto}
-.pstep .ph{font-family:var(--mono);font-size:12.5px;color:var(--ink);margin:3px 0 4px;line-height:1.45}
+.pstep .ph{font-family:var(--mono);font-size:13px;color:var(--ink);margin:4px 0 5px;line-height:1.45}
+.pstep.ctx .ph{font-size:12px;margin-bottom:2px}
 .pstep.off .ph{color:var(--ink-4);font-family:var(--display);font-style:italic;font-size:11px}
 .pstep .srow{padding:2px 0;font-size:11px}
 .pstep .srow b{font-size:11px}
@@ -4660,11 +4666,15 @@ details.pl .cascade{margin-top:8px}
       if(Math.abs(dSel)>=1){
         var bx0 = Math.round(X(mSel0))+0.5, yE = S.yA(expS.arr[mSel0]), yB = S.yA(baseS.arr[mSel0]);
         ctx.strokeStyle='rgba(230,233,242,.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(bx0, yE); ctx.lineTo(bx0, yB); ctx.moveTo(bx0-4, Math.round(yE)+0.5); ctx.lineTo(bx0+4, Math.round(yE)+0.5); ctx.moveTo(bx0-4, Math.round(yB)+0.5); ctx.lineTo(bx0+4, Math.round(yB)+0.5); ctx.stroke();
-        var right = bx0 < W-160; ctx.textAlign = right ? 'left' : 'right';
-        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle = dSel>=0 ? '#4fa37d' : '#c2606a';
-        ctx.fillText(reurS(dSel)+' vs Base', bx0+(right?9:-9), Math.min(yE,yB)-7);
+        var tA = reurS(dSel)+' vs Base', tB = 'M'+mSel0+' · '+reur(expRes.months[mSel0-1].closingARR);
+        ctx.font='10.5px "JetBrains Mono",monospace';
+        var right = bx0+9+ctx.measureText(tA).width < W-geo.R-4;   /* never run into the right margin's labels */
+        ctx.textAlign = right ? 'left' : 'right';
+        var ly0 = Math.max(geo.massTop+28, Math.min(yE,yB)-7);      /* never under the change label */
+        ctx.fillStyle = dSel>=0 ? '#4fa37d' : '#c2606a';
+        ctx.fillText(tA, bx0+(right?9:-9), ly0);
         ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
-        ctx.fillText('M'+mSel0+' · '+reur(expRes.months[mSel0-1].closingARR), bx0+(right?9:-9), Math.min(yE,yB)+5);
+        ctx.fillText(tB, bx0+(right?9:-9), ly0+12);
       }
     }
 
@@ -4693,25 +4703,45 @@ details.pl .cascade{margin-top:8px}
     }
 
     if(geo.noCash){
-      /* --- YoY growth as the secondary line over the formation, its own quiet right scale --- */
+      /* --- YoY growth: the SECONDARY line. Thin and quiet so the cohort strata stay
+         legible beneath it, read against its own % axis on the plot's right edge —
+         a hairline with % ticks, unmistakably not the € axis on the left. --- */
+      var rgt = W-geo.R, mS=selectedMonth(), mrec=expRes.months[mS-1];
       var gX=[], gB=[], gAll=[];
       for(var gi=0; gi<H; gi++){ gX.push(expRes.months[gi].arrGrowthYoY); gB.push(baseRes.months[gi].arrGrowthYoY); if(expRes.months[gi].arrGrowthYoY!==null) gAll.push(expRes.months[gi].arrGrowthYoY); if(baseRes.months[gi].arrGrowthYoY!==null) gAll.push(baseRes.months[gi].arrGrowthYoY); }
+      var blocks = [], ticks = [];
       if(gAll.length){
-        var gLo=Math.min(0, Math.min.apply(null,gAll)), gHi=Math.max.apply(null,gAll)*1.15||0.1, gTop=geo.massTop+22, gBot=geo.massBot-6;
+        var gLo=Math.min(0, Math.min.apply(null,gAll)), gHi=Math.max.apply(null,gAll)*1.15||0.1, gTop=geo.massTop+26, gBot=geo.massBot-8;
         var yG=function(v){ return gBot-((v-gLo)/((gHi-gLo)||1))*(gBot-gTop); };
         var gline=function(arr, col, dash, wdt){ ctx.save(); if(dash) ctx.setLineDash(dash); ctx.beginPath(); var on=false; for(var q=0;q<H;q++){ if(arr[q]===null){ on=false; continue; } var gx=X(q+1), gy=yG(arr[q]); on?ctx.lineTo(gx,gy):ctx.moveTo(gx,gy); on=true; } ctx.strokeStyle=col; ctx.lineWidth=wdt; ctx.stroke(); ctx.restore(); };
-        gline(gB, 'rgba(102,112,138,.75)', [4,4], 1.2);
-        gline(gX, 'rgba(230,233,242,.85)', null, 1.5);
-        /* right scale for growth */
-        ctx.font='9px "JetBrains Mono",monospace'; ctx.textAlign='left'; ctx.fillStyle='#414a60';
-        [gLo, gHi].forEach(function(gv){ ctx.fillText(pct(gv,0)+' y/y', W-geo.R+6, yG(gv)+3); });
-        /* selected month: right-edge values */
-        var mS=selectedMonth(), mrec=expRes.months[mS-1], yArr=S.yA(mrec.closingARR), yGr=mrec.arrGrowthYoY===null ? null : yG(mrec.arrGrowthYoY);
-        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText(reur(mrec.closingARR), W-geo.R+6, yArr+3);
-        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText(basis.toUpperCase()+' · M'+mS, W-geo.R+6, yArr+13);
-        if(yGr!==null){ var yy2 = Math.abs(yGr-yArr)<22 ? (yGr<yArr ? yArr-22 : yArr+22) : yGr; ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText((mrec.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(mrec.arrGrowthYoY),1), W-geo.R+6, yy2+3); ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('YOY GROWTH', W-geo.R+6, yy2+13); }
+        gline(gB, 'rgba(102,112,138,.5)', [3,4], 0.9);
+        gline(gX, 'rgba(230,233,242,.55)', null, 1);
+        /* the % axis: a hairline on the right edge, nice ticks, its own caption */
+        var gSpan=gHi-gLo, gStep=[0.02,0.05,0.1,0.2,0.25,0.5,1,2,5].filter(function(st){ return gSpan/st<=4; })[0] || 5;
+        ctx.strokeStyle='#1b2233'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(rgt+0.5, gTop-4); ctx.lineTo(rgt+0.5, gBot+4); ctx.stroke();
+        for(var tk=Math.ceil(gLo/gStep-1e-9); tk*gStep<=gHi+1e-9; tk++){ var tv=tk*gStep; ticks.push({ y:yG(tv), text:(tv<0?'−':'')+pct(Math.abs(tv),0) }); }
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.textAlign='left'; ctx.fillStyle='#414a60';
+        ctx.fillText('YOY %', rgt+6, geo.massTop+11);
+        var yGr = mrec.arrGrowthYoY===null ? null : yG(mrec.arrGrowthYoY);
+        if(yGr!==null) blocks.push({ y:yGr, h:22, v:(mrec.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(mrec.arrGrowthYoY),1), vc:'#98a2b8', l:'YOY GROWTH' });
       }
-        }
+      /* the selected-month values in the right margin: ARR (dominant) and YoY, stacked apart
+         when they would collide, each tied to its true height by a hairline leader; % ticks
+         yield to the value blocks rather than overprint them */
+      blocks.push({ y:S.yA(mrec.closingARR), h:22, v:reur(mrec.closingARR), vc:'#8b8df0', l:basis.toUpperCase()+' · M'+mS });
+      blocks.sort(function(a,b){ return a.y-b.y; });
+      var minTop=geo.massTop+16, maxBot=geo.massBot-2, bi;
+      for(bi=0; bi<blocks.length; bi++){ blocks[bi].top = Math.max(bi ? blocks[bi-1].top+blocks[bi-1].h+2 : minTop, blocks[bi].y-8); }
+      for(bi=blocks.length-1; bi>=0; bi--){ var lim = bi<blocks.length-1 ? blocks[bi+1].top-2-blocks[bi].h : maxBot-blocks[bi].h; if(blocks[bi].top>lim) blocks[bi].top=lim; }
+      ctx.textAlign='left';
+      ticks.forEach(function(tkk){ var hit=blocks.some(function(b){ return tkk.y+5>b.top-1 && tkk.y-5<b.top+b.h+1; }); if(hit) return;
+        ctx.strokeStyle='#1b2233'; ctx.beginPath(); ctx.moveTo(rgt, Math.round(tkk.y)+0.5); ctx.lineTo(rgt+3, Math.round(tkk.y)+0.5); ctx.stroke();
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60'; ctx.fillText(tkk.text, rgt+6, tkk.y+3); });
+      blocks.forEach(function(b){ var ly=b.top+8;
+        if(Math.abs(ly-b.y)>3){ ctx.strokeStyle='#414a60'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(rgt+1, Math.round(b.y)+0.5); ctx.lineTo(rgt+4, Math.round(ly)+0.5); ctx.stroke(); }
+        ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle=b.vc; ctx.fillText(b.v, rgt+6, ly+3);
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText(b.l, rgt+6, ly+13); });
+    }
 
     if(!geo.noCash){
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
@@ -6276,45 +6306,47 @@ details.pl .cascade{margin-top:8px}
     var ib=document.getElementById('inspect-back'); if(ib) ib.addEventListener('click', function(){ pinned=null; capitalMode=anatomy=false; resize(); render(); renderSide(); });
     syncFigure();
     function row(a,b,cls){ return '<div class="srow"><span>'+esc(a)+'</span><b'+(cls?' class="'+cls+'"':'')+'>'+b+'</b></div>'; }
-    function pstep(label, hero, body, kind, basisTag){
-      return '<div class="pstep'+(kind?' '+kind:'')+'"><div class="pl">'+esc(label)+(basisTag?'<span class="basis">'+esc(basisTag)+'</span>':'')+'</div>'+
+    function pstep(label, hero, body, kind, basisTag, verb){
+      /* verb: what happened to the euro at this stage — acquired → retained → monetized → billed → capital recovered */
+      return '<div class="pstep'+(kind?' '+kind:'')+'"><div class="pl">'+esc(label)+(verb?'<span class="pv">'+esc(verb)+'</span>':'')+(basisTag?'<span class="basis">'+esc(basisTag)+'</span>':'')+'</div>'+
              '<div class="ph">'+hero+'</div>'+(body||'')+'</div>';
     }
     function provenanceChain(c, snap, em){
       var share = em.closingARR>0 ? snap.currentARR/em.closingARR : 0;
       var out = '<div class="prov">';
       /* 1 · COMPANY ARR — where this euro sits */
-      out += pstep('Company '+basis, reur(em.closingARR)+' · this cohort '+pct(share,1), '', '', 'M'+m);
+      out += pstep('Company '+basis, reur(em.closingARR)+' · this cohort '+pct(share,1), '', 'ctx', 'M'+m);
       /* 2 · COHORT — the vintage, its balance, and what it was bought under */
       out += pstep('Cohort · vintage M'+c.acquisitionMonth, reur(snap.currentARR)+' now · '+pct(snap.retainedShare)+' of '+reur(c.initialARR)+' original',
         row('Original '+basis, reur(c.initialARR)) +
         row('+ expansion, cumulative', reur(snap.cumExpansion), 'in') +
         row('− leakage, cumulative', reur(snap.cumLeakage), 'out') +
         row(basis+' now', reur(snap.currentARR)) +
-        '<details class="more"><summary>Bought under · '+(c.acquisitionMonth===0 ? 'predates the simulation' : 'spend month '+c.spendMonth+(c.cacPerARRAtCreation!==null ? ' · CAC '+c.cacPerARRAtCreation.toFixed(2)+'×' : ''))+'</summary>' + provenanceRows(c) + '</details>', '', 'age '+snap.age);
+        '<details class="more"><summary>Bought under · '+(c.acquisitionMonth===0 ? 'predates the simulation' : 'spend month '+c.spendMonth+(c.cacPerARRAtCreation!==null ? ' · CAC '+c.cacPerARRAtCreation.toFixed(2)+'×' : ''))+'</summary>' + provenanceRows(c) + '</details>', '', 'age '+snap.age, 'acquired');
       /* 3 · CUSTOMER ECONOMICS — the logos beneath the balance */
       if(snap.customers!==null)
         out += pstep('Customer economics', snap.customers.toFixed(1)+' customers · ARPA '+reur(snap.arpa),
-          row('Customers now', snap.customers.toFixed(1)+' of '+snap.initialCustomers.toFixed(1)+' acquired · '+pct(snap.customers/snap.initialCustomers)+' survive') +
-          row('ARPA now', reur(snap.arpa)) +
-          row('Leakage this month', reur(snap.logoChurnARR)+' lost logos · '+reur(snap.contractionARR)+' contraction', 'out'), '', 'M'+m);
+          row('Customer base', snap.customers.toFixed(1)+' from '+snap.initialCustomers.toFixed(1)+' at acquisition · '+pct(snap.customers/snap.initialCustomers)+' retained') +
+          row('ARPA', reur(snap.arpa)) +
+          row('Leakage this month', reur(snap.logoChurnARR)+' lost logos · '+reur(snap.contractionARR)+' contraction', 'out') +
+          '<details class="more"><summary>Method · why a customer count can be fractional</summary><div class="hint">Customer counts are modeled cohort-level expected values, so fractional counts can occur. They represent the modeled customer base, not individual customer records.</div></details>', '', 'M'+m, 'retained');
       else
-        out += pstep('Customer economics', 'no customer layer · the cohort is one balance; leakage is one persistence coefficient', '', 'off');
+        out += pstep('Customer economics', 'no customer layer · the cohort is one balance; leakage is one persistence coefficient', '', 'off', null, 'retained');
       /* 4 · MONETIZATION COMPONENTS — what each customer pays, and how it moves */
       if(snap.perCustomerRevenue!==null)
-        out += pstep('Monetization components', eur(snap.perCustomerRevenue)+' per customer / yr',
+        out += pstep('Monetization', eur(snap.perCustomerRevenue)+' per customer / yr',
           row('Cohort composition', reur(snap.fixedARR)+' platform + '+reur(snap.variableARR)+' usage') +
           row('Expansion this month', reur(snap.priceARR)+' price · '+reur(snap.usageARR)+' usage · '+reur(snap.adoptionARR)+' adoption', 'in') +
-          (snap.headroom && snap.headroom[1] ? row('Headroom used', (snap.headroom[1].units!==null ? pct(snap.headroom[1].units,0)+' of the usage cap · ' : '')+pct(snap.headroom[1].penetration,0)+' of the penetration cap') : ''), 'pm', 'M'+m+' · month');
+          (snap.headroom && snap.headroom[1] ? row('Headroom used', (snap.headroom[1].units!==null ? pct(snap.headroom[1].units,0)+' of the usage cap · ' : '')+pct(snap.headroom[1].penetration,0)+' of the penetration cap') : ''), 'pm', 'M'+m+' · month', 'monetized');
       else
-        out += pstep('Monetization components', 'no components · expansion is one coefficient, '+pct(lawNow('expansionCoefficientAnnual'),1)+' / yr', '', 'off');
+        out += pstep('Monetization', 'no components · expansion is one coefficient, '+pct(lawNow('expansionCoefficientAnnual'),1)+' / yr', '', 'off', null, 'monetized');
       /* 5 · CONTRACT · BILLING — when it is invoiced */
       if(snap.billings!==null)
         out += pstep('Contract · billing', 'invoiced '+eur(snap.billings)+' this month',
           row('Invoiced this month', eur(snap.billings)) +
-          row(snap.deferredRevenue>=0 ? 'Deferred revenue' : 'Unbilled (contract asset)', eur(Math.abs(snap.deferredRevenue))+(c.acquisitionMonth===0 ? ' · staggered book' : ' · billed at birth, trued up at renewal')), 'pm', 'M'+m+' · month');
+          row(snap.deferredRevenue>=0 ? 'Deferred revenue' : 'Unbilled (contract asset)', eur(Math.abs(snap.deferredRevenue))+(c.acquisitionMonth===0 ? ' · staggered book' : ' · billed at birth, trued up at renewal')), 'pm', 'M'+m+' · month', 'billed');
       else
-        out += pstep('Contract · billing', 'no contract book · cash moves with EBITA', '', 'off');
+        out += pstep('Contract · billing', 'no contract book · cash moves with EBITA', '', 'off', null, 'billed');
       /* 6 · CASH — the capital this cohort cost, and how much has come back */
       out += capitalStep(c, m);
       return out + '</div>';
@@ -6345,7 +6377,7 @@ details.pl .cascade{margin-top:8px}
     }
     function capitalStep(c, mm){
       if(c.acquisitionCost===null)
-        return pstep('Cash · capital recovery', 'no stamped acquisition cost · the opening base predates the simulation, so its capital recovery cannot be attributed', '', 'off');
+        return pstep('Cash · capital recovery', 'no stamped acquisition cost · the opening base predates the simulation, so its capital recovery cannot be attributed', '', 'off', null, 'capital recovered');
       var cc=CAP.cohortCapital(expRes, expRes.cohorts.indexOf(c));
       var now=null; cc.series.forEach(function(s){ if(s.t<=mm) now=s; });
       if(!now) return '';
@@ -6362,7 +6394,7 @@ details.pl .cascade{margin-top:8px}
         body += row('Cohort payback', 'not reached within the 60-month horizon');
       body += '<details class="more"><summary>what this is, and is not</summary><div class="hint">Cumulative cohort gross profit measured against the acquisition cost attributed to it. Not profit, value or ROI: the engine models no cost to serve and no discounting'+
         (expA.expansionCostPerARR>0 ? ', and this track deliberately excludes the expansion realisation cost — it recovers the ACQUISITION cost only.' : '.')+'</div></details>';
-      return pstep('Cash · capital recovery', hero, body, '', 'CUM · M1–M'+mm);
+      return pstep('Cash · capital recovery', hero, body, '', 'CUM · M1–M'+mm, 'capital recovered');
     }
   }
 
