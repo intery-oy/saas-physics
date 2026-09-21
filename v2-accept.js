@@ -74,7 +74,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const ikpi = K.measureR12M(indep, obs.m);
   rec('A · OBSERVE: the cumulative growth decomposition (new customers · existing-base expansion · existing-base contraction + churn) is on the lens and NRR reads beside logo retention; the GRR decomposition still holds in the KPI layer',
       /WHERE DID MRR GROWTH COME FROM\?/.test(obs.txt) && /new customers/.test(obs.txt) && /existing base · expansion/.test(obs.txt) && /existing base · contraction \+ churn/.test(obs.txt) &&
-      /NEW MRR/.test(obs.txt) && /EXPANSION/.test(obs.txt) && /LEAKAGE/.test(obs.txt) && /NET GROWTH/.test(obs.txt) && obs.txt.includes('→ ' + (ikpi.nrr * 100).toFixed(1) + '%\nnet dollar retention · R12M') &&
+      /NEW MRR/.test(obs.txt) && /EXPANSION/.test(obs.txt) && /CONTRACTION\s*\+\s*CHURN/.test(obs.txt) && !/LEAKAGE/.test(obs.txt.slice(obs.txt.indexOf('WHERE DID'))) && /NET GROWTH/.test(obs.txt) && obs.txt.includes('→ ' + (ikpi.nrr * 100).toFixed(1) + '%\nnet dollar retention · R12M') &&
       Math.abs((icm.dollarChurnFromLogosR12M + icm.dollarChurnFromContractionR12M) - (1 - ikpi.grr)) < 1e-9, '');
 
   /* ---- A · INSPECT: pin a cohort ---- */

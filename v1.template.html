@@ -3233,7 +3233,9 @@ details.pl .cascade{margin-top:8px}
     o.series.slice().sort(function(a,b){ return (a.base?0:1)-(b.base?0:1); }).forEach(function(s){
       var col=s.color||'var(--exp)', yf = s.axis==='right' ? y2 : y1, e = s.axis==='right' ? e2 : e1;
       if(s.k==='area') body+='<path class="ar" d="'+area(s.pts, yf, e)+'" fill="'+col+'" opacity="'+(s.opacity||0.22)+'"/>'+'<path class="ln" d="'+path(s.pts, yf)+'" stroke="'+col+'" stroke-width="'+(s.width||1.6)+'"'+(s.base?' stroke-dasharray="5 4"':'')+'/>';
-      else if(s.k==='band') body+='<path class="ar" d="'+band(s.lo, s.hi, yf)+'" fill="'+col+'" opacity="'+(s.opacity||0.3)+'"/>'+(s.edge ? '<path class="ln" d="'+path(s.hi, yf)+'" stroke="'+col+'" stroke-width="1.2"/>' : '');
+      else if(s.k==='band') body+='<path class="ar" d="'+band(s.lo, s.hi, yf)+'" fill="'+col+'" opacity="'+(s.opacity||0.3)+'"/>'+
+        (s.edge ? '<path class="ln" d="'+path(s.hi, yf)+'" stroke="'+col+'" stroke-width="1.2"/>' : '')+
+        (s.edgeLo ? '<path class="ln" d="'+path(s.lo, yf)+'" stroke="'+col+'" stroke-width="1.2"/>' : '');
       else if(s.k==='dots'){ for(var m=0;m<=H;m++){ var v=s.pts[m]; if(v===null||v===undefined) continue; body+='<circle cx="'+x(m).toFixed(1)+'" cy="'+yf(v).toFixed(1)+'" r="1.8" fill="'+col+'" opacity=".7"/>'; } }
       else body+='<path class="ln'+(s.base?' base':'')+'" d="'+path(s.pts, yf)+'" stroke="'+col+'" stroke-width="'+(s.width||(s.base?1.1:1.8))+'"'+(s.base?' stroke-dasharray="5 4" opacity=".8"':'')+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
     });
@@ -3250,13 +3252,16 @@ details.pl .cascade{margin-top:8px}
     if(sel!==undefined && sel!==null){
       var sx=x(sel).toFixed(1); cur+='<line class="cur" x1="'+sx+'" x2="'+sx+'" y1="'+T+'" y2="'+(T+ph)+'"/>';
       var labs=[]; o.series.forEach(function(s){ if(!s.label || s.base) return; var yf = s.axis==='right' ? y2 : y1; var v = s.k==='band' ? s.hi[sel] : s.pts[sel]; if(v===null||v===undefined||!isFinite(v)) return;
-        labs.push({ y:yf(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label }); });
+        labs.push({ y:yf(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label,
+                    h:22+(String(s.label).split('\n').length-1)*9 }); });   /* a name too long for the margin takes a second line, and its block grows */
       labs.sort(function(a,b){ return a.y-b.y; });
-      var GAP=22, top=T+9, bot=T+ph-12;
-      for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<GAP) labs[j].y=labs[j-1].y+GAP; }
-      for(var j2=labs.length-1;j2>=0;j2--){ if(labs[j2].y>bot) labs[j2].y=bot; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<GAP) labs[j2].y=labs[j2+1].y-GAP; }
-      for(var j3=0;j3<labs.length;j3++){ if(labs[j3].y<top) labs[j3].y=top; if(j3>0 && labs[j3].y-labs[j3-1].y<GAP) labs[j3].y=labs[j3-1].y+GAP; }
-      labs.forEach(function(l){ cur+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+esc(l.n)+'</text></g>'; });
+      var top=T+9, bot=T+ph-12;
+      for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<labs[j-1].h) labs[j].y=labs[j-1].y+labs[j-1].h; }
+      for(var j2=labs.length-1;j2>=0;j2--){ var b2=bot-(labs[j2].h-22); if(labs[j2].y>b2) labs[j2].y=b2; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<labs[j2].h) labs[j2].y=labs[j2+1].y-labs[j2].h; }
+      for(var j3=0;j3<labs.length;j3++){ if(labs[j3].y<top) labs[j3].y=top; if(j3>0 && labs[j3].y-labs[j3-1].y<labs[j3-1].h) labs[j3].y=labs[j3-1].y+labs[j3-1].h; }
+      labs.forEach(function(l){ var nl=String(l.n).split('\n');
+        cur+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text>'+
+             '<text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+nl.map(function(q,qi){ return '<tspan x="'+(W-R+6)+'" dy="'+(qi?9:0)+'">'+esc(q)+'</tspan>'; }).join('')+'</text></g>'; });
     }
     /* an event in the series' own history (acquisition, payback): one dotted rule */
     (o.vrules||[]).forEach(function(vr){ var vx=x(vr.m).toFixed(1); cur+='<line class="vr" x1="'+vx+'" x2="'+vx+'" y1="'+T+'" y2="'+(T+ph)+'"/>'; });
@@ -3490,9 +3495,11 @@ details.pl .cascade{margin-top:8px}
     var negFmt = function(v){ return reurS(-v); };
     var growthChart = chartBlock('Where did '+basis+' growth come from? · cumulative since M0', Mt,
       [{n:'new customers', c:'var(--exp)'}, {n:'existing base · expansion', c:'var(--in)'}, {n:'existing base · contraction + churn', c:'var(--out)'}, {n:'total net growth', c:'var(--ink)'}].concat(totDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
-      chart({ h:HC, sel:m, yFmt:reur, aria:'cumulative ARR growth decomposed into new customers, expansion, and contraction plus churn', series:[
-        { k:'band', lo:negX, hi:zeroX, color:'var(--out)', opacity:0.20, label:'leakage', fmt:negFmt },
-        { k:'band', lo:zeroX, hi:cumExpX, color:'var(--in)', opacity:0.20, label:'expansion', fmt:reurS },
+      chart({ h:HC, sel:m, yFmt:reur, aria:'cumulative ARR growth decomposed into new customers, expansion, and contraction + churn', series:[
+        /* each band carries the boundary that makes it a STACK rather than three independent areas:
+           the loss its floor, expansion its top (the line new customers stands on), new its top */
+        { k:'band', lo:negX, hi:zeroX, color:'var(--out)', opacity:0.20, edgeLo:true, label:'contraction \n+ churn', fmt:negFmt },
+        { k:'band', lo:zeroX, hi:cumExpX, color:'var(--in)', opacity:0.20, edge:true, label:'expansion', fmt:reurS },
         { k:'band', lo:cumExpX, hi:posTopX, color:'var(--exp)', opacity:0.32, edge:true, label:'new '+basis, fmt:reurS },
         { k:'line', pts:totX, color:'var(--ink)', width:1.4, label:'net growth', fmt:reurS } ]
         .concat(totDiff ? [{ k:'line', pts:totB, color:'var(--base)', base:true }] : []) }));

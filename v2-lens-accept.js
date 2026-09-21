@@ -92,18 +92,33 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('CUSTOMERS · chart 2 decomposes cumulative growth into three components — new customers, existing-base expansion, existing-base contraction + churn — with a net line; every right-edge value is the engine\'s cumulative flow and the identities close exactly',
       cu.rv.indexOf(Math.round(eng.cust).toLocaleString('en-GB')) >= 0 && cu.rv.indexOf(mrrS(eng.cumNew)) >= 0 && cu.rv.indexOf(mrrS(eng.cumExp)) >= 0 && cu.rv.indexOf(mrrS(-eng.cumLoss)) >= 0 && cu.rv.indexOf(mrrS(eng.arr - eng.opening)) >= 0 &&
       Math.abs((eng.cumExp - eng.cumLoss) - eng.cumEx) < 1e-6 && Math.abs(eng.cumNew + eng.cumExp - eng.cumLoss - (eng.arr - eng.opening)) < 1e-6 &&
-      cu.rl.join('|').indexOf('new MRR') >= 0 && cu.rl.join('|').indexOf('expansion') >= 0 && cu.rl.join('|').indexOf('leakage') >= 0 && cu.rl.join('|').indexOf('net growth') >= 0 &&
+      cu.rl.join('|').indexOf('new MRR') >= 0 && cu.rl.join('|').indexOf('expansion') >= 0 && /contraction\s*\+\s*churn/.test(cu.rl.join('|')) && cu.rl.join('|').indexOf('net growth') >= 0 && !/leakage/i.test(cu.rl.join('|')) && !/leakage/i.test(cu.legend.join(' ')) &&
       cu.legend.join(' ').indexOf('existing base · contraction + churn') >= 0 && cu.legend.join(' ').indexOf('existing base · expansion') >= 0 && cu.legend.join(' ').indexOf('new customers') >= 0,
       JSON.stringify({ rv: cu.rv, rl: cu.rl, legend: cu.legend }));
+  /* the geometry IS the equation: sample every path at the selected month's x and read the stack off the drawing */
   const dec = await D(pg, () => { const s = [...document.querySelectorAll('#lens-customers svg.ch')][1], W = window.__SP_DEBUG, m = W.selectedMonth();
+    const L = +s.dataset.l, R = +s.dataset.r, xq = L + (m / 60) * (640 - L - R), r2 = v => Math.round(v * 10) / 10;
+    const at = d => { const p = d.replace(/[MLZ]/g, ' ').trim().split(/\s+/).map(Number), o = []; for (let i = 0; i + 1 < p.length; i += 2) if (Math.abs(p[i] - xq) < 0.35) o.push(p[i + 1]); return o; };
     const zeroY = s.querySelector('.zero') ? +s.querySelector('.zero').getAttribute('y1') : null;
-    const ys = d => (d.match(/-?[\d.]+ (-?[\d.]+)/g) || []).map(t => parseFloat(t.split(' ')[1]));
-    const areas = [...s.querySelectorAll('path.ar')].map(p => ({ fill: p.getAttribute('fill'), min: Math.min(...ys(p.getAttribute('d'))), max: Math.max(...ys(p.getAttribute('d'))) }));
-    const loss = areas.filter(a => a.fill === 'var(--out)')[0], exp = areas.filter(a => a.fill === 'var(--in)')[0], nw = areas.filter(a => a.fill === 'var(--exp)')[0];
-    return { zeroY, areas: areas.length, lossBelow: loss && zeroY !== null && loss.max > zeroY + 1, expAbove: exp && zeroY !== null && exp.min < zeroY - 1 && exp.max <= zeroY + 1.5,
-      newAboveExp: nw && exp && nw.min < exp.min, cursors: s.querySelectorAll('.cur').length, lines: s.querySelectorAll('path.ln').length }; });
-  rec('CUSTOMERS · the decomposition is drawn as the identity: contraction + churn below the zero line, expansion above it, new customers stacked on top of expansion, one thin net line — three areas, no fourth chart',
-      dec.areas === 3 && dec.zeroY !== null && dec.lossBelow && dec.expAbove && dec.newAboveExp && cu.charts === 2, JSON.stringify(dec));
+    const band = f => { const p = [...s.querySelectorAll('path.ar')].filter(q => q.getAttribute('fill') === f)[0]; if (!p) return null; const y = at(p.getAttribute('d')); return { top: Math.min(...y), bot: Math.max(...y) }; };
+    const edge = f => { const p = [...s.querySelectorAll('path.ln')].filter(q => q.getAttribute('stroke') === f && !q.classList.contains('base')); return p.map(q => at(q.getAttribute('d'))[0]); };
+    const loss = band('var(--out)'), exp = band('var(--in)'), nw = band('var(--exp)');
+    let cn = 0, ce = 0, cl = 0; for (let i = 0; i < m; i++) { cn += W.expRes.months[i].newARR; ce += W.expRes.months[i].expansion; cl += W.expRes.months[i].leakage; }
+    const net = at([...s.querySelectorAll('path.ln')].filter(q => q.getAttribute('stroke') === 'var(--ink)')[0].getAttribute('d'))[0];
+    const E = zeroY - exp.top, N = exp.top - nw.top, Lo = loss.bot - zeroY;
+    return { zeroY: r2(zeroY), loss: { top: r2(loss.top), bot: r2(loss.bot) }, exp: { top: r2(exp.top), bot: r2(exp.bot) }, nw: { top: r2(nw.top), bot: r2(nw.bot) },
+      areas: s.querySelectorAll('path.ar').length, net: r2(net), edges: { out: edge('var(--out)').map(r2), in: edge('var(--in)').map(r2), exp: edge('var(--exp)').map(r2) },
+      /* contiguity: no gap and no overlap anywhere in the stack */
+      stacked: Math.abs(loss.top - zeroY) < 0.2 && Math.abs(exp.bot - zeroY) < 0.2 && Math.abs(nw.bot - exp.top) < 0.2 && loss.bot > zeroY && nw.top < exp.top,
+      /* the drawn heights are the engine's numbers in the same scale */
+      scaled: Math.abs(E / N - ce / cn) < 0.02 && Math.abs(Lo / N - cl / cn) < 0.02,
+      /* the thin line sits exactly at new + expansion − (contraction + churn) */
+      netIsIdentity: Math.abs(net - (zeroY - (E + N - Lo))) < 0.35 }; });
+  rec('CUSTOMERS · the geometry is the equation: contraction + churn hangs below the zero line, expansion stands on zero, new customers stack on top of expansion with no gap or overlap, each band carries its own boundary, and the thin line sits exactly at new + expansion − contraction − churn',
+      dec.areas === 3 && dec.zeroY !== null && dec.stacked && dec.scaled && dec.netIsIdentity &&
+      dec.edges.out.length === 1 && Math.abs(dec.edges.out[0] - dec.loss.bot) < 0.2 &&
+      dec.edges.in.length === 1 && Math.abs(dec.edges.in[0] - dec.exp.top) < 0.2 &&
+      dec.edges.exp.length === 1 && Math.abs(dec.edges.exp[0] - dec.nw.top) < 0.2 && cu.charts === 2, JSON.stringify(dec));
   rec('CUSTOMERS · no bridges and no separate churn, contraction, expansion, GRR or NRR charts — the decomposition lives in chart 2 and nowhere else', !/CUSTOMER BASE · LOGOS|GROWTH = CUSTOMER GROWTH|− left · churned|MOVEMENT/.test(cu.txt) && cu.charts === 2, '');
 
   /* ---- GROWTH ENGINE ---- */
