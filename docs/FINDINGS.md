@@ -678,3 +678,44 @@ S&M (v1.2), acquisition lag (v1.3).
 
 Valuation, enterprise value and any 3D or final product design stay out until at least items 1–3
 are done.
+
+### 44. The growth engine is the one layer that is not a function of the clock
+
+System is a clock-scrubbed surface: every sub-view draws the same engine month at its own layer's
+scale, and the reason to draw a mechanism there is that its state *moves* as the month advances.
+Customers reshapes a population every month. Monetization's vintages each carry their own state
+and the company's ARPA is the moving mean of them. Cash's book rotates through its billing cycle
+while the balances climb. Before building a Growth Engine mechanism to match, the engine was asked
+whether it had anything of that kind to show.
+
+It does not. `newARRPerMonth()` is `sm / (cacPerARR + sm/cap)` — a pure function of three laws,
+with **no argument drawn from the state of the business**. No cohort count, no ARR, no cash, no
+capacity consumed. The acquisition lag adds real state, a FIFO of pending spend, but a fixed-length
+queue fed a constant input is full after `lag` months and never changes again. Measured across all
+three shipped worlds and the null world, every published acquisition quantity —
+`acquisitionLawNewARR`, `pendingNewARR`, `pendingCount`, `newARR` — takes **exactly one distinct
+value across all sixty months**. The single exception is World A's `pendingSpend`, which climbs
+700k → 2.8m over months 1–4 as the seeded opening pipeline (ARR in flight, no spend attached to it)
+is replaced by real spend, then holds for the remaining fifty-six. That is a start-up transient in
+the seeding, not a mechanism.
+
+So a Growth Engine page on the System layer would be a diagram whose every number is identical in
+month 1 and month 60 — a clock-scrubbed canvas with nothing for the clock to do. The reason is
+already drawn, one view away: Flows marks `⊘ cash never constrains S&M` as an absent feedback, and
+an absent feedback is exactly what "no dynamics" looks like from the inside.
+
+The mechanism is real, but its independent variable is **S&M, not time**, and Reading's response
+curve is already the right picture of it: the curve, the operating point on it, the capacity
+ceiling, average and marginal CAC as slopes of that same curve, payback average/marginal/realised
+by vintage, measured CAC over the trailing twelve, and the Base curve overlaid when a law moves.
+Redrawing that on a time axis would be a worse representation, not a second one.
+
+Two facts the engine holds that no page draws as a picture, both of which survive this decision
+because neither wants a page: under a `lag` of 4, the last four months of spend in a sixty-month
+window **never mature** — €2.8m, 6.7% of all S&M, buying ARR that arrives after the horizon; and
+the ARR arriving this month was priced by the acquisition law in force when the money was spent,
+which is visible only under an intervention and is already provenance, which is Inspect's job and
+Hypotheses'. Both are stated in prose where they belong.
+
+The general rule: **before giving a mechanism a page, check that the page's own independent
+variable is the mechanism's.** A layer with state that does not move does not need a state diagram.
