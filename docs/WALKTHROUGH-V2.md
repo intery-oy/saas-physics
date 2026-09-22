@@ -55,8 +55,8 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.
 - MRR COMPOSITION OVER TIME · fixed · variable · M36 · Y1 · Y2 · Y3 · Y4 · Y5 · 
 - MRR per customer: €2k+4.3% y/y
-- fixed revenue: 54%
-- variable revenue: 46%
+- fixed revenue: 55%
+- variable revenue: 45%
 
 ## 5. Same customers, same laws — does the revenue mix alone change dollar retention?
 
@@ -65,7 +65,7 @@ The walkthrough follows a CFO's questions from the frozen ARR world down through
 - customers · ARPA: 1000 · €2k both
 - M1 contraction: €0 · €3k
 - R12M GRR at M12: 92.00% · 90.16%
-- variable share M60: 1.5% → 37.4%
+- variable share M60: 0.0% → 36.5%
 - gross dollar retention R12M: 92.0% → 90.3%
 - MRR M60: €4.18m → €3.94m
 - ending cash M60: €37.39m → €32.20m

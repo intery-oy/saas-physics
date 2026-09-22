@@ -1308,7 +1308,7 @@ FCF     = EBITA</div>
       realised: false, cohortId: null
     };
   }
-  function realiseCohort(t, matured, bandName, grossMargin) {
+  function realiseCohort(t, matured, bandName, grossMargin, moRates) {
     var realisedARR = 0, realisedSpend = 0, first = matured[0];
     var realisedCustomers = 0, anyCustomers = false;
     /* v1.4 — a batch that matured from the OPENING PIPELINE was paid for before
@@ -1370,7 +1370,9 @@ FCF     = EBITA</div>
       openingARR: 0, retainedARR: 0, leakage: 0, expansion: 0, closingARR: realisedARR,
       revenue: ncRevenue, grossProfit: ncRevenue * grossMargin, expansionCost: 0,
       customers: anyCustomers ? customerRow(0, realisedCustomers, 0, 0, 0, realisedCustomers) : null,
-      monetization: nc.money ? monetizationRow(realisedCustomers, nc.money, nc.money, moRatesFor(nc.money), null) : null
+      /* the kind comes from the RATES, which are derived from the spec and never
+         copied — never from the state, which by contract does not carry it */
+      monetization: nc.money ? monetizationRow(realisedCustomers, nc.money, nc.money, moRates || moRatesFor(nc.money), null) : null
     });
     return nc;
   }
@@ -1389,7 +1391,11 @@ FCF     = EBITA</div>
   /* v2 Gate B — the monetization sub-record of a cohort row. Per-customer
      revenue is ANNUAL (the unit the components are priced in); cohort flows
      are ARR readouts of the MRR quantities the transition produced. */
-  var moRatesFor = function (state) {   /* fixed/variable split needs only the kind, carried on the state */
+  /* FALLBACK ONLY, for the exported realiseCohort() called with no rates (v2-checks,
+     integrity). The kind is NOT state — MO.copyState() drops it by contract — so a
+     state that reached here through a copy reads undefined and classifies as variable.
+     The run always passes moR_t; see FINDINGS #43. */
+  var moRatesFor = function (state) {
     return state.map(function (k) { return { fixed: !!k.fixed, unitsCap: k.unitsCap === undefined ? null : k.unitsCap, penetrationCap: k.penetrationCap === undefined ? 1 : k.penetrationCap }; });
   };
   function monetizationRow(n, stateOpen, stateClose, r, tr) {
@@ -1716,7 +1722,7 @@ FCF     = EBITA</div>
       }
       var realisedARR = 0, realisedMRR = 0, realisedCustomers = 0;
       if (matured.length) {
-        var nc = realiseCohort(t, matured, bandRates_t[0].name, law.grossMargin);
+        var nc = realiseCohort(t, matured, bandRates_t[0].name, law.grossMargin, MON ? moR_t : null);
         realisedARR = nc.initialARR; realisedMRR = nc.live;
         if (CUON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
         if (MON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }

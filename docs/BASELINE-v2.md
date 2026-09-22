@@ -33,6 +33,69 @@ field at the null setting, and the new condition is proven not to reach any cost
 S&M, R&D and G&A are identical to the cold run and deployed capital still equals the cumulative
 S&M the window can see. The checksums above are the re-frozen ones.
 
+## Amendment — monetization composition attribution
+
+`engine.js` is amended once more, for a **reporting defect in the fixed/variable split**. No law
+changes and no economic quantity moves.
+
+**The defect.** A cohort's per-customer component state is carried through `MO.copyState()`, whose
+contract is `{ penetration, units, price }` — the component *kind* is not state and comes from the
+rates array. `realiseCohort()` nevertheless recovered the kind from a copied state, through
+`moRatesFor()`, and so read `undefined` for every component of a newly realised cohort. On its
+birth month only, **all** of a cohort's revenue was classified as variable.
+
+**Why the previous value was wrong.** `fixedARR` on a birth row was 0 even where the world has a
+fixed component, and the company record — which faithfully sums the cohort rows — inherited the
+error. Fixed was understated every month by one newborn cohort's fixed revenue:
+0.34%–2.17% of closing ARR across the canonical worlds, always in the same direction.
+
+**Exact affected outputs**, and these only:
+`months[].monetization.fixedARR`, `.variableARR`, `.variableShare`;
+`cohorts[].rows[].monetization.fixedARR`, `.variableARR`;
+`summary.finalVariableShare`;
+`monetizationMeasures().companyFixedARR`, `.companyVariableARR`, `.companyVariableShare`.
+
+**Confirmed unchanged.** A before/after audit over **621,542 numeric fields** in seven worlds —
+two null worlds, the three acceptance worlds, a hypothesis world and a three-component world —
+found exactly those nine paths changed, **no others, and no change of shape**. ARR, expansion and
+its four named effects, revenue, gross profit, EBITA, FCF, cash, deferred revenue, receivables,
+customers, GRR, NRR, CAC, payback and the cohort ladder do not move. The partition
+`fixedARR + variableARR = closingARR` held before the fix and holds after it — which is why the
+total was never wrong and why every existing test passed straight through the defect. The null
+rule is untouched: the path is unreachable with Monetization off, both null worlds returned zero
+changed fields, ALL-NULL-V13 replays the complete v1.3 witness field for field, both witness
+archives are byte-identical, and the headline Base figures are identical to the cent —
+M60 ARR €62,926,223.19 · ending cash €59,571,254.64 · trough €6,100,740.28 (M13) · payback 18.0.
+
+**Amended checksum.** `engine.js` → `93927195c56d83461b4f1435923866c1ca15e24e4b5b8557b4a78f3d57d48c5c`
+(1402 → 1408 lines). **`monetization.js` is not touched** and keeps
+`a2a3dbaef27561f7de336f833a556acd06aee3db91bc8921a82c7c8dbbd9ca87`: the module's state contract was
+correct, and the fix passes the authoritative rates array into `realiseCohort()` rather than
+widening what a state copy carries. Widening `copyState()` was built and tested — bit-identical
+numbers — but it changed the published shape of `state` from three keys to six, and was rejected.
+
+**Recorded as** FINDINGS #43. Held by `monetization-split-checks.js` (10 checks), which
+reconstructs the split from the spec's own component kinds for **every cohort row in every world
+that actually acquires** — the check whose absence let this stand. The prior clean-room
+monetization audit ran at `sm: 0`, so the only cohort was the opening base, the one cohort that
+never passes through `realiseCohort()`. Reverting the fix fails three of the ten.
+
+## Amendment — presentation and build drift
+
+Three rows of the table above went stale during the Ledger, Customers and Phase-1 passes. They are
+**presentation and build files, not the economic core**, and none of them can change an engine
+output. Restated here so the table is not silently wrong:
+
+| File | frozen at | now | why |
+|---|---|---|---|
+| `build.js` | `7926d13f…` | `0039a1b791f19342c436b4e562f876d4eedb5d33187216c789c3b37712e62357` | injects the short git hash as a build marker, so a cached page is distinguishable from a live one |
+| `v1.template.html` | `7b372345…` | `3f2e18c76a936781fbcba3da89c229a916cf5bddf7e7ff233b55e8fa61a160b1` | the Model Ledger, the System · Customers rebuild, the Phase-1 defect fixes |
+| `saas-physics-v1.html` | `76b1c661…` | `fffd2c7648a4364e7f2d24957200f6cd6f58293da80e771a9e61bf2a8380c6bf` | rebuilt from the above, and now also carrying the amended engine |
+
+**The ten engine-layer files remain byte-identical to the freeze** apart from the single amended
+`engine.js` above: `kpi.js`, `integrity.js`, `capital.js`, `systemstate.js`, `basis.js`,
+`customers.js`, `monetization.js`, `cash.js`, `interventions.js` all keep their table checksums.
+
 ## The null rule, proven
 
 With `logoRetentionAnnual: null`, `monetization: null`, `billingTermMonths: null`,

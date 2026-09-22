@@ -595,6 +595,42 @@ of `docs/MEASUREMENT.md` in a new coat. What the product does instead: Base is t
 without the programme, the Consequence panel shows the effect net of cost, and the month cash
 overtakes Base is reported as a fact of the comparison.
 
+### 43. A kind is a property of the spec, and a state copy must not be asked to carry it
+
+The engine keeps a cohort's per-customer component state as `(penetration, units, price)` — and
+`MO.copyState()` says so in one line. Whether a component is *fixed* or *variable* is not state
+at all: it is a property of the spec, resolved once into the rates array and read from there by
+`MO.revenue()` and `MO.transition()`. The module is consistent about this.
+
+`engine.js` then added a convenience the module never promised: `stampKinds()` wrote `fixed`,
+`unitsCap` and `penetrationCap` *onto* the state objects, and `moRatesFor()` read them back. One
+call site depended on it — the birth row of a newly realised cohort — and that cohort's state had
+reached it through two `copyState()` calls, which by contract had dropped the stamps. `!!undefined`
+is `false`, so every component of every cohort was classified **variable on the month it was
+born**, and the company record, which faithfully sums the cohort rows, inherited it. Fixed was
+understated by 0.34%–2.17% of closing ARR, in every world, in every month, always in the same
+direction.
+
+Nothing economic moved, and that is the instructive part. `MO.revenue()` returns
+`total = fixed + variable` whatever the classification, and a newborn's ARR comes from the
+acquisition ledger, not from this row. So the partition identity `fixed + variable = closing ARR`
+held perfectly throughout — and **every existing test checked the sum**: the cohort→company
+aggregation, the ledger's own composition check, and a v2 check that inspects a birth row
+specifically and asserts only its total. A test suite can be thorough about an identity and blind
+to the attribution inside it.
+
+Worse, the clean-room monetization audit written to be independent of the implementation was
+structurally unable to see it: it runs at `sm: 0`, so the only cohort is the opening base — which
+is created before the loop and is the one cohort that never passes through `realiseCohort()`. An
+independent derivation still has to exercise the path.
+
+The fix passes the authoritative rates array into `realiseCohort()` rather than widening what a
+state copy carries. Widening `copyState()` was tested and produced bit-identical numbers, but it
+changed the published shape of `state` from three keys to six, duplicating caps that already live
+in `derived.monetization.spec`. The narrower change is the one that keeps the module's contract
+true. Held by `monetization-split-checks.js`, which reconstructs the split from the spec's own
+kinds for every cohort row in every world that actually acquires.
+
 ## What held up
 
 - **The cohort spine.** Company ARR and revenue are only ever sums of cohorts, reconciling to ~10⁻⁸
