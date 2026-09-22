@@ -679,7 +679,7 @@ details.pl .cascade{margin-top:8px}
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
     <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">d36abbd</span>
+    <span class="chip build" id="build-chip" title="The commit this page was built from">99c3876</span>
   </header>
 
   <aside class="rail">
@@ -5013,6 +5013,10 @@ details.pl .cascade{margin-top:8px}
   /* the Customers view publishes what it drew: values and geometry, so a test can
      check BOTH that the numbers are canonical and that the bars landed where they belong. */
   var customersModel = null;
+  /* Monetization: which vintage band A explains. VIEW-SCOPED — it names a
+     cohort to describe and never pins one; Inspect is the surface that pins. */
+  var monVintage = 0, monModel = null;
+  var vintHits = [], lawHits = [];   /* a vintage row; a law chip drawn without a valve */
   /* Cheap per-frame test: is the Experiment the same run as Base? Comparing the
      assumption objects directly avoids re-summarising 60 months twice a frame. */
   function sameAsBase(){
@@ -5041,7 +5045,7 @@ details.pl .cascade{margin-top:8px}
 
     /* v2 — a layer sub-view instead of the company map. The drawing helpers
        below are function declarations, hoisted, so they are usable here. */
-    nodeHits = [];
+    nodeHits = []; vintHits = []; lawHits = [];
     if(sysView!=='company'){ drawSubView(sysView); endFit(); positionLawChips(); return; }
     /* the Flows view is a layer too: it keeps the same way back to the ontology */
     ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
@@ -5276,24 +5280,329 @@ details.pl .cascade{margin-top:8px}
         ctx.fillText('LEGEND   ▭ stock (bordered)   ▮ flow this month   ⋈ law you set   ┄ coupling   ┄ law reaching money without a logo   → measurement', 30, SYS.H-14);
         customersModel = model;
       }
-      if(v==='monetization'){
-        var mo = mm.monetization, spec = expA.monetization, br = K.rowAt(expRes.cohorts[0], m), st = br && br.monetization ? br.monetization.state : null;
-        var c0 = spec.components[0], c1 = spec.components[1];
-        box(200, 200, 260, 110, 'platform (fixed) · per customer', st ? eur(st[0].price)+'/yr' : eur(c0.priceAnnual)+'/yr', '#3a4358');
-        note(80, 270, 'price growth '+pct(c0.priceGrowthAnnual,1)+'/yr');
-        box(200, 420, 260, 150, 'usage (variable) · per customer', st ? pct(st[1].penetration,0)+' × '+st[1].units.toFixed(0)+' units × '+eur(st[1].price) : pct(c1.penetration,0)+' × '+c1.units+' × '+eur(c1.priceAnnual), '#3a4358');
-        note(80, 508, 'price +'+pct(c1.priceGrowthAnnual,1)+'/yr · usage +'+pct(c1.usageGrowthAnnual,0)+'/yr to '+(c1.unitsCap===null?'no cap':c1.unitsCap+' units')+' · adoption '+pct(c1.adoptionAnnual,0)+'/yr to '+pct(c1.penetrationCap,0));
-        flow(330, 200, 480, 300, 'fixed', st ? eur(st[0].penetration*st[0].units*st[0].price)+'/yr' : '');
-        flow(330, 420, 480, 330, 'variable', st ? eur(st[1].penetration*st[1].units*st[1].price)+'/yr' : '');
-        box(600, 315, 220, 100, 'per-customer revenue · opening base', br && br.monetization ? eur(br.monetization.perCustomerClosing)+'/yr' : '—', '#8b8df0');
-        flow(710, 315, 850, 315, '× customers', mm.customers.closing.toFixed(0));
-        box(980, 315, 230, 110, 'STOCK · '+basis, reur(mm.closingARR), '#8b8df0');
-        ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8'; ctx.fillText(pct(1-mo.variableShare,0)+' fixed · '+pct(mo.variableShare,0)+' variable', 980, 355);
-        var fx = [['price effect', mo.priceARR], ['usage effect', mo.usageARR], ['adoption effect', mo.adoptionARR], ['− contraction (usage only)', -mo.contractionARR]];
-        fx.forEach(function(f,i){ box(230+i*250, 620, 220, 80, f[0]+' · this month', reur(Math.abs(f[1])), f[1]>=0?'#4fa37d':'#d2a45c'); });
-        note(30, 560, 'Survivor revenue moves only through these four named effects, in this order, every month. The generic expansion coefficient ('+pct(expRes.derived.monetization.expansionCoefficientIgnored,0)+') is bypassed.');
-        var hr = br && br.monetization && br.monetization.headroom[1] ? br.monetization.headroom[1] : null;
-        if(hr) note(30, SYS.H-40, 'Opening base headroom used: '+(hr.units!==null?pct(hr.units,0)+' of the usage cap · ':'')+pct(hr.penetration,0)+' of the penetration cap. Expansion saturates at the caps — the first version of this map on which it can.');
+      if(v==='monetization'){ drawMonetization(mm); }
+      /* ----------------------------------------------------------------- *
+       * MONETIZATION — revenue is NOT carried. It is rebuilt every month
+       * from per-customer component state, and the generic expansion
+       * coefficient is not read at all.
+       *
+       *   cohort ARR = customers x  SUM_k  penetration_k x units_k x price_k
+       *
+       * The page descends through altitudes rather than across a pipeline,
+       * because that is the shape of the mechanism:
+       *
+       *   B  the POPULATION of vintages   — per-customer revenue differs by
+       *      cohort age, and the company's ARPA is the customer-weighted mean
+       *      of that distribution. This is the band that was missing.
+       *   A  the SELECTED vintage         — why THAT vintage pays what it does:
+       *      the three-tuple, the laws that move it, the caps that bound it
+       *   C  the COMPANY                  — ARPA x customers = the stock, and
+       *      what the stock is made of
+       *   D  THIS MONTH'S MOVEMENT        — the four named effects, in the
+       *      order the engine applies them, signed
+       *
+       * A basis boundary, stated once: bands B, C and D are in the display
+       * basis; band A is in ANNUAL per-customer euros, because that is the
+       * unit the component laws are written in (priceAnnual, and units per
+       * customer per year). Converting a unit price to a monthly figure would
+       * misname the law.
+       * ----------------------------------------------------------------- */
+      function drawMonetization(mm){
+        var mo = mm.monetization, cu = mm.customers;
+        var spec = expRes.derived.monetization.spec.components;
+        var GOLD = '#d2a45c', IN = '#4fa37d', OUT = '#c2606a', STK = '#8b8df0', DIM = '#414a60';
+
+        /* ---- the vintages alive this month, oldest first ---- */
+        var vints = [];
+        expRes.cohorts.forEach(function(c){
+          var r = K.rowAt(c, m); if(!r || !r.monetization || !r.customers) return;
+          if(!(r.customers.closing > 1e-9)) return;
+          vints.push({ c:c, r:r, id:c.acquisitionMonth, age:m - c.acquisitionMonth,
+                       per:r.monetization.perCustomerClosing, n:r.customers.closing,
+                       base:c.acquisitionMonth===0 });
+        });
+        vints.sort(function(a,b){ return b.age - a.age; });
+        /* the selection is VIEW-SCOPED: it names a vintage to explain, and
+           never pins a cohort — Inspect is a different surface with a
+           different job. A vintage the clock has scrolled past falls back. */
+        var sel = vints.filter(function(x){ return x.id === monVintage; })[0] || vints[0];
+        if(!sel) return;
+        monVintage = sel.id;
+
+        /* ================= B · POPULATION OF VINTAGES ================= */
+        var BX0 = 250, BX1 = 880, BTOP = 96, BBOT = 256;              /* the revenue axis */
+        var NX0 = 940, NX1 = 1150;                                    /* the customer column */
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        ctx.fillText('B · POPULATION OF VINTAGES', 30, 74);
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('every cohort alive this month,', 30, 88);
+        ctx.fillText('oldest at the top', 30, 100);
+        ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('per-customer recurring revenue  ·  position is the quantity', (BX0+BX1)/2, 74);
+        ctx.fillText('customers in that vintage', (NX0+NX1)/2, 74);
+
+        var perLo = Math.min.apply(null, vints.map(function(x){ return x.per; }));
+        var perHi = Math.max.apply(null, vints.map(function(x){ return x.per; }));
+        var nHi   = Math.max.apply(null, vints.map(function(x){ return x.n; }));
+        /* the revenue axis does NOT start at zero — the whole story is the
+           SPREAD between vintages, and a zero origin would compress it to
+           nothing. It is a difference axis, and its ends are printed. */
+        var pad = Math.max(1, (perHi - perLo) * 0.12), aLo = perLo - pad, aHi = perHi + pad;
+        function bx(v){ return BX0 + (v - aLo) / (aHi - aLo) * (BX1 - BX0); }
+        function nx(v){ return NX0 + (nHi > 0 ? v / nHi : 0) * (NX1 - NX0); }
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
+        ctx.textAlign='left';  ctx.fillText(reurP(aLo)+' /'+bp(), BX0, 88);
+        ctx.textAlign='right'; ctx.fillText(reurP(aHi)+' /'+bp(), BX1, 88);
+        ctx.textAlign='left';  ctx.fillText('0', NX0, 88);
+        ctx.textAlign='right'; ctx.fillText(nHi.toFixed(0), NX1, 88);
+        ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(BX0, BTOP-4); ctx.lineTo(BX1, BTOP-4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(NX0, BTOP-4); ctx.lineTo(NX1, BTOP-4); ctx.stroke();
+
+        var rowH = Math.min(26, (BBOT - BTOP) / Math.max(1, vints.length));
+        var barH = Math.max(2.5, Math.min(8, rowH - 3));
+        var BOFF = ((BBOT - BTOP) - rowH*vints.length) / 2;   /* centred, so a young company is not a huddle at the top */
+        vintHits = [];
+        vints.forEach(function(x, i){
+          var y = BTOP + BOFF + i*rowH + rowH/2, on = (x === sel);
+          /* POSITION is the quantity, so the mark is a marker — not a bar from an
+             origin the axis does not have. This axis is a difference axis: it
+             starts at the lowest vintage, not at zero, because the spread between
+             vintages IS the subject and a zero origin would flatten it. A length
+             drawn from that origin would encode nothing, so none is drawn. */
+          ctx.fillStyle = on ? 'rgba(139,141,240,.98)' : 'rgba(139,141,240,.42)';
+          ctx.fillRect(bx(x.per) - 4, y - barH/2, 8, barH);
+          if(on){ ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(139,141,240,.55)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(BX0, y); ctx.lineTo(bx(x.per)-5, y); ctx.stroke(); ctx.restore(); }
+          /* the customer mark, on its own scale, so "how many pay this" is
+             beside "how much they pay" rather than mixed into one bar */
+          ctx.fillStyle = on ? 'rgba(230,233,242,.85)' : 'rgba(230,233,242,.28)';
+          ctx.fillRect(NX0, y - barH/2, Math.max(1.5, nx(x.n) - NX0), barH);
+
+          /* only the ends and the selection are named: this is a distribution,
+             not a table, and sixty labels would be sixty labels */
+          if(on || i===0 || i===vints.length-1){
+            ctx.textAlign='right'; ctx.font=(on?'9.5px':'9px')+' "JetBrains Mono",monospace';
+            ctx.fillStyle = on ? '#e6e9f2' : '#66708a';
+            ctx.fillText(x.base ? 'opening base' : 'M'+x.id, BX0-10, y+3);
+            ctx.textAlign='left'; ctx.fillStyle = on ? '#e6e9f2' : '#66708a';
+            ctx.fillText(reurP(x.per), bx(x.per)+9, y+3);
+            ctx.fillText(x.n.toFixed(1), Math.max(nx(x.n)+7, NX0+7), y+3);
+          }
+          vintHits.push({ id:x.id, x:BX0-70, y:y-rowH/2, w:(BX1-BX0)+140, h:Math.max(rowH, 7) });
+        });
+        /* the company's ARPA is not a separate fact: it is the weighted mean
+           of the distribution above, and it is drawn as such */
+        var ax = bx(cu.arpaClosing);
+        ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle='rgba(230,233,242,.75)'; ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.moveTo(ax, BTOP-8); ctx.lineTo(ax, BBOT+6); ctx.stroke(); ctx.restore();
+        ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='rgba(230,233,242,.85)';
+        ctx.fillText('company ARPA '+reurP(cu.arpaClosing)+' /'+bp()+' — the customer-weighted mean of this distribution', ax, BBOT+20);
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText(vints.length+' vintages alive  ·  click one', 30, BBOT+20);
+
+        /* ================= A · THE SELECTED VINTAGE ================= */
+        var AY = 306, AX = 30;
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        ctx.fillText('A · WHY THIS VINTAGE PAYS THAT', AX, AY);
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText((sel.base ? 'opening base' : 'vintage M'+sel.id)+' · age '+sel.age+' · '+sel.n.toFixed(1)+' customers'+
+          '   ·   per customer, per year — the unit the component laws are written in', AX, AY+14);
+        var st = sel.r.monetization.state, hr = sel.r.monetization.headroom;
+        /* band A is the altitude where the reader CHECKS the arithmetic, so every
+           figure in it is exact to the euro. Abbreviation belongs to the company
+           bands, where a euro is noise; here a rounded factor breaks the product. */
+        var aeur = function(v){ return '€'+Math.round(v).toLocaleString('en-GB'); };
+        var blockH = Math.min(104, 216 / Math.max(1, st.length));
+        st.forEach(function(s, k){
+          var sp = spec[k], fixed = sp.kind === 'fixed';
+          var y = AY + 56 + k*blockH;
+          /* a factor is printed at enough precision that the reader multiplying the
+             three cells lands on the product beside them; €33 × 26 missed it by 1.4% */
+          var uTxt = s.units<10 ? s.units.toFixed(2) : s.units<100 ? s.units.toFixed(1) : Math.round(s.units).toLocaleString('en-GB');
+          var pTxt = s.price<100 ? '€'+s.price.toFixed(2) : aeur(s.price);
+          var cells = [['penetration', fixed ? '1.00' : pct(s.penetration,1), fixed ? null : 'monetization.components['+k+'].adoptionAnnual'],
+                       ['units',       uTxt,                                  fixed ? null : 'monetization.components['+k+'].usageGrowthAnnual'],
+                       ['price',       pTxt,                                  'monetization.components['+k+'].priceGrowthAnnual']];
+          ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle = fixed ? '#98a2b8' : '#8b8df0';
+          ctx.fillText(sp.name+(fixed ? ' · fixed' : ' · variable'), AX, y);
+          var cw = 118, cx0 = AX + 108;
+          cells.forEach(function(cl, j){
+            var cx = cx0 + j*(cw+10);
+            /* the law that moves this cell, above it */
+            if(cl[2]){
+              var lval = lv(cl[2]);
+              ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
+              ctx.fillText('⋈ '+(lval>=0?'+':'')+pct(lval,1)+'/yr', cx+cw/2, y-24);
+              ctx.strokeStyle='rgba(210,164,92,.55)'; ctx.lineWidth=1;
+              ctx.beginPath(); ctx.moveTo(cx+cw/2, y-20); ctx.lineTo(cx+cw/2, y-6); ctx.stroke();
+              lawHits.push({ key:cl[2], x:cx, y:y-32, w:cw, h:16 });
+            }
+            /* the cell: a stock, because state is what the mechanism carries */
+            ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.2;
+            ctx.beginPath(); ctx.roundRect(cx, y+6, cw, 34, 3); ctx.fill(); ctx.stroke();
+            ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+            ctx.fillText(cl[0], cx+cw/2, y+18);
+            ctx.font='12px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+            ctx.fillText(cl[1], cx+cw/2, y+34);
+            if(j<2){ ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('×', cx+cw+5, y+27); }
+          });
+          /* the product, and the caps that bound the two cells that have them */
+          ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.fillText('= '+aeur(s.penetration*s.units*s.price)+' /yr', cx0 + 3*(cw+10) + 4, y+34);
+          if(fixed){
+            ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+            ctx.fillText('┄ a fixed line has no usage and no adoption: only its price moves', cx0, y+56);
+          } else {
+            var caps = [[0, sp.penetrationCap, hr && hr[k] ? hr[k].penetration : null, 'pen cap '+pct(sp.penetrationCap,0)],
+                        [1, sp.unitsCap,       hr && hr[k] ? hr[k].units : null,       'units cap '+(sp.unitsCap===null?'none':Math.round(sp.unitsCap))]];
+            caps.forEach(function(cp){
+              if(cp[1]===null || cp[2]===null) return;
+              var cx = cx0 + cp[0]*(cw+10);
+              ctx.textAlign='left'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
+              ctx.fillText('⌈⌉ '+cp[3], cx, y+54);
+              /* the cap as a track, filled to the headroom actually used */
+              ctx.fillStyle='rgba(210,164,92,.16)'; ctx.fillRect(cx, y+58, cw, 5);
+              ctx.fillStyle='rgba(210,164,92,.85)'; ctx.fillRect(cx, y+58, cw*Math.max(0,Math.min(1,cp[2])), 5);
+              ctx.textAlign='right'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(210,164,92,.8)';
+              ctx.fillText(pct(cp[2],0)+' used', cx+cw, y+72);
+            });
+          }
+        });
+        ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+        var ptY = Math.min(AY + 56 + st.length*blockH + 22, 572);
+        ctx.fillText('this vintage pays  '+aeur(sel.per)+' /yr per customer', AX, ptY);
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('= '+reurP(sel.per)+' /'+bp()+' in the display basis  ·  one point in the distribution above', AX + 300, ptY);
+
+        /* ================= C · THE COMPANY ================= */
+        var CX = 700, CY = 306;
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        ctx.fillText('C · WHAT IT ALL ADDS TO', CX, CY);
+        ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+        ctx.fillText(reurP(cu.arpaClosing)+'  ×  '+cu.closing.toFixed(1)+' customers  =  '+reur(mm.closingARR), CX, CY+26);
+        var cRes = cu.arpaClosing*cu.closing - mm.closingARR;
+        ctx.font='9px "JetBrains Mono",monospace';
+        ctx.fillStyle = Math.abs(cRes) <= 1e-6*Math.max(1,mm.closingARR) ? IN : OUT;
+        ctx.fillText(Math.abs(cRes) <= 1e-6*Math.max(1,mm.closingARR) ? '✓ closes' : '✗ '+cRes.toFixed(2), CX+430, CY+26);
+        /* the composition: one bar that IS the stock, partitioned */
+        var compW = 520, compY = CY+52, tot = mo.fixedARR + mo.variableARR;
+        var fw = tot>0 ? compW*mo.fixedARR/tot : 0;
+        ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.3;
+        ctx.beginPath(); ctx.roundRect(CX, compY, compW, 38, 3); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='rgba(139,141,240,.42)'; ctx.fillRect(CX+1, compY+1, Math.max(0,fw-1), 36);
+        ctx.fillStyle='rgba(139,141,240,.16)'; ctx.fillRect(CX+fw, compY+1, Math.max(0,compW-fw-1), 36);
+        if(fw>2 && fw<compW-2){ ctx.strokeStyle='rgba(10,13,21,.9)'; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.moveTo(CX+fw, compY+1); ctx.lineTo(CX+fw, compY+37); ctx.stroke(); }
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#e6e9f2';
+        ctx.fillText('fixed '+reur(mo.fixedARR)+'  ·  '+pct(1-mo.variableShare,0), CX+8, compY+24);
+        ctx.textAlign='right';
+        ctx.fillText(pct(mo.variableShare,0)+'  ·  '+reur(mo.variableARR)+' variable', CX+compW-8, compY+24);
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
+        var kRes = mo.fixedARR + mo.variableARR - mm.closingARR;
+        ctx.fillText('fixed + variable = '+basis+'   '+(Math.abs(kRes)<=1e-6*Math.max(1,mm.closingARR)?'✓ closes':'✗ '+kRes.toFixed(2)), CX, compY+56);
+        /* measurements, beneath the object they observe */
+        var mo12 = m>=12 ? K.monetizationMeasures(expRes, m) : null;
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        [ '→ price R12M '     +(mo12?pct(mo12.priceEffectR12M,1):'—')+'   → usage R12M '+(mo12?pct(mo12.usageEffectR12M,1):'—'),
+          '→ adoption R12M '  +(mo12?pct(mo12.adoptionEffectR12M,1):'—')+'   → expansion R12M '+(mo12?pct(mo12.expansionR12M,1):'—'),
+          '→ contraction R12M '+(mo12?pct(mo12.contractionR12M,1):'—')+'   → NRR R12M '+(mo12?pct(mo12.nrrR12M,1):'—')
+        ].forEach(function(t2,i){ ctx.fillText(t2, CX, compY+78+i*14); });
+
+        /* ================= D · THIS MONTH'S MOVEMENT =================
+           Monetization governs SURVIVOR revenue. Two of the seven movements in
+           a month are not its: new business comes from acquisition, and logo
+           churn takes whole customers away. Drawing only the four monetization
+           effects would leave the bridge open by exactly those two, so the page
+           draws all seven and marks which layer owns each. The boundary of the
+           layer is a fact about the model, not a gap to hide. */
+        var DY = 596, DBASE = 676, DH = 58;
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        var dHead = 'D · WHAT MOVED THE COMPANY\'S '+basis+' THIS MONTH';
+        ctx.fillText(dHead, 30, DY);
+        var dHw = ctx.measureText(dHead).width;
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('·  the four effects this layer owns, in the order the engine applies them, and the two movements that belong to other layers', 30+dHw+10, DY);
+        var steps = [
+          { n:'opening',       v:mm.openingARR,       kind:'stock' },
+          { n:'new',           v:mm.newARR,           kind:'flow', own:false, note:'acquisition ›', go:'company' },
+          { n:'logo churn',    v:-cu.logoChurnARR,    kind:'flow', own:false, note:'customers ›',   go:'customers' },
+          { n:'contraction',   v:-mo.contractionARR,  kind:'flow', own:true,  note:'variable units only', law:'contractionAnnual' },
+          { n:'price',         v:mo.priceARR,         kind:'flow', own:true,  note:'every component' },
+          { n:'usage',         v:mo.usageARR,         kind:'flow', own:true,  note:'to the units cap' },
+          { n:'adoption',      v:mo.adoptionARR,      kind:'flow', own:true,  note:'to the penetration cap' },
+          { n:'closing',       v:mm.closingARR,       kind:'stock' }
+        ];
+        /* the sign is READ OFF THE NUMBER, never asserted by the label: the price
+           effect is negative whenever a price law is, and a row headed '+ price'
+           above a red −€13k would be the drawing telling a lie about the month. */
+        var sgn = function(v){ return v < 0 ? '− ' : '+ '; };
+        steps.forEach(function(st0){ if(st0.kind==='flow') st0.n = sgn(st0.v) + st0.n; });
+        var DX0 = 110, DXS = 153;
+        /* run-wide scales, computed once, so scrubbing shows growth rather than a
+           rescaling axis. Stocks and flows here differ by two orders of magnitude,
+           so they carry separate scales and the magnification is printed. */
+        var sMax = 1, fMax = 1;
+        for(var qi=0; qi<expRes.horizon; qi++){
+          var q = expRes.months[qi]; if(!q.monetization || !q.customers) continue;
+          sMax = Math.max(sMax, q.openingARR, q.closingARR);
+          fMax = Math.max(fMax, q.newARR, q.customers.logoChurnARR, Math.abs(q.monetization.priceARR),
+                          q.monetization.usageARR, q.monetization.adoptionARR, q.monetization.contractionARR);
+        }
+        var FSH = 0.60, mag = FSH*sMax/fMax;
+        ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+        ctx.fillText('▮ flows magnified ×'+Math.round(mag)+' against the stocks', 1230, DY);
+        ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(60, DBASE+0.5); ctx.lineTo(1230, DBASE+0.5); ctx.stroke();
+        monModel = { month:m, vintage:sel.id, steps:[], mag:mag };
+        steps.forEach(function(st2, i){
+          var x = DX0 + i*DXS, stock = st2.kind==='stock';
+          var h = stock ? Math.max(1, Math.abs(st2.v)/sMax*DH)
+                        : (Math.abs(st2.v)<1e-9 ? 0 : Math.max(3, Math.abs(st2.v)/fMax*DH*FSH));
+          var w = stock ? 86 : 54, y = DBASE - h;
+          if(stock){
+            ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.3;
+            ctx.beginPath(); ctx.roundRect(x-w/2, y, w, h, 3); ctx.fill(); ctx.stroke();
+          } else if(h){
+            /* a movement this layer does not own is drawn in outline: present in
+               the arithmetic, plainly not this mechanism's doing */
+            if(st2.own){ ctx.fillStyle = st2.v>=0 ? IN : OUT; ctx.fillRect(x-w/2, y, w, h); }
+            else { ctx.strokeStyle = st2.v>=0 ? 'rgba(79,163,125,.75)' : 'rgba(194,96,106,.75)'; ctx.lineWidth=1.2;
+                   ctx.strokeRect(x-w/2+0.5, y+0.5, w-1, Math.max(1,h-1)); }
+          }
+          ctx.textAlign='center'; ctx.font=(stock?'11.5px':'10.5px')+' "JetBrains Mono",monospace';
+          ctx.fillStyle = (stock || st2.own) ? '#e6e9f2' : '#98a2b8';
+          ctx.fillText((stock?'':(st2.v>=0?'+':'−'))+reur(Math.abs(st2.v)), x, y-8);
+          ctx.font='9px "Archivo",sans-serif';
+          ctx.fillStyle = stock ? '#98a2b8' : !st2.own ? '#66708a' : (st2.v>=0 ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)');
+          ctx.fillText(st2.n, x, DBASE+15);
+          if(st2.note){ ctx.font='8.5px "Archivo",sans-serif';
+            ctx.fillStyle = st2.go ? '#5b68c4' : DIM; ctx.fillText(st2.note, x, DBASE+27);
+            if(st2.go) nodeHits.push({ x:x-60, y:DBASE+19, w:120, h:13, view:st2.go }); }
+          if(st2.law){ ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
+            ctx.fillText('⋈ '+pct(lv(st2.law),1), x, DBASE+39); }
+          monModel.steps.push({ n:st2.n, v:st2.v, kind:st2.kind, own:!!st2.own, rect:{ x:x-w/2, y:y, w:w, h:h } });
+        });
+        /* the closing stock carries a dotted rule at the opening level, so the
+           month's net change is legible at the stock's own true scale */
+        var oy = DBASE - Math.max(1, mm.openingARR/sMax*DH), cxL = DX0 + 7*DXS;
+        ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(230,233,242,.5)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(cxL-52, oy+0.5); ctx.lineTo(cxL+52, oy+0.5); ctx.stroke(); ctx.restore();
+        var dRes = mm.openingARR + mm.newARR - cu.logoChurnARR - mo.contractionARR + mo.priceARR + mo.usageARR + mo.adoptionARR - mm.closingARR;
+        monModel.residual = dRes;
+        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        var dTxt = reur(mm.openingARR);
+        steps.forEach(function(st0){ if(st0.kind==='flow') dTxt += ' '+(st0.v<0?'−':'+')+' '+reur(Math.abs(st0.v)); });
+        dTxt += ' = '+reur(mm.closingARR);
+        ctx.fillText(dTxt, 60, DBASE+58);
+        var dw = ctx.measureText(dTxt).width, okD = Math.abs(dRes) <= 1e-6*Math.max(1,mm.closingARR);
+        ctx.fillStyle = okD ? IN : OUT;
+        ctx.fillText(okD ? '   ✓ closes' : '   ✗ '+dRes.toFixed(2), 60+dw, DBASE+58);
+        ctx.textAlign='right'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+        ctx.fillText('price + usage + adoption = this month\'s expansion, exactly — monetization IS the expansion line, decomposed', 1230, DBASE+58);
+
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
+        ctx.fillText('LEGEND   ▭ stock (state, and the company\'s)   ▮ flow this month   ⋈ law you set   ⌈⌉ cap, filled to the headroom used   ┄ absent   → measurement', 30, SYS.H-14);
       }
       if(v==='cash'){
         var ca = mm.cash, dc = expRes.derived.cash;
@@ -6097,6 +6406,19 @@ details.pl .cascade{margin-top:8px}
   cv.addEventListener('mousemove', function(ev){
     var r=cv.getBoundingClientRect(), mx=ev.clientX-r.left, my=ev.clientY-r.top;
     hover = null;
+    /* on the System layer the canvas carries its own targets — a node that
+       opens a layer, a vintage row, a law. The cursor has to say so, or a
+       clickable diagram reads as a picture. */
+    if(layer==='flow'){
+      var fx=(mx-fitT.ox)/fitT.s, fy=(my-fitT.oy)/fitT.s, over=false;
+      function inb(q){ return fx>=q.x && fx<=q.x+q.w && fy>=q.y && fy<=q.y+q.h; }
+      nodeHits.forEach(function(q){ if(inb(q)) over=true; });
+      vintHits.forEach(function(q){ if(inb(q)) over=true; });
+      lawHits.forEach(function(q){ if(inb(q)) over=true; });
+      valveHits.forEach(function(v){ if(Math.abs(v.x-fx)<24 && Math.abs(v.y-fy)<24) over=true; });
+      cv.style.cursor = over ? 'pointer' : 'default';
+      return;
+    }
     if(my>=geo.massTop && my<=geo.massBot && mx>=geo.L && mx<=W-geo.R){
       var m = Math.round(invX(mx)); if(m>tau) m = Math.floor(tau);
       var S2 = scales();
@@ -6115,6 +6437,11 @@ details.pl .cascade{margin-top:8px}
       var hit=null;
       var nodeHit=null; nodeHits.forEach(function(nd){ if(dx>=nd.x && dx<=nd.x+nd.w && dy>=nd.y && dy<=nd.y+nd.h) nodeHit=nd.view; });
       if(nodeHit){ var VV = SYS_VIEWS.filter(function(V){ return V.id===nodeHit; })[0]; if(VV && VV.on()){ sysView=nodeHit; openChip=null; syncSysViews(); render(); renderSide(); } return; }
+      /* a vintage row selects what band A explains — a local change, so the
+         canvas is redrawn and nothing else in the product moves */
+      var vh=null; vintHits.forEach(function(q){ if(dx>=q.x && dx<=q.x+q.w && dy>=q.y && dy<=q.y+q.h) vh=q.id; });
+      if(vh!==null){ monVintage = vh; render(); return; }
+      lawHits.forEach(function(q){ if(dx>=q.x && dx<=q.x+q.w && dy>=q.y && dy<=q.y+q.h) hit=q.key; });
       valveHits.forEach(function(v){ if(Math.abs(v.x-dx)<24 && Math.abs(v.y-dy)<24) hit=v.key; });
       openChip = (hit && openChip!==hit) ? hit : null;
       LAWCHIPS.forEach(function(Lc){
@@ -7581,7 +7908,42 @@ details.pl .cascade{margin-top:8px}
             'You set the two laws above the columns; persistence is what they produce.')+
           ' ARPA moved from '+reurP(cuN.arpaOpening)+' to '+reurP(cuN.arpaClosing)+' this month.');
     }
-    var h=cuNote+'<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
+    /* Notes for the Monetization mechanism: the four conventions a reader cannot
+       infer from the drawing — the non-zero axis, the basis boundary in band A,
+       the two borrowed movements in band D, and the scope of the selection. */
+    var moNote = '';
+    if(sysView==='monetization' && expRes.months[m-1].monetization && expRes.months[m-1].customers){
+      var moN = expRes.months[m-1].monetization, cuM = expRes.months[m-1].customers, mmN = expRes.months[m-1];
+      var moD = expRes.derived.monetization;
+      function mblk(hd, body){ return '<div class="sgrp"><div class="eyebrow">'+esc(hd)+'</div><div class="hint" style="line-height:1.7;margin-top:6px">'+body+'</div></div>'; }
+      var nAlive = 0; expRes.cohorts.forEach(function(c){ var rr=K.rowAt(c,m); if(rr && rr.customers && rr.customers.closing>1e-9) nAlive++; });
+      moNote =
+        mblk('What this page is', 'Revenue is <b style="color:var(--ink)">not carried</b> here. Every month the engine rebuilds it from per-customer component state: '+
+          'cohort '+basis+' = customers × Σ (penetration × units × price). The page descends through four altitudes — '+
+          '<b style="color:var(--ink)">B</b> the population of '+nAlive+' vintages alive this month, <b style="color:var(--ink)">A</b> the one vintage you selected, '+
+          '<b style="color:var(--ink)">C</b> what they add to, <b style="color:var(--ink)">D</b> what moved. '+
+          'The generic expansion coefficient ('+pct(moD.expansionCoefficientIgnored,0)+') is not read at all.')+
+        mblk('Why the revenue axis does not start at zero', 'Band B\'s axis is a <b style="color:var(--ink)">difference axis</b>: its ends are the lowest and highest '+
+          'per-customer revenue alive this month, and both are printed. The subject of that band is the <em>spread</em> between vintages, which a zero origin would flatten to a single smear. '+
+          'Because position — not length — carries the quantity, each vintage is drawn as a <b style="color:var(--ink)">marker</b> rather than a bar: a bar from an origin the axis does not have would encode nothing. '+
+          'The customer column beside it <em>does</em> start at zero, so it is drawn as a bar.')+
+        mblk('Why ARPA is not a separate fact', 'The company\'s ARPA, '+reurP(cuM.arpaClosing)+' /'+bp()+', is the <b style="color:var(--ink)">customer-weighted mean</b> of the distribution in band B — '+
+          'which is why it is drawn as a rule through that distribution rather than as a number of its own. Per-customer revenue rises with cohort age, so ARPA moves whenever the '+
+          '<em>mix</em> of vintages moves, even with every law held still. A month of heavy acquisition pulls it down without any price falling.')+
+        mblk('Band A is annual, per customer', 'Bands B, C and D are in the display basis ('+basis+'). Band A is in <b style="color:var(--ink)">annual euros per customer</b>, exact to the euro, '+
+          'because that is the unit the component laws are written in — priceAnnual, and units per customer per year. Converting a unit price to a monthly figure would misname the law. '+
+          'The selected vintage\'s total is restated in the display basis on the same line, so the boundary is crossed once and in the open.')+
+        mblk('Why band D draws seven movements', 'Only <b style="color:var(--ink)">four</b> of them belong to this layer: contraction, price, usage, adoption. Those govern the revenue of <em>surviving</em> customers and nothing else. '+
+          'New business and departing logos change the company\'s '+basis+' by moving <em>customers</em>, which is the layer next door. Drawing only this layer\'s four would leave the bridge open by exactly '+
+          reur(mmN.newARR - cuM.logoChurnARR)+' this month, so all seven are drawn and the two that are not ours are drawn in <b style="color:var(--ink)">outline</b>, each linking to the layer that owns it. '+
+          'The boundary of a mechanism is a fact about the model, not a gap to hide.')+
+        mblk('Price + usage + adoption is expansion', 'Not approximately — <b style="color:var(--ink)">exactly</b>. The three effects are differences between successive steps of the same month, taken in the order the engine applies them '+
+          '(contraction, then price, then usage, then adoption), so they sum to the expansion line without remainder. Monetization is not a second account of expansion; it <em>is</em> the expansion line, decomposed. '+
+          'Dollar persistence is emergent from each vintage\'s own fixed/variable mix, rather than the '+pct(moD.customerLawPersistence,1)+' the customer laws alone would give.')+
+        mblk('The selection names a vintage, it does not pin one', 'Clicking a row in band B chooses which vintage band A explains. It is <b style="color:var(--ink)">view-scoped</b>: it changes nothing else on the page, survives nothing beyond this layer, '+
+          'and falls back to the oldest vintage alive when the clock passes a cohort\'s birth. Pinning a cohort so that other surfaces follow it is <b style="color:var(--ink)">Inspect</b>\'s job, and a different one.');
+    }
+    var h=moNote+cuNote+'<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
       r(basis, rn(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
       '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
 
@@ -8447,7 +8809,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; },
+    get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
       unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum,
