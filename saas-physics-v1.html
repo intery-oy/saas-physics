@@ -64,7 +64,7 @@ button,input{font:inherit;color:inherit}
 .fgrp-kind{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--exp)}
 .fgrp-note{font-size:10px;color:var(--ink-4);line-height:1.45;margin-bottom:10px}
 .fgrp.inert .fgrp-kind{color:var(--ink-4)}
-.layerhead{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);border-top:1px solid var(--line);padding:12px 0 2px;margin:6px 0 8px}
+.layerhead{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);border-top:1px solid var(--line);padding:12px 18px 2px;margin:6px 0 8px}
 .layerhead b{color:var(--exp);font-weight:600}
 .layerhead .off{color:var(--ink-4);font-weight:400}
 .layerhead small{display:block;font-family:var(--ui);font-size:10px;letter-spacing:0;text-transform:none;color:var(--ink-4);margin-top:3px;line-height:1.45}
@@ -562,7 +562,7 @@ details.pl .cascade{margin-top:8px}
 .tlabel small{color:var(--ink-4);font-size:10px}
 
 /* ---------- key overlay ---------- */
-.key{position:fixed;inset:0;z-index:40;background:rgba(7,9,15,.96);padding:26px 32px;overflow-y:auto;display:none}
+.key{position:fixed;inset:0;z-index:40;background:var(--ground);padding:26px 32px;overflow-y:auto;display:none}
 .key.on{display:block}
 .key h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 4px}
 .key p.lede{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
@@ -576,6 +576,13 @@ details.pl .cascade{margin-top:8px}
 
 /* ---------- opening page and guided tour ---------- */
 .welcome{position:fixed;inset:0;z-index:60;background:var(--ground);overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+/* a pane that scrolls says so: a short fade and one word, both gone at the end.
+   pointer-events:none so the cue never intercepts a click on what is under it. */
+.more-below{position:fixed;left:0;right:0;bottom:0;height:64px;z-index:1;pointer-events:none;opacity:0;transition:opacity .18s;
+  background:linear-gradient(to bottom,rgba(7,9,15,0),var(--ground) 82%)}
+.more-below::after{content:'\25be more below';position:absolute;left:0;right:0;bottom:9px;text-align:center;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.scrolls .more-below{opacity:1}
 .welcome.on{display:block}
 .wl{max-width:880px;margin:0 auto;padding:34px 28px 56px}
 .wl h1{font-family:var(--display);font-weight:400;font-size:36px;margin:0 0 2px;letter-spacing:.005em}
@@ -607,7 +614,7 @@ details.pl .cascade{margin-top:8px}
 .tourcard .tb{display:flex;gap:8px;margin-top:10px} .tourcard .tb .sp{flex-grow:1}
 </style>
 
-<div class="welcome" id="welcome" role="dialog" aria-labelledby="welcome-title">
+<div class="welcome" id="welcome" role="dialog" aria-labelledby="welcome-title"><div class="more-below" aria-hidden="true"></div>
   <div class="wl">
     <h1 id="welcome-title">SaaS Physics</h1>
     <p class="wsub">an economic system, observed</p>
@@ -672,7 +679,7 @@ details.pl .cascade{margin-top:8px}
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
     <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">ad3ca88</span>
+    <span class="chip build" id="build-chip" title="The commit this page was built from">4878c74</span>
   </header>
 
   <aside class="rail">
@@ -749,7 +756,7 @@ details.pl .cascade{margin-top:8px}
     </div>
     </div>
    </div>
-    <div class="key" id="key">
+    <div class="key" id="key"><div class="more-below" aria-hidden="true"></div>
       <button class="btn close" id="keyclose">Close</button>
       <h3>Method</h3>
       <p class="lede">What this model is, what it takes in, what it gives back — and, in the same breath, what it does not contain.</p>
@@ -4674,7 +4681,7 @@ details.pl .cascade{margin-top:8px}
     var showMid = capitalMode || leakShadow;
     var massH = capitalMode ? inner*0.46 : (leakShadow ? inner*0.55 : inner*0.65);
     var midH  = capitalMode ? inner*0.30 : (leakShadow ? inner*0.13 : 0);      /* capital track, or leakage outline */
-    var midGap= showMid ? 14 : 24;   /* room for the Plane 2 axis label even with the band collapsed */
+    var midGap= showMid ? 18 : 34;   /* room for Plane 2's header line even with the band collapsed */
     var cashH = capitalMode ? inner*0.24 : inner*0.26;
     if(noCash){ massH = capitalMode ? inner*0.64 : (leakShadow ? inner*0.82 : inner-4); cashH = 0; midGap = showMid ? 6 : 0; }
     geo = { L:L, R:R, T:T, noCash:noCash, massTop:T, massBot:T+massH, showMid:showMid,
@@ -4910,7 +4917,7 @@ details.pl .cascade{margin-top:8px}
     if(!geo.noCash){
     /* --- PLANE 2 · FINANCIAL CONSEQUENCE — Model Cash, and ONLY Model Cash --- */
     ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
-    ctx.fillText('MODEL CASH (€M)', geo.L+8, geo.cashTop-8);
+    ctx.fillText('MODEL CASH (€M)', geo.L+8, geo.cashTop-11);
     var cScaleLo = S.cLo, cScaleHi = S.cHi;
     ctx.font='10px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='#414a60';
     for(var cg=1; cg<=3; cg++){
@@ -4960,8 +4967,10 @@ details.pl .cascade{margin-top:8px}
     ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
     for(var c4=0; c4<=H; c4++){ var bx=X(c4), by=S.yC(baseS.cash[c4]); c4?ctx.lineTo(bx,by):ctx.moveTo(bx,by); }
     ctx.strokeStyle='rgba(91,104,196,.7)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
-    ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
-    ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, geo.L+8, geo.cashTop+2);
+    /* the reading shares plane 2's header line, right-aligned, so the title and
+       the figure never occupy the same baseline */
+    ctx.textAlign='right'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
+    ctx.fillText('CASH  '+eur(cashSel)+'   ΔCash '+(dCashSel>=0?'+':'−')+eur(Math.abs(dCashSel))+' vs Base  ·  month '+mSel, W-geo.R, geo.cashTop-11);
 
     }
 
@@ -5323,7 +5332,7 @@ details.pl .cascade{margin-top:8px}
         ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText('month '+m, mx(m), 104);
         var ivm = mm.interventions;
         note(30, SYS.H-58, ivm.changes.length ? 'In force this month: '+ivm.changes.map(function(ch){ return ch.id+' — '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. Cost this month '+eur(ivm.cost)+', to date '+eur(ivm.cumulativeCost)+'.' : 'No hypothesis in force this month: every law is at its base setting. Cost to date '+eur(ivm.cumulativeCost)+'.');
-        note(30, SYS.H-40, 'Orange dot: the decision (cost starts). Dashed: the lag. Solid: the window in which lawAt(t) carries the hypothesis. Outside it every cohort runs on the base law. The effect is Experiment − Base.');
+        note(30, SYS.H-40, 'Indigo dot: the decision (cost starts). Dashed: the lag. Solid: the window in which lawAt(t) carries the hypothesis. Outside it every cohort runs on the base law. The effect is Experiment − Base.');
       }
     }
 
@@ -5359,7 +5368,7 @@ details.pl .cascade{margin-top:8px}
           meas:['→ Average CAC '+qx.averageCAC.toFixed(2)+'×', '→ Marginal CAC '+qx.marginalCAC.toFixed(2)+'×', '→ payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo'] },
         { id:'cust', title:'CUSTOMERS', lines: cuOn ? [mm.customers.closing.toFixed(0)+' customers', '+'+mm.customers.newCustomers.toFixed(1)+' · −'+mm.customers.logoChurn.toFixed(1)+' this month'] : ['no customer layer','leakage is one number'], kind: cuOn?'stock':'off', view:'customers',
           laws: cuOn ? ['⋈ logo retention '+pct(lawNow('logoRetentionAnnual'),0), '⋈ contraction '+pct(lawNow('contractionAnnual'),0)] : ['⋈ persistence '+pct(lawNow('persistenceAnnual'),0)],
-          meas: cuOn ? ['→ logo retention '+(cm?pct(cm.logoRetentionR12M,1):'—'), '→ ARPA '+eurF(mm.closingARR/mm.customers.closing)] : [] },
+          meas: cuOn ? ['→ logo retention '+(cm?pct(cm.logoRetentionR12M,1):'—'), '→ ARPA '+reurP(mm.customers.arpaClosing)+' /'+bp()] : [] },
         { id:'mon', title:'MONETIZATION', lines: moOn ? [reur(mm.monetization.fixedARR)+' fixed', reur(mm.monetization.variableARR)+' variable'] : ['one balance per cohort','expansion ⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)], kind: moOn?'mech':'off', view:'monetization',
           laws: moOn ? ['⋈ price +'+pct(lawNow('monetization.components[0].priceGrowthAnnual'),0)+' · '+pct(lawNow('monetization.components[1].priceGrowthAnnual'),0), '⋈ usage +'+pct(lawNow('monetization.components[1].usageGrowthAnnual'),0)+' ⌈⌉ '+Math.round(lawNow('monetization.components[1].unitsCap'))+' units', '⋈ adoption '+pct(lawNow('monetization.components[1].adoptionAnnual'),0)+' ⌈⌉ '+pct(lawNow('monetization.components[1].penetrationCap'),0)] : [],
           meas: moOn ? ['→ price · usage · adoption', (mo12 ? pct(mo12.priceEffectR12M,1)+' · '+pct(mo12.usageEffectR12M,1)+' · '+pct(mo12.adoptionEffectR12M,1) : 'needs 12 mo')+' R12M'] : [] },
@@ -6586,6 +6595,7 @@ details.pl .cascade{margin-top:8px}
   function moF(v){ return v.toFixed(0)+' mo'; }
   function n0(v){ return Math.round(v).toLocaleString('en-GB'); }
   function reurP(v){ return '€'+Math.round(rc(v)).toLocaleString('en-GB'); }   /* per-customer money, to the euro, basis-aware */
+  function bp(){ return basis==='ARR' ? 'yr' : 'mo'; }   /* the PERIOD the basis implies, for a per-customer rate */
   function n0s(v){ return Math.round(v).toString(); }
   function yoy(res, m, f){ if(m<=12) return null; var a=f(res.months[m-1]), b=f(res.months[m-13]); return b>0 ? a/b-1 : null; }
   function yoyTag(v){ return v===null ? '' : '<span class="yoy">'+(v>=0?'+':'−')+pct(Math.abs(v),1)+' y/y</span>'; }
@@ -6718,7 +6728,7 @@ details.pl .cascade{margin-top:8px}
       h += chartBlock('Customer base development', Mt, [{n:'customers', c:'var(--exp)'}, {n:basis+' per customer · right scale', c:'var(--ink)'}].concat(cuDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []),
         chart({ h:HC, sel:m, yFmt:n0s, yMin:0, y2Fmt:reurP, aria:'customers and ARR per customer over 60 months', series:[
           { k:'area', pts:custX, color:'var(--exp)', opacity:0.16, label:'customers', fmt:n0 },
-          { k:'line', pts:arpaX, color:'var(--ink)', width:1.5, axis:'right', label:basis+' / customer', fmt:reurP } ]
+          { k:'line', pts:arpaX, color:'var(--ink)', width:1.5, axis:'right', label:basis+'\n/ customer', fmt:reurP } ]
           .concat(cuDiff ? [{ k:'line', pts:custB, color:'var(--base)', base:true }, { k:'line', pts:arpaB, color:'var(--base)', base:true, axis:'right' }] : []) }));
       h += growthChart;
     } else {
@@ -7222,7 +7232,14 @@ details.pl .cascade{margin-top:8px}
     var m = selectedMonth(), cur = host.querySelector('tr.on');
     if(cur && +cur.dataset.t === m) return;
     if(cur) cur.classList.remove('on');
-    var tr = host.querySelector('tr[data-t="'+m+'"]'); if(tr) tr.classList.add('on');
+    var tr = host.querySelector('tr[data-t="'+m+'"]'); if(!tr) return;
+    tr.classList.add('on');
+    /* only when it is actually off screen, and never a smooth scroll: the clock
+       can step this sixty times in a run and an animation would never settle. */
+    var rt = tr.offsetTop, rb = rt + tr.offsetHeight, vt = host.scrollTop, vb = vt + host.clientHeight;
+    var head = 48;                                  /* the two sticky header rows */
+    if(rt < vt + head) host.scrollTop = Math.max(0, rt - head - 8);
+    else if(rb > vb)   host.scrollTop = rb - host.clientHeight + 8;
   }
   function syncLedger(){
     var el = document.getElementById('ledger'); if(!el) return;
@@ -7404,7 +7421,7 @@ details.pl .cascade{margin-top:8px}
         out += pstep('Customer economics', 'no customer layer · the cohort is one balance; leakage is one persistence coefficient', '', 'off', null, 'retained');
       /* 4 · MONETIZATION COMPONENTS — what each customer pays, and how it moves */
       if(snap.perCustomerRevenue!==null)
-        out += pstep('Monetization', eur(snap.perCustomerRevenue)+' per customer / yr',
+        out += pstep('Monetization', reurP(snap.perCustomerRevenue)+' per customer / '+bp(),
           row('Cohort composition', reur(snap.fixedARR)+' platform + '+reur(snap.variableARR)+' usage') +
           row('Expansion this month', reur(snap.priceARR)+' price · '+reur(snap.usageARR)+' usage · '+reur(snap.adoptionARR)+' adoption', 'in') +
           (snap.headroom && snap.headroom[1] ? row('Headroom used', (snap.headroom[1].units!==null ? pct(snap.headroom[1].units,0)+' of the usage cap · ' : '')+pct(snap.headroom[1].penetration,0)+' of the penetration cap') : ''), 'pm', 'M'+m+' · month', 'monetized');
@@ -8311,7 +8328,23 @@ details.pl .cascade{margin-top:8px}
       render(); renderSide();
     });
   });
-  document.getElementById('keybtn').addEventListener('click', function(){ document.getElementById('key').classList.add('on'); });
+  document.getElementById('keybtn').addEventListener('click', function(){ var k=document.getElementById('key'); k.classList.add('on'); k.scrollTop=0; scrollCue(k); });
+
+  /* ---- the scroll cue ------------------------------------------------
+     Welcome and Method are full-screen panes that scroll. Without a cue a
+     first visit reads a card sliced mid-sentence as the end of the page.
+     One class, recomputed on scroll and on resize, and never shown when the
+     pane fits or when the reader has reached the bottom. */
+  function scrollCue(el){
+    if(!el) return;
+    var more = el.scrollHeight - el.clientHeight - el.scrollTop > 6;
+    el.classList.toggle('scrolls', more);
+  }
+  ['welcome','key'].forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.addEventListener('scroll', function(){ scrollCue(el); }, { passive:true });
+  });
+  window.addEventListener('resize', function(){ ['welcome','key'].forEach(function(id){ scrollCue(document.getElementById(id)); }); });
   document.getElementById('keyclose').addEventListener('click', function(){ document.getElementById('key').classList.remove('on'); });
   function resetAll(){
     exitPair(); clearScenario();
@@ -8366,7 +8399,7 @@ details.pl .cascade{margin-top:8px}
   (function(){
     var W = document.getElementById('welcome'), KEY = 'saas-physics-welcomed', app = document.querySelector('.app');
     var seen = false; try { seen = localStorage.getItem(KEY) === '1'; } catch(e){}
-    function showWelcome(){ W.classList.add('on'); W.scrollTop = 0; }
+    function showWelcome(){ W.classList.add('on'); W.scrollTop = 0; scrollCue(W); }
     function hideWelcome(){ W.classList.remove('on'); try { localStorage.setItem(KEY, '1'); } catch(e){} }
     if(!seen && location.hash !== '#app') showWelcome();
     document.getElementById('welcome-enter').addEventListener('click', hideWelcome);

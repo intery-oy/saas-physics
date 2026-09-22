@@ -240,6 +240,14 @@ contain.
 
 ## 2. Cross-cutting defects
 
+> **Status after the Phase 1 pass.** Eight of the thirteen are fixed — **1, 2, 3, 5, 9, 10, 11,
+> 12** — each held by a check in `defects-accept.js` that was fault-injected to confirm it fails
+> when the defect returns. Five remain open, deliberately: **4** (the Flows collisions) is held
+> for a later decision on that view's role and is not to be redesigned yet; **8** is the Phase 2
+> mechanism work; **6** and **7** are Phase 3 proposals; **13** is a design question about
+> encoding materiality, not a bug. The table is kept as the record of what was found.
+
+
 | # | Defect | Evidence | Severity |
 |---|---|---|---|
 | 1 | Per-customer money shown in ARR while the page is in MRR, untagged | Ontology `→ ARPA €167,362`; Inspect `€15k` vs `€180k/yr` | **High — it reads as a wrong number** |

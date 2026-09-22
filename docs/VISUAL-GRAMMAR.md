@@ -304,6 +304,23 @@ months' euros. A cold pipeline reads off the table directly — the first L mont
 nothing while the pipeline fills; a warm start shows its landings stamped with spend months at or
 before zero.
 
+### A basis carries a period, not only a scale
+
+MRR/ARR is a global switch, and most of the product honours it. Two surfaces did not, and the
+result was worse than having no switch: the Ontology printed `ARPA €167,362` under a node
+reading `€2.63m MRR`, and Inspect printed `ARPA €15k` at step 2 and `€180k per customer / yr`
+at step 3, 180px apart. Same customer, same month, twelve times apart, and nothing on screen
+said which was which.
+
+A per-customer or per-period rate therefore states **both halves of its basis**: the scale
+through `rc()`, and the period through `bp()` — `/ mo` under MRR, `/ yr` under ARR. A figure
+that cannot name its period does not belong on a surface that has a basis switch.
+
+The second lesson is smaller and older: **prefer the engine's own field to a re-derivation.**
+The Ontology's ARPA was `closingARR / customers.closing`, which is the same number the engine
+already publishes as `customers.arpaClosing`. Recomputing it created a second place for the
+basis to be forgotten.
+
 ### A second scale is honest only when it is printed
 
 Encoding stocks and flows on one linear axis is not the honest choice when they differ by orders
