@@ -2642,7 +2642,10 @@ details.pl .cascade{margin-top:8px}
               ctx.fillText('⋈ '+(lval>=0?'+':'')+pct(lval,1)+'/yr', cx+cw/2, y-24);
               ctx.strokeStyle='rgba(210,164,92,.55)'; ctx.lineWidth=1;
               ctx.beginPath(); ctx.moveTo(cx+cw/2, y-20); ctx.lineTo(cx+cw/2, y-6); ctx.stroke();
-              lawHits.push({ key:cl[2], x:cx, y:y-32, w:cw, h:16 });
+              /* only a law that HAS a chip is a control. A component law is set in
+                 Change, not here, so its mark is a statement and nothing else —
+                 registering a hit for it would blank every chip on the layer. */
+              if(LAWCHIPS.some(function(Lc){ return Lc.k===cl[2]; })) lawHits.push({ key:cl[2], x:cx, y:y-32, w:cw, h:16 });
             }
             /* the cell: a stock, because state is what the mechanism carries */
             ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.2;
@@ -2810,25 +2813,329 @@ details.pl .cascade{margin-top:8px}
         ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
         ctx.fillText('LEGEND   ▭ stock (state, and the company\'s)   ▮ flow this month   ⋈ law you set   ⌈⌉ cap, filled to the headroom used   ┄ absent   → measurement', 30, SYS.H-14);
       }
-      if(v==='cash'){
-        var ca = mm.cash, dc = expRes.derived.cash;
-        box(140, 300, 190, 90, 'revenue · recognised', eur(mm.revenue), '#3a4358');
-        flow(235, 300, 355, 300, '+ Δ deferred', (ca.deferredClosing-ca.deferredOpening>=0?'+':'−')+eur(Math.abs(ca.deferredClosing-ca.deferredOpening)));
-        box(450, 300, 190, 90, 'billings · invoiced', eur(ca.billings), '#3a4358');
-        box(450, 470, 190, 80, ca.deferredClosing>=0?'deferred revenue':'contract asset (unbilled)', eur(Math.abs(ca.deferredClosing)), '#222b3d');
-        link([[450, 430],[450, 350]], '', false);
-        flow(545, 300, 665, 300, '− Δ receivables', (ca.receivablesClosing-ca.receivablesOpening>0?'−':'+')+eur(Math.abs(ca.receivablesClosing-ca.receivablesOpening)));
-        box(760, 300, 190, 90, 'collections · cash in', eur(ca.collections), '#3a4358');
-        box(760, 470, 190, 80, 'receivables', eur(ca.receivablesClosing), '#222b3d');
-        link([[760, 430],[760, 350]], '', false);
-        flow(855, 300, 975, 300, '− cash costs', eur(ca.cashCosts), 'rgba(152,162,184,.7)');
-        box(1070, 300, 190, 90, 'cash FCF', eur(ca.cashFCF), ca.cashFCF>=0?'#4fa37d':'#d2a45c');
-        box(1070, 470, 190, 90, 'STOCK · cash', eur(mm.cashClosing), '#8b8df0');
-        flow(1070, 345, 1070, 425, '', '');
-        box(1070, 610, 190, 70, 'EBITA · unchanged', eur(mm.ebita), '#222b3d');
-        note(30, 400, 'Policy: '+dc.billingTermMonths+'-month term, billed in '+dc.billingTiming+(dc.collectionDelayMonths>0?', collected '+dc.collectionDelayMonths+' month'+(dc.collectionDelayMonths>1?'s':'')+' after invoice':'')+'. Opening book: '+eur(Math.abs(dc.openingDeferredRevenue))+' of '+(dc.openingDeferredRevenue>=0?'deferred revenue':'contract asset')+', derived from a staggered book.');
-        note(30, SYS.H-40, 'billings = revenue + Δdeferred (by construction) · collections = billings shifted by the delay · cash FCF = collections − cash costs = EBITA + Δdeferred − Δreceivables. Costs are cash when incurred.');
+      /* ----------------------------------------------------------------- *
+       * CASH — the question this layer answers is NOT "what is the cash
+       * balance": Company draws that. It is "how do recurring economics
+       * become cash", and the engine's answer is a matter of TIMING:
+       *
+       *   revenue      recognised monthly — the same in every billing world
+       *   billings     revenue + Δdeferred, BY CONSTRUCTION
+       *   collections  billings shifted by the collection delay
+       *   cash FCF     collections − cash costs = EBITA + Δdeferred − Δreceivables
+       *
+       * EBITA is untouched here. Only the cash line moves. So the page is
+       * built around the two working-capital stocks that absorb the whole
+       * difference, and around the fact a reader almost never sees: the
+       * BOOK IS A SAWTOOTH. Each contract's deferred balance amortises to
+       * nothing across its term and is topped back up on its anniversary.
+       * The company's balance looks flat only because the cohorts are
+       * spread across the cycle — which is also why only a handful of
+       * contracts invoice in any one month.
+       *
+       * Band B draws that cycle. It is derived entirely from published
+       * fields: a cohort's age, the term and the timing say where in the
+       * cycle it sits, and the page checks its own derivation on screen by
+       * asserting that the contracts it places at position 0 are exactly the
+       * ones the engine invoiced.
+       *
+       * Every figure on this page is MONEY, not a run-rate, so none of it
+       * passes through the ARR/MRR basis. That is stated once, in band B.
+       * ----------------------------------------------------------------- */
+      function drawCash(mm){
+        var ca = mm.cash, dc = expRes.derived.cash; if(!ca || !dc) return;
+        var GOLD='#d2a45c', IN='#4fa37d', OUT='#c2606a', STK='#8b8df0', DIM='#414a60';
+        var T = dc.billingTermMonths, adv = dc.billingTiming === 'advance', CDL = dc.collectionDelayMonths;
+
+        /* ---- the book: every contract alive, placed in the billing cycle ---- */
+        function posOf(age){ return adv ? (T - (age % T)) % T : ((T - 1 - (age % T)) % T + T) % T; }
+        var cols = [], cnt = [], k;
+        for(k=0;k<T;k++){ cols.push(0); cnt.push(0); }
+        var baseDef = 0, baseBill = 0, bookSum = 0, alive = 0, invoiced = 0, misplaced = 0;
+        expRes.cohorts.forEach(function(c){
+          var r = K.rowAt(c, m); if(!r || !r.cash) return;
+          alive++; bookSum += r.cash.deferredClosing;
+          var bills = Math.abs(r.cash.billings) > 1e-9; if(bills) invoiced++;
+          /* the opening base is not ONE contract at one position: it is a book of
+             T contracts staggered across the whole cycle, so it invoices a T-th of
+             itself every month. Placing it in a column would be a lie. */
+          if(c.acquisitionMonth === 0){ baseDef += r.cash.deferredClosing; baseBill += r.cash.billings; return; }
+          var p = posOf(m - c.acquisitionMonth);
+          cols[p] += r.cash.deferredClosing; cnt[p]++;
+          if((p === 0) !== bills) misplaced++;     /* the page checks its own derivation */
+        });
+
+        /* ================= B · THE BILLING BOOK ================= */
+        var BT = 104, BB = 276, BX0 = 240, BX1 = 900, NX = 950;
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        ctx.fillText('B · THE BILLING BOOK', 30, 74);
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('every contract alive this month,', 30, 88);
+        ctx.fillText('by where it sits in its billing cycle', 30, 100);
+        ctx.textAlign='center'; ctx.fillStyle='#66708a';
+        ctx.fillText('deferred revenue carried  ·  months until that contract is next invoiced', (BX0+BX1)/2, 74);
+        /* the policy, stated where the cycle it creates is drawn */
+        ctx.textAlign='right'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
+        ctx.fillText('⋈ '+T+'-month term  ·  billed in '+dc.billingTiming+(CDL>0 ? '  ·  collected +'+CDL+' mo' : '  ·  collected on invoice'), 1230, 74);
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+        ctx.fillText('every figure on this page is money, not a run-rate — the '+basis+' switch does not reach it', 1230, 88);
+
+        /* the opening book is EIGHT TIMES the tallest column in a world like A.
+           Letting it set the scale flattens the cycle this band exists to show,
+           so it leaves the chart: it is a different kind of object — one book
+           spread across every position — and it gets a different mark. */
+        /* a ONE-MONTH TERM HAS NO CYCLE. Drawing a chart of one position with
+           nothing in it, beside a cell that says the opening book is "1 contracts
+           staggered across the whole cycle", is worse than drawing nothing: the
+           absence is the finding, so it is stated and the chart is not drawn. */
+        var noCycle = (T === 1);
+        var vHi = 0, vLo = 0;
+        cols.forEach(function(v){ vHi = Math.max(vHi, v); vLo = Math.min(vLo, v); });
+        var span = Math.max(1, vHi - vLo) * 1.12, zy = BB - (0 - (vLo - (span-(vHi-vLo))/2)) / span * (BB-BT);
+        function by(v){ return BB - (v - (vLo - (span-(vHi-vLo))/2)) / span * (BB - BT); }
+        if(noCycle){
+          ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
+          ctx.fillText('⌈⌉ a one-month term has no cycle', BX0, BT+34);
+          ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+          ctx.fillText('All '+alive+' contracts invoice every month, so no contract ever sits anywhere but at position 0 and there is', BX0, BT+62);
+          ctx.fillText('no book to draw. '+(adv
+            ? 'Billed in advance, a month is invoiced as it begins: billings equal revenue and almost nothing is deferred.'
+            : 'Billed in arrears, a month is invoiced as it ends: billings equal revenue and nothing is deferred.'), BX0, BT+78);
+          ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText(CDL > 0
+            ? 'The only working capital this company carries is the '+CDL+' month'+(CDL>1?'s':'')+' of billings waiting to be collected.'
+            : 'Collected on invoice, so this company carries no working capital at all: its cash line is its P&L line.', BX0, BT+104);
+          ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+          ctx.fillText('A twelve-month term in advance would put a year of every contract on the balance sheet as deferred revenue — a float', BX0, BT+128);
+          ctx.fillText('the size of the book, financed by customers. This policy forgoes it, and forgoes the collection risk that comes with it.', BX0, BT+142);
+        } else {
+        ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(BX0-14, by(0)+0.5); ctx.lineTo(1010, by(0)+0.5); ctx.stroke();
+        var pitch = (BX1 - BX0) / Math.max(1, T), bw = Math.min(34, pitch - 8);
+        for(k=0;k<T;k++){
+          var cx = BX0 + k*pitch + pitch/2, v = cols[k], y0 = by(0), y1 = by(v), now = (k===0);
+          /* a position with no contract in it draws NOTHING. A sliver at the axis
+             would read as a small balance; the truth is that a company this young
+             has not filled its cycle yet, and an absence is a claim worth making. */
+          if(cnt[k] === 0){
+            ctx.strokeStyle='rgba(65,74,96,.55)'; ctx.lineWidth=1; ctx.save(); ctx.setLineDash([1,3]);
+            ctx.beginPath(); ctx.moveTo(cx-bw/2, y0+0.5); ctx.lineTo(cx+bw/2, y0+0.5); ctx.stroke(); ctx.restore();
+          } else {
+          ctx.fillStyle = now ? 'rgba(79,163,125,.85)' : 'rgba(139,141,240,.42)';
+          ctx.fillRect(cx-bw/2, Math.min(y0,y1), bw, Math.max(3, Math.abs(y1-y0)));
+          }
+          ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace';
+          ctx.fillStyle = now ? '#e6e9f2' : '#66708a';
+          ctx.fillText(String(k), cx, by(0) + 13);
+          if(cnt[k] && (now || k===T-1 || T<=6)){ ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = now ? IN : '#66708a';
+            ctx.fillText((v<0?'−':'')+eur(Math.abs(v)), cx, y1 + (v>=0 ? -6 : 13)); }
+        }
+        /* the opening book, kept out of the columns because it is in ALL of them.
+           It is drawn as a CELL and not as a bar: a bar beside a chart it is not
+           on the scale of would claim a comparison the drawing cannot make. */
+        ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(NX-22, BT-6); ctx.lineTo(NX-22, BB+26); ctx.stroke(); ctx.restore();
+        if(true){
+          var OY = BT + 14;
+          ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.2;
+          ctx.beginPath(); ctx.roundRect(NX, OY, 272, 52, 3); ctx.fill(); ctx.stroke();
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText('the opening book', NX+12, OY+17);
+          ctx.font='13px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.fillText((baseDef<0?'\u2212':'')+eur(Math.abs(baseDef)), NX+12, OY+38);
+          ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a'; ctx.textAlign='right';
+          ctx.fillText(Math.abs(ca.deferredClosing)>1e-9 ? pct(baseDef/ca.deferredClosing,0)+' of the balance' : '\u2014', NX+260, OY+38);
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+          ctx.fillText('not one contract at one position but '+T+' contracts staggered', NX, OY+70);
+          ctx.fillText('across the whole cycle: it invoices a '+T+'th of itself every', NX, OY+82);
+          ctx.fillText('month, and sits in every column rather than any one.', NX, OY+94);
+        }
+        }
+
+        /* a column below the line is not an error: it is revenue recognised
+           beyond what was last invoiced, which is what an expanding contract
+           carries in the last month before its renewal. */
+        if(vLo < -1e-9){
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=GOLD;
+          ctx.fillText('\u2193 below the line: revenue recognised beyond what was last invoiced — an unbilled contract asset, which is what a contract that has expanded carries as its renewal approaches', 30, BB+56);
+        }
+        /* what the shape means, said once */
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        var saw = T > 1
+          ? 'A contract’s balance amortises to nothing across the term and is topped back up on its anniversary. The company’s balance looks flat only because the cohorts are spread across the cycle.'
+          : 'A one-month term has no cycle: every contract invoices every month, so nothing is ever deferred and there is no float to carry.';
+        ctx.fillText(saw, 30, BB+42);
+        ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+        var bookTxt = invoiced+' of '+alive+' contracts invoiced this month  ·  '+eur(ca.billings)+' billed';
+        ctx.fillText(bookTxt, 30, BB+24);
+        var bw2 = ctx.measureText(bookTxt).width;
+        ctx.font='9px "JetBrains Mono",monospace';
+        var bookOK = Math.abs(bookSum - ca.deferredClosing) <= 1e-6*Math.max(1,Math.abs(ca.deferredClosing)) && misplaced===0;
+        ctx.fillStyle = bookOK ? IN : OUT;
+        ctx.fillText(bookOK ? (noCycle ? '   ✓ the book sums to the balance'
+                                       : '   ✓ the book sums to the balance, and every contract placed at 0 is one the engine invoiced')
+                            : '   ✗ '+misplaced+' misplaced, residual '+(bookSum-ca.deferredClosing).toFixed(2), 30+bw2, BB+24);
+
+        /* ================= A · RECOGNISED → INVOICED → RECEIVED ================= */
+        var AY = 348;
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        var aHead = 'A · THIS MONTH, FROM RECOGNISED TO RECEIVED';
+        ctx.fillText(aHead, 30, AY);
+        var aHw = ctx.measureText(aHead).width;
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('·  the same euros on three clocks, and the two balances that hold the difference', 30+aHw+10, AY);
+
+        var dDef = ca.deferredClosing - ca.deferredOpening, dRec = ca.receivablesClosing - ca.receivablesOpening;
+        var chain = [
+          { n:'revenue',      s:'recognised',       v:mm.revenue },
+          { n:'billings',     s:'invoiced',         v:ca.billings,     d:dDef,  dn:'+ Δ deferred' },
+          { n:'collections',  s:'cash in',          v:ca.collections,  d:-dRec, dn:'− Δ receivables' },
+          { n:'cash FCF',     s:'collections − cash costs', v:ca.cashFCF, d:-ca.cashCosts, dn:'− cash costs' }
+        ];
+        var CW = 196, CG = 108, CX0 = 40, CYT = AY+22, CHH = 46;
+        chain.forEach(function(st, i){
+          var x = CX0 + i*(CW+CG);
+          ctx.fillStyle='#141925'; ctx.strokeStyle = (i===3 ? (st.v>=0?'rgba(79,163,125,.8)':'rgba(210,164,92,.8)') : 'rgba(58,67,88,.95)');
+          ctx.lineWidth=1.3; ctx.beginPath(); ctx.roundRect(x, CYT, CW, CHH, 3); ctx.fill(); ctx.stroke();
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText(st.n+'  ·  '+st.s, x+10, CYT+16);
+          ctx.font='14px "JetBrains Mono",monospace'; ctx.fillStyle = (i===3 && st.v<0) ? '#d2a45c' : '#e6e9f2';
+          ctx.fillText((st.v<0?'−':'')+eur(Math.abs(st.v)), x+10, CYT+36);
+          if(st.d !== undefined){
+            var mx = x - CG/2, sg = st.d >= 0;
+            ctx.strokeStyle='rgba(91,104,196,.7)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(x-CG+4, CYT+CHH/2); ctx.lineTo(x-4, CYT+CHH/2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x-4, CYT+CHH/2); ctx.lineTo(x-10, CYT+CHH/2-3.5); ctx.lineTo(x-10, CYT+CHH/2+3.5); ctx.closePath();
+            ctx.fillStyle='rgba(91,104,196,.9)'; ctx.fill();
+            ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+            ctx.fillText(st.dn, mx, CYT+CHH/2-9);
+            ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle = sg ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)';
+            ctx.fillText((sg?'+':'−')+eur(Math.abs(st.d)), mx, CYT+CHH/2+18);
+          }
+        });
+        ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+        ctx.fillText('billings = revenue + Δdeferred, by construction — not an estimate', CX0+2, CYT+CHH+13);
+        ctx.textAlign='right';
+        ctx.fillText('costs are cash when incurred: no payables', CX0+3*(CW+CG)+CW, CYT+CHH+13);
+
+        /* the two balances, at their own true scale, with the month's change
+           beside them. The whole point of the band: the STOCK is the size of
+           the business and the FLOW that reaches cash is a sliver of it. */
+        var SY = CYT+CHH+52, SBW = 520, SH = 26;
+        var bal = [
+          { n: ca.deferredClosing>=0 ? 'deferred revenue' : 'contract asset (unbilled)', v:ca.deferredClosing, d:dDef,
+            sub: mm.revenue>0 ? (Math.abs(ca.deferredClosing)/mm.revenue).toFixed(1)+' months of revenue, carried' : '—',
+            why: Math.abs(ca.deferredClosing) < 0.005*Math.max(1,mm.revenue)
+                   ? 'nothing is deferred: a '+T+'-month term bills and recognises in the same month'
+                   : ca.deferredClosing>=0 ? 'customers have paid for service not yet delivered' : 'service delivered that has not yet been invoiced' },
+          { n:'receivables', v:ca.receivablesClosing, d:dRec,
+            sub: ca.billings>0 ? Math.round(ca.receivablesClosing/(ca.billings/30.4))+' days of billings, outstanding' : '—',
+            why: CDL>0 ? 'invoiced, not yet collected — the last '+CDL+' month'+(CDL>1?'s':'')+' of billing' : 'collected on invoice: nothing is outstanding' }
+        ];
+        /* ONE scale for this band, and it is an ECONOMIC one: months of this
+           month's revenue. A run-wide euro scale made a €28k balance fill the bar
+           in a world whose balances are economically nil, and it forced the
+           month's change onto a second, magnified scale. On this scale the
+           change needs no magnification — being a sliver of the stock IS the
+           finding, and the reader should see it rather than be told it. */
+        var AXMO = 12, mrev = Math.max(1e-9, mm.revenue);
+        function moW(v){ return Math.min(SBW, Math.abs(v)/mrev/AXMO*SBW); }
+        /* the axis, drawn once above the two bars it governs */
+        ctx.strokeStyle='rgba(65,74,96,.75)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(CX0+200, SY-12.5); ctx.lineTo(CX0+200+SBW, SY-12.5); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='8px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
+        for(var tk=0; tk<=AXMO; tk+=3){
+          var tx = CX0+200+tk/AXMO*SBW;
+          ctx.beginPath(); ctx.moveTo(tx+0.5, SY-12.5); ctx.lineTo(tx+0.5, SY-16.5); ctx.stroke();
+          ctx.fillText(String(tk), tx, SY-20);
+        }
+        ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('months of this month’s revenue', CX0+200+SBW+10, SY-16);
+        bal.forEach(function(b2, i){
+          var y = SY + i*(SH+34);
+          ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+          ctx.fillText(b2.n, CX0+186, y+16);
+          ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+          ctx.fillText(b2.why, CX0+186, y+28);
+          var w = Math.max(1.5, moW(b2.v)), over = Math.abs(b2.v)/mrev > AXMO;
+          ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.3;
+          ctx.beginPath(); ctx.roundRect(CX0+200, y, w, SH, 3); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = b2.v>=0 ? 'rgba(139,141,240,.30)' : 'rgba(210,164,92,.26)';
+          ctx.fillRect(CX0+201, y+1, Math.max(0,w-2), SH-2);
+          if(over){ ctx.fillStyle=STK; ctx.beginPath(); ctx.moveTo(CX0+200+w+3, y+SH/2-5);
+            ctx.lineTo(CX0+200+w+11, y+SH/2); ctx.lineTo(CX0+200+w+3, y+SH/2+5); ctx.closePath(); ctx.fill(); }
+          /* the month's change, on the SAME scale as the stock it moved */
+          var dw = Math.abs(b2.d)<1e-9 ? 0 : Math.max(1.5, moW(b2.d));
+          if(dw){ ctx.fillStyle = b2.d>=0 ? IN : OUT; ctx.fillRect(CX0+200+w+(over?14:4), y+3, dw, SH-6); }
+          ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.fillText((b2.v<0?'−':'')+eur(Math.abs(b2.v)), CX0+200+w+dw+(over?32:22), y+13);
+          ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = b2.d>=0 ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)';
+          ctx.fillText('this month '+(b2.d>=0?'+':'−')+eur(Math.abs(b2.d))+
+            (Math.abs(b2.v)>1e-9 ? '  ·  '+pct(Math.abs(b2.d)/Math.abs(b2.v),1)+' of the balance' : ''), CX0+200+w+dw+(over?32:22), y+25);
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText(b2.sub, CX0+200, y+SH+13);
+        });
+        ctx.textAlign='right'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+        ctx.fillText('▮ the month’s change, on the same scale — which is why you can barely see it', 1230, SY+SH+52);
+
+        /* ================= C · WHAT THIS LAYER CHANGES ================= */
+        var CY = 586;
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+        var cHead = 'C · WHAT THIS LAYER CHANGES, AND WHAT IT DOES NOT';
+        ctx.fillText(cHead, 30, CY);
+        var cHw = ctx.measureText(cHead).width;
+        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('·  EBITA is untouched by billing policy. The entire difference is working capital.', 30+cHw+10, CY);
+
+        var gap = ca.cashFCF - ca.ebita, resid = gap - (dDef - dRec);
+        /* a SIGNED axis with its zero placed by the data. A fixed origin sent
+           both bars off the left edge of the frame in any month the company
+           burned, which is most of them. The name and the number sit above the
+           bar so neither can ever be overrun by it. */
+        var GZ = CY+34, PX0 = 40, PX1 = 560;
+        var negMax = Math.max(0, -Math.min(ca.ebita, ca.cashFCF), 0), posMax = Math.max(0, ca.ebita, ca.cashFCF);
+        var tot = Math.max(1, negMax + posMax), zeroX = PX0 + negMax/tot*(PX1-PX0);
+        [['EBITA', ca.ebita, 'rgba(152,162,184,.55)'], ['cash FCF', ca.cashFCF, ca.cashFCF>=ca.ebita ? 'rgba(79,163,125,.8)' : 'rgba(194,96,106,.8)']]
+        .forEach(function(g, i){
+          var y = GZ + i*40, w = Math.abs(g[1])/tot*(PX1-PX0);
+          ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+          ctx.fillText(g[0], PX0, y+9);
+          ctx.textAlign='right'; ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.fillText((g[1]<0?'−':'')+eur(Math.abs(g[1])), PX1, y+9);
+          ctx.fillStyle=g[2]; ctx.fillRect(g[1]<0 ? zeroX-w : zeroX, y+15, Math.max(1.5,w), 15);
+          /* the zero rule is drawn ONLY across the bars: run the full height of
+             the block and it strikes through the second bar's own label. */
+          ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(65,74,96,.95)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(zeroX+0.5, y+12); ctx.lineTo(zeroX+0.5, y+33); ctx.stroke(); ctx.restore();
+        });
+        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
+        ctx.fillText('0', zeroX, GZ+58);
+        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        var idTxt = 'cash FCF − EBITA  =  Δdeferred − Δreceivables   →   '+(gap>=0?'+':'−')+eur(Math.abs(gap))+
+                    '  =  '+(dDef>=0?'+':'−')+eur(Math.abs(dDef))+' − '+(dRec>=0?'+':'−')+eur(Math.abs(dRec));
+        ctx.fillText(idTxt, 30, GZ+108);
+        var idw = ctx.measureText(idTxt).width, idOK = Math.abs(resid) <= 1e-6*Math.max(1, Math.abs(ca.ebita));
+        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = idOK ? IN : OUT;
+        ctx.fillText(idOK ? '   ✓ closes' : '   ✗ '+resid.toFixed(2), 30+idw, GZ+108);
+
+        var cm = K.cashMeasures(expRes, m);
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        [ '→ cash conversion R12M '+(cm && cm.cashConversion!==null ? (cm.cashConversion).toFixed(2)+'×' : '—'),
+          '→ billings / revenue R12M '+(cm ? cm.billingsToRevenue.toFixed(3) : '—'),
+          '→ receivable days '+(cm && cm.receivablesDays!==null ? Math.round(cm.receivablesDays) : '—'),
+          '→ deferred, months of revenue '+(cm && cm.deferredMonthsOfRevenue!==null ? cm.deferredMonthsOfRevenue.toFixed(2) : '—')
+        ].forEach(function(t2, i){ ctx.fillText(t2, 620 + (i%2)*310, GZ + Math.floor(i/2)*16 + 6); });
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('The two balances hold '+eur(Math.abs(ca.deferredClosing))+' and '+eur(Math.abs(ca.receivablesClosing))+
+          '. This month they moved '+(dDef>=0?'+':'−')+eur(Math.abs(dDef))+' and '+(dRec>=0?'+':'−')+eur(Math.abs(dRec))+
+          ', and the cash line felt '+(gap>=0?'+':'−')+eur(Math.abs(gap))+'.', 620, GZ+44);
+        ctx.fillStyle=DIM;
+        ctx.fillText('It is the CHANGE that reaches the cash line, never the level. The level is a loan the size of the book,', 620, GZ+56);
+        ctx.fillText('taken once while the company grew, and repaid in full if it ever shrinks. EBITA never hears about it.', 620, GZ+68);
+
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
+        ctx.fillText('LEGEND   ▭ stock (a working-capital balance)   ▮ this month’s change   ⋈ policy you set   → measurement', 30, SYS.H-14);
       }
+      if(v==='cash'){ drawCash(mm); }
       if(v==='hypotheses'){
         var sch = expRes.derived.interventions, x0 = 120, x1 = SYS.W-80, mx = function(t){ return x0 + (t-1)/(H-1)*(x1-x0); };
         ctx.strokeStyle='#3a4358'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, 130); ctx.lineTo(x1, 130); ctx.stroke();
@@ -5149,7 +5456,48 @@ details.pl .cascade{margin-top:8px}
         mblk('The selection names a vintage, it does not pin one', 'Clicking a row in band B chooses which vintage band A explains. It is <b style="color:var(--ink)">view-scoped</b>: it changes nothing else on the page, survives nothing beyond this layer, '+
           'and falls back to the oldest vintage alive when the clock passes a cohort\'s birth. Pinning a cohort so that other surfaces follow it is <b style="color:var(--ink)">Inspect</b>\'s job, and a different one.');
     }
-    var h=moNote+cuNote+'<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
+    /* Notes for the Cash mechanism: the conventions the drawing cannot state
+       for itself — why the book is a sawtooth, why the opening book is not on
+       the chart, why the balances are drawn in months of revenue, and the one
+       thing a reader almost always gets backwards about a float. */
+    var caNote = '';
+    if(sysView==='cash' && expRes.months[m-1].cash){
+      var caN = expRes.months[m-1].cash, dcN = expRes.derived.cash, mN = expRes.months[m-1];
+      var Tn = dcN.billingTermMonths, advN = dcN.billingTiming==='advance', cdN = dcN.collectionDelayMonths;
+      function ablk(hd, body){ return '<div class="sgrp"><div class="eyebrow">'+esc(hd)+'</div><div class="hint" style="line-height:1.7;margin-top:6px">'+body+'</div></div>'; }
+      var gapN = caN.cashFCF - caN.ebita, dDefN = caN.deferredClosing - caN.deferredOpening, dRecN = caN.receivablesClosing - caN.receivablesOpening;
+      var moRevN = mN.revenue > 0 ? Math.abs(caN.deferredClosing)/mN.revenue : null;
+      caNote =
+        ablk('What this page is', 'Not the cash balance — <b style="color:var(--ink)">Company</b> draws that. This layer answers <em>how recurring economics become cash</em>, and the engine’s answer is entirely a matter of timing. '+
+          'Revenue is recognised monthly and is the same in every billing world. Billings are <b style="color:var(--ink)">revenue + Δdeferred, by construction</b>. Collections are billings shifted by the collection delay. '+
+          'Cash FCF is collections less cash costs. Everything on this page is <b style="color:var(--ink)">money</b>, not a run-rate, so the '+basis+' switch does not reach it.')+
+        ablk('Why the book is a sawtooth', (Tn > 1
+          ? 'Each contract is invoiced a whole '+Tn+'-month period at once and then recognises it away a month at a time, so its deferred balance falls to nearly nothing and is topped back up on its anniversary. '+
+            'Band B places every contract by how many months remain before that top-up. The company’s balance looks flat only because the cohorts are spread across the cycle — which is also why only a handful of contracts invoice in any one month, '+
+            'and why band B draws <em>nothing at all</em> at a position no contract has reached yet.'
+          : 'There is no sawtooth here: a one-month term invoices every contract every month, so nothing is ever deferred. Band B says so rather than drawing an empty chart — the absence is the finding.')+
+          ' A column below the line is not an error: it is revenue recognised beyond what was last invoiced, which is what a contract that has expanded carries as its renewal approaches.')+
+        ablk('The page checks its own derivation', 'Where a contract sits in the cycle is not a published field — it is derived from the cohort’s age, the term and the timing. So band B tests the derivation on screen: '+
+          'it asserts that the contracts it places at position 0 are <b style="color:var(--ink)">exactly</b> the ones the engine invoiced this month, and that the book sums to the published balance. '+
+          'A ✓ there is a claim about the drawing, not about the engine.')+
+        ablk('Why the opening book is not on the chart', 'It is not one contract at one position. The opening base is a book of '+Tn+' contracts whose renewal dates are spread evenly across the term — derived state, reported, never an input — '+
+          'so it sits in every column rather than any one, and it invoices a '+Tn+'th of itself every month. It is drawn as a <b style="color:var(--ink)">cell</b> and not as a bar because a bar beside a chart it is not on the scale of '+
+          'would claim a comparison the drawing cannot make: in a world like A it is eight times the tallest column, and letting it set the scale flattens the cycle the band exists to show.')+
+        ablk('Why the balances are drawn in months of revenue', 'A euro scale makes a €28k balance fill the bar in a company whose working capital is economically nil. Months of revenue is the unit that makes '+
+          'two balances, two policies and two companies comparable, so both bars and <b style="color:var(--ink)">both changes</b> are drawn on it. '+
+          'The month’s change needs no magnification on that scale: being a sliver of the stock <em>is</em> the finding.')+
+        ablk('It is the change that reaches cash, never the level', 'This is the thing most often read backwards. '+
+          (moRevN!==null ? 'The deferred balance is worth <b style="color:var(--ink)">'+moRevN.toFixed(1)+' months of revenue</b>, and this month it was worth '+(gapN>=0?'+':'−')+eur(Math.abs(gapN))+' to the cash line. ' : '')+
+          'Billing in advance does not make a company more profitable and does not pay for anything twice: it is a <b style="color:var(--ink)">one-time loan the size of the book</b>, drawn down while the company grows and repaid in full if it ever shrinks. '+
+          'Once growth flattens, Δdeferred goes to nearly zero and cash converges on EBITA with the whole float still sitting on the balance sheet.')+
+        ablk('EBITA is untouched by this layer', 'Exactly, and the page prints the proof: <b style="color:var(--ink)">cash FCF − EBITA = Δdeferred − Δreceivables</b>, '+
+          (gapN>=0?'+':'−')+eur(Math.abs(gapN))+' = '+(dDefN>=0?'+':'−')+eur(Math.abs(dDefN))+' − '+(dRecN>=0?'+':'−')+eur(Math.abs(dRecN))+'. '+
+          'Choosing a term, a timing and a delay moves the cash trough by the size of the book and does not move a euro of the P&amp;L.')+
+        ablk('What this layer does not model', 'Costs are cash <b style="color:var(--ink)">when incurred</b> — there are no payables, so the company finances its customers but never its suppliers. '+
+          'No tax, no capex, no financing, no bad debt and no refunds: every euro invoiced is collected '+(cdN>0 ? 'exactly '+cdN+' month'+(cdN>1?'s':'')+' later' : 'on invoice')+', with certainty. '+
+          'One billing policy applies to the whole company, and the opening book’s stagger is uniform by construction. Each of those is a simplification that flatters the cash line, and each is listed rather than hidden.');
+    }
+    var h=caNote+moNote+cuNote+'<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
       r(basis, rn(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
       '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
 
