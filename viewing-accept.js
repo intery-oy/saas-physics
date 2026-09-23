@@ -39,7 +39,9 @@ const PREV = 'file://' + PREV_FILE;
   const cap = (p, what) => p.evaluate(what => {
     const strip = h => h.replace(/<span class="viewing"[\s\S]*?<\/button><\/span>/g, '').replace('<span class="hd flat">on Base</span>', '')
       .replace(/<div class="btn-row fin-per">[\s\S]*?<\/div>/, '').replace(/ data-finv="[a-z]+"/g, '');
-    return { side: strip(document.getElementById('side').innerHTML), strip: document.getElementById('causal-slot').innerHTML,
+    /* Step 1C turned the lens levers from sliders into ways into the Experiment: they are compared by laws-accept, not here */
+    const sd = document.getElementById('side').cloneNode(true); sd.querySelectorAll('.levers').forEach(e => e.remove());
+    return { side: strip(sd.innerHTML), strip: document.getElementById('causal-slot').innerHTML,
       canvas: what.canvas ? document.getElementById('scene').toDataURL() : '', ledger: what.ledger ? ((document.querySelector('#ledger table') || {}).outerHTML || '') : '' }; }, what);
   async function surfaces(A, B) {
     const out = [];

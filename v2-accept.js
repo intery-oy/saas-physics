@@ -96,8 +96,8 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- A · SYSTEM ---- */
   await jsClick('#nav-system'); await pg.waitForTimeout(500);
-  const sys = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('chip-' + k)) }));
-  rec('A · SYSTEM (absolute): the side panel states the customer layer with its live laws and the derived persistence; the customer law chips exist for the map\'s valves',
+  const sys = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('f-' + k)   /* the map's valves route here (laws-accept) */) }));
+  rec('A · SYSTEM (absolute): the side panel states the customer layer with its live laws and the derived persistence; the map\'s customer valves lead to their laws in the Experiment drawer',
       sys.txt.includes('Customer physics · logo retention 92.0%, contraction 5.0%') && sys.txt.includes('87.4% = L × (1 − C)') && sys.chips.every(Boolean), sys.txt.slice(sys.txt.indexOf('Customer physics'), sys.txt.indexOf('Customer physics') + 160).replace(/\n/g, ' | '));
   await jsClick('#cmp-delta'); await pg.waitForTimeout(400);
   const sysD = await pg.evaluate(() => document.getElementById('side').innerText.length);

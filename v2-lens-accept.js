@@ -158,7 +158,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       Math.abs(1 / curve.op.dn - eng.marg) < 1e-9 && Math.abs(curve.op.n / curve.op.sm - 1 / eng.avg) < 1e-12 && curve.op.dn < curve.op.n / curve.op.sm,
       JSON.stringify({ slopes: curve.slopes, dn: curve.op.dn, chord: curve.op.n / curve.op.sm }));
   rec('GROWTH ENGINE · on Base no dashed Base lines are drawn; Experiment lines are solid', gr.baseLines.every(n => n === 0) && gr.solid.every(Boolean) && !/Base/.test(gr.legend.join('|')), JSON.stringify({ baseLines: gr.baseLines, legend: gr.legend }));
-  await D(pg, () => { const i = document.querySelector('#lens-growth .lever input[data-for="sm"]'); i.value = 1200000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const gr2 = await page(pg, 'growth');
   const q2 = await D(pg, () => ({ sm: window.__SP_DEBUG.expA.sm, avg: window.__SP_DEBUG.expRes.derived.acquisition.averageCAC, marg: window.__SP_DEBUG.expRes.derived.acquisition.marginalCAC }));
   const c2 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
@@ -171,11 +171,11 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       gr2.rv.indexOf((q2.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && /Base/.test(gr2.legend.join('|')),
       JSON.stringify({ q2, op: c2.op, base: c2.base, lawMoved: c2.lawMoved }));
   /* the law itself: a cheaper floor lifts the whole curve, a lower capacity bends it sooner */
-  await D(pg, () => { const i = document.querySelector('#lens-growth .lever input[data-for="cacPerARR"]'); i.value = 0.8; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-cacPerARR'); i.value = 0.8; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const c3 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
     const law = sm => c.enabled ? sm / (c.floor + sm / c.cap) : sm / c.floor;
     return { floor: c.floor, lawMoved: c.lawMoved, baseCurves: s.querySelectorAll('path.ln.base').length, n: c.op.n, worst: c.samples.reduce((a, [sm, n]) => Math.max(a, Math.abs(n - law(sm))), 0) }; });
-  await D(pg, () => { const i = document.querySelector('#lens-growth .lever input[data-for="maxMonthlyNewARR"]'); i.value = 600000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-maxMonthlyNewARR'); i.value = 600000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const c4 = await D(pg, () => { const c = window.__SP_DEBUG.acqCurve; return { cap: c.cap, used: c.op.used, marg: c.op.marg, n: c.op.n }; });
   rec('GROWTH ENGINE · changing the law changes the CURVE: a cheaper CAC floor lifts it (more new ARR for the same spend) and draws the Base law dashed beneath it; a lower capacity bends it sooner, so the same spend buys less and marginal CAC climbs',
       c3.floor === 0.8 && c3.lawMoved && c3.baseCurves === 1 && c3.n > c2.op.n && c3.worst < 1e-6 &&
@@ -189,7 +189,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const vShare = eng.variable / (eng.fixed + eng.variable);
   rec('MONETIZATION · structure: question · headline (ARR, ARR/customer, fixed %, variable %) · control strip (platform fee, usage growth, adoption) · ONE composition chart · nothing else', /What are customers paying for\?/.test(mo.q) && mo.hl.join('|') === 'MRR|MRR per customer|fixed revenue|variable revenue' && mo.txt.includes(Math.round((1 - vShare) * 100) + '%\nfixed revenue') && mo.levers.join('|') === 'monetization.components[0].priceAnnual|monetization.components[1].usageGrowthAnnual|monetization.components[1].adoptionAnnual' && mo.blocks.join(',') === 'lens-head,hl,lever-slot,chb' && mo.charts === 1 && !mo.figVisible && !mo.stripVisible && mo.prose === 0, JSON.stringify(mo.blocks));
   rec('MONETIZATION · the chart stacks exactly FIXED and VARIABLE (the engine\'s components) over 60 months; right-edge values are the month\'s fixed and variable ARR with their shares and the total', mo.titles[0] === 'MRR composition over time' && mo.legend.join('|').indexOf('fixed') >= 0 && mo.legend.join('|').indexOf('variable') >= 0 && !/platform|usage|AI|process/.test(mo.legend.join('|')) && mo.rv.indexOf(mrr(eng.fixed)) >= 0 && mo.rv.indexOf(mrr(eng.variable)) >= 0 && mo.rv.indexOf(mrr(eng.fixed + eng.variable)) >= 0 && /fixed · \d+%/.test(mo.rl.join('|')) && /variable · \d+%/.test(mo.rl.join('|')), JSON.stringify({ rv: mo.rv, rl: mo.rl, legend: mo.legend }));
-  await D(pg, () => { const i = document.querySelector('#lens-monetization .lever input[data-for="monetization.components[1].usageGrowthAnnual"]'); i.value = 0.30; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-monetization.components[1].usageGrowthAnnual'); i.value = 0.30; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const mo2 = await page(pg, 'monetization');
   const v2 = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), x = W.expRes.months[m - 1].monetization; return { share: x.variableARR / (x.fixedARR + x.variableARR) }; });
   rec('MONETIZATION · the usage-growth lever reshapes the composition (variable share rises) and the Base total appears as a quiet dashed reference', v2.share > vShare + 0.005 && mo2.baseLines[0] === 1 && /Base total/.test(mo2.legend.join('|')), JSON.stringify({ v2, vShare, baseLines: mo2.baseLines }));
@@ -240,7 +240,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     await click(q, '.lensnav .btn[data-lens="growth"]');
     const curveLab = {};
     for (const sm of [0, 700000, 1500000, 2500000]) {
-      await D(q, v => { const i = document.querySelector('#lens-growth .lever input[data-for="sm"]'); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }, sm);
+      await D(q, v => { const i = document.getElementById('f-sm'); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }, sm);
       await q.waitForTimeout(320);
       curveLab['sm' + sm] = await D(q, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), box = s.getBoundingClientRect();
         const els = [...s.querySelectorAll('g.rg, text.bkl, text.mk, text.capl, text.axcap, text.ax')];

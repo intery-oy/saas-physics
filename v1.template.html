@@ -50,7 +50,7 @@ button,input{font:inherit;color:inherit}
 
 /* ---------- shell ---------- */
 .app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;height:100vh;height:100dvh}
-.app.flow .rail{opacity:0;pointer-events:none}
+.app.flow:not(.rail-open) .rail{opacity:0;pointer-events:none}
 .lawchip{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-size:10.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap;z-index:4}
 .lawchip:hover{border-color:var(--exp);color:var(--ink)}
 .lawchip b{font-family:var(--mono);color:var(--exp);font-weight:500}
@@ -499,6 +499,13 @@ table.fs.yr td.neg{color:var(--law)}
 .lever{display:grid;grid-template-columns:1fr auto auto;gap:0 8px;align-items:center;font-size:11px}
 .lever .ll{color:var(--ink-2)} .lever .ll .kg{margin-right:6px}
 .lever .lv{font-family:var(--mono);color:var(--ink)} .lever .lv.off{color:var(--ink-4)}
+button.lever{background:none;border:0;border-radius:3px;text-align:left;cursor:pointer;color:inherit;font:inherit;width:100%}
+button.lever:hover,button.lever:focus-visible{background:rgba(139,141,240,.07)}
+.lever .lt{position:relative;display:block;height:2px;background:var(--line);border-radius:1px;margin-top:9px;grid-column:1/-1}
+.lever .lt i{position:absolute;top:-3px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--ink-3)}
+.lever .lgo{color:var(--exp);opacity:0;transition:opacity .15s;margin-left:6px}
+button.lever:hover .lgo,button.lever:focus-visible .lgo{opacity:1}
+.force.law-focus{box-shadow:inset 3px 0 0 var(--exp);background:rgba(139,141,240,.08);transition:background .6s}
 .lever .btn{font-size:9.5px;padding:2px 6px}
 .lever input{grid-column:1/-1;width:100%;margin:2px 0 0}
 /* ---------- lens redesign: marks, deltas, identity, vertical flow, two paths (docs/LENS-VISUAL-GRAMMAR.md) ---------- */
@@ -1505,6 +1512,29 @@ details.pl .cascade{margin-top:8px}
     syncSysViews(); syncViewingCtl(); resize(); render(); renderSide(); syncLedger();
   }
   document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('[data-vw]'); if(b){ e.stopPropagation(); setViewed(b.dataset.vw); } }, true);
+
+  /* ---- the one way from a law on Company or System to changing it: open the Experiment drawer
+     at that law's row, bring it into view, mark it, and put the keyboard on its control.
+     Nothing is written here — the drawer's own handlers do that (and return the view to the
+     Experiment, Step 1B) — so a law opened from a Base page leaves Base untouched. ---- */
+  function lawRowEl(key){ var c = document.getElementById('f-'+key) || document.getElementById('t-'+key); return c ? c.closest('.force') : null; }
+  function hasLawRow(key){ return !!key && !!lawRowEl(key); }
+  var lawFocusT = null;
+  function openLaw(key){
+    var row = lawRowEl(key); if(!row) return false;
+    menusClose();
+    var app = document.querySelector('.app'); app.classList.add('rail-open');
+    [].forEach.call(document.querySelectorAll('.force.law-focus'), function(r){ r.classList.remove('law-focus'); });
+    row.classList.add('law-focus');
+    clearTimeout(lawFocusT); lawFocusT = setTimeout(function(){ row.classList.remove('law-focus'); }, 2600);
+    try { row.scrollIntoView({ block:'center', behavior:'smooth' }); } catch(e){ row.scrollIntoView(); }
+    var ctl = document.getElementById('f-'+key) || document.getElementById('t-'+key);
+    if(ctl && !ctl.disabled) setTimeout(function(){ try { ctl.focus({ preventScroll:true }); } catch(e){} }, 60);
+    if(layer==='flow'){ openChip = key; render(); }
+    return true;
+  }
+  /* a lever on a lens is a way in, not a control */
+  document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('.lever[data-law]'); if(b){ e.stopPropagation(); openLaw(b.dataset.law); } }, true);
 
   function openSystemView(v){ menusClose(); setLayer('flow'); sysView = v; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
   document.getElementById('menu-ledger').addEventListener('click', function(){ openSystemView('ledger'); });
@@ -2862,7 +2892,7 @@ details.pl .cascade{margin-top:8px}
           ctx.fillText('⋈ '+(v>=0?'+':'')+pct(v,1)+'/yr', x, ry+17);
           /* only a law that HAS a chip is a control; a component law is set in
              Change, so its mark is a statement — a hit would blank every chip */
-          if(LAWCHIPS.some(function(Lc){ return Lc.k===key; })) lawHits.push({ key:key, x:x-45, y:ry+6, w:90, h:14 }); }
+          if(hasLawRow(key)) lawHits.push({ key:key, x:x-45, y:ry+6, w:90, h:14 }); }
         function res(v){ ctx.textAlign='right'; ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText(aeur(v), RR, ry); }
         st.forEach(function(s, k){
           var sp = spec[k], fixed = sp.kind === 'fixed', key = function(f){ return 'monetization.components['+k+'].'+f; };
@@ -4035,63 +4065,10 @@ details.pl .cascade{margin-top:8px}
    * §7 — the controls live on the laws, positioned at the transformation
    * they govern. Same values as the Stock-layer rail; one source of truth.
    * ------------------------------------------------------------------ */
-  var LAWCHIPS = [
-    {k:'persistenceAnnual', label:'persistence', f:'pct', min:0.6, max:0.99, step:0.005},
-    {k:'logoRetentionAnnual', label:'logo retention', f:'pct', min:0.5, max:1, step:0.005, nullable:true, onValue:0.92},
-    {k:'contractionAnnual', label:'contraction', f:'pct', min:0, max:0.3, step:0.005},
-    {k:'expansionCoefficientAnnual', label:'expansion', f:'pct', min:0, max:0.4, step:0.005},
-    {k:'sm', label:'S&M', f:'eur', min:0, max:2500000, step:25000},
-    {k:'cacPerARR', label:'CAC floor', f:'x', min:0.3, max:3, step:0.05},
-    {k:'maxMonthlyNewARR', label:'capacity', f:'cap', min:250000, max:5000000, step:50000, nullable:true, onValue:2000000},
-    {k:'acquisitionLagMonths', label:'lag', f:'mo', min:0, max:12, step:1},
-    {k:'grossMargin', label:'gross margin', f:'pct', min:0.4, max:0.95, step:0.005},
-    {k:'expansionCostPerARR', label:'expansion cost', f:'x', min:0, max:1.5, step:0.05}
-  ];
-  var openChip = null;
-  function buildLawChips(){
-    var host=document.getElementById('lawhost'); host.innerHTML='';
-    LAWCHIPS.forEach(function(Lc){
-      var el=document.createElement('div'); el.className='lawchip'; el.id='chip-'+Lc.k;
-      el.style.pointerEvents='auto'; el.style.display='none';
-      el.innerHTML='<span>'+esc(Lc.label)+' <b id="cv-'+Lc.k+'"></b></span>'+
-        (Lc.nullable ? ' <button class="btn nulltog" id="ct-'+Lc.k+'" hidden>off</button>' : '')+
-        '<input type="range" id="cr-'+Lc.k+'" min="'+Lc.min+'" max="'+Lc.max+'" step="'+Lc.step+'" hidden>';
-      host.appendChild(el);
-      el.addEventListener('click', function(ev){
-        if(ev.target.tagName==='INPUT' || ev.target.tagName==='BUTTON') return;
-        var open = el.classList.toggle('open');
-        el.querySelector('input').hidden = !open;
-        var tg=el.querySelector('button'); if(tg) tg.hidden = !open;
-        openChip = open ? Lc.k : null;
-      });
-      el.querySelector('input').addEventListener('input', function(e){
-        expA = Object.assign({}, expA); expA[Lc.k] = parseFloat(e.target.value); recompute();
-      });
-      if(Lc.nullable){
-        el.querySelector('#ct-'+Lc.k).addEventListener('click', function(){
-          expA = Object.assign({}, expA);
-          var isOff = expA[Lc.k]===null || expA[Lc.k]===undefined || !isFinite(expA[Lc.k]);
-          expA[Lc.k] = isOff ? parseFloat(document.getElementById('cr-'+Lc.k).value) : null;
-          recompute();
-        });
-      }
-    });
-  }
-  function positionLawChips(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
-    LAWCHIPS.forEach(function(Lc){
-      var el=document.getElementById('chip-'+Lc.k); if(!el) return;
-      var a=lawAnchors[Lc.k];
-      if(layer!=='flow' || !a){ el.style.display='none'; return; }
-      if(layer==='flow' && openChip!==Lc.k){ el.style.display='none'; return; }
-      el.style.display='block'; el.style.left=Math.round(a.x)+'px'; el.style.top=Math.round(a.y)+'px';
-      document.getElementById('cv-'+Lc.k).textContent = fmtF(Lc.f, expA[Lc.k]);
-      var inp=document.getElementById('cr-'+Lc.k); inp.value=sliderValueFor(Lc, expA[Lc.k]);
-      if(Lc.nullable){
-        var off = expA[Lc.k]===null || expA[Lc.k]===undefined || !isFinite(expA[Lc.k]);
-        var tg=document.getElementById('ct-'+Lc.k); tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off);
-      }
-    });
-  }
+  var openChip = null;       /* the law the Experiment drawer was opened at from the map: ringed while it is open */
+  /* the map's laws are statements and ways in; they no longer carry sliders of their own */
+  function buildLawChips(){ var host=document.getElementById('lawhost'); if(host) host.innerHTML=''; }
+  function positionLawChips(){}
 
   /* SYSTEM law line — the Pulse stepper is gone with the prototype, but the
      SYSTEM view still needs its one-line framing. */
@@ -4178,14 +4155,8 @@ details.pl .cascade{margin-top:8px}
       if(vh!==null){ monVintage = vh; render(); return; }
       lawHits.forEach(function(q){ if(dx>=q.x && dx<=q.x+q.w && dy>=q.y && dy<=q.y+q.h) hit=q.key; });
       valveHits.forEach(function(v){ if(Math.abs(v.x-dx)<24 && Math.abs(v.y-dy)<24) hit=v.key; });
-      openChip = (hit && openChip!==hit) ? hit : null;
-      LAWCHIPS.forEach(function(Lc){
-        var el=document.getElementById('chip-'+Lc.k); if(!el) return;
-        el.classList.toggle('open', openChip===Lc.k);
-        el.querySelector('input').hidden = openChip!==Lc.k;
-        var tg=el.querySelector('button'); if(tg) tg.hidden = openChip!==Lc.k;
-      });
-      render(); return;
+      if(hit && hasLawRow(hit)) openLaw(hit);
+      return;
     }
     if(hover===null) return;
     pinned = (pinned===hover ? null : hover);
@@ -4677,8 +4648,10 @@ details.pl .cascade{margin-top:8px}
   function marksFor(CH, roots){ var mk = CH.filter(function(c){ return roots.indexOf(rootKey(c.key))>=0; }); return mk.length ? '<div class="marks">'+mk.map(chMark).join('')+'</div>' : ''; }
   function effectFrom(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */ var a=null, c=null; for(var i=0;i<H;i++){ var xm=expRes.months[i], bm=baseRes.months[i]; if(a===null && Math.abs(xm.closingARR-bm.closingARR)>1) a=i+1; if(c===null && Math.abs(xm.cashClosing-bm.cashClosing)>1) c=i+1; if(a!==null && c!==null) break; } return { arr:a, cash:c }; }
 
-  /* ---- levers: the rail's own controls, mirrored on the lens that they shape.
-     The nodes are built once and re-attached across renders, so a drag is never interrupted. ---- */
+  /* ---- levers: the laws that shape a lens, read on the lens and changed in the Experiment.
+     Each is a readout of the VIEWED world's law — value, and where it sits in its range — and a
+     way in: a click opens the Experiment drawer at that law (openLaw). Nothing here writes.
+     The nodes are built once and re-attached across renders. ---- */
   var LEVERS = {};
   function leverBar(lensId, keys){
     var bar = LEVERS[lensId];
@@ -4686,27 +4659,25 @@ details.pl .cascade{margin-top:8px}
       bar = document.createElement('div'); bar.className='levers'; bar.dataset.lens=lensId; LEVERS[lensId]=bar;
       keys.forEach(function(k){
         var F = forceOf(k); if(!F) return;
-        var row = document.createElement('div'); row.className='lever'; row.dataset.k=k;
+        var row = document.createElement('button'); row.type='button'; row.className='lever'; row.dataset.k=k; row.dataset.law=k;
+        row.title = 'Change '+F.label+' in the Experiment';
         row.innerHTML = '<span class="ll">'+kindGlyph(F)+esc(F.label)+'</span><span class="lv" id="lv-'+k+'"></span>'+
-          (F.nullable ? '<button class="btn nulltog" data-tog="'+k+'">off</button>' : '')+
-          '<input type="range" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'" data-for="'+k+'">';
-        var inp = row.querySelector('input');
-        inp.addEventListener('input', function(){ var r=document.getElementById('f-'+k); if(!r) return; r.value=this.value; r.dispatchEvent(new Event('input')); });
-        var tg = row.querySelector('[data-tog]'); if(tg) tg.addEventListener('click', function(){ var b=document.querySelector('[id="t-'+k+'"]'); if(b) b.click(); });
+          '<span class="lgo" aria-hidden="true">›</span><span class="lt" aria-hidden="true"><i></i></span>';
         bar.appendChild(row);
       });
     }
     return bar;
   }
   function syncLevers(){
+    var A = VW().A;
     Object.keys(LEVERS).forEach(function(id){ var bar=LEVERS[id]; [].forEach.call(bar.querySelectorAll('.lever'), function(row){
-      var k=row.dataset.k, F=forceOf(k), r=document.getElementById('f-'+k), inp=row.querySelector('input'), val=row.querySelector('.lv'), tg=row.querySelector('[data-tog]');
-      if(!F || !r) return;
+      var k=row.dataset.k, F=forceOf(k), val=row.querySelector('.lv'), dot=row.querySelector('.lt i');
+      if(!F) return;
       /* a boolean, always: classList.toggle(c, undefined) flips the class on every sync */
-      var v = getK(VW().A, k), off = !!(F.nullable && (v===null || v===undefined || !isFinite(v)));
-      if(document.activeElement!==inp){ inp.value = off ? r.value : v; }
-      inp.disabled = r.disabled || off; val.textContent = off ? 'off' : fmtF(F.f, v); val.classList.toggle('off', off);
-      if(tg){ tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off); }
+      var v = getK(A, k), off = !!(F.nullable && (v===null || v===undefined || !isFinite(v)));
+      val.textContent = off ? 'off' : fmtF(F.f, v); val.classList.toggle('off', off); row.classList.toggle('off', off);
+      var f = off ? 0 : Math.max(0, Math.min(1, (v - F.min) / ((F.max - F.min) || 1)));
+      dot.style.left = (f*100).toFixed(1)+'%'; dot.hidden = off;
     }); });
   }
   function placeLevers(){ [].forEach.call(document.querySelectorAll('#side .lever-slot'), function(slot){ var bar=LEVERS[slot.dataset.lens]; if(bar){ slot.appendChild(bar); } }); syncLevers(); }
@@ -6789,10 +6760,11 @@ details.pl .cascade{margin-top:8px}
   }
   document.getElementById('reset').addEventListener('click', resetAll);
   /* narrow screens: the Change rail is a drawer over the stage */
-  document.getElementById('rail-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('rail-open'); });
-  document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
+  document.getElementById('rail-toggle').addEventListener('click', function(){ if(!document.querySelector('.app').classList.toggle('rail-open')) lawRingOff(); });
+  function lawRingOff(){ if(openChip!==null){ openChip = null; if(layer==='flow') render(); } }
+  document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); lawRingOff(); });
   document.getElementById('rail-detail').addEventListener('click', function(){ document.querySelector('.rail').classList.toggle('detail'); });
-  document.getElementById('scrim').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); });
+  document.getElementById('scrim').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); lawRingOff(); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ document.querySelector('.app').classList.remove('rail-open'); document.querySelector('.app').classList.remove('notes'); } });
   /* Model Ledger: the two views, and a row as a way to move the month */
   document.getElementById('ldg-core').addEventListener('click', function(){ setLedgerView('core'); });
@@ -6880,7 +6852,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, finRebuild: function(){ finLive = null; renderSide(); },
+    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get valveHits(){ return valveHits; }, get lawHits(){ return lawHits; }, get openChip(){ return openChip; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, finRebuild: function(){ finLive = null; renderSide(); },
     get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,

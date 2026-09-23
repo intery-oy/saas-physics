@@ -131,23 +131,22 @@ async function run(pg, want) { const is = await running(pg);
       t1.v - t0 > 1.5 && t1.running && Math.abs(labelM - Math.round(t1.v)) <= 1,
       JSON.stringify({ from: +t0.toFixed(2), to: +t1.v.toFixed(2), label: t1.label }));
 
-  /* ---- LEVERS: the one press that must NOT be held back ---- */
+  /* ---- LEVERS: a lever on a lens is a way into the Experiment; the drag that must NOT be held back is the drawer's ---- */
   await run(pg, false);
   await press(pg, '.lensnav .btn[data-lens="growth"]');
   const readout = () => pg.evaluate(() => [].map.call(document.querySelectorAll('#lens-growth .dv'), function(e){ return e.textContent.trim(); }).join(' | '));
-  const lev = await pg.evaluate(() => { const i = document.querySelector('#side .levers input[type=range]'); if (!i) return null;
-    i.scrollIntoView({ block: 'center' }); const r = i.getBoundingClientRect();
-    return { x: Math.round(r.x + r.width * 0.5), y: Math.round(r.y + r.height / 2), k: i.closest('.lever').dataset.k }; });
-  const before = lev ? await readout() : null;
-  let during = null, barKept = null;
-  if (lev) { await pg.mouse.move(lev.x, lev.y); await pg.mouse.down(); await pg.waitForTimeout(120);
-    await pg.mouse.move(lev.x + 70, lev.y, { steps: 8 }); await pg.waitForTimeout(400);
-    during = await readout();
-    barKept = await pg.evaluate(() => { const b = document.querySelector('#side .levers'); return !!b && b.contains(document.activeElement || b) !== null && b.querySelectorAll('input').length > 0; });
-    await pg.mouse.up(); await pg.waitForTimeout(350); }
-  rec('LEVERS: a lever drag is not held back — the growth lens\'s readouts move under the finger, mid-drag, while the lever bar itself stays put',
-      !!lev && !!before && !!during && during !== before && barKept === true,
-      JSON.stringify({ lever: lev && lev.k, before: before, during: during }));
+  await press(pg, '#lens-growth .lever[data-law="sm"]');
+  const routed = await pg.evaluate(() => { const f = document.querySelector('.force.law-focus'); return { open: document.querySelector('.app').classList.contains('rail-open'), row: f && f.querySelector('#f-sm') ? 'sm' : null }; });
+  const lev = await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.scrollIntoView({ block: 'center' }); const r = i.getBoundingClientRect();
+    return { x: Math.round(r.x + r.width * 0.3), y: Math.round(r.y + r.height / 2) }; });
+  const before = await readout();
+  await pg.mouse.move(lev.x, lev.y); await pg.mouse.down(); await pg.waitForTimeout(120);
+  await pg.mouse.move(lev.x + 70, lev.y, { steps: 8 }); await pg.waitForTimeout(400);
+  const during = await readout();
+  await pg.mouse.up(); await pg.waitForTimeout(350);
+  rec('LEVERS: a press on a lens lever opens the Experiment at that law, and the drawer slider\'s drag is not held back — the growth lens\'s readouts move under the finger, mid-drag',
+      routed.open && routed.row === 'sm' && !!before && !!during && during !== before, JSON.stringify({ routed, before, during }));
+  await pg.evaluate(() => document.getElementById('rail-close').click());
 
   rec('no page errors', errs.length === 0, errs.join(' | '));
   await br.close();
