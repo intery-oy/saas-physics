@@ -114,6 +114,32 @@ button,input{font:inherit;color:inherit}
 .prow:disabled{cursor:default;opacity:.55}
 .prow:disabled:hover{background:none}
 .prow .pwhy{font-size:10.5px;color:var(--ink-4);font-style:italic;grid-column:2}
+/* Base Settings cards: one per assumption category, each with its own accent */
+.bs-jump{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 2px}
+.bs-jump button{font:11px var(--ui);background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc,var(--line));border-radius:3px;color:var(--ink-2);padding:5px 9px;cursor:pointer}
+.bs-jump button:hover{color:var(--ink)} .bs-jump button .st{font-family:var(--mono);font-size:9.5px;margin-left:6px;color:var(--ink-4)} .bs-jump button.on .st{color:var(--good)}
+.bs-card{--acc:var(--exp);background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--acc);border-radius:4px;padding:12px 16px 6px;margin:0 0 14px;scroll-margin-top:70px}
+.bs-card[data-l="start"]{--acc:var(--stock)} .bs-card[data-l="customers"]{--acc:var(--in)} .bs-card[data-l="monetization"]{--acc:var(--law)}
+.bs-card[data-l="cash"]{--acc:#5b8fd0} .bs-card[data-l="interventions"]{--acc:var(--hyp)}
+.bs-jump button[data-l="start"]{--acc:var(--stock)} .bs-jump button[data-l="arr"]{--acc:var(--exp)} .bs-jump button[data-l="customers"]{--acc:var(--in)}
+.bs-jump button[data-l="monetization"]{--acc:var(--law)} .bs-jump button[data-l="cash"]{--acc:#5b8fd0} .bs-jump button[data-l="interventions"]{--acc:var(--hyp)}
+.bs-ch{display:flex;align-items:baseline;gap:10px}
+.bs-cn{font-family:var(--display);font-size:17px;color:var(--ink)}
+.bs-ct{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4)}
+.bs-cs{margin-left:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:9px;border:1px solid var(--line);color:var(--ink-4)}
+.bs-card:not(.off) .bs-cs{color:var(--good);border-color:rgba(79,163,125,.5)}
+.bs-cnote{font-size:11px;color:var(--ink-3);line-height:1.5;margin:3px 0 6px}
+.bs-card.off{background:transparent;border-style:dashed;border-top-style:solid;opacity:.85}
+.bs-card .layerhead{display:none}
+.bs-card .fgrp{border:0;padding:10px 0 4px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 26px;border-top:1px solid var(--line-soft)}
+.bs-card .fgrp:first-of-type{border-top:0}
+.bs-card .fgrp .fgrp-head,.bs-card .fgrp .fgrp-note{grid-column:1 / -1}
+.bs-card .fgrp-kind{color:var(--acc)}
+#bs-start{display:block;padding-top:4px}
+@media (max-width:1100px){.bs-card .fgrp{grid-template-columns:minmax(0,1fr)}}
+.basepage:not(.defs) .force-sub,.basepage:not(.defs) .fgrp-note{display:none}
+.basepage .force{margin-bottom:10px}
+#bs-defs.on{border-color:var(--exp);color:var(--exp)}
 /* the preset browser: a list inside the Experiment drawer — discover and load, never analyse */
 .plist{display:grid;margin-top:9px;border-top:1px solid var(--line-soft)}
 .prow{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 8px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
@@ -884,8 +910,10 @@ details.pl .cascade{margin-top:8px}
     <div class="bp-top">
       <div class="bp-title"><span class="lens-n">Base Settings</span><span class="lens-q">The company every Experiment runs against</span></div>
       <span class="bp-state" id="bp-state"></span>
+      <button class="btn" id="bs-defs" title="Show what every setting means, its unit and direction">Definitions</button>
       <button class="btn primary" id="base-freeze">Freeze Base</button>
     </div>
+    <nav class="bs-jump" id="bs-jump" aria-label="Assumption categories"></nav>
     <div class="bp-confirm" id="freeze-confirm" hidden></div>
     <div class="hint bp-draft" id="bp-draft"></div>
     <div class="bp-cols">
@@ -897,8 +925,11 @@ details.pl .cascade{margin-top:8px}
           <div class="bp-tl">Reference model, layer by layer <span>one company, each layer switched on in turn</span></div><div class="btn-row" id="tpl-layers"></div>
           <div class="hint" id="tpl-note" style="margin-top:8px"></div>
         </div>
-        <div class="layerhead">Opening state <small>where the company stands at month 0 · state, not a law</small></div>
-        <div class="fgrp" id="bs-start"></div>
+        <section class="bs-card" id="bs-card-start" data-l="start">
+          <div class="bs-ch"><span class="bs-cn">Opening state</span><span class="bs-ct">month 0</span></div>
+          <div class="bs-cnote">Where the company stands when the clock starts. State, not a law: the laws act on it from month 1.</div>
+          <div class="fgrp" id="bs-start"></div>
+        </section>
         <details class="bp-examples" id="bp-examples"><summary>Examples · a Base built to demonstrate one property</summary>
           <div class="hint" style="margin:6px 0 8px">Each is a matched pair built to teach one property: a Base and one change against it. Load it and freeze: the Base is frozen and its matched Experiment is set up, ready for Compare. These are not Experiment presets.</div>
           <div id="tpl-examples"></div></details>
@@ -1434,6 +1465,24 @@ details.pl .cascade{margin-top:8px}
     });
     var ro=document.createElement('div'); ro.className='bp-ro'; ro.id='bs-ro'; hs.appendChild(ro);
     buildForces(DRAFT_T);
+    /* the draft's rows come out as one list (layer head, then its groups); present each layer as a card */
+    var hf = document.getElementById('bs-forces'), cur = null;
+    [].slice.call(hf.children).forEach(function(el){
+      if(el.classList.contains('layerhead')){
+        var L = el.id.replace('bs-layer-',''), M = LAYER_META[L];
+        cur = document.createElement('section'); cur.className='bs-card'; cur.id='bs-card-'+L; cur.dataset.l=L;
+        cur.innerHTML = '<div class="bs-ch"><span class="bs-cn">'+esc(M.name)+'</span><span class="bs-ct">'+esc(M.tag)+'</span>'+(L==='arr' ? '' : '<span class="bs-cs"></span>')+'</div><div class="bs-cnote">'+esc(M.note)+'</div>';
+        hf.insertBefore(cur, el); cur.appendChild(el); return;
+      }
+      if(cur) cur.appendChild(el);
+    });
+    var jump = document.getElementById('bs-jump'); jump.innerHTML='';
+    [['start','Opening state']].concat(LAYER_ORDER.map(function(L){ return [L, LAYER_META[L].name]; })).forEach(function(c){
+      var b=document.createElement('button'); b.dataset.l=c[0]; b.innerHTML=esc(c[1])+'<span class="st"></span>';
+      b.addEventListener('click', function(){ var t=document.getElementById('bs-card-'+c[0]); if(t) t.scrollIntoView({ block:'start', behavior:'smooth' }); });
+      jump.appendChild(b);
+    });
+    document.getElementById('bs-defs').addEventListener('click', function(){ var on = document.getElementById('basepage').classList.toggle('defs'); this.classList.toggle('on', on); });
     document.getElementById('base-freeze').addEventListener('click', requestFreeze);
   }
   function syncBaseSettings(){
@@ -1468,6 +1517,12 @@ details.pl .cascade{margin-top:8px}
     if(draftBase.a.bands) ro.push('Laws by cohort age · '+draftBase.a.bands.map(function(b2){ return b2.name+' '+pct(b2.persistenceAnnual,0)+' / '+pct(b2.expansionCoefficientAnnual,0); }).join(' · ')+' — these replace persistence and expansion (from the example)');
     document.getElementById('bs-ro').innerHTML = ro.map(esc).join('<br>');
     syncForces(DRAFT_T);
+    if(!frozenBase) [].forEach.call(document.querySelectorAll('#bs-forces .force-base'), function(e){ e.textContent = ''; });   /* nothing frozen to read against */
+    LAYER_ORDER.forEach(function(L){
+      var on = L==='arr' || (draftRes ? LAYER_META[L].on(draftRes) : false), c=document.getElementById('bs-card-'+L), j=document.querySelector('#bs-jump button[data-l="'+L+'"]');
+      if(c){ c.classList.toggle('off', !on); var cs=c.querySelector('.bs-cs'); if(cs) cs.textContent = on ? 'on' : 'off'; }
+      if(j){ j.classList.toggle('on', on); j.querySelector('.st').textContent = L==='arr' ? '' : (on ? 'on' : 'off'); }
+    });
   }
   /* ---- the header: ⋯ is a small menu; opening it never redraws the page ---- */
   function menuOpen(id, on){
