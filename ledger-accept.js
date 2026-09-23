@@ -30,7 +30,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 const openLedger = async (pg, pack) => {
   if (pack) { await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack); await pg.waitForTimeout(500); }
-  await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);
 };
 const setView = async (pg, v) => { await pg.evaluate(x => document.getElementById('ldg-' + x).click(), v); await pg.waitForTimeout(500); };
@@ -290,7 +290,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
 
   /* ---- LAYER: the Ledger is the proof layer, not a System view (Step 2A) ---- */
   await openLedger(pg, 'wA');
-  const chrome = await pg.evaluate(() => ({ sysLit: document.getElementById('nav-system').classList.contains('on'), moreLit: document.getElementById('more-btn').classList.contains('here'),
+  const chrome = await pg.evaluate(() => ({ sysLit: (window.__SP_DEBUG.layer === 'flow' && window.__SP_DEBUG.sysView !== 'ledger'), moreLit: document.getElementById('more-btn').classList.contains('here'),
     tab: !!document.getElementById('sysview-ledger'), viewsShown: getComputedStyle(document.getElementById('sysviews')).display !== 'none', title: (document.querySelector('.ledgerbar .eyebrow') || {}).textContent }));
   const leak = {};
   for (const nav of ['nav-company', 'nav-compare']) {
@@ -298,8 +298,8 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
     leak[nav] = await pg.evaluate(() => { const e = document.getElementById('ledger'), r = e.getBoundingClientRect();
       return { hidden: e.hidden, display: getComputedStyle(e).display, area: Math.round(r.width * r.height) }; });
   }
-  await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(400);
-  const sys = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, ledger: !document.getElementById('ledger').hidden, sysLit: document.getElementById('nav-system').classList.contains('on') }));
+  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(400);
+  const sys = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, ledger: !document.getElementById('ledger').hidden, sysLit: (window.__SP_DEBUG.layer === 'flow' && window.__SP_DEBUG.sysView !== 'ledger') }));
   await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);
   const back = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, shown: !document.getElementById('ledger').hidden,
     table: !!document.querySelector('table.ldg') }));
@@ -333,7 +333,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       for (let y = 30; y < r.height * 0.7; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
         if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
     await q.waitForTimeout(600);
-    await q.evaluate(() => document.getElementById('nav-system').click()); await q.waitForTimeout(400);
+    await q.evaluate(() => document.getElementById('menu-mech').click()); await q.waitForTimeout(400);
     await q.evaluate(() => document.getElementById('menu-ledger').click()); await q.waitForTimeout(700);
     vis[name] = await q.evaluate(() => {
       const led = document.getElementById('ledger'), tb = document.querySelector('table.ldg');

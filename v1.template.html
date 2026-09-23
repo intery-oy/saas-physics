@@ -791,14 +791,14 @@ details.pl .cascade{margin-top:8px}
           <li><b>Base Settings</b> &middot; define the company &mdash; from a template or by hand &mdash; and freeze it. The frozen Base is the reference every Experiment runs against; it changes only when you freeze again.</li>
           <li><b>Experiment</b> &middot; the chip in the header opens the drawer where you change the laws &mdash; or start from a preset recipe. It names what differs from the frozen Base; close it to read the company.</li>
           <li><b>Compare</b> &middot; reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
-          <li><b>System</b> &middot; the company as an economic machine. Click a node to open its layer; Notes reads the map.</li>
+          <li><b>Model Mechanics</b> &middot; under &#8943;: how laws and starting state become the company &mdash; an Overview, then the customer, monetization and cash mechanisms. Read-only.</li>
                     <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR down to the cash it recovered; &lsaquo; Company returns.</li>
         </ol>
       </div>
       <div>
         <h5>How to read the marks</h5>
         <div class="wmarks">
-          <span class="m">&#8904;</span><span>a law the world obeys &mdash; set by you</span>
+          <span class="m">&#8904;</span><span>a law the model obeys &mdash; set by you</span>
           <span class="m">&#8968;&#8969;</span><span>a constraint &mdash; a bound, never a benefit</span>
           <span class="m meas">&rarr;</span><span>a measurement &mdash; read, never set</span>
           <span class="m hyp">&#8623;</span><span>a hypothesis &mdash; costed, lagged, temporary</span>
@@ -812,9 +812,9 @@ details.pl .cascade{margin-top:8px}
     </div>
     <h5>Three ways to start</h5>
     <div class="wstart">
-      <div class="ws"><b class="t"><span class="n">1</span>Freeze a Base</b>Open <b>Base Settings</b>, keep <b>A &middot; Enterprise</b> or pick another template, press <b>Freeze Base</b>, then play the company and stop around month 36.</div>
+      <div class="ws"><b class="t"><span class="n">1</span>Freeze a Base</b>Open <b>Base Settings</b>, keep <b>Enterprise</b> or pick another template, press <b>Freeze Base</b>, then play the company and stop around month 36.</div>
       <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>Open <b>Experiment</b>, move <b>S&amp;M investment</b> or <b>Logo retention</b>, close the drawer and open <b>Compare</b>.</div>
-      <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
+      <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>&#8943; &rarr; Model Mechanics</b>, click CUSTOMERS or BILLING to open that mechanism, and &lsaquo; Overview to come back.</div>
     </div>
     <p class="wnote">Illustrative model, deterministic, no randomness; the same engine runs the browser and the command-line checks. Nothing you set is sent anywhere. The page keeps only your MRR/ARR preference and whether you have seen this screen, in this browser.</p>
   </div>
@@ -833,24 +833,24 @@ details.pl .cascade{margin-top:8px}
       <button class="btn" id="nav-company">Company</button>
       <button class="btn xchip" id="rail-toggle" aria-label="Open or close the Experiment" title="Change the laws: the Experiment runs against the unchanged Base">Experiment</button>
       <button class="btn" id="nav-compare">Compare</button>
-      <button class="btn" id="nav-system">System</button>
     </nav>
     <span class="spacer"></span>
     <div class="menu-wrap" id="more-wrap">
       <button class="btn hbtn" id="more-btn" aria-haspopup="true" aria-expanded="false" aria-label="More">⋯</button>
       <div class="menu right" id="more-menu" hidden>
+        <button class="mi" id="menu-mech">Model Mechanics <span>explain it · how laws and starting state become the company</span></button>
         <button class="mi" id="menu-ledger">Model Ledger <span>prove it · every month as the engine published it</span></button>
         <div class="mi mrow"><span class="ml">Recurring revenue</span><div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div></div>
         <button class="mi" id="guidebtn">Guide <span>what this is, and the six-step tour</span></button>
         <!-- About: which build is on screen (a cached page is otherwise indistinguishable from a live
              one), and the few principles that make the instrument trustworthy. The mechanics live where
-             they act: the Experiment drawer, System's notes, the Model Ledger, the presets. -->
+             they act: the Experiment drawer, Model Mechanics, the Model Ledger, the presets. -->
         <details class="mabout" id="about">
           <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">__BUILD__</span></summary>
           <p><b>Deterministic.</b> A cohort simulation over sixty months — no randomness, no fitted parameters. Company ARR is only ever the sum of its cohorts.</p>
           <p><b>Laws → state → outputs.</b> You set the laws; everything else is a consequence. Retention, NRR and payback are measured from the run, never entered — so a 90% persistence law can measure as 89.6% GRR, and that gap is real, not an error.</p>
           <p><b>Traceable.</b> The engine decides every figure; the words only narrate it. The Model Ledger shows each month as the engine published it, with checks that reconcile.</p>
-          <p><b>What it is not.</b> Not a forecast and not a valuation. The worlds are illustrative — no real company data — and each page states the boundaries of the world it is running. Nothing you set leaves the page.</p>
+          <p><b>What it is not.</b> Not a forecast and not a valuation. The templates are illustrative — no real company data — and each page states the boundaries of the model it is running. Nothing you set leaves the page.</p>
         </details>
       </div>
     </div>
@@ -900,7 +900,7 @@ details.pl .cascade{margin-top:8px}
         <div class="layerhead">Opening state <small>where the company stands at month 0 · state, not a law</small></div>
         <div class="fgrp" id="bs-start"></div>
         <details class="bp-examples" id="bp-examples"><summary>Examples · a Base built to demonstrate one property</summary>
-          <div class="hint" style="margin:6px 0 8px">Each needs a Base of its own. Load it, freeze it, then open <b>Experiment → Browse presets</b>: its comparison appears there.</div>
+          <div class="hint" style="margin:6px 0 8px">Each is a matched pair built to teach one property: a Base and one change against it. Load it and freeze: the Base is frozen and its matched Experiment is set up, ready for Compare. These are not Experiment presets.</div>
           <div id="tpl-examples"></div></details>
       </div>
       <div class="bp-col" id="bs-forces"></div>
@@ -935,7 +935,6 @@ details.pl .cascade{margin-top:8px}
     </details>
     <div class="pulsebar" id="pulsebar" hidden>
       <div class="btn-row" id="sysviews"></div>
-      <div class="btn-row" id="cmpmode"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
       <span class="lawnote" id="pulse-law"></span>
       <button class="btn" id="notes-toggle" title="Read the laws and mechanisms on this map">Notes</button>
     </div>
@@ -1021,7 +1020,7 @@ details.pl .cascade{margin-top:8px}
   var leakShadow = false;          /* §4 — default OFF; subdued outline only when on */
   /* §14 — two layers, two lenses, one comparator. Inspect subsumes the old
      Anatomy and Capital-loop toggles; nothing new is navigable. */
-  var layer = 'stock', compare = 'absolute';
+  var layer = 'stock';
   var fitT = { s:1, ox:0, oy:0 };          /* uniform fit so nothing is ever clipped, at any viewport */
   var lastMsg = null;
 
@@ -1311,24 +1310,24 @@ details.pl .cascade{margin-top:8px}
      the opening book is derived from the components exactly as any pack's is. */
   function worldMon(fixedFee, fixedGrowth, usage){ return { components:[ { name:'platform', kind:'fixed', units:1, priceAnnual:fixedFee, priceGrowthAnnual:fixedGrowth }, Object.assign({ name:'usage', kind:'variable' }, usage) ] }; }
   var WORLDS = [
-    { id:'wA', name:'A · Enterprise', world:true, start:function(){ return { openingCustomers:120, openingCash:10000000 }; },
+    { id:'wA', name:'Enterprise', world:true, start:function(){ return { openingCustomers:120, openingCash:10000000 }; },
       a:function(){ return { sm:700000, rd:700000, ga:350000, cacPerARR:1.6, grossMargin:0.78, maxMonthlyNewARR:1500000, acquisitionLagMonths:4, openingPipelineMonths:4,
         logoRetentionAnnual:0.95, contractionAnnual:0.03,
         monetization: worldMon(90000, 0.04, { penetration:0.7, units:400, priceAnnual:150, priceGrowthAnnual:0.02, usageGrowthAnnual:0.20, unitsCap:1200, adoptionAnnual:0.12, penetrationCap:0.95 }),
         billingTermMonths:12, billingTiming:'advance', collectionDelayMonths:2 }; },
-      note:'World A · enterprise SaaS: 120 customers at ~€132k, a €90k platform fee plus metered usage, billed annually in advance and collected two months later, a four-month sales lag with the pipeline it implies already in flight at month 0, capacity-bound acquisition, 95% logo retention. Illustrative, not a benchmark.' },
-    { id:'wB', name:'B · Usage / AI', world:true, start:function(){ return { openingCustomers:2500, openingCash:10000000 }; },
+      note:'Enterprise SaaS: 120 customers at ~€132k, a €90k platform fee plus metered usage, billed annually in advance and collected two months later, a four-month sales lag with the pipeline it implies already in flight at month 0, capacity-bound acquisition, 95% logo retention. Illustrative, not a benchmark.' },
+    { id:'wB', name:'Usage / AI', world:true, start:function(){ return { openingCustomers:2500, openingCash:10000000 }; },
       a:function(){ return { sm:700000, rd:900000, ga:300000, cacPerARR:0.9, grossMargin:0.60,
         logoRetentionAnnual:0.85, contractionAnnual:0.10,
         monetization: worldMon(2400, 0, { penetration:0.9, units:500, priceAnnual:12, priceGrowthAnnual:-0.05, usageGrowthAnnual:0.45, unitsCap:3000, adoptionAnnual:0.30, penetrationCap:1 }),
         billingTermMonths:1, billingTiming:'arrears', collectionDelayMonths:1 }; },
-      note:'World B · usage-heavy AI product: 2,500 customers at ~€7.8k, a small platform fee and ~70% metered usage whose unit price falls 5% a year while usage grows 45% to a cap, billed monthly in arrears, 60% gross margin, 85% logo retention with 10% contraction. Illustrative, not a benchmark.' },
-    { id:'wC', name:'C · SMB', world:true, start:function(){ return { openingCustomers:8000, openingCash:10000000 }; },
+      note:'Usage-heavy AI product: 2,500 customers at ~€7.8k, a small platform fee and ~70% metered usage whose unit price falls 5% a year while usage grows 45% to a cap, billed monthly in arrears, 60% gross margin, 85% logo retention with 10% contraction. Illustrative, not a benchmark.' },
+    { id:'wC', name:'SMB', world:true, start:function(){ return { openingCustomers:8000, openingCash:10000000 }; },
       a:function(){ return { sm:450000, rd:400000, ga:200000, cacPerARR:0.7, grossMargin:0.75, maxMonthlyNewARR:800000,
         logoRetentionAnnual:0.78, contractionAnnual:0.04,
         monetization: worldMon(1800, 0.03, { penetration:0.5, units:20, priceAnnual:30, priceGrowthAnnual:0.02, usageGrowthAnnual:0.10, unitsCap:60, adoptionAnnual:0.15, penetrationCap:0.8 }),
         billingTermMonths:1, billingTiming:'advance', collectionDelayMonths:0 }; },
-      note:'World C · SMB: 8,000 customers at ~€2.1k, a €1,800 plan plus light add-on usage, billed monthly in advance and collected on invoice, cheap but capacity-bound acquisition, 78% logo retention — a treadmill: a fifth of the base must be replaced every year before the company grows. Illustrative, not a benchmark.' }
+      note:'SMB: 8,000 customers at ~€2.1k, a €1,800 plan plus light add-on usage, billed monthly in advance and collected on invoice, cheap but capacity-bound acquisition, 78% logo retention — a treadmill: a fifth of the base must be replaced every year before the company grows. Illustrative, not a benchmark.' }
   ];
   var TEMPLATES = PACKS.map(function(P){ return Object.assign({ group:'layers' }, P); })
     .concat(WORLDS.map(function(P){ return Object.assign({ group:'company' }, P); }));
@@ -1383,6 +1382,7 @@ details.pl .cascade{margin-top:8px}
     frozenRes = E.run(baseA, baseStart); frozenS = stacksOf(frozenRes);
     viewedWorld = 'exp';
     resetExperiment();
+    var exSc = exampleOf(frozenBase); if(exSc) applyScenario(exSc);   /* an Example is a Base and its matched change */
     /* a new company: it forms from month 0, as the page used to on load */
     tau = 0; document.getElementById('scrub').value = 0; playing = true; document.getElementById('play').classList.add('play'); playIcon(); syncTime();
     syncNavAvailability(); syncScenButtons();          /* which presets mean something on this Base */
@@ -1398,7 +1398,7 @@ details.pl .cascade{margin-top:8px}
   }
   function syncNavAvailability(){
     var none = !frozenBase;
-    ['nav-company','nav-compare','nav-system','rail-toggle','menu-ledger'].forEach(function(id){
+    ['nav-company','nav-compare','rail-toggle','menu-mech','menu-ledger'].forEach(function(id){
       var b = document.getElementById(id); if(!b) return;
       b.disabled = none; b.title = none ? 'Freeze a Base first — Base Settings' : (b.dataset.t0 || b.title);
     });
@@ -1442,7 +1442,8 @@ details.pl .cascade{margin-top:8px}
     var differs = draftDiffers();
     st.className = 'bp-state'+(frozenBase ? ' ok' : '');
     st.textContent = frozenBase ? 'Base frozen ✓ · '+frozenBase.label+(frozenBase.edited ? ' (edited)' : '') : 'No Base frozen yet';
-    fz.disabled = !!draftErr || (!!frozenBase && !differs);
+    var exD = exampleOf(draftBase), rearm = !!exD && !(activeScenario && activeScenario.id===exD.id);   /* an example's matched Experiment can be set up again */
+    fz.disabled = !!draftErr || (!!frozenBase && !differs && !rearm);
     fz.textContent = frozenBase ? 'Freeze new Base' : 'Freeze Base';
     dn.className = 'hint bp-draft'+(draftErr ? ' err' : '');
     dn.innerHTML = draftErr ? 'The engine cannot run this draft: '+esc(draftErr)
@@ -1490,7 +1491,7 @@ details.pl .cascade{margin-top:8px}
     var preset = !!activeScenario;
     b.innerHTML = 'Experiment'+(!label ? '' : preset ? ' · <span class="xw">'+esc(label)+'</span>' : ' · '+n+'<span class="xw"> change'+(n>1?'s':'')+'</span>');
     b.classList.toggle('pre', preset);
-    b.title = preset ? 'Preset “'+activeScenario.name+'” applied to the frozen Base — open to change the laws' : n ? 'The Experiment differs from the frozen Base in '+n+' assumption'+(n>1?'s':'')+' — open to change the laws' : 'Change the laws: the Experiment runs against the frozen Base';
+    b.title = preset ? (isExample(activeScenario) ? 'Example' : 'Preset')+' “'+activeScenario.name+'” applied to the frozen Base — open to change the laws' : n ? 'The Experiment differs from the frozen Base in '+n+' assumption'+(n>1?'s':'')+' — open to change the laws' : 'Change the laws: the Experiment runs against the frozen Base';
     b.dataset.t0 = b.title;
     b.classList.toggle('live', !!label);
   }
@@ -1500,7 +1501,7 @@ details.pl .cascade{margin-top:8px}
   function viewingCtl(){
     if(!worldsDiffer) return '';
     var b = viewedWorld==='base';
-    return '<span class="viewing" role="group" aria-label="World on this page"><span class="vl">Viewing</span>'+
+    return '<span class="viewing" role="group" aria-label="Which company this page shows"><span class="vl">Viewing</span>'+
       '<button class="vw'+(b?'':' on')+'" data-vw="exp" aria-pressed="'+(!b)+'">Experiment</button>'+
       '<button class="vw'+(b?' on':'')+'" data-vw="base" aria-pressed="'+b+'">Base</button></span>';
   }
@@ -1551,8 +1552,7 @@ details.pl .cascade{margin-top:8px}
   function syncLedgerChrome(){
     var L = inLedger(), app = document.querySelector('.app');
     app.classList.toggle('ledger-open', L);
-    document.getElementById('nav-system').classList.toggle('on', layer==='flow' && !L);
-    document.getElementById('more-btn').classList.toggle('here', L);
+    document.getElementById('more-btn').classList.toggle('here', layer==='flow');   /* Mechanics and the Ledger both live under ⋯ */
   }
   document.getElementById('menu-ledger').addEventListener('click', function(){ openSystemView('ledger'); });
 
@@ -2104,6 +2104,8 @@ details.pl .cascade{margin-top:8px}
     if(pinned===null && capitalMode){ capitalMode = false; resize(); }
     syncScenButtons();
   }
+  /* the example a frozen Base was loaded from, untouched — its matched Experiment comes with it */
+  function exampleOf(b){ if(!b || b.edited || !b.src || b.src.indexOf('ex-')!==0) return null; var id=b.src.slice(3); return SCENARIOS.filter(function(x){ return x.id===id; })[0] || null; }
   /* ---- PRESETS on the frozen Base ----
      A RECIPE is a set of law changes applied to whatever Base is frozen; it is offered only where
      it means what its lesson says (the law it sets is in force, and it moves it). An EXAMPLE is a
@@ -2148,7 +2150,7 @@ details.pl .cascade{margin-top:8px}
     var FA = frozenBase.a;
     if(isExample(sc)){
       var sd = exampleSides(sc);
-      if(!sameState(sd.base, frozenBase)) return { why:'Needs its own Base — load “'+sc.n+' · '+sc.name+'” under Base Settings → Examples and freeze it.', hide:true };
+      if(!sameState(sd.base, frozenBase)) return { why:'Needs its own Base.' };
       return { a: sd.exp.a, start: canon(sd.exp.start)===canon(frozenBase.start) ? frozenBase.start : sd.exp.start };
     }
     if(FA.bands) return { why:'Your Base runs age-banded laws (an example); recipes need flat laws.' };
@@ -2175,11 +2177,9 @@ details.pl .cascade{margin-top:8px}
     [].forEach.call(document.querySelectorAll('#preset-list .prow'), function(b2){
       var sc = SCENARIOS.filter(function(x){ return x.id===b2.dataset.id; })[0], plan = presetPlan(sc);
       b2.classList.toggle('on', !!activeScenario && b2.dataset.id===activeScenario.id);
-      b2.disabled = !!plan.why; b2.hidden = !!plan.hide;
+      b2.disabled = !!plan.why;
       var w = b2.querySelector('.pwhy'); w.textContent = plan.why || ''; w.hidden = !plan.why;
     });
-    var ex = document.getElementById('pgroup-ex');
-    if(ex) ex.hidden = ![].some.call(document.querySelectorAll('#preset-list .prow.ex'), function(b2){ return !b2.hidden; });
   }
   /* The preset browser: a list inside the Experiment drawer. It helps someone CHOOSE — name, idea,
      lesson, what it sets — and loads through applyScenario; the analysis and each preset's own proof
@@ -2203,10 +2203,9 @@ details.pl .cascade{margin-top:8px}
   function buildScenarios(){
     var host=document.getElementById('preset-list'); host.innerHTML='';
     function group(id, t){ var g=document.createElement('div'); g.className='pgroup'; g.id=id; g.textContent=t; host.appendChild(g); }
-    group('pgroup-rec', 'Recipes · applied to your frozen Base');
-    SCENARIOS.filter(function(sc){ return !isExample(sc); }).concat([null], SCENARIOS.filter(isExample)).forEach(function(sc){
-      if(sc===null){ group('pgroup-ex', 'The comparison your example Base was built for'); return; }
-      var b2=document.createElement('button'); b2.className='prow'+(isExample(sc)?' ex':''); b2.dataset.id=sc.id;
+    group('pgroup-rec', 'Change recipes · applied to your frozen Base');
+    SCENARIOS.filter(function(sc){ return !isExample(sc); }).forEach(function(sc){
+      var b2=document.createElement('button'); b2.className='prow'; b2.dataset.id=sc.id;
       b2.innerHTML = '<span class="pn">'+sc.n+'</span><span class="pname">'+esc(sc.name)+'</span>'+
         '<span class="ptitle">'+esc(sc.title)+'</span><span class="plesson">'+esc(presetLesson(sc))+'</span>'+
         '<span class="pchg">'+esc(presetChanges(sc))+'</span><span class="pwhy" hidden></span>';
@@ -2592,32 +2591,44 @@ details.pl .cascade{margin-top:8px}
     if(sysView==='ledger'){ syncLedger(); return; }
     syncLedger();
     valveHits = [];
-    var isD = compare==='delta';
+    var isD = false;                           /* no Delta: Compare owns Base against Experiment */
     var m = selectedMonth();
     /* v2 Gate D — a valve shows the law IN FORCE this month: the base setting,
        or what an active hypothesis moved it to (months[].interventions.changes) */
     var ivNow = expRes.months[m-1].interventions;
     function lv(key){ var ch = ivNow && ivNow.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; return ch ? ch.to : getK(expA, key); }
-    var d = isD ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
-    var abs = isD ? d.experiment : d;          /* the Experiment's own absolute month, in either mode */
-    var bm = baseRes.months[m-1];
     ctx.clearRect(0,0,W,HH); ctx.fillStyle='#0a0d15'; ctx.fillRect(0,0,W,HH);
     beginFit(SYS.W, SYS.H);
 
     /* v2 — a layer sub-view instead of the company map. The drawing helpers
        below are function declarations, hoisted, so they are usable here. */
     nodeHits = []; vintHits = []; lawHits = [];
-    if(sysView!=='company'){ drawSubView(sysView); endFit(); positionLawChips(); return; }
-    /* the Flows view is a layer too: it keeps the same way back to the ontology */
-    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
+    drawSubView(sysView); endFit(); positionLawChips(); return;
+    /* a law's valve: a bowtie with its setting; it opens the Experiment at that law (read-only here) */
+    function valve(x,y,label,value,key,chipDx,chipDy){
+      ctx.fillStyle='#141925'; ctx.strokeStyle='#8b8df0'; ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.moveTo(x-13,y-11); ctx.lineTo(x+13,y+11); ctx.lineTo(x+13,y-11); ctx.lineTo(x-13,y+11);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+      ctx.fillText(label, x, y-20);
+      ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0';
+      ctx.fillText(value, x, y+31);
+      if(key){
+        var sp=toScreen(x+(chipDx===undefined?-72:chipDx), y+(chipDy===undefined?44:chipDy));
+        lawAnchors[key]={x:sp.x, y:sp.y};
+        valveHits.push({key:key, x:x, y:y});
+        if(openChip===key){ ctx.strokeStyle='rgba(226,228,255,.9)'; ctx.lineWidth=1.4;
+          ctx.beginPath(); ctx.arc(x,y,19,0,Math.PI*2); ctx.stroke(); }
+      }
+    }
     function drawSubView(v){
       var mm = expRes.months[m-1];
       if(v==='ontology'){ drawOntology(mm); return; }
-      /* breadcrumb back to the ontology on every layer view */
-      ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4'; ctx.fillText('‹ Ontology', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
+      /* breadcrumb back to the Overview on every layer view */
+      ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#5b68c4'; ctx.fillText('‹ Overview', SYS.W-90, 26); nodeHits.push({ x:SYS.W-100, y:12, w:90, h:20, view:'ontology' });
       ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
       var titles = { customers:'CUSTOMER PHYSICS · beneath the ARR', monetization:'MONETIZATION PHYSICS · where the revenue comes from', cash:'CASH PHYSICS · beneath EBITA', hypotheses:'HYPOTHESES · the laws in force, month by month' };
-      ctx.fillText('SYSTEM · '+titles[v]+'   ·   month '+m+(isD?'   ·   Experiment (delta compare shows the company view only)':''), 30, 26);
+      ctx.fillText('MODEL MECHANICS · '+titles[v]+'   ·   month '+m, 30, 26);
       ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       var SUBTITLE = { customers:'The Model Ledger is the record; this is the mechanism, annotated with this month\'s canonical quantities. ▭ stocks · ▮ flows · ⋈ laws you set · → measurements.' };
       ctx.fillText(SUBTITLE[v] || 'Same engine month as the company view, drawn at this layer\'s own scale. Rectangles are stocks, pipes are this month\'s flows, bowties are the laws you set.', 30, 42);
@@ -3474,32 +3485,6 @@ details.pl .cascade{margin-top:8px}
         ctx.fillText('LEGEND   ▭ stock (a working-capital balance)   ▮ this month’s change   ⋈ policy you set   → measurement', 30, SYS.H-14);
       }
       if(v==='cash'){ drawCash(mm); }
-      if(v==='hypotheses'){
-        var sch = expRes.derived.interventions, x0 = 120, x1 = SYS.W-80, mx = function(t){ return x0 + (t-1)/(H-1)*(x1-x0); };
-        ctx.strokeStyle='#3a4358'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0, 130); ctx.lineTo(x1, 130); ctx.stroke();
-        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
-        for(var yy=1; yy<=5; yy++){ ctx.fillText('Y'+yy, mx(yy*12-6), 120); ctx.beginPath(); ctx.moveTo(mx(yy*12), 124); ctx.lineTo(mx(yy*12), 136); ctx.stroke(); }
-        sch.forEach(function(h, i){
-          var y = 190 + i*110;
-          ctx.textAlign='left'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#e6e9f2';
-          ctx.fillText(h.name+' · '+hypTargetLabel(h.target)+' '+(h.effect==='multiply'?'× '+h.value:h.effect==='add'?'+ '+h.value:'= '+h.value), x0, y-28);
-          ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-          ctx.fillText('decided M'+h.startMonth+' · lag '+h.lagMonths+' · in force M'+h.effectiveFrom+'–M'+h.effectiveTo+(h.durationMonths===null?' (permanent)':'')+' · '+eur(h.cost.oneOff)+' one-off + '+eur(h.cost.monthly)+'/mo = '+eur(h.totalCost), x0, y-12);
-          /* decision → effect (lag): dashed; in force: solid; cost runs from the decision */
-          ctx.strokeStyle='rgba(91,104,196,.6)'; ctx.setLineDash([4,4]); ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(mx(h.startMonth), y+10); ctx.lineTo(mx(Math.min(H,h.effectiveFrom)), y+10); ctx.stroke(); ctx.setLineDash([]);
-          if(h.effectiveFrom<=H){ ctx.strokeStyle='rgba(91,104,196,.95)'; ctx.beginPath(); ctx.moveTo(mx(h.effectiveFrom), y+10); ctx.lineTo(mx(h.effectiveTo), y+10); ctx.stroke(); }
-          ctx.fillStyle='#8b8df0'; ctx.beginPath(); ctx.arc(mx(h.startMonth), y+10, 5, 0, Math.PI*2); ctx.fill();
-          var km = K.interventionMeasures(expRes, m).hypotheses.filter(function(q){ return q.id===h.id; })[0];
-          ctx.textAlign='right'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
-          ctx.fillText(km.status+' · '+km.monthsInForce+' mo in force · cost to date '+eur(km.costToDate), x1, y+36);
-        });
-        /* the current month */
-        ctx.strokeStyle='rgba(139,141,240,.9)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(mx(m), 110); ctx.lineTo(mx(m), 190+sch.length*110); ctx.stroke();
-        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0'; ctx.fillText('month '+m, mx(m), 104);
-        var ivm = mm.interventions;
-        note(30, SYS.H-58, ivm.changes.length ? 'In force this month: '+ivm.changes.map(function(ch){ return ch.id+' — '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. Cost this month '+eur(ivm.cost)+', to date '+eur(ivm.cumulativeCost)+'.' : 'No hypothesis in force this month: every law is at its base setting. Cost to date '+eur(ivm.cumulativeCost)+'.');
-        note(30, SYS.H-40, 'Indigo dot: the decision (cost starts). Dashed: the lag. Solid: the window in which lawAt(t) carries the hypothesis. Outside it every cohort runs on the base law. The effect is Experiment − Base.');
-      }
     }
 
     /* ------------------------------------------------------------------ *
@@ -3516,7 +3501,7 @@ details.pl .cascade{margin-top:8px}
       var qx=expRes.derived.acquisition, satOn=E.saturationEnabled(expA), lagOn=expRes.derived.acquisitionLagMonths>0;
       var kpi = m>=12 ? K.measureR12M(expRes, m) : null, cm = cuOn&&m>=12 ? K.customerMeasures(expRes,m) : null, mo12 = moOn&&m>=12 ? K.monetizationMeasures(expRes,m) : null;
       ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
-      ctx.fillText('SYSTEM · the company as an economic machine   ·   month '+m, 30, 26);
+      ctx.fillText('MODEL MECHANICS · OVERVIEW · how laws and starting state become the company   ·   month '+m, 30, 26);
       ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
       ctx.fillText('Containers are stocks. Arrows are this month\'s flows. ⋈ laws attach above the mechanism they govern, ⌈⌉ constraints beside it, → measurements beneath the object they observe, ↯ hypotheses enter from outside. Dotted = off. Click a node to open its layer.', 30, 42);
       var NW=128, NH=112, GAP=22, X0=30, Y=330;
@@ -3527,9 +3512,9 @@ details.pl .cascade{margin-top:8px}
         ctx.fillStyle=col; ctx.textAlign='center'; ctx.fillText(t, cx, cy);
       }
       var nodes=[
-        { id:'capital', title:'CAPITAL · SPEND', lines:['S&M '+eur(mm.sm)+' /mo','R&D '+eur(mm.rd)+' · G&A '+eur(mm.ga)], kind:'source', view:'company',
+        { id:'capital', title:'CAPITAL · SPEND', lines:['S&M '+eur(mm.sm)+' /mo','R&D '+eur(mm.rd)+' · G&A '+eur(mm.ga)], kind:'source', view:null,
           laws:[], meas:[] },
-        { id:'acq', title:'ACQUISITION', lines:[reur(mm.acquisitionLawNewARR)+' committed', lagOn ? reur(mm.pendingNewARR)+' pending · '+expRes.derived.acquisitionLagMonths+' mo' : 'no lag'], kind:'flow', view:'company',
+        { id:'acq', title:'ACQUISITION', lines:[reur(mm.acquisitionLawNewARR)+' committed', lagOn ? reur(mm.pendingNewARR)+' pending · '+expRes.derived.acquisitionLagMonths+' mo' : 'no lag'], kind:'flow', view:null,
           laws:['⋈ CAC floor '+lawNow('cacPerARR').toFixed(2)+'×', satOn ? '⌈⌉ capacity '+eur(lawNow('maxMonthlyNewARR'))+' · '+pct(qx.utilisation,0)+' used' : '⌈⌉ capacity off', lagOn ? '⋈ lag '+expRes.derived.acquisitionLagMonths+' mo'+(expRes.derived.openingPipelineMonths>0 ? ' · pipeline '+expRes.derived.openingPipelineMonths+' mo at M0' : ' · empty pipeline at M0') : null],
           meas:['→ Average CAC '+qx.averageCAC.toFixed(2)+'×', '→ Marginal CAC '+qx.marginalCAC.toFixed(2)+'×', '→ payback '+expRes.derived.cacPaybackMonths.toFixed(1)+' mo'] },
         { id:'cust', title:'CUSTOMERS', lines: cuOn ? [mm.customers.closing.toFixed(0)+' customers', '+'+mm.customers.newCustomers.toFixed(1)+' · −'+mm.customers.logoChurn.toFixed(1)+' this month'] : ['no customer layer','leakage is one number'], kind: cuOn?'stock':'off', view:'customers',
@@ -3538,14 +3523,14 @@ details.pl .cascade{margin-top:8px}
         { id:'mon', title:'MONETIZATION', lines: moOn ? [reur(mm.monetization.fixedARR)+' fixed', reur(mm.monetization.variableARR)+' variable'] : ['one balance per cohort','expansion ⋈ '+pct(lawNow('expansionCoefficientAnnual'),0)], kind: moOn?'mech':'off', view:'monetization',
           laws: moOn ? ['⋈ price +'+pct(lawNow('monetization.components[0].priceGrowthAnnual'),0)+' · '+pct(lawNow('monetization.components[1].priceGrowthAnnual'),0), '⋈ usage +'+pct(lawNow('monetization.components[1].usageGrowthAnnual'),0)+' ⌈⌉ '+Math.round(lawNow('monetization.components[1].unitsCap'))+' units', '⋈ adoption '+pct(lawNow('monetization.components[1].adoptionAnnual'),0)+' ⌈⌉ '+pct(lawNow('monetization.components[1].penetrationCap'),0)] : [],
           meas: moOn ? ['→ price · usage · adoption', (mo12 ? pct(mo12.priceEffectR12M,1)+' · '+pct(mo12.usageEffectR12M,1)+' · '+pct(mo12.adoptionEffectR12M,1) : 'needs 12 mo')+' R12M'] : [] },
-        { id:'arr', title:'ARR · REVENUE', lines:[reur(mm.closingARR)+' '+basis, 'revenue '+eur(mm.revenue)+' /mo'], kind:'stock', view:'company',
+        { id:'arr', title:'ARR · REVENUE', lines:[reur(mm.closingARR)+' '+basis, 'revenue '+eur(mm.revenue)+' /mo'], kind:'stock', view:null,
           laws:[], meas:['→ GRR '+(kpi?pct(kpi.grr,1):'—')+' · NRR '+(kpi?pct(kpi.nrr,1):'—'), '→ growth '+(mm.arrGrowthYoY===null?'—':pct(mm.arrGrowthYoY,1)+' y/y')] },
-        { id:'pl', title:'P&L', lines:['gross profit '+eur(mm.grossProfit), 'EBITA '+eur(mm.ebita)], kind:'flow', view:'company',
+        { id:'pl', title:'P&L', lines:['gross profit '+eur(mm.grossProfit), 'EBITA '+eur(mm.ebita)], kind:'flow', view:null,
           laws:['⋈ gross margin '+pct(lawNow('grossMargin'),0), mm.expansionCost>0 ? '⋈ expansion cost '+lawNow('expansionCostPerARR').toFixed(2)+'×' : null], meas:['→ EBITA margin '+(mm.revenue>0?pct(mm.ebitaMargin,0):'—')] },
         { id:'bill', title:'BILLING · COLLECTION', lines: caOn ? ['billed '+eur(mm.cash.billings), 'collected '+eur(mm.cash.collections)] : ['no cash layer','cash = EBITA'], kind: caOn?'mech':'off', view:'cash',
           laws: caOn ? ['⋈ '+expRes.derived.cash.billingTermMonths+' mo in '+expRes.derived.cash.billingTiming, expRes.derived.cash.collectionDelayMonths>0 ? '⋈ collected +'+expRes.derived.cash.collectionDelayMonths+' mo' : '⋈ collected on invoice'] : [],
           meas: caOn ? ['deferred '+eur(Math.abs(mm.cash.deferredClosing)), 'receivables '+eur(mm.cash.receivablesClosing)] : [] },
-        { id:'cash', title:'CASH', lines:[eur(mm.cashClosing), 'FCF '+eurS(mm.fcf)+' /mo'], kind:'stock', view:'company',
+        { id:'cash', title:'CASH', lines:[eur(mm.cashClosing), 'FCF '+eurS(mm.fcf)+' /mo'], kind:'stock', view:null,
           laws:[], meas:['→ trough '+eur(E.summarise(expRes).cashTrough)+' M'+E.summarise(expRes).cashTroughMonth] }
       ];
       nodes.forEach(function(nd, i){
@@ -3572,7 +3557,7 @@ details.pl .cascade{margin-top:8px}
         if(i<nodes.length-1){ var ax1=x+NW, ax2=x+NW+GAP-2, ay=y+NH/2;
           ctx.strokeStyle='rgba(230,233,242,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax1, ay); ctx.lineTo(ax2-4, ay); ctx.stroke();
           ctx.fillStyle='rgba(230,233,242,.7)'; ctx.beginPath(); ctx.moveTo(ax2, ay); ctx.lineTo(ax2-7, ay-4); ctx.lineTo(ax2-7, ay+4); ctx.closePath(); ctx.fill(); }
-        nodeHits.push({ x:x, y:y, w:NW, h:NH, view: nd.view });
+        if(nd.view) nodeHits.push({ x:x, y:y, w:NW, h:NH, view: nd.view });
       });
       /* the installed-base loop: leakage leaves ARR, expansion re-enters — drawn beneath ARR */
       var arrN = nodes[4];
@@ -3588,7 +3573,6 @@ details.pl .cascade{margin-top:8px}
       ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle = ivOn ? '#c885d8' : '#414a60'; ctx.fillText('MANAGEMENT HYPOTHESES · from outside the system', SYS.W/2, hyBox.y+16);
       ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle = ivOn ? '#e6e9f2' : '#414a60';
       ctx.fillText(ivOn ? (mm.interventions.changes.length ? mm.interventions.changes.map(function(ch){ return '↯ '+ch.id+' · '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('   ') : '↯ '+expRes.derived.interventions.length+' hypothesis — not in force this month · cost to date '+eur(mm.interventions.cumulativeCost)) : 'none · every law is at its base setting', SYS.W/2, hyBox.y+34);
-      nodeHits.push({ x:hyBox.x, y:hyBox.y, w:hyBox.w, h:hyBox.h, view:'hypotheses' });
       if(ivOn){ (expRes.derived.interventions||[]).forEach(function(hh){
         var target = hh.target.indexOf('monetization')===0 ? nodes[3] : (hh.target==='logoRetentionAnnual'||hh.target==='contractionAnnual'||hh.target==='newLogoARPA') ? nodes[2] : (hh.target==='sm'||hh.target==='rd'||hh.target==='ga') ? nodes[0] : (hh.target==='cacPerARR'||hh.target==='maxMonthlyNewARR'||hh.target==='acquisitionLagMonths') ? nodes[1] : (hh.target==='grossMargin'||hh.target==='expansionCostPerARR') ? nodes[5] : nodes[4];
         var inForce = mm.interventions.active.indexOf(hh.id)>=0;
@@ -3598,407 +3582,32 @@ details.pl .cascade{margin-top:8px}
         ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#c885d8';
         ctx.fillText('↯ '+hh.id+' M'+hh.effectiveFrom+'–'+hh.effectiveTo+(inForce?'':' · not now'), target.x+NW/2, Y-80);
       }); }
+      /* ---- from the old Flows map, the three things it alone could say ---- */
+      /* 1 · the acquisition path: spend is answered by the law, waits as pending, then lands as a cohort */
+      var lagN = expRes.derived.acquisitionLagMonths, ay = Y+NH+80;
+      ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('ACQUISITION PATH · THIS MONTH', X0, ay);
+      ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+      ctx.fillText('spend '+eur(mm.sm)+'  →  law response '+reur(mm.acquisitionLawNewARR)+'  →  pending '+reur(mm.pendingNewARR)+(lagN>0 ? ' · '+lagN+' mo' : ' · no lag')+'  →  lands '+reur(mm.newARR)+' new', X0, ay+15);
+      /* 2 · the stock sets its own rates: leakage and expansion are shares of the ARR they act on */
+      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#5b8fd0';
+      ctx.fillText('↺ leakage and expansion are rates the ARR stock sets on itself', arrN.x+NW/2, Y+NH+114);
+      ctx.fillText('only new ARR comes from outside, bought by S&M', arrN.x+NW/2, Y+NH+128);
+      /* 3 · links the engine does not have: the model boundary, drawn as structure */
+      function absent(x1, x2, yy, tips, label){
+        ctx.save(); ctx.strokeStyle='rgba(210,164,92,.75)'; ctx.setLineDash([4,4]); ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.moveTo(x1, Y-12); ctx.lineTo(x1, yy); ctx.lineTo(x2, yy); ctx.stroke();
+        tips.forEach(function(t){ ctx.beginPath(); ctx.moveTo(t.x, yy); ctx.lineTo(t.x, t.y); ctx.stroke(); }); ctx.restore();
+        tips.forEach(function(t){ ctx.fillStyle='rgba(210,164,92,.9)'; ctx.beginPath(); ctx.moveTo(t.x, t.y+5); ctx.lineTo(t.x-4, t.y-3); ctx.lineTo(t.x+4, t.y-3); ctx.closePath(); ctx.fill(); });
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#d2a45c'; ctx.fillText(label, Math.min(x1,x2)+10, yy-6);
+      }
+      var cX = function(k){ return nodes[k].x + NW/2; };
+      absent(cX(7), cX(0), 188, [{ x:cX(0), y:Y-12 }], '⊘ cash never constrains S&M — spend is set from outside, whatever the cash does; the capital loop is open');
+      absent(nodes[0].x+NW-16, cX(3), 222, [{ x:cX(2), y:Y-84 }, { x:cX(3), y:Y-84 }], '⊘ R&D → retention · expansion — R&D is a cost with no modelled benefit');
       /* legend line */
       ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
       ctx.fillText('LEGEND   ▭ stock (orange border)   ▭ mechanism   ⋈ law   ⌈⌉ constraint   → measurement   ↯ hypothesis   ┄ off', 30, SYS.H-14);
     }
 
-    /* ---------- scales, declared ---------- */
-    var arrMax = 1, cashHi = 1, cashLo = 0, rateMax = 1;
-    for(var i=0;i<H;i++){
-      arrMax = Math.max(arrMax, expRes.months[i].closingARR, baseRes.months[i].closingARR);
-      cashHi = Math.max(cashHi, expRes.months[i].cashClosing, baseRes.months[i].cashClosing);
-      cashLo = Math.min(cashLo, expRes.months[i].cashClosing, baseRes.months[i].cashClosing);
-      rateMax = Math.max(rateMax, expRes.months[i].newARR, expRes.months[i].expansion, expRes.months[i].leakage);
-    }
-    /* DELTA is a SIGNED world. Every scale below is symmetric about zero, and cash
-       gets its own range: it is not measured in ARR. */
-    var cashDMax = 1, flowsAllFlat = true, noExperiment = false;
-    if(isD){
-      arrMax = 0; rateMax = 0; cashDMax = 0;
-      for(i=0;i<H;i++){
-        arrMax = Math.max(arrMax, Math.abs(expRes.months[i].closingARR-baseRes.months[i].closingARR));
-        cashDMax = Math.max(cashDMax, Math.abs(expRes.months[i].cashClosing-baseRes.months[i].cashClosing));
-        rateMax = Math.max(rateMax, Math.abs(expRes.months[i].leakage-baseRes.months[i].leakage),
-                                    Math.abs(expRes.months[i].expansion-baseRes.months[i].expansion),
-                                    Math.abs(expRes.months[i].newARR-baseRes.months[i].newARR));
-      }
-      flowsAllFlat = rateMax < 1;
-      noExperiment = sameAsBase();
-      arrMax = arrMax || 1; rateMax = rateMax || 1; cashDMax = cashDMax || 1;
-    }
-    /* A flow whose delta is exactly zero must NOT look like a small flow. It gets
-       width 0 and is drawn as a dotted "no change" line instead of a pipe. */
-    var ZERO = 1;                                   // €1/month — below this it is zero
-    var pipeW = function(v){
-      if(isD && Math.abs(v) < ZERO) return 0;
-      return Math.max(3, Math.min(30, Math.abs(v)/rateMax*30));
-    };
-    /* Sign, in delta: warm = more than Base, slate = less than Base. The ARROW never
-       reverses — a smaller leakage is still ARR leaving, just less of it. Reversing it
-       would assert a flow the engine does not have. */
-    function dTone(v, warm, cool){ return (!isD || v>=0) ? warm : cool; }
-    function dCaption(x,y,v){
-      if(!isD) return;
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif';
-      ctx.fillStyle = Math.abs(v)<ZERO ? '#414a60' : (v>0?'rgba(139,141,240,.9)':'rgba(152,162,184,.9)');
-      ctx.fillText(Math.abs(v)<ZERO ? 'no change vs Base' : (v>0?'more than Base':'less than Base'), x, y);
-    }
-    function n(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(v)); }
-    /* recurring-revenue variant: everything n() does, but through the basis
-       switch first. Only for ARR stock and its New/Expansion/Leakage
-       movements — never for Revenue/GP/otherOpex/FCF/Cash, which stay n(). */
-    function rn(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(rc(v))); }
-
-    /* ---------- primitives ---------- */
-    function pipeH(x1,x2,y,w,fill){ ctx.fillStyle=fill; ctx.fillRect(Math.min(x1,x2), y-w/2, Math.abs(x2-x1), w); }
-    function pipeV(x,y1,y2,w,fill){ ctx.fillStyle=fill; ctx.fillRect(x-w/2, Math.min(y1,y2), w, Math.abs(y2-y1)); }
-    function arrow(x,y,dir,col){
-      ctx.fillStyle=col; ctx.beginPath();
-      if(dir==='r'){ ctx.moveTo(x,y-7); ctx.lineTo(x+11,y); ctx.lineTo(x,y+7); }
-      else { ctx.moveTo(x-7,y); ctx.lineTo(x,y+11); ctx.lineTo(x+7,y); }
-      ctx.closePath(); ctx.fill();
-    }
-    function cloud(x,y,label){
-      ctx.strokeStyle='#414a60'; ctx.lineWidth=1.4; ctx.beginPath();
-      [[-20,0,13],[-2,-7,15],[16,0,13],[0,7,12]].forEach(function(c){ ctx.moveTo(x+c[0]+c[2],y+c[1]); ctx.arc(x+c[0],y+c[1],c[2],0,Math.PI*2); });
-      ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#414a60';
-      ctx.fillText(label, x, y+34);
-    }
-    /* the SD valve: a bowtie astride the pipe. It is also the control. */
-    function valve(x,y,label,value,key,chipDx,chipDy){
-      ctx.fillStyle='#141925'; ctx.strokeStyle='#8b8df0'; ctx.lineWidth=1.6;
-      ctx.beginPath(); ctx.moveTo(x-13,y-11); ctx.lineTo(x+13,y+11); ctx.lineTo(x+13,y-11); ctx.lineTo(x-13,y+11);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-      ctx.fillText(label, x, y-20);
-      ctx.font='10.5px "JetBrains Mono",monospace';
-      var moved = key && isD && expA[key]!==baseA[key];
-      ctx.fillStyle = moved ? '#8b8df0' : (isD ? '#66708a' : '#8b8df0');
-      ctx.fillText(value, x, y+31);
-      /* A valve setting is a setting, not a difference — so in delta it still reads
-         its own value, but the Base it is being compared against is named, and a
-         valve that did NOT move is dimmed so the one you changed stands out. */
-      if(key && isD){
-        var fm2 = (FORCES.filter(function(F){ return F.k===key; })[0]||{}).f || 'eur';
-        ctx.font='8.5px "Archivo",sans-serif';
-        ctx.fillStyle = moved ? 'rgba(91,104,196,.95)' : '#414a60';
-        ctx.fillText(moved ? 'base '+fmtF(fm2, baseA[key]) : 'unchanged', x, y+43);
-      }
-      if(key){
-        var sp=toScreen(x+(chipDx===undefined?-72:chipDx), y+(chipDy===undefined?44:chipDy));
-        lawAnchors[key]={x:sp.x, y:sp.y};
-        valveHits.push({key:key, x:x, y:y});
-        if(openChip===key){ ctx.strokeStyle='rgba(226,228,255,.9)'; ctx.lineWidth=1.4;
-          ctx.beginPath(); ctx.arc(x,y,19,0,Math.PI*2); ctx.stroke(); }
-      }
-    }
-    /* a delta of exactly zero: a dotted trace where the pipe would be, so the
-       absence of a difference is legible as an absence, not as a thin flow. */
-    function flatLine(x1,x2,y,v,vy1,vy2){
-      if(!isD || Math.abs(v)>=ZERO) return;
-      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
-      ctx.beginPath();
-      if(vy1===undefined){ ctx.moveTo(x1,y); ctx.lineTo(x2,y); }
-      else { ctx.moveTo(x1,vy1); ctx.lineTo(x1,vy2); }
-      ctx.stroke(); ctx.restore();
-    }
-    function aux(x,y,w,label,value,tone){
-      var h=38;
-      ctx.fillStyle='#0e1219'; ctx.strokeStyle=tone||'#222b3d'; ctx.lineWidth=1.3;
-      ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,6); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-      ctx.fillText(label, x, y-3);
-      ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-      ctx.fillText(value, x, y+12);
-    }
-    function link(pts, label, absent){
-      ctx.save(); ctx.setLineDash(absent?[3,4]:[4,4]); ctx.lineWidth=1.2;
-      ctx.strokeStyle = absent ? 'rgba(102,112,138,.7)' : 'rgba(91,104,196,.85)';
-      ctx.beginPath(); pts.forEach(function(pt,i){ i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); });
-      ctx.stroke(); ctx.restore();
-      var e=pts[pts.length-1], q=pts[pts.length-2];
-      if(absent){
-        ctx.strokeStyle='rgba(210,164,92,.95)'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.arc(e[0],e[1],7,0,Math.PI*2); ctx.moveTo(e[0]-5,e[1]-5); ctx.lineTo(e[0]+5,e[1]+5); ctx.stroke();
-      } else {
-        var a=Math.atan2(e[1]-q[1], e[0]-q[0]);
-        ctx.fillStyle='rgba(91,104,196,.9)'; ctx.beginPath();
-        ctx.moveTo(e[0],e[1]); ctx.lineTo(e[0]-8*Math.cos(a-0.4), e[1]-8*Math.sin(a-0.4));
-        ctx.lineTo(e[0]-8*Math.cos(a+0.4), e[1]-8*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
-      }
-      if(label){
-        var at = absent ? [e[0], e[1]] : pts[Math.floor(pts.length/2)];
-        ctx.textAlign = absent ? 'left' : 'center';
-        ctx.font='8.5px "Archivo",sans-serif';
-        ctx.fillStyle = absent ? 'rgba(210,164,92,.95)' : 'rgba(91,104,196,.8)';
-        ctx.fillText(label, absent ? at[0]+13 : at[0], absent ? at[1]+3 : at[1]-7);
-      }
-    }
-
-    /* ---------- ARR STOCK: the cohort strata ARE the stock ---------- */
-    var ax=470, aw=180, aTop=96, aH=430, aBot=aTop+aH;
-    /* In DELTA the tank is signed: zero sits mid-height, positive fills upward,
-       negative downward. Clamping a negative delta to an empty tank (the old
-       behaviour) made a WORSE experiment indistinguishable from no change. */
-    var aZero = isD ? aTop + aH/2 : aBot;
-    var aSpan = isD ? aH/2 : aH;
-    if(isD){
-      ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath();
-      ctx.moveTo(ax, aZero); ctx.lineTo(ax+aw, aZero);
-      ctx.strokeStyle='rgba(102,112,138,.8)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
-    }
-    /* The strata are the stock — in BOTH modes. In delta each stratum is that
-       vintage's own contribution to the difference, so you can see WHICH cohorts
-       the change acts on rather than one undifferentiated block. */
-    var accUp=0, accDn=0;
-    d.cohorts.forEach(function(c){
-      var hgt=(c.closing/arrMax)*aSpan;
-      if(Math.abs(hgt)<0.05) return;
-      var y, hh=Math.abs(hgt);
-      if(hgt>0){ y=aZero-accUp-hh; accUp+=hh; } else { y=aZero+accDn; accDn+=hh; }
-      ctx.fillStyle=rgba(rampAt(c.acquisitionMonth/H), hgt>0?.92:.45);
-      ctx.fillRect(ax+2, y, aw-4, hh);
-      ctx.strokeStyle='rgba(10,13,21,.5)'; ctx.lineWidth=0.7;
-      ctx.strokeRect(ax+2, y, aw-4, hh);
-    });
-    ctx.strokeStyle='#414a60'; ctx.lineWidth=2; ctx.strokeRect(ax, aTop, aw, aH);
-    if(!isD){ var bLvl = aBot - Math.min(1, bm.closingARR/arrMax)*aH;
-      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
-      ctx.moveTo(ax-10,bLvl); ctx.lineTo(ax+aw+10,bLvl);
-      ctx.strokeStyle='rgba(91,104,196,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
-    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(91,104,196,.85)';
-      ctx.fillText('Base = 0', ax+aw+8, aZero+3); }
-    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-    ctx.fillText('STOCK · '+basis, ax+aw/2, aTop-24);
-    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0';
-    ctx.fillText(rn(d.closingARR), ax+aw/2, aTop-6);
-    if(!isD){ ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#414a60';
-      ctx.fillText(d.cohorts.length+' cohort vintages', ax-12, aBot+4); }
-
-    /* ---------- CASH STOCK ---------- */
-    var cx=1020, cw=160, cTop=200, cH=326, cBot=cTop+cH;
-    /* Cash is not measured in ARR. In delta it gets its OWN symmetric range —
-       the old code scaled it by arrMax and then halved it, which is why a
-       €22m cash difference rendered as a sliver. */
-    var cRange, cZero, cLvlY;
-    if(isD){
-      cZero = cTop + cH/2;
-      cLvlY = cZero - (d.cashClosing/cashDMax)*(cH/2);
-    } else {
-      cRange=(cashHi-Math.min(0,cashLo))||1;
-      cZero=cBot - (0-Math.min(0,cashLo))/cRange*cH;
-      cLvlY=cBot - (d.cashClosing-Math.min(0,cashLo))/cRange*cH;
-    }
-    ctx.fillStyle = d.cashClosing>=0 ? 'rgba(139,141,240,.5)' : 'rgba(59,74,85,.75)';
-    ctx.fillRect(cx+2, Math.min(cLvlY,cZero), cw-4, Math.abs(cZero-cLvlY));
-    ctx.strokeStyle='#414a60'; ctx.lineWidth=2; ctx.strokeRect(cx, cTop, cw, cH);
-    ctx.save(); ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(cx,cZero); ctx.lineTo(cx+cw,cZero);
-    ctx.strokeStyle='rgba(102,112,138,.7)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
-    if(!isD){ var bc=cBot-(bm.cashClosing-Math.min(0,cashLo))/cRange*cH;
-      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
-      ctx.moveTo(cx-10,bc); ctx.lineTo(cx+cw+10,bc);
-      ctx.strokeStyle='rgba(91,104,196,.85)'; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore(); }
-    else { ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(91,104,196,.85)';
-      ctx.fillText('Base = 0', cx+cw+8, cZero+3); }
-    ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-    ctx.fillText('STOCK · CASH', cx+cw/2, cTop-24);
-    ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#8b8df0';
-    ctx.fillText(n(d.cashClosing), cx+cw/2, cTop-6);
-
-    /* ---------- INFLOWS ---------- */
-    var yNew=150, yExp=360;
-    var satOn = E.saturationEnabled(expA), lagOn = expRes.derived.acquisitionLagMonths>0;
-    /* v1.2 / v1.3 — the acquisition chain is drawn in the order the engine
-       steps it: spend → response (CAC, then the optional capacity BOUND) →
-       the pending-acquisition STOCK (the optional lag) → the New ARR cohort.
-       The bound is a valve on the response, not a new source; the pending box
-       is a real stock the engine carries, drawn dashed when the lag is 0. */
-    var xPend=418, wPend=44, hPend=30;
-    cloud(80, yNew, 'market / acquisition opportunity');
-    /* spend → response → pending: the law's own output this month (what this
-       month's S&M will create); pending → stock: what actually matured */
-    var lawFlow = isD ? d.acquisitionLawNewARR : abs.acquisitionLawNewARR;
-    pipeH(112, xPend-wPend/2, yNew, pipeW(lawFlow), dTone(lawFlow,'rgba(139,141,240,.35)','rgba(102,112,138,.4)'));
-    flatLine(112, xPend-wPend/2, yNew, lawFlow);
-    pipeH(xPend+wPend/2, ax, yNew, pipeW(d.newARR), dTone(d.newARR,'rgba(139,141,240,.55)','rgba(102,112,138,.5)'));
-    flatLine(xPend+wPend/2, ax, yNew, d.newARR);
-    arrow(ax-13, yNew, 'r', dTone(d.newARR,'rgba(139,141,240,.9)','rgba(102,112,138,.85)'));
-    valve(168, yNew, 'S&M per month', fmtF('eur', lv('sm')), 'sm', -72, 44);
-    valve(255, yNew, 'CAC floor', fmtF('x', lv('cacPerARR')), 'cacPerARR', -72, 44);
-    valve(340, yNew, 'capacity / month', satOn ? eur(lv('maxMonthlyNewARR')) : 'off', 'maxMonthlyNewARR', -72, 44);
-    if(!satOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('linear, unbounded', 340, yNew+55); }
-    /* the pending-acquisition stock */
-    ctx.save(); if(!lagOn) ctx.setLineDash([3,3]);
-    ctx.fillStyle = lagOn ? 'rgba(139,141,240,.14)' : 'rgba(10,13,21,0)';
-    ctx.strokeStyle = lagOn ? '#8b8df0' : '#414a60'; ctx.lineWidth=1.4;
-    ctx.beginPath(); ctx.roundRect(xPend-wPend/2, yNew-hPend/2, wPend, hPend, 4); ctx.fill(); ctx.stroke(); ctx.restore();
-    ctx.textAlign='center'; ctx.font='7.5px "Archivo",sans-serif'; ctx.fillStyle = lagOn ? '#98a2b8' : '#414a60';
-    ctx.fillText('PENDING', xPend, yNew-3);
-    ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = lagOn ? '#e6e9f2' : '#414a60';
-    ctx.fillText(lagOn ? rn(d.pendingNewARR) : '—', xPend, yNew+9);
-    ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle = lagOn ? '#8b8df0' : '#414a60';
-    ctx.fillText(lagOn ? 'lag '+expRes.derived.acquisitionLagMonths+' mo' : 'lag 0 · no wait', xPend, yNew+31);
-    var spP=toScreen(xPend-72, yNew+44); lawAnchors['acquisitionLagMonths']={x:spP.x, y:spP.y};
-    valveHits.push({key:'acquisitionLagMonths', x:xPend, y:yNew});
-    if(openChip==='acquisitionLagMonths'){ ctx.strokeStyle='rgba(226,228,255,.9)'; ctx.lineWidth=1.4;
-      ctx.beginPath(); ctx.arc(xPend,yNew,19,0,Math.PI*2); ctx.stroke(); }
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-    ctx.fillText('FLOW · New '+basis, 255, yNew-52);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-    ctx.fillText(rn(d.newARR), 255, yNew-38);
-    dCaption(255, yNew-64, d.newARR);
-
-    cloud(80, yExp, 'existing customer demand / budget');
-    pipeH(112, ax, yExp, pipeW(d.expansion), dTone(d.expansion,'rgba(226,228,255,.5)','rgba(102,112,138,.5)'));
-    flatLine(112, ax, yExp, d.expansion);
-    arrow(ax-13, yExp, 'r', dTone(d.expansion,'rgba(226,228,255,.85)','rgba(102,112,138,.85)'));
-    var monOnMap = expRes.mechanisms.monetization, mmo = expRes.months[m-1].monetization;
-    valve(300, yExp, monOnMap ? 'expansion · price + usage + adoption' : 'expansion coefficient',
-          monOnMap ? 'bypassed' : fmtF('pct', lv('expansionCoefficientAnnual')), monOnMap ? null : 'expansionCoefficientAnnual', -72, 44);
-    if(monOnMap){
-      /* v2 Gate B — the three named effects that ARE the expansion flow, and the
-         caps that bound them; drawn beneath the pipe where the coefficient sat */
-      aux(190, yExp+52, 200, 'price · usage · adoption', rn(mmo.priceARR)+' · '+rn(mmo.usageARR)+' · '+rn(mmo.adoptionARR), '#222b3d');
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-      ctx.fillText('bounded by the usage cap ('+Math.round(expA.monetization.components[1].unitsCap)+' units) and the penetration cap ('+pct(expA.monetization.components[1].penetrationCap,0)+')', 190, yExp+84);
-    }
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-    ctx.fillText('FLOW · Expansion '+basis, 190, yExp-34);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-    ctx.fillText(rn(d.expansion), 190, yExp-18);
-    dCaption(190, yExp-46, d.expansion);
-
-    /* ---------- OUTFLOW ---------- */
-    var xLeak=ax+aw/2;
-    pipeV(xLeak, aBot, 648, pipeW(d.leakage), dTone(d.leakage,'rgba(59,74,85,.9)','rgba(152,162,184,.55)'));
-    flatLine(xLeak, xLeak, 0, d.leakage, aBot, 648);
-    arrow(xLeak, 636, 'd', dTone(d.leakage,'rgba(59,74,85,1)','rgba(152,162,184,.9)'));
-    var cuOnMap = expRes.mechanisms.customerPhysics;
-    var Pmap = expRes.derived.persistenceAnnualEffective;
-    valve(xLeak, 580, cuOnMap ? (Pmap===null ? 'persistence · emergent (mix)' : 'persistence · derived L(1−C)') : 'persistence coefficient',
-          cuOnMap ? (Pmap===null ? 'emergent' : pct(Pmap,1)) : fmtF('pct', lv('persistenceAnnual')), cuOnMap ? null : 'persistenceAnnual', -216, -10);
-    /* v2 Gate A — the customer laws sit beneath the persistence valve and feed
-       it: an information link from each to the (now derived) persistence. */
-    if(cuOnMap){
-      var mcu = expRes.months[m-1].customers;
-      valve(xLeak-270, 600, 'logo retention', fmtF('pct', lv('logoRetentionAnnual')), 'logoRetentionAnnual', -72, 44);
-      valve(xLeak-150, 660, 'contraction', fmtF('pct', lv('contractionAnnual')), 'contractionAnnual', -72, 44);
-      link([[xLeak-256, 600],[xLeak-24, 584]], '', false);
-      link([[xLeak-136, 660],[xLeak-20, 592]], '', false);
-      aux(xLeak-270, 690, 120, 'Customers', mcu ? mcu.closing.toFixed(0) : '—');
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-      ctx.fillText('customer laws generate persistence', xLeak-200, 560);
-    } else {
-      lawAnchors['logoRetentionAnnual'] = null; lawAnchors['contractionAnnual'] = null;
-    }
-    cloud(xLeak, 690, 'leaves the system');
-    ctx.textAlign='left'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-    ctx.fillText('FLOW · Leakage '+basis, xLeak+62, 548);
-    ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-    ctx.fillText(rn(d.leakage), xLeak+62, 564);
-    if(isD){ ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif';
-      ctx.fillStyle = Math.abs(d.leakage)<ZERO ? '#414a60' : (d.leakage>0?'rgba(139,141,240,.9)':'rgba(152,162,184,.9)');
-      ctx.fillText(Math.abs(d.leakage)<ZERO ? 'no change vs Base' : (d.leakage>0?'more leaks than Base':'less leaks than Base'), xLeak+62, 578); }
-
-    /* ---------- ARR → economics → cash ---------- */
-    var costOn = expA.expansionCostPerARR>0 || baseA.expansionCostPerARR>0;
-    aux(760, 140, 150, 'Revenue', n(d.revenue));
-    valve(760, 218, 'gross margin', fmtF('pct', lv('grossMargin')), 'grossMargin', -238, -10);
-    aux(760, 292, 150, 'Gross profit', n(d.grossProfit));
-    /* v1.1 — the realisation cost is a P&L line fed by the EXPANSION FLOW, so
-       its valve sits on the P&L column and its information link comes from
-       the tank at the height the expansion flow enters it. Drawn dim when 0. */
-    aux(788, 358, 112, 'Expansion realisation cost', n(d.expansionCost), costOn ? '#222b3d' : '#131a27');
-    if(!costOn){ ctx.textAlign='center'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#414a60'; ctx.fillText('cost 0 · expansion is free', 788, 388); }
-    valve(694, 358, 'cost per €1 exp.', lv('expansionCostPerARR')>0 ? lv('expansionCostPerARR').toFixed(2)+'×' : 'off', 'expansionCostPerARR', -72, 44);
-    aux(760, 440, 150, 'Other operating', n(d.otherOpex));
-    /* v2 Gate D — a hypothesis in force this month rings the valve it moves */
-    var ivMap = expRes.months[m-1].interventions;
-    if(ivMap && ivMap.changes.length){
-      ivMap.changes.forEach(function(ch){
-        var vh = valveHits.filter(function(v){ return v.key===ch.target; })[0]; if(!vh) return;
-        ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(91,104,196,.95)'; ctx.lineWidth=1.6;
-        ctx.beginPath(); ctx.arc(vh.x, vh.y, 24, 0, Math.PI*2); ctx.stroke(); ctx.restore();
-        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(91,104,196,.95)';
-        ctx.fillText('hypothesis '+ch.id+' in force', vh.x, vh.y-30);
-      });
-    }
-    var cashOnMap = expRes.mechanisms.cashPhysics, mca = expRes.months[m-1].cash;
-    aux(905, 330, 120, cashOnMap ? 'Cash FCF' : 'FCF', n(d.fcf), d.fcf>=0?'#4fa37d':'#d2a45c');
-    if(cashOnMap){
-      /* v2 Gate C — the two balances between the P&L and the cash stock */
-      aux(905, 382, 120, mca.deferredClosing>=0 ? 'Deferred revenue' : 'Contract asset', eur(Math.abs(mca.deferredClosing)), '#222b3d');
-      aux(905, 430, 120, 'Receivables', eur(mca.receivablesClosing), '#222b3d');
-      ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-      ctx.fillText('billed '+expA.billingTermMonths+' mo in '+expA.billingTiming+(expA.collectionDelayMonths>0?', collected +'+expA.collectionDelayMonths+' mo':''), 905, 462);
-    }
-    var fcfW = (isD && Math.abs(d.fcf)<ZERO) ? 0 : Math.max(4, Math.min(26, Math.abs(d.fcf)/rateMax*26));
-    pipeH(965, cx, 330, fcfW, d.fcf>=0?'rgba(79,163,125,.6)':'rgba(210,164,92,.6)');
-    flatLine(965, cx, 330, d.fcf);
-    arrow(cx-13, 330, 'r', d.fcf>=0?'rgba(79,163,125,1)':'rgba(210,164,92,1)');
-    ctx.textAlign='center'; ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-    ctx.fillText('FLOW · FCF', 993, 300);
-
-    /* ---------- INFORMATION LINKS: the stock sets its own future rates ---------- */
-    link([[ax+aw,190],[700,190],[700,158]], 'midpoint ARR ÷ 12');
-    link([[ax,300],[300,300],[300,328]], 'the stock sets this rate');
-    link([[ax+22,aBot],[ax+22,604],[xLeak-22,590]], 'the stock sets this rate');
-    /* expansion FLOW → cost valve: the link leaves the expansion pipe itself
-       (between the coefficient valve and the tank), passes under the tank and
-       arrives at the valve. The cost is a function of the flow, never of the
-       stock and never of gross profit. */
-    link([[440,yExp+7],[440,538],[660,538],[660,358],[681,358]], 'expansion flow × cost');
-    link([[760,238],[760,270]], null);
-    link([[818,300],[880,318]], null);
-    link([[844,358],[880,334]], null);
-    link([[818,432],[880,346]], null);
-    link([[168,178],[168,726],[905,726],[905,352]], 'S&M is also an operating cost — spent now, even when its ARR is pending');
-
-    /* ---------- ABSENT LINKS: the model boundary, drawn ---------- */
-    link([[cx+cw/2,cTop],[cx+cw/2,64],[229,64]], 'cash never constrains S&M', true);
-    link([[700,460],[700,616],[652,616]], 'R&D → retention or expansion', true);
-
-    /* ---------- header and scales ---------- */
-    ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
-    ctx.fillText((isD?'SYSTEM · DELTA — Experiment − Base':'SYSTEM · stock and flow')+'   ·   month '+m, 30, 26);
-    if(isD && flowsAllFlat && !noExperiment){
-      ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#d2a45c'; ctx.textAlign='right';
-      ctx.fillText('Every ARR flow is identical to Base at every month — this change does not touch ARR physics. The whole effect is downstream, in cash.', SYS.W-30, 26);
-      ctx.textAlign='left';
-    }
-    /* NO EXPERIMENT SET. Delta is Experiment − Base and the two are the same run,
-       so every quantity is exactly zero. That is arithmetic, not a broken view —
-       but an empty diagram cannot say so, and the Forces rail is hidden on this
-       layer, so the way out has to be stated here, on the valves themselves. */
-    if(isD && noExperiment){
-      ctx.fillStyle='rgba(10,13,21,.82)'; ctx.fillRect(0,0,SYS.W,SYS.H);
-      valveHits.forEach(function(v){
-        ctx.strokeStyle='rgba(139,141,240,.95)'; ctx.lineWidth=1.6;
-        ctx.beginPath(); ctx.arc(v.x, v.y, 23, 0, Math.PI*2); ctx.stroke();
-      });
-      var bw=680, bh=132, bx=(SYS.W-bw)/2, by=396;   /* the one band clear of every valve */
-      ctx.fillStyle='#0e1219'; ctx.strokeStyle='#8b8df0'; ctx.lineWidth=1.4;
-      ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke();
-      ctx.textAlign='center';
-      ctx.font='15px "Archivo",sans-serif'; ctx.fillStyle='#e6e9f2';
-      ctx.fillText('Delta is empty because no experiment is set.', SYS.W/2, by+38);
-      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-      ctx.fillText('This view draws Experiment − Base. Right now they are the same run, so every stock and every', SYS.W/2, by+64);
-      ctx.fillText('flow is exactly zero. Nothing is broken — there is simply no difference to draw yet.', SYS.W/2, by+81);
-      ctx.font='11.5px "Archivo",sans-serif'; ctx.fillStyle='#8b8df0';
-      ctx.fillText('Click any circled valve to move an assumption — or switch Compare to Absolute.', SYS.W/2, by+108);
-      ctx.textAlign='left';
-    }
-    ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-    ctx.fillText('Rectangles accumulate. Pipes fill and drain them. Bowties are the valves you set. Clouds are the model boundary. '+
-                 'Dashed blue arrows are information: the stock setting the rate of its own future flows. PENDING is the spend-to-cohort wait; dashed when there is none.', 30, 42);
-    ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#414a60';
-    ctx.fillText('SCALES  stock level ∝ € of '+basis+' and of cash, each against its own 60-month range  ·  pipe width ∝ € per month, one scale across all four flows', 30, SYS.H-14);
-    ctx.fillStyle='rgba(210,164,92,.95)';
-    ctx.fillText('⊘ marks a link the engine does not model. An absent feedback is a finding, not an omission in the drawing.', 30, SYS.H-30);
-    endFit(); positionLawChips();
   }
 
   /* ==================================================================== *
@@ -4018,7 +3627,7 @@ details.pl .cascade{margin-top:8px}
   function toScreen(x,y){ return { x:x*fitT.s+fitT.ox, y:y*fitT.s+fitT.oy }; }
   function pulseData(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var m = selectedMonth();
-    return compare==='delta' ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
+    return SS.stateAt(expRes, m);
   }
   /* The Pulse renderer is deliberately absent from the product build. The
      failed prototype is preserved in the research archive (visual.template.html
@@ -4172,12 +3781,10 @@ details.pl .cascade{margin-top:8px}
      that is on, drawing that layer's own stocks and flows at its own scale. */
   var sysView = 'ontology';
   var SYS_VIEWS = [
-    { id:'ontology', name:'Ontology', on:function(){ return true; } },
-    { id:'company', name:'Flows', on:function(){ return true; } },
+    { id:'ontology', name:'Overview', on:function(){ return true; } },
     { id:'customers', name:'Customers', on:function(){ return !!expRes && VW().res.mechanisms.customerPhysics; } },
     { id:'monetization', name:'Monetization', on:function(){ return !!expRes && VW().res.mechanisms.monetization; } },
     { id:'cash', name:'Cash', on:function(){ return !!expRes && VW().res.mechanisms.cashPhysics; } },
-    { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && VW().res.mechanisms.interventions; } },
     /* the Model Ledger is not a System view: it is the proof layer, opened from ⋯ → Model Ledger
        or a contextual "Proof ›" link through openSystemView('ledger') — one route, one renderer,
        drawn in this figure box, but presented as itself (syncLedgerChrome) */
@@ -4191,21 +3798,13 @@ details.pl .cascade{margin-top:8px}
     });
   }
   function syncSysViews(){
-    /* Absolute / Delta changes only the Flows drawing (the other views say "delta compare shows
-       the company view only"). It sat under the Company chart, which never reads it, so there
-       it lit up and nothing moved; it is offered only where it acts, and a view that cannot
-       draw a difference is never left in delta mode behind a hidden switch. */
-    var cm = document.getElementById('cmpmode');
-    if(cm){ cm.hidden = sysView!=='company' || viewingBase();
-      if((sysView!=='company' || viewingBase()) && compare==='delta'){ compare='absolute';
-        document.getElementById('cmp-abs').classList.add('on'); document.getElementById('cmp-delta').classList.remove('on'); } }
     SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='ontology'; });
     syncViewingCtl(); syncLedgerChrome();
   }
   function syncPulse(){
     document.getElementById('pulse-law').innerHTML =
-      '<b style="color:var(--ink-2)">Capital buys acquisition; acquisition adds customers; customers monetize into ARR; ARR becomes revenue, P&amp;L and cash.</b> &nbsp; '+
-      'Click a node to open its layer. Notes reads each law and mechanism on the map.';
+      '<b style="color:var(--ink-2)">How laws and starting state become the company.</b> &nbsp; '+
+      'Read-only: a law opens the Experiment. Notes explains the conventions.';
     render(); renderSide();
   }
 
@@ -5079,7 +4678,7 @@ details.pl .cascade{margin-top:8px}
     h += '<div class="fin-top">'+
       '<span class="fin-period"><span data-fp>'+finPeriod(m)+'</span>'+(viewName ? ' <span class="fin-view">· '+viewName+'</span>' : '')+'</span>'+
       (differs ? '<div class="btn-row fin-per"><button class="btn'+(dMode?' on':'')+'" data-finv="'+(dMode?'exp':'delta')+'">Δ vs Base</button></div>' : '')+
-      '<span class="fin-links"><button class="fin-go" data-go="cash">Mechanism · System → Cash ›</button><button class="fin-go" data-go="ledger">Proof · Model Ledger ›</button></span>'+
+      '<span class="fin-links"><button class="fin-go" data-go="cash">Mechanism · Model Mechanics → Cash ›</button><button class="fin-go" data-go="ledger">Proof · Model Ledger ›</button></span>'+
       '</div>'+
       '<div class="fin-units">€ thousands · years of twelve model months, the year in progress to date · money, not run-rate — the '+basis+' switch does not apply</div>';
 
@@ -5908,8 +5507,7 @@ details.pl .cascade{margin-top:8px}
   /* ---------- §17 reconciliation + §11 Δ-stock accumulator ---------- */
   function renderFlowSide(){
     if(sysView==='ledger') return renderLedgerSide();
-    var d = pulseData(), isD = compare==='delta';
-    return renderSystemSide(d, isD);
+    return renderSystemSide(pulseData());
   }
   /* Notes for the ledger: what each block reconciles, and why a check is worth
      reading. The table itself carries no prose — an auditor's table should not. */
@@ -5941,7 +5539,7 @@ details.pl .cascade{margin-top:8px}
       blk('Using it', 'Core shows the economically important columns; Full exposes everything the engine publishes for that month. Click a row to move the whole portal to that month. The table scrolls horizontally; the month column and both header rows stay put.');
   }
 
-  function renderSystemSide(d, isD){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
+  function renderSystemSide(d){ var isD = false; var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     parkCascade();
     var m = d.t, abs = isD ? d.experiment : d;
     var noExp = isD && sameAsBase();
@@ -5949,22 +5547,6 @@ details.pl .cascade{margin-top:8px}
     function rn(v){ return (isD?(v>=0?'+':'−'):'')+eur(Math.abs(rc(v))); }
     function r(a,b,cl){ return '<span'+(cl?' class="'+cl+'"':'')+'>'+esc(a)+'</span><b'+(cl?' class="'+cl+'"':'')+'>'+b+'</b>'; }
     var net = d.newARR + d.expansion - d.leakage;
-    if(noExp){
-      document.getElementById('side').innerHTML =
-        '<div class="sgrp"><div class="eyebrow" style="color:var(--exp)">Delta · nothing to compare yet</div>'+
-        '<div class="hint" style="line-height:1.7;margin-top:7px">Delta draws <b style="color:var(--ink)">Experiment − Base</b>. '+
-        'No force has been moved, so Experiment <em>is</em> Base — the same 60-month run subtracted from itself. '+
-        'Every stock and every flow is exactly zero, and the diagram is empty because the difference is empty.</div></div>'+
-        '<div class="sgrp"><div class="eyebrow">To see something here</div>'+
-        '<div class="hint" style="line-height:1.75;margin-top:7px">'+
-        '<b style="color:var(--ink)">1.</b> Click a circled bowtie valve on the diagram and move its slider. The Forces rail is hidden on this layer, so the valves are the controls.<br>'+
-        '<b style="color:var(--ink)">2.</b> Or open <b style="color:var(--ink)">Stock</b> and pick an experiment preset, then come back.<br>'+
-        '<b style="color:var(--ink)">3.</b> Or switch Compare to <b style="color:var(--ink)">Absolute</b> to watch the system itself rather than a difference.</div></div>'+
-        '<div class="sgrp"><div class="eyebrow">Why this is not a bug</div>'+
-        '<div class="hint" style="line-height:1.7;margin-top:7px">The engine is deterministic. Two runs on identical assumptions agree to the last euro at every one of the 60 months — '+
-        'so a delta of exactly zero everywhere is the correct answer, and the strongest evidence the two scenarios really do share one engine.</div></div>';
-      return;
-    }
     /* Notes for the Customers mechanism: the two conventions a reader cannot infer
        from the drawing — why two columns carry no logo, and why flows are magnified. */
     var cuNote = '';
@@ -6065,17 +5647,9 @@ details.pl .cascade{margin-top:8px}
           'No tax, no capex, no financing, no bad debt and no refunds: every euro invoiced is collected '+(cdN>0 ? 'exactly '+cdN+' month'+(cdN>1?'s':'')+' later' : 'on invoice')+', with certainty. '+
           'One billing policy applies to the whole company, and the opening book’s stagger is uniform by construction. Each of those is a simplification that flatters the cash line, and each is listed rather than hidden.');
     }
-    var h=caNote+moNote+cuNote+'<div class="sgrp"><div class="eyebrow">Stocks · month '+m+' · '+basis+'</div><div class="recon" style="margin-top:5px">'+
-      r(basis, rn(d.closingARR), 'tot') + r('Cash', n(d.cashClosing), 'tot') + '</div>'+
-      '<div class="hint" style="margin-top:8px">Two things accumulate in this business. Everything else is a rate.</div></div>';
-
-    h+='<div class="sgrp"><div class="eyebrow">Flows into and out of '+basis+'</div><div class="recon" style="margin-top:5px">'+
-      r('+ New '+basis, rn(d.newARR)) + r('+ Expansion '+basis, rn(d.expansion)) + r('− Leakage '+basis, rn(-d.leakage)) +
-      r('= net change in the stock', rn(net), 'tot') + '</div>'+
-      '<div class="hint" style="margin-top:8px">Net '+rn(net)+' this month against a stock of '+reur(abs.closingARR)+
-      ' — <b style="color:var(--ink)">'+(abs.closingARR ? pct(Math.abs(net)/abs.closingARR,1) : '—')+'</b>. '+
-      'That ratio is why a stock this large is slow to turn, and why one month of flow could never be drawn at the stock\'s own scale.</div></div>';
-
+    /* Notes explain the mechanism only: drawing conventions, formulas, boundaries. The outputs belong to Company and the Ledger. */
+    var h = caNote+moNote+cuNote;
+    if(sysView==='ontology'){
     h+='<div class="sgrp"><div class="eyebrow">The stock sets its own rates</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
       (expRes.derived.monthlyPersistence===null
@@ -6083,58 +5657,7 @@ details.pl .cascade{margin-top:8px}
           'Expansion is the surviving customers\' component state repriced, used more and adopted more — not a coefficient on the balance'
         : 'Leakage is <b style="color:var(--ink)">'+reur(abs.openingARR)+' × '+pct(1-expRes.derived.monthlyPersistence,3)+
           '</b>. Expansion is the retained balance × '+pct(expRes.derived.monthlyExpansion,3))+
-      '. Revenue is the midpoint of the stock ÷ 12. Three of the four flows are functions of the stock they act on — '+
-      'the blue dashed arrows. Only New ARR is set from outside, by S&amp;M.</div></div>';
-
-    /* v1.1–v1.3 — the three mechanisms, each stated for what it touches and
-       what it does not, with its live setting. Nothing here is generated: the
-       words are fixed, the numbers are the run's. */
-    var qx = expRes.derived.acquisition;
-    var satOn2 = E.saturationEnabled(expA), lagOn2 = expRes.derived.acquisitionLagMonths>0, costOn2 = expA.expansionCostPerARR>0;
-    var cuOn2 = expRes.mechanisms.customerPhysics, mcu2 = expRes.months[m-1].customers;
-    var monOn2 = expRes.mechanisms.monetization, mmo2 = expRes.months[m-1].monetization;
-    var cashOn2 = expRes.mechanisms.cashPhysics, mca2 = expRes.months[m-1].cash;
-    var ivOn2 = expRes.mechanisms.interventions, miv2 = expRes.months[m-1].interventions;
-    h+='<div class="sgrp"><div class="eyebrow">Mechanisms on the map</div>'+
-      '<div class="hint" style="line-height:1.7;margin-top:5px">'+
-      '<b style="color:'+(satOn2?'var(--exp)':'var(--ink-3)')+'">Acquisition capacity · '+(satOn2?fmtF('cap',expA.maxMonthlyNewARR):'off')+'.</b> '+
-      (satOn2
-        ? 'A <b style="color:var(--ink)">bound</b> on the response, not a source: New '+basis+' = S&amp;M ÷ (CAC + S&amp;M ÷ capacity). At this spend the response is '+pct(qx.utilisation,0)+
-          ' of capacity; average CAC '+qx.averageCAC.toFixed(2)+'×, marginal '+qx.marginalCAC.toFixed(2)+'×. The map shows the curve and no optimum.'
-        : 'The linear law: New '+basis+' = S&amp;M ÷ CAC, unbounded. Switch the bowtie on to bound it.')+
-      '<br><br><b style="color:'+(lagOn2?'var(--exp)':'var(--ink-3)')+'">Acquisition lag · '+expRes.derived.acquisitionLagMonths+' months.</b> '+
-      (lagOn2
-        ? 'Spend enters PENDING, a stock the engine carries, and becomes a cohort '+expRes.derived.acquisitionLagMonths+' months later. It changes <b style="color:var(--ink)">when</b> ARR appears, never how much per euro: '+
-          reur(abs.pendingNewARR)+' of '+basis+' is pending at month '+m+'. S&amp;M still leaves in the month it is spent.'
-        : 'Same-month acquisition. PENDING is drawn dashed because nothing waits in it.')+
-      '<br><br><b style="color:'+(costOn2?'var(--exp)':'var(--ink-3)')+'">Expansion realisation cost · '+(costOn2?expA.expansionCostPerARR.toFixed(2)+'× per €1':'off')+'.</b> '+
-      (costOn2
-        ? 'A P&amp;L line fed by the expansion flow: '+n(d.expansionCost)+' this month. It reaches EBITA and Cash and touches <b style="color:var(--ink)">no ARR quantity</b> — the expansion pipe is the same width with or without it. '+
-          'It is an economic realisation cost, deliberately not classified as COGS, S&amp;M or CSM.'
-        : 'Expansion is free. The line is drawn dim because it is €0.')+
-      '<br><br><b style="color:'+(cuOn2?'var(--exp)':'var(--ink-3)')+'">Customer physics · '+(cuOn2?'logo retention '+pct(expA.logoRetentionAnnual,1)+', contraction '+pct(expA.contractionAnnual,1):'off')+'.</b> '+
-      (cuOn2
-        ? 'The persistence valve is no longer set: it reads <b style="color:var(--ink)">'+(expRes.derived.persistenceAnnualEffective===null ? 'emergent' : pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)')+'</b>, generated by the two customer valves beneath it. '+
-          'Leakage this month is '+reur(mcu2.logoChurnARR)+' from '+mcu2.logoChurn.toFixed(1)+' departing customers and '+reur(mcu2.contractionARR)+' from survivors shrinking; '+mcu2.closing.toFixed(0)+' customers remain. '+
-          'Same pipes, same stock: the layer explains the leakage flow, it does not add one.'
-        : 'Persistence is an input. Switch Logo retention on (Company layer) and persistence becomes what customer survival and contraction produce.')+
-      '<br><br><b style="color:'+(monOn2?'var(--exp)':'var(--ink-3)')+'">Monetization physics · '+(monOn2?'on':'off')+'.</b> '+
-      (monOn2
-        ? 'The expansion valve is bypassed: the expansion pipe carries <b style="color:var(--ink)">price + usage + adoption</b> — '+reur(mmo2.priceARR)+' + '+reur(mmo2.usageARR)+' + '+reur(mmo2.adoptionARR)+' this month — produced by per-customer components (platform '+reur(mmo2.fixedARR)+', usage '+reur(mmo2.variableARR)+'). '+
-          'Usage and adoption are bounded by their caps, so this is the first version of the map on which expansion can saturate. Contraction reaches usage only, so persistence is emergent.'
-        : 'Expansion is one coefficient with no price, usage or adoption inside it. Switch Monetization on (Company layer) and the expansion pipe is fed by named, bounded effects.')+
-      '<br><br><b style="color:'+(cashOn2?'var(--exp)':'var(--ink-3)')+'">Cash physics · '+(cashOn2 ? expA.billingTermMonths+'-month term in '+expA.billingTiming+(expA.collectionDelayMonths>0?', +'+expA.collectionDelayMonths+' mo to collect':'') : 'off')+'.</b> '+
-      (cashOn2
-        ? 'The FCF box is <b style="color:var(--ink)">cash FCF</b>: EBITA '+eur(mca2.ebita)+' '+(mca2.fcfMinusEbita>=0?'+':'−')+' '+eur(Math.abs(mca2.fcfMinusEbita))+' of timing this month. Between the P&amp;L and the cash stock sit '+(mca2.deferredClosing>=0 ? eur(mca2.deferredClosing)+' of deferred revenue' : eur(-mca2.deferredClosing)+' of unbilled contract asset')+' and '+eur(mca2.receivablesClosing)+' of receivables. Same revenue, same EBITA, a different cash path.'
-        : 'FCF = EBITA: the cash stock moves with the P&amp;L. Switch a billing term on (Company layer) and billings, deferred revenue and receivables appear between them.')+
-      '<br><br><b style="color:'+(ivOn2?'var(--exp)':'var(--ink-3)')+'">Hypotheses · '+(ivOn2 ? expRes.derived.interventions.length : 'none')+'.</b> '+
-      (ivOn2
-        ? (miv2.changes.length
-            ? 'In force this month: '+miv2.changes.map(function(ch){ return ch.id+' moves '+hypTargetLabel(ch.target)+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('; ')+'. The ringed valve is running on the hypothesis, not on its base setting; '
-            : 'None in force this month — every valve is at its base setting; ')+
-          'cost this month '+eur(miv2.cost)+', to date '+eur(miv2.cumulativeCost)+'. A hypothesis is resolved into the law month by month and never becomes a coefficient.'
-        : 'Every valve is a law the world obeys. Switch a Hypothesis on (Company layer) to test a costed, lagged, temporary move of one of them.')+
-      '</div></div>';
+      '. Revenue is the midpoint of the stock ÷ 12. Leakage and expansion are functions of the stock they act on; only New ARR is set from outside, by S&amp;M.</div></div>';
 
     h+='<div class="sgrp"><div class="eyebrow">Two links the engine does not have</div>'+
       '<div class="hint" style="line-height:1.7;margin-top:5px">'+
@@ -6143,11 +5666,7 @@ details.pl .cascade{margin-top:8px}
       '<br><br><b style="color:var(--warn)">⊘ R&amp;D → retention or expansion.</b> R&amp;D is a pure cost with no modelled benefit, so it '+
       'reaches no valve. The absence is the honest drawing of the model boundary.</div></div>';
 
-    h+='<div class="sgrp"><div class="eyebrow">Why this surface exists</div>'+
-      '<div class="hint" style="line-height:1.7;margin-top:5px">This surface shows something a KPI table cannot: '+
-      '<b style="color:var(--ink)">which rates are functions of which stocks</b>, and which links do not exist. '+
-      'A fourth candidate — an intra-month bridge animation — established no unique percept and was rejected. '+
-      'It is preserved in the research archive, not shipped here.</div></div>';
+    }
     document.getElementById('side').innerHTML=h;
   }
 
@@ -6473,7 +5992,7 @@ details.pl .cascade{margin-top:8px}
       document.getElementById('cmp-open-change').addEventListener('click', function(){ document.querySelector('.app').classList.add('rail-open'); });
       return;
     }
-    var title = sc ? 'Preset '+sc.n+' · '+sc.name
+    var title = sc ? (isExample(sc) ? 'Example ' : 'Preset ')+sc.n+' · '+sc.name
       : (lastMsg ? lastMsg.name : c.changed.map(function(u){ return LABEL[u.key]||u.key; }).join(', ') + ' changed');
     var msg = sc ? sc.teach
       : (lastMsg ? lastMsg.teach : 'The whole future recalculated.');
@@ -6639,7 +6158,7 @@ details.pl .cascade{margin-top:8px}
     document.getElementById('nav-base').classList.toggle('on', l==='base');
     if(l==='base'){
       layer = 'base'; menusClose();                 /* the clock only runs on a company page; it resumes on return */
-      ['nav-company','nav-compare','nav-system'].forEach(function(id){ document.getElementById(id).classList.remove('on'); });
+      ['nav-company','nav-compare'].forEach(function(id){ document.getElementById(id).classList.remove('on'); });
       appB.classList.remove('flow'); appB.classList.remove('notes'); appB.classList.remove('rail-open');
       document.getElementById('pulsebar').hidden = true;
       syncLedgerChrome(); if(frozenBase) syncLedger();
@@ -6650,7 +6169,6 @@ details.pl .cascade{margin-top:8px}
     syncViewingCtl(); syncLedgerChrome();
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
     document.getElementById('nav-compare').classList.toggle('on', l==='cmp');
-    document.getElementById('nav-system').classList.toggle('on', l==='flow' && sysView!=='ledger');
     var appEl=document.querySelector('.app');
     appEl.classList.toggle('flow', l==='flow');
     if(l!=='flow') appEl.classList.remove('notes');
@@ -6681,16 +6199,8 @@ details.pl .cascade{margin-top:8px}
   document.getElementById('nav-compare').addEventListener('click', function(){ setLayer('cmp'); });
   document.getElementById('notes-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('notes'); });
   document.getElementById('figwrap').addEventListener('toggle', function(){ var fw=this; if(fw.dataset.silent) return; figPref[layer+':'+(layer==='stock'?activeLens:'')] = fw.open; setTimeout(function(){ resize(); render(); }, 0); });
-  document.getElementById('nav-system').addEventListener('click', function(){ if(sysView==='ledger') sysView = sysViewBack || 'ontology'; setLayer('flow'); syncSysViews(); });
+  document.getElementById('menu-mech').addEventListener('click', function(){ openSystemView('ontology'); });   /* Model Mechanics opens on its Overview */
   document.getElementById('nav-scen').addEventListener('click', function(){ showPresets(document.getElementById('preset-list').hidden); });
-  ['abs','delta'].forEach(function(c){
-    document.getElementById('cmp-'+c).addEventListener('click', function(){
-      compare = c==='abs'?'absolute':'delta';
-      document.getElementById('cmp-abs').classList.toggle('on', compare==='absolute');
-      document.getElementById('cmp-delta').classList.toggle('on', compare==='delta');
-      render(); renderSide();
-    });
-  });
 
   /* ---- the scroll cue ------------------------------------------------
      Welcome is a full-screen pane that scrolls. Without a cue a
@@ -6770,7 +6280,7 @@ details.pl .cascade{margin-top:8px}
     document.getElementById('guidebtn').addEventListener('click', function(){ menusClose(); endTour(); showWelcome(); });
     /* the tour: six stops, each one region of the portal, in the order a first reading takes */
     var STEPS = [
-      { sel:'.head .nav', t:'See · change · compare · understand', x:'<b>Company</b> reads one company. <b>Experiment</b> changes its laws. <b>Compare</b> reads why the Experiment differs from Base. <b>System</b> draws the machine that made the difference. Under <b>⋯</b>: the Model Ledger that proves it, MRR or ARR, this guide.' },
+      { sel:'.head .nav', t:'See · change · compare · understand', x:'<b>Company</b> reads one company. <b>Experiment</b> changes its laws. <b>Compare</b> reads why the Experiment differs from Base. Under <b>⋯</b>: Model Mechanics that explains it, the Model Ledger that proves it, MRR or ARR, this guide.' },
       { sel:'#nav-base', t:'Base Settings', x:'The Base every Experiment runs against. Start from a template or set any law and the opening state yourself, then <b>Freeze Base</b>. The frozen Base changes only when you freeze again \u2014 editing the draft never moves it.' },
       { sel:'#rail-change', t:'Experiment', x:'A drawer over the company; start from a preset or change the laws yourself. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
       { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. Click a stratum to inspect that cohort.' },

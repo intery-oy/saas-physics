@@ -66,7 +66,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     about: !!document.querySelector('#more-menu details#about'), method: !!document.getElementById('keybtn') || !!document.getElementById('key'),
     gone: ['mode-chip', 'nav-scen'].map(id => { const e = document.getElementById(id); return !e || !e.closest('.head'); }), scenIn: !!document.querySelector('.rail #nav-scen') }));
   rec('HEADER: SaaS Physics · World ▾ · Company · Experiment · Compare · System · ⋯ — the ⋯ menu holds Model Ledger, recurring-revenue basis, Guide and About (with the build) — no Method page; no mode chip, no Scenarios in the header, presets entered from the Experiment drawer',
-      hdr.order.join(',') === 'H1,nav-base,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide' && hdr.build && hdr.about && !hdr.method && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
+      hdr.order.join(',') === 'H1,nav-base,nav-company,rail-toggle,nav-compare,more-btn' && hdr.more.join('|') === 'Model Mechanics|Model Ledger|Recurring revenue|Guide' && hdr.build && hdr.about && !hdr.method && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
   const one = await pg.evaluate(() => ({ slot: document.getElementById('causal-slot').innerHTML.length, live: document.getElementById('nav-compare').classList.contains('live'), chip: document.getElementById('rail-toggle').textContent }));
   rec('COMPANY: with a change, Company carries no comparison of its own — no strip, no spine; the header names the Experiment ("1 change") and Compare is lit as where the difference is read', one.slot === 0 && one.live && /1 change/.test(one.chip), JSON.stringify(one));
   await click(pg, '#reset'); await scrub(pg, 36);
@@ -94,7 +94,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('P&L: the monthly waterfall is on no lens; the profit and loss is read in Financials as the statement of operations, first of its three statements, line by line', plOff === false && !plFin.cascade && plFin.first === 'Statement of operations' && plFin.lines >= 9, JSON.stringify({ plOff, plFin }));
 
   /* ---- SYSTEM ---- */
-  await click(pg, '#nav-system');
+  await click(pg, '#menu-mech');
   const sys0 = await pg.evaluate(() => { const fb = document.querySelector('.figbox').getBoundingClientRect(), st = document.querySelector('.stage').getBoundingClientRect(), side = document.getElementById('side').getBoundingClientRect(); return { fw: fb.width, sw: st.width, fh: fb.height, sh: st.height, sideOff: side.left >= window.innerWidth - 1, notes: document.querySelector('.app').classList.contains('notes'), view: window.__SP_DEBUG.sysView, crumb: document.querySelector('#pulsebar .btn.on') && document.querySelector('#pulsebar .btn.on').textContent }; });
   rec('SYSTEM: the machine takes the whole stage width and most of its height; the notes drawer is closed and off screen', sys0.fw >= sys0.sw - 2 && sys0.fh >= sys0.sh * 0.6 && sys0.sideOff && !sys0.notes && sys0.view === 'ontology', JSON.stringify(sys0));
   await click(pg, '#notes-toggle');
@@ -105,7 +105,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const drill = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, on: document.querySelector('#sysviews .btn.on').textContent }));
   await click(pg, '#sysview-ontology');
   const back = await pg.evaluate(() => window.__SP_DEBUG.sysView);
-  rec('SYSTEM: drill-down into Cash and back to the Ontology through the view list', drill.view === 'cash' && drill.on === 'Cash' && back === 'ontology', JSON.stringify({ drill, back }));
+  rec('MECHANICS: drill-down into Cash and back to the Overview through the view list', drill.view === 'cash' && drill.on === 'Cash' && back === 'ontology', JSON.stringify({ drill, back }));
 
   /* ---- PRESETS: a browser inside the Experiment drawer; Compare analyses the loaded preset ---- */
   await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(300);   /* recipes are written for the reference model's laws */
@@ -116,12 +116,12 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('PRESETS: Browse presets opens the recipe list inside the Experiment drawer (name · title · lesson · what changes) with no analysis in it; on the reference Base all eight recipes apply and no example comparison is offered', idx.inRail && idx.shown && idx.rows === 8 && idx.full && idx.analysis === 0 &&
       idx.ids === 'retention,expansion,efficiency,margin,bounded,lag,billing,hypothesis', JSON.stringify(idx));
   const gate = await pg.evaluate(() => { const D = window.__SP_DEBUG, row = id => document.querySelector('#preset-list .prow[data-id="' + id + '"]');
-    D.useBase('wA'); const onA = { ret: row('retention').disabled, why: row('retention').querySelector('.pwhy').textContent, ex: row('customers').hidden };
-    D.useBase('ex-customers'); const onEx = { shown: !row('customers').hidden && !row('customers').disabled };
-    const before = JSON.stringify(D.frozenBase); row('customers').click(); const after = JSON.stringify(D.frozenBase);
+    D.useBase('wA'); const onA = { ret: row('retention').disabled, why: row('retention').querySelector('.pwhy').textContent, ex: !row('customers') };
+    D.useBase('ex-customers'); const onEx = { shown: !row('customers') && !!D.activeScenario && D.activeScenario.id === 'customers' };
+    const before = JSON.stringify([D.frozenBase.a, D.frozenBase.start]); document.getElementById('reset').click(); D.useBase('ex-customers'); const after = JSON.stringify([D.frozenBase.a, D.frozenBase.start]);
     const r = { onA, onEx, applied: D.activeScenario && D.activeScenario.id, baseSame: before === after, baseIsFrozen: D.baseA === D.frozenBase.a };
     D.useBase('arr'); return r; });
-  rec('PRESETS: a recipe that would not mean what its lesson says on this Base is offered but disabled with the reason; an example comparison appears only while its own example Base is frozen; loading one never touches the frozen Base',
+  rec('PRESETS: a recipe that would not mean what its lesson says on this Base is offered but disabled with the reason; examples are never presets — freezing an example Base sets up its matched Experiment, and the frozen Base is never written',
       gate.onA.ret && /customer laws/.test(gate.onA.why) && gate.onA.ex && gate.onEx.shown && gate.applied === 'customers' && gate.baseSame && gate.baseIsFrozen, JSON.stringify(gate));
   const layer0 = await pg.evaluate(() => window.__SP_DEBUG.layer);
   await pg.evaluate(() => document.querySelector('#preset-list .prow[data-id="hypothesis"]').click()); await pg.waitForTimeout(400);
@@ -183,14 +183,14 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     await click(q, '#rail-toggle');
     const rr = await rect(q, '.rail');
     await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.waitForTimeout(400); await click(q, '#rail-close'); await scrub(q, 36);
-    const st = await q.evaluate(() => { const nav = ['nav-company', 'nav-compare', 'nav-system', 'nav-scen', 'rail-toggle'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth; });
+    const st = await q.evaluate(() => { const nav = ['nav-company', 'nav-compare', 'nav-scen', 'rail-toggle'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth; });
       const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect();
       return { nav, order: h.top < n.top && n.top < f.top, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, stageScroll: document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1, open: document.querySelector('.app').classList.contains('rail-open') }; });
     rec('RESPONSIVE ' + w + ': the four surfaces and Change are reachable; the drawer opens ' + (w <= 760 ? 'full width' : 'as a 460px drawer') + ' and closes; hero → lenses → figure; no horizontal scroll', st.nav.every(Boolean) && (w <= 760 ? Math.abs(rr.w - w) <= 1 : rr.w >= 400 && rr.w < w) && !st.open && st.order && !st.hscroll && !st.stageScroll, JSON.stringify({ rail: rr.w, st }));
     await q.evaluate(() => window.__SP_DEBUG.useBase('arr')); await click(q, '#rail-toggle'); await click(q, '#nav-scen'); const pl = await q.evaluate(() => { const r = document.querySelector('#preset-list .prow').getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth + 1; });
     await q.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await q.waitForTimeout(500);
     const sx = await q.evaluate(() => ({ pl: 0, eb: document.querySelector('#compare-panel h4').textContent, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }));
-    await click(q, '#nav-system');
+    await click(q, '#menu-mech');
     const sy = await q.evaluate(() => { const fb = document.querySelector('.figbox').getBoundingClientRect(); return { fh: fb.height, notes: document.querySelector('.app').classList.contains('notes'), hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }; });
     rec('RESPONSIVE ' + w + ': the preset list, the preset on Compare and the machine render at this width without page-level horizontal scroll', pl && sx.eb === 'Preset 14 · A retention programme' && !sx.hscroll && sy.fh >= 240 && !sy.notes && !sy.hscroll, JSON.stringify({ sx, sy }));
     await q.close();

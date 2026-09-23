@@ -319,7 +319,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   const look = () => p3.evaluate(() => { const cv = document.getElementById('scene').getBoundingClientRect(), cl = document.getElementById('cohort-life');
     return { pinned: window.__SP_DEBUG.pinned, canvas: Math.round(cv.width * cv.height), cohortFigure: !cl.hidden, dossier: !!document.querySelector('.dossier') }; });
   const scope = { pinned: await look() };
-  for (const nav of ['nav-system', 'nav-compare']) {
+  for (const nav of ['menu-mech', 'nav-compare']) {
     await p3.evaluate(n => document.getElementById(n).click(), nav); await p3.waitForTimeout(600);
     scope[nav] = await look();
   }
@@ -328,7 +328,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   await p3.close();
   rec('SCOPE: a cohort left pinned does not follow the reader out of Company — System and Compare each get their own figure back, the cohort figure steps aside, and returning to Company restores Inspect exactly as it was',
       scope.pinned.canvas === 0 && scope.pinned.cohortFigure && scope.pinned.dossier &&
-      ['nav-system', 'nav-compare'].every(n => scope[n].canvas > 10000 && !scope[n].cohortFigure && scope[n].pinned === scope.pinned.pinned) &&
+      ['menu-mech', 'nav-compare'].every(n => scope[n].canvas > 10000 && !scope[n].cohortFigure && scope[n].pinned === scope.pinned.pinned) &&
       scope.back.canvas === 0 && scope.back.cohortFigure && scope.back.dossier && scope.back.pinned === scope.pinned.pinned,
       JSON.stringify(scope));
 

@@ -95,24 +95,21 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       pinned.hit === null ? 'no cohort hit' : pinned.txt.slice(pinned.txt.indexOf('Customer base'), pinned.txt.indexOf('Customer base') + 200).replace(/\n/g, ' | '));
 
   /* ---- A · SYSTEM ---- */
-  await jsClick('#nav-system'); await pg.waitForTimeout(500);
-  const sys = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('f-' + k)   /* the map's valves route here (laws-accept) */) }));
-  rec('A · SYSTEM (absolute): the side panel states the customer layer with its live laws and the derived persistence; the map\'s customer valves lead to their laws in the Experiment drawer',
-      sys.txt.includes('Customer physics · logo retention 92.0%, contraction 5.0%') && sys.txt.includes('87.4% = L × (1 − C)') && sys.chips.every(Boolean), sys.txt.slice(sys.txt.indexOf('Customer physics'), sys.txt.indexOf('Customer physics') + 160).replace(/\n/g, ' | '));
-  await jsClick('#cmp-delta'); await pg.waitForTimeout(400);
-  const sysD = await pg.evaluate(() => document.getElementById('side').innerText.length);
-  await jsClick('#cmp-abs'); await pg.waitForTimeout(300);
-  rec('A · SYSTEM (delta): the map and side panel render in delta mode with the layer on', sysD > 500 && errs.length === 0, '');
+  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  const sys = await pg.evaluate(() => ({ txt: (document.getElementById('sysview-customers').click(), document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('f-' + k)   /* the map's valves route here (laws-accept) */) }));
+  rec('A · MECHANICS · Customers: the notes derive persistence from the customer layer\'s live laws; the map\'s customer valves lead to their laws in the Experiment drawer',
+      sys.txt.includes('logo retention 92.0% × (1 − contraction 5.0%) = 87.4%') && sys.chips.every(Boolean), sys.txt.slice(sys.txt.indexOf('derived'), sys.txt.indexOf('derived') + 160).replace(/\n/g, ' | '));
+  rec('A · MECHANICS: no Delta mode on the layer', !(await pg.evaluate(() => !!document.getElementById('cmp-delta'))), '');
 
   /* ---- A · SCENARIO 10 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s10 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     b: window.__SP_DEBUG.baseRes.months[59].closingARR, x: window.__SP_DEBUG.expRes.months[59].closingARR,
     cb: window.__SP_DEBUG.baseRes.months[59].customers.closing, cx: window.__SP_DEBUG.expRes.months[59].customers.closing }));
   rec('A · SCENARIO 10: both worlds carry the layer (L 87.4%/C 0 vs L 92%/C 5%), M60 ARR identical, customers differ, and Compare names the preset, runs its causal comparison and shows the match block as preset evidence',
       s10.bA.logoRetentionAnnual === 0.874 && s10.xA.logoRetentionAnnual === 0.92 && Math.abs(s10.b - s10.x) < 1e-6 && Math.abs(s10.cb - s10.cx) > 50 &&
-      s10.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ARR CAN SHOW') && /max \|ΔMRR\| over 60 months\n€0/.test(s10.txt) && /PRESET 10 · CUSTOMERS BEHIND THE ARR[\s\S]*WHAT YOU CHANGED[\s\S]*WHAT THE SYSTEM DID[\s\S]*WHAT COMPANY EMERGED[\s\S]*PRESET EVIDENCE/i.test(s10.txt) && /customers M60\n2157 → 2505\n\+349/.test(s10.txt) && /logo retention R12M\n87\.4% → 92\.0%\n\+4\.6 pp/.test(s10.txt) && /contraction CUM\n€0 → €[\d.]+[km]/.test(s10.txt) && s10.txt.includes('Same ARR, different system'),
+      s10.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ARR CAN SHOW') && /max \|ΔMRR\| over 60 months\n€0/.test(s10.txt) && /EXAMPLE 10 · CUSTOMERS BEHIND THE ARR[\s\S]*WHAT YOU CHANGED[\s\S]*WHAT THE SYSTEM DID[\s\S]*WHAT COMPANY EMERGED[\s\S]*PRESET EVIDENCE/i.test(s10.txt) && /customers M60\n2157 → 2505\n\+349/.test(s10.txt) && /logo retention R12M\n87\.4% → 92\.0%\n\+4\.6 pp/.test(s10.txt) && /contraction CUM\n€0 → €[\d.]+[km]/.test(s10.txt) && s10.txt.includes('Same ARR, different system'),
       s10.txt.slice(0, 200).replace(/\n/g, ' | '));
   rec('A · SCENARIO 10: the boundary discloses the customer layer\'s limits (continuous count, no heterogeneity, flat laws)',
       (await pg.evaluate(() => document.getElementById('side').textContent)).includes('continuous cohort count with one ARPA per cohort'), '');
@@ -167,20 +164,20 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       bo.txt.slice(bo.txt.indexOf('COMPOSITION'), bo.txt.indexOf('COMPOSITION') + 260).replace(/\n/g, ' | '));
 
   /* ---- B · SYSTEM ---- */
-  await jsClick('#nav-system'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
   const bs = await pg.evaluate(() => document.getElementById('side').innerText);
-  rec('B · SYSTEM: the side panel states Monetization on with the three effects and the emergent persistence; the rate sentence no longer quotes a coefficient',
-      bs.includes('Monetization physics · on') && bs.includes('price + usage + adoption') && bs.includes('departing customers') && !bs.includes('Expansion is the retained balance ×'), bs.slice(bs.indexOf('Monetization physics'), bs.indexOf('Monetization physics') + 160).replace(/\n/g, ' | '));
-  await jsClick('#cmp-delta'); await pg.waitForTimeout(400); await jsClick('#cmp-abs'); await pg.waitForTimeout(300);
+  rec('B · MECHANICS · Overview: the rate note says expansion is component state repriced, used and adopted — no longer a coefficient',
+      bs.includes('repriced, used more and adopted more') && bs.includes('departing customers') && !bs.includes('Expansion is the retained balance ×'), bs.slice(bs.indexOf('Leakage'), bs.indexOf('Leakage') + 160).replace(/\n/g, ' | '));
+  
 
   /* ---- B · SCENARIOS 11, 12 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-monetization'), document.querySelector('#preset-list .prow[data-id="monetization"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-monetization'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s11 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
   rec('B · SCENARIO 11: Base is the customer world with a coefficient, Experiment the same customers priced as components (same €20m opening); the panel shows cumulative price/usage/adoption effects, the R12M decomposition and the headroom used',
       !s11.bm.monetization && s11.xm.monetization && s11.b0 === 20000000 && s11.x0 === 20000000 && /MONETIZATION\nMonetization · off → on/.test(s11.txt) && /price effect CUM\n— → €[\d.]+[km]\nnew/.test(s11.txt) && /usage effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /adoption effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /variable share M60\n— → [\d.]+%/.test(s11.txt) && /expansion CUM\n€[\d.]+[km] → €[\d.]+[km]/.test(s11.txt),
       s11.txt.slice(s11.txt.indexOf('CONSEQUENCE'), s11.txt.indexOf('CONSEQUENCE') + 200).replace(/\n/g, ' | '));
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.querySelector('#preset-list .prow[data-id="mix"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s12 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
   const gb12 = await pg.evaluate(() => { const D = window.__SP_DEBUG; return { gb: D.K.measureR12M(D.baseRes, 12).grr, gx: D.K.measureR12M(D.expRes, 12).grr, cb: D.baseRes.months[0].monetization.contractionARR, cx: D.expRes.months[0].monetization.contractionARR, ob: D.baseRes.months[0].openingARR, ox: D.expRes.months[0].openingARR }; });
   rec('B · SCENARIO 12: same opening ARR, customers and laws; contraction €0 in the all-platform Base and > 0 in the mixed Experiment; GRR differs; the match block is on screen',
@@ -249,11 +246,11 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.evaluate(() => { const cv = document.getElementById('scene'); cv.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
   /* ---- C · SYSTEM ---- */
-  await jsClick('#nav-system'); await pg.waitForTimeout(500);
-  const cs = await pg.evaluate(() => document.getElementById('side').innerText);
-  rec('C · SYSTEM: the side panel states the billing policy, cash FCF vs EBITA this month, and the deferred and receivables balances between the P&L and the cash stock',
-      cs.includes('Cash physics · 12-month term in advance, +1 mo to collect') && cs.includes('cash FCF') && cs.includes('deferred revenue') && cs.includes('of receivables'), cs.slice(cs.indexOf('Cash physics'), cs.indexOf('Cash physics') + 200).replace(/\n/g, ' | '));
-  await jsClick('#cmp-delta'); await pg.waitForTimeout(400); await jsClick('#cmp-abs'); await pg.waitForTimeout(300);
+  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  const cs = await pg.evaluate(() => (document.getElementById('sysview-cash').click(), document.getElementById('side').innerText));
+  rec('C · MECHANICS · Cash: the notes state the billing policy and the identity cash FCF − EBITA = Δdeferred − Δreceivables',
+      cs.includes('cash FCF − EBITA = Δdeferred − Δreceivables') && cs.includes('12-month period') && cs.includes('collected exactly 1 month later'), cs.slice(cs.indexOf('EBITA'), cs.indexOf('EBITA') + 200).replace(/\n/g, ' | '));
+  
 
   /* ---- C · SCENARIO 13 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
@@ -304,11 +301,11 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       dob.wf.includes('− Hypothesis cost') && dob.wfv[dob.wf.indexOf('− Hypothesis cost')] === '−€50k', JSON.stringify(dob.wf));
 
   /* ---- D · SYSTEM ---- */
-  await jsClick('#nav-system'); await pg.waitForTimeout(500);
-  const ds = await pg.evaluate(() => document.getElementById('side').innerText);
-  rec('D · SYSTEM: the side panel names the hypothesis in force, the valve it moves (persistence 90.0% → 94.5%) and its cost to date',
-      ds.includes('Hypotheses · 1') && /h1 moves persistence 90\.0% → 94\.5%/.test(ds) && ds.includes('cost this month €50k'), ds.slice(ds.indexOf('Hypotheses ·'), ds.indexOf('Hypotheses ·') + 200).replace(/\n/g, ' | '));
-  await jsClick('#cmp-delta'); await pg.waitForTimeout(400); await jsClick('#cmp-abs'); await pg.waitForTimeout(300);
+  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  const ds = await pg.evaluate(() => ({ view: !!document.getElementById('sysview-hypotheses'), txt: document.getElementById('side').innerText }));
+  rec('D · MECHANICS: no Hypotheses view — the hypothesis is set in the Experiment drawer and read on Compare; the Overview only marks where it enters',
+      !ds.view && /the stock sets its own rates/i.test(ds.txt), '');
+  
 
   /* ---- D · INSPECT: a cohort's provenance ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
@@ -358,14 +355,14 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await jsClick('#reset'); await pg.waitForTimeout(400);
   const pk2 = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.baseSource, sm: window.__SP_DEBUG.expA.sm, mech: window.__SP_DEBUG.expRes.mechanisms }));
   rec('FINAL · PACKS: Reset returns to the active pack\'s world (S&M back to €900k, every layer still on), not to the v1.3 Base', pk2.pack === 'full' && pk2.sm === 900000 && pk2.mech.cashPhysics && pk2.mech.interventions, JSON.stringify(pk2));
-  await jsClick('#nav-system'); await pg.waitForTimeout(400);
+  await jsClick('#menu-mech'); await pg.waitForTimeout(400);
   const viewsOK = [];
-  for (const v of ['customers', 'monetization', 'cash', 'hypotheses', 'company']) { await jsClick('#sysview-' + v); await pg.waitForTimeout(350); viewsOK.push(await pg.evaluate(() => window.__SP_DEBUG.sysView)); }
-  rec('FINAL · SYSTEM MAP: the hierarchical map offers a sub-view per layer that is on; each renders without a page error and the company view returns', viewsOK.join(',') === 'customers,monetization,cash,hypotheses,company' && errs.length === 0, viewsOK.join(','));
+  for (const v of ['customers', 'monetization', 'cash', 'ontology']) { await jsClick('#sysview-' + v); await pg.waitForTimeout(350); viewsOK.push(await pg.evaluate(() => window.__SP_DEBUG.sysView)); }
+  rec('FINAL · MECHANICS: a view per layer that is on; each renders without a page error and the Overview returns', viewsOK.join(',') === 'customers,monetization,cash,ontology' && errs.length === 0, viewsOK.join(','));
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
   await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(400); await pg.waitForTimeout(400);
-  const disabled = await pg.evaluate(() => ['customers', 'monetization', 'cash', 'hypotheses'].map(v => document.getElementById('sysview-' + v).disabled));
-  rec('FINAL · SYSTEM MAP: with the ARR pack the layer sub-views are disabled (nothing to draw) and the map is the v1.3 company view', disabled.every(Boolean) && (await pg.evaluate(() => window.__SP_DEBUG.sysView)) === 'company', '');
+  const disabled = await pg.evaluate(() => ['customers', 'monetization', 'cash'].map(v => document.getElementById('sysview-' + v).disabled));
+  rec('FINAL · MECHANICS: on the ARR-physics Base the layer views are disabled (nothing to draw) and the Overview remains', disabled.every(Boolean) && (await pg.evaluate(() => window.__SP_DEBUG.sysView)) === 'ontology', '');
 
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
 

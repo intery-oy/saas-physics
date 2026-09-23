@@ -31,7 +31,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 30; s.dispatchEvent(new Event('input')); });
   await pg.waitForTimeout(300);
   const companyMRR = await pg.evaluate(() => document.querySelector('.side .hero .hv').textContent);
-  await jsClick('#nav-system'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
   const systemStock = await pg.evaluate(() => {
     const c = document.getElementById('scene'); return null; // canvas text isn't DOM-readable
   });

@@ -48,7 +48,7 @@ const PREV = 'file://' + PREV_FILE;
     const cmp = async (name, what) => { await A.waitForTimeout(250); await B.waitForTimeout(250); const a = await cap(A, what), b = await cap(B, what);
       const bad = Object.keys(a).filter(k => a[k] !== b[k]); if (bad.length) { const k = bad[0]; let i = 0; while (i < a[k].length && a[k][i] === b[k][i]) i++; out.push(name + ' ' + k + '@' + i + ': ' + a[k].slice(Math.max(0, i - 50), i + 50)); } };
     for (const L of ['company', 'customers', 'growth', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, L => document.querySelector('.lensnav .btn[data-lens="' + L + '"]').click(), L); await cmp('Company·' + L, { canvas: L === 'company' }); }
-    for (const v of ['ontology', 'company', 'customers', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, v => { document.getElementById('nav-system').click(); const b = document.getElementById('sysview-' + v); if (b && !b.disabled) b.click(); }, v); await A.waitForTimeout(350); await cmp('System·' + v, { canvas: true }); }
+    for (const v of ['ontology', 'customers', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, v => { (document.getElementById('menu-mech') || document.getElementById('nav-system')).click(); const b = document.getElementById('sysview-' + v); if (b && !b.disabled) b.click(); }, v); await A.waitForTimeout(350); await cmp('Mechanics·' + v, { canvas: true }); }
     for (const p of [A, B]) await act(p, () => document.getElementById('menu-ledger').click()); await cmp('Ledger', { ledger: true });
     for (const p of [A, B]) await act(p, () => document.getElementById('nav-company').click());
     return out;
@@ -62,12 +62,13 @@ const PREV = 'file://' + PREV_FILE;
   }
   for (const pk of ['wA', 'arr']) {
     const A = await open(URL, pk, true, 'exp'), B = await open(PREV, pk, true, null);
-    /* Step 1D made Company one world on purpose (company-accept holds it); System and the Ledger stay exactly as they were */
-    unch[pk] = (await surfaces(A, B)).filter(x => !/^Company/.test(x)); await A.close(); await B.close();
+    /* Company became one world on purpose (company-accept holds it) and System became Model Mechanics (mechanics-accept);
+       the Model Ledger stays exactly as it was */
+    unch[pk] = (await surfaces(A, B)).filter(x => !/^Company|^Mechanics/.test(x)); await A.close(); await B.close();
   }
-  rec('INVARIANT: viewing Base with an Experiment present, every Company lens, System view and the Model Ledger is identical — markup, canvas pixels, ledger table — to the same world with no Experiment at all (worlds A, C and ARR physics)',
+  rec('INVARIANT: viewing Base with an Experiment present, every Company lens, Model Mechanics view and the Model Ledger is identical — markup, canvas pixels, ledger table — to the same world with no Experiment at all (worlds A, C and ARR physics)',
       Object.values(inv).every(x => x.length === 0), JSON.stringify(inv).slice(0, 600));
-  rec('UNCHANGED: viewing the Experiment reproduces the previous build exactly on every System view and the Ledger (Company is one world since Step 1D — company-accept)',
+  rec('UNCHANGED: viewing the Experiment reproduces the previous build exactly on the Ledger (Company is one world since Step 1D — company-accept; System is now Model Mechanics — mechanics-accept)',
       Object.values(unch).every(x => x.length === 0), JSON.stringify(unch).slice(0, 600));
 
   /* ---- HIT-TESTS and INSPECT ---- */
@@ -97,7 +98,7 @@ const PREV = 'file://' + PREV_FILE;
   rec('LIFECYCLE: choosing a world to view never changes either world (same assumptions, same runs); editing any law returns the view to the Experiment', life.v1 === 'base' && life.same && life.afterEdit === 'exp', JSON.stringify(life));
   const where = async p => p.evaluate(() => { const vis = sel => [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().height > 0).length; const out = {};
     document.getElementById('nav-company').click(); out.company = vis('.viewing');
-    document.getElementById('nav-system').click(); out.system = vis('.viewing');
+    document.getElementById('menu-mech').click(); out.system = vis('.viewing');
     document.getElementById('menu-ledger').click(); out.ledger = vis('.viewing');
     document.getElementById('nav-compare').click(); out.compare = vis('.viewing'); document.getElementById('nav-company').click(); return out; });
   const wX = await where(X), wB = await where(B);
@@ -105,7 +106,7 @@ const PREV = 'file://' + PREV_FILE;
       wX.company === 1 && wX.system === 1 && wX.ledger === 1 && wX.compare === 0 && Object.values(wB).every(n => n === 0), JSON.stringify({ exp: wX, none: wB }));
   const guards = await A.evaluate(() => { document.querySelector('[data-vw="base"]').click(); document.getElementById('nav-company').click(); const t = document.getElementById('side').innerText;
     document.querySelector('.lensnav .btn[data-lens="cash"]').click(); const fin = !!document.querySelector('#lens-cash [data-finv]');
-    document.getElementById('nav-system').click(); document.getElementById('sysview-company').click(); const delta = !document.getElementById('cmpmode').hidden;
+    document.getElementById('menu-mech').click(); const delta = !!document.getElementById('cmpmode');
     document.getElementById('nav-company').click(); return { vsBase: /vs Base/.test(t), strip: document.getElementById('causal-slot').innerHTML.length, fin, delta }; });
   rec('BASE PAGE: no "vs Base" marks, no Compare strip, no Financials Δ, no Flows Absolute/Delta — nothing that reads the Experiment', !guards.vsBase && guards.strip === 0 && !guards.fin && !guards.delta, JSON.stringify(guards));
 

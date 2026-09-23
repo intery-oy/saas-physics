@@ -84,7 +84,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const w0 = await open(1440, 900, true);
   const wl = await pg0(w0);
   async function pg0(q){ return q.evaluate(() => { const W = document.getElementById('welcome'); const t = W.innerText;
-    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Base Settings','Company','Experiment','Compare','System','Inspect'].every(k => new RegExp(k + ' ·').test(t)),
+    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Base Settings','Company','Experiment','Compare','Model Mechanics','Inspect'].every(k => new RegExp(k + ' ·').test(t)),
       marks: /⋈/.test(t) && /⌈⌉/.test(t) && /→/.test(t) && /↯/.test(t), time: /M36 · month/i.test(t) && /R12M/.test(t), start: /Three ways to start/i.test(t), noreal: /no real company/i.test(t) && /illustrative/i.test(t),
       appHidden: document.elementFromPoint(720, 450) && !!document.elementFromPoint(720, 450).closest('#welcome') }; }); }
   rec('OPENING PAGE: a first visit lands on the opening page — what this is and is not, the six parts of the portal, the marks, the time basis, three ways to start, and a statement that the data is illustrative — covering the app beneath',
@@ -159,7 +159,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await setScrub(pg, 24);
 
   /* ---- HIERARCHY (Compare) ---- */
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);   /* a preset loads from the drawer; Compare analyses it */
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);   /* a preset loads from the drawer; Compare analyses it */
   const spine = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); if (!s) return null;
     const causes = [...s.querySelectorAll('.cause')].map(c => ({ lvl: [...c.classList].filter(x => /^l\d$/.test(x))[0], head: (c.querySelector('.eyebrow, h5, .ch') || c).innerText.split('\n')[0] }));
     const layers = [...s.querySelectorAll('.cause.l1 .exp-layer, .cause.l1 .mh, .cause.l1 .eyebrow')].map(e => e.textContent);
@@ -175,24 +175,24 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
 
   /* ---- DRILL-DOWN (System) ---- */
   await pack(pg, 'full'); await setScrub(pg, 20);
-  await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(500);
   const v0 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 30 + 2 * 150 + 64, 330 + 56); const v1 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 1260 - 55, 22); const v2 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
-  await clickModel(pg, 30 + 7 * 150 + 64, 330 + 56); const v3 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
+  await clickModel(pg, 30 + 6 * 150 + 64, 330 + 56); const v3 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 1260 - 55, 22); const v4 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 630, 115); const v5 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 1260 - 55, 22);
-  rec('DRILL-DOWN: System opens on the ontology; CUSTOMERS opens the customer layer, CASH the flows, the hypotheses box the hypotheses layer; ‹ Ontology returns each time',
-      v0 === 'ontology' && v1 === 'customers' && v2 === 'ontology' && v3 === 'company' && v4 === 'ontology' && v5 === 'hypotheses', JSON.stringify([v0, v1, v2, v3, v4, v5]));
+  rec('DRILL-DOWN: Model Mechanics opens on the Overview; CUSTOMERS opens the customer layer, BILLING the cash layer; the hypotheses box opens nothing (there is no Hypotheses view); ‹ Overview returns each time',
+      v0 === 'ontology' && v1 === 'customers' && v2 === 'ontology' && v3 === 'cash' && v4 === 'ontology' && v5 === 'ontology', JSON.stringify([v0, v1, v2, v3, v4, v5]));
   await pack(pg, 'arr'); await pg.waitForTimeout(200);
   const vOff0 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 30 + 2 * 150 + 64, 330 + 56); const vOff = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   rec('DRILL-DOWN: in the ARR-only world an off node (CUSTOMERS, dotted) opens nothing — absent mechanisms are shown, never navigable', vOff0 === 'ontology' && vOff === 'ontology', JSON.stringify([vOff0, vOff]));
   const views = await pg.evaluate(() => [...document.querySelectorAll('#sysviews .btn')].map(b => b.textContent));
-  /* the list is Ontology, then the layers — mechanisms only; the Model Ledger is the proof layer, under ⋯ (Step 2A) */
-  rec('DRILL-DOWN: the System view list starts with Ontology, then the layers, and holds mechanisms only — no Model Ledger',
-      views[0] === 'Ontology' && views.indexOf('Model Ledger') < 0 && views.length === 6, views.join('|'));
+  /* the list is the Overview, then the three layer mechanisms; the Model Ledger is the proof layer, under ⋯ */
+  rec('DRILL-DOWN: the Model Mechanics view list is Overview · Customers · Monetization · Cash — mechanisms only, no Flows, no Hypotheses, no Model Ledger',
+      views.join('|') === 'Overview|Customers|Monetization|Cash', views.join('|'));
   await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
 
   /* ---- PROVENANCE (Inspect) ---- */
@@ -217,7 +217,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
 
   /* ---- WORLDS ---- */
-  for (const [id, name, want] of [['wA', 'A · enterprise SaaS', { custLo: 100, custHi: 400, term: 12, timing: 'advance', lag: 4 }], ['wB', 'B · usage-heavy AI', { custLo: 2000, custHi: 8000, term: 1, timing: 'arrears', lag: 0 }], ['wC', 'C · SMB', { custLo: 6000, custHi: 12000, term: 1, timing: 'advance', lag: 0 }]]) {
+  for (const [id, name, want] of [['wA', 'A · enterprise SaaS', { custLo: 100, custHi: 400, term: 12, timing: 'advance', lag: 4 }], ['wB', 'B · usage-heavy AI', { custLo: 2000, custHi: 8000, term: 1, timing: 'arrears', lag: 0 }], ['wC', 'SMB', { custLo: 6000, custHi: 12000, term: 1, timing: 'advance', lag: 0 }]]) {
     await pack(pg, id); await setScrub(pg, 24);
     const w = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.expRes.months[23], mo = D.expRes.derived.monetization;
       const lens = [...document.querySelectorAll('#side .lens')].map(l => l.innerText);
@@ -236,7 +236,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(300);
     rec('WORLD ' + name + ': one change to S&M reads as a causal comparison (changed → system → company) in this world', /S&M/.test(cmp) && /new (MRR|ARR) per month/.test(cmp) && /(MRR|ARR) M60/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' | '));
     await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
-    await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(500);
+    await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(500);
     const onto = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, side: document.getElementById('side').innerText.slice(0, 80) }));
     rec('WORLD ' + name + ': System opens on the ontology with every layer present', onto.view === 'ontology', JSON.stringify(onto));
     await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
@@ -266,7 +266,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
         hier.heroTop < hier.navTop && hier.navTop < hier.figTop && hier.visibleLenses === 0 && hier.figOpen && Math.abs(hier.heroLeft - hier.navLeft) < 2 && hier.heroW <= hier.stageW && geo.rail.left < 0 && railGeo === 0 && geo.toggle !== 'none' && (w > 760 || (railW >= w - 1 && hier.sceneH <= 300)),
         JSON.stringify({ hier, railClosed: geo.rail.left, railOpen: railGeo, railW, toggle: geo.toggle }));
     if (w === 390) {
-      await q.evaluate(() => document.getElementById('nav-system').click()); await q.waitForTimeout(500);
+      await q.evaluate(() => document.getElementById('menu-mech').click()); await q.waitForTimeout(500);
       const sys = await q.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(), s = document.querySelector('.stage'); return { cw: c.width, ch: c.height, scroll: s.scrollWidth > s.clientWidth, pageW: document.documentElement.scrollWidth }; });
       rec('LAYOUT 390 · System: the ontology keeps its size inside a horizontally scrolling frame (never shrunk to illegibility); the page itself does not scroll sideways', sys.cw >= 1000 && sys.ch >= 600 && sys.scroll && sys.pageW <= 390, JSON.stringify(sys));
     }

@@ -195,11 +195,6 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
      cost — each must still read as a PLAIN eur()/d()/n() call, never the
      basis-aware reur()/rd()/rn()/reurS() family. */
   var exemptPatterns = [
-    /n\(d\.cashClosing\)/,
-    /n\(d\.revenue\)/,
-    /n\(d\.grossProfit\)/,
-    /n\(d\.otherOpex\)/,
-    /n\(d\.fcf\)/,
     /var finSE = function\(v\)\{ return v<0 \? '−'\+eur\(-v\) : eur\(v\); \}/,   // Financials · figure (EBITA, FCF, NWC in plain euros)
     /return \{ t:finFk\(v\), c:/,                                          // Financials · statements (plain € thousands), full build and month tick alike
     /eur\(em\.cashClosing\)/,
@@ -227,10 +222,6 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
   var recurringPatterns = [
     /reur\(v\)/,                          // Company ARR gridlines
     /reur\(expRes\.months\[selectedMonth\(\)-1\]\.cumulative\.leakage\)/,     // Company "CUMULATIVE HISTORICAL LEAKAGE" (§1: canonical selected-month figure, not the continuous lerpAt it used to read)
-    /rn\(d\.closingARR\)/,                // System STOCK
-    /rn\(d\.newARR\)/,                    // System FLOW New
-    /rn\(d\.expansion\)/,                 // System FLOW Expansion
-    /rn\(d\.leakage\)/,                   // System FLOW Leakage
     /reur\(em\.closingARR\)/,             // Company headline
     /reur\(em\.openingARR\)/,             // bridge
     /reur\(em\.closingARR\)/,         // composition

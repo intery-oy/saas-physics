@@ -14,7 +14,6 @@
  *   LEDGER      the marked month is in view after a scrub, in both directions
  *   EDGE        no right-margin chart label overruns its margin
  *   GUTTER      every row in the Change drawer starts on the drawer's gutter
- *   LEGEND      the Hypotheses legend names the colour that is drawn
  *   CUE         a pane that scrolls says so, and stops saying so at the bottom
  *
  * Run: node defects-accept.js
@@ -171,19 +170,6 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     const flush = rows.filter(r => r.left < 8);
     rec('GUTTER: every row in the Change drawer starts on the drawer\'s own gutter — the layer heads were the one kind of row that did not, and their first letter was cut by the pane edge',
         rows.length > 6 && flush.length === 0, JSON.stringify(flush.slice(0, 3)));
-    await pg.close();
-  }
-
-  /* ---------------- LEGEND: the drawn colour is the named colour ---------------- */
-  {
-    const pg = await open(1440, 900); await enter(pg); await pack(pg, 'full'); await nav(pg, 'System'); await sys(pg, 'hypotheses');
-    const said = await pg.evaluate(() => {
-      /* the legend is drawn to canvas; the source string is what the check can read */
-      const src = document.documentElement.innerHTML;
-      return { orange: /Orange dot: the decision/.test(src), indigo: /Indigo dot: the decision/.test(src) };
-    });
-    rec('LEGEND: the Hypotheses legend names the colour actually drawn for the decision mark (indigo #8b8df0), not a colour the view never uses',
-        said.indigo && !said.orange, JSON.stringify(said));
     await pg.close();
   }
 

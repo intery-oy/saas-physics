@@ -2,13 +2,14 @@
  * SaaS Physics — the frozen-baseline architecture.
  *
  *   NO HIDDEN BASE   a fresh load has a draft and no Base: it opens on Base Settings, and Company,
- *                    Experiment, Compare, System and the Ledger wait for the first freeze
+ *                    Experiment, Compare, Model Mechanics and the Ledger wait for the first freeze
  *   FREEZE           Freeze Base deep-copies the draft into an immutable Base (a write throws) and
  *                    starts the Experiment as an exact clone of it
  *   DRAFT            editing Base Settings changes only the draft
  *   EXPERIMENT       editing the Experiment changes only the Experiment
  *   RESET            Reset reproduces the frozen Base exactly, month by month
- *   PRESETS          no preset, recipe or example, ever writes the frozen Base
+ *   PRESETS          Browse presets offers change recipes only, and none writes the frozen Base
+ *   EXAMPLES         an Example is a Base Settings template: freezing it sets up its matched Experiment
  *   RE-FREEZE        with an Experiment it asks once; Cancel changes nothing, Confirm replaces the
  *                    Base and resets the Experiment; with none it does not ask
  *   VIEWING BASE     is the frozen Base: the Ledger under Base equals the Ledger of a page whose
@@ -34,10 +35,10 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
   const pg = await open();
   const fresh = await D(pg, () => { const X = window.__SP_DEBUG;
     return { layer: X.layer, base: X.baseA, frozen: X.frozenBase, draft: X.draftBase && X.draftBase.label,
-      off: ['nav-company', 'nav-compare', 'nav-system', 'rail-toggle', 'menu-ledger'].every(id => document.getElementById(id).disabled),
+      off: ['nav-company', 'nav-compare', 'rail-toggle', 'menu-mech', 'menu-ledger'].every(id => document.getElementById(id).disabled),
       state: document.getElementById('bp-state').textContent, freeze: document.getElementById('base-freeze').textContent }; });
-  rec('NO HIDDEN BASE: a fresh load opens on Base Settings with a draft (A · Enterprise) and no Base; every surface that reads a company waits for the first freeze',
-      fresh.layer === 'base' && fresh.base === null && fresh.frozen === null && fresh.draft === 'A · Enterprise' && fresh.off && /No Base frozen/.test(fresh.state) && fresh.freeze === 'Freeze Base', JSON.stringify(fresh));
+  rec('NO HIDDEN BASE: a fresh load opens on Base Settings with a draft (Enterprise) and no Base; every surface that reads a company waits for the first freeze',
+      fresh.layer === 'base' && fresh.base === null && fresh.frozen === null && fresh.draft === 'Enterprise' && fresh.off && /No Base frozen/.test(fresh.state) && fresh.freeze === 'Freeze Base', JSON.stringify(fresh));
   await D(pg, () => document.getElementById('nav-company').click());
   rec('NO HIDDEN BASE: Company cannot be opened before a freeze', (await D(pg, () => window.__SP_DEBUG.layer)) === 'base', '');
 
@@ -50,7 +51,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
       draftShared: X.draftBase.a === F.a, expIsClone: X.expA !== F.a && JSON.stringify(X.expA) === JSON.stringify(F.a), state: (document.getElementById('nav-base').click(), document.getElementById('bp-state').textContent),
       disabled: document.getElementById('base-freeze').disabled }; });
   rec('FREEZE: the draft is deep-copied into an immutable Base (a write to it throws, at any depth); the Experiment starts as a clone; Company opens; Base Settings says "Base frozen ✓" and offers nothing to freeze',
-      fz.layer === 'stock' && fz.n === 1 && fz.same && fz.threw && fz.deep && !fz.draftShared && fz.expIsClone && /^Base frozen ✓ · A · Enterprise/.test(fz.state) && fz.disabled, JSON.stringify(fz));
+      fz.layer === 'stock' && fz.n === 1 && fz.same && fz.threw && fz.deep && !fz.draftShared && fz.expIsClone && /^Base frozen ✓ · Enterprise/.test(fz.state) && fz.disabled, JSON.stringify(fz));
 
   /* ---- DRAFT ---- */
   const snap = p => D(p, () => ({ base: JSON.stringify(window.__SP_DEBUG.frozenBase), exp: JSON.stringify(window.__SP_DEBUG.expA), draft: JSON.stringify(window.__SP_DEBUG.draftBase.a) }));
@@ -91,19 +92,27 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
 
   /* ---- PRESETS ---- */
   const presets = [];
-  for (const base of ['arr', 'customers', 'wA', 'ex-history', 'ex-pair', 'ex-expcost', 'ex-customers', 'ex-monetization', 'ex-mix']) {
+  for (const base of ['arr', 'customers', 'wA', 'wB', 'wC']) {
     presets.push(await D(pg, b => { const X = window.__SP_DEBUG; X.useBase(b); const before = JSON.stringify(X.frozenBase), out = [];
       document.querySelectorAll('#preset-list .prow').forEach(r => { if (r.disabled || r.hidden) return; r.click();
         out.push({ id: r.dataset.id, loaded: X.activeScenario && X.activeScenario.id, base: JSON.stringify(X.frozenBase) === before && X.baseA === X.frozenBase.a });
         document.getElementById('reset').click(); });
       return { b, n: out.length, ok: out.every(o => o.loaded === o.id && o.base), bad: out.filter(o => !(o.loaded === o.id && o.base)) }; }, base));
   }
-  rec('PRESETS: on every Base, every preset offered loads and none writes the frozen Base; the reference Base offers the eight recipes, each example Base its own comparison',
-      presets.every(p => p.ok) && presets[0].n === 8 && presets.slice(3).every(p => p.n >= 1), JSON.stringify(presets.map(p => p.b + ':' + p.n + (p.ok ? '' : ' BAD ' + JSON.stringify(p.bad)))));
-  const cmp6 = await D(pg, () => { const X = window.__SP_DEBUG; X.useBase('ex-history'); document.querySelector('#preset-list .prow[data-id="history"]').click(); document.getElementById('nav-compare').click();
+  const rows = await D(pg, () => [...document.querySelectorAll('#preset-list .prow')].map(r => r.dataset.id).join(','));
+  rec('PRESETS: Browse presets holds the eight change recipes and nothing else; on every Base each one offered loads and none writes the frozen Base',
+      presets.every(p => p.ok) && presets[0].n === 8 && rows === 'retention,expansion,efficiency,margin,bounded,lag,billing,hypothesis', JSON.stringify({ rows, bases: presets.map(p => p.b + ':' + p.n + (p.ok ? '' : ' BAD ' + JSON.stringify(p.bad))) }));
+  const ex = await D(pg, () => { const X = window.__SP_DEBUG, out = [];
+    for (const id of ['pair', 'history', 'expcost', 'customers', 'monetization', 'mix']) { X.useBase('ex-' + id);
+      out.push({ id, set: X.activeScenario && X.activeScenario.id === id, base: X.baseA === X.frozenBase.a && X.baseSource === 'ex-' + id, differs: JSON.stringify(X.expA) !== JSON.stringify(X.baseA) || X.expStart !== X.baseStart });
+      document.getElementById('reset').click(); out[out.length - 1].reset = !X.activeScenario && JSON.stringify(X.expA) === JSON.stringify(X.frozenBase.a) && X.expStart === X.baseStart; }
+    return out; });
+  rec('EXAMPLES: each of the six lives under Base Settings → Examples; freezing it sets up its matched Experiment against it, and Reset returns to that Base',
+      ex.every(e => e.set && e.base && e.differs && e.reset), JSON.stringify(ex.filter(e => !(e.set && e.base && e.differs && e.reset))));
+  const cmp6 = await D(pg, () => { const X = window.__SP_DEBUG; X.useBase('ex-history'); document.getElementById('nav-compare').click();
     return { h: document.querySelector('#compare-panel h4').textContent, l1: document.querySelector('#compare-panel .cause.l1').innerText, idle: !!document.querySelector('#compare-panel .causal.idle'), ev: !!document.getElementById('preset-evidence'), mature: X.baseStart.openingCohorts[0].age, young: X.expStart.openingCohorts[0].age }; });
-  rec('PRESETS · 6: its Base is the mature book, its Experiment the young one; Compare names the opening-state change and shows the evidence — never "Experiment equals Base"',
-      cmp6.h === 'Preset 6 · Same KPIs, different history' && /Opening base · age at M0 · 24 months → 0 months/.test(cmp6.l1) && !cmp6.idle && cmp6.ev && cmp6.mature === 24 && cmp6.young === 0, JSON.stringify(cmp6));
+  rec('EXAMPLE 6: its Base is the mature book, its Experiment the young one; Compare names the opening-state change and shows the evidence — never "Experiment equals Base"',
+      cmp6.h === 'Example 6 · Same KPIs, different history' && /Opening base · age at M0 · 24 months → 0 months/.test(cmp6.l1) && !cmp6.idle && cmp6.ev && cmp6.mature === 24 && cmp6.young === 0, JSON.stringify(cmp6));
   const eq = await D(pg, () => { window.__SP_DEBUG.useBase('arr'); document.getElementById('nav-compare').click(); return document.querySelector('#compare-panel h4').textContent; });
   rec('COMPARE: with no change it says the Experiment equals the frozen Base', eq === 'Experiment equals Base', eq);
 
@@ -120,7 +129,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
   /* ---- NO WORLDS ---- */
   const nw = await D(pg, () => ({ btn: !!document.getElementById('world-btn'), menu: !!document.getElementById('world-menu'), text: /Preset world|Switch world/.test(document.body.innerText + document.documentElement.innerHTML),
     nav: [...document.querySelectorAll('.head .nav > .btn')].map(b => b.id).join(',') }));
-  rec('NO WORLDS: no World menu or world switch remains; the header reads Base Settings · Company · Experiment · Compare · System', !nw.btn && !nw.menu && !nw.text && nw.nav === 'nav-base,nav-company,rail-toggle,nav-compare,nav-system', JSON.stringify(nw));
+  rec('NO WORLDS: no World menu or world switch remains; the header reads Base Settings · Company · Experiment · Compare', !nw.btn && !nw.menu && !nw.text && nw.nav === 'nav-base,nav-company,rail-toggle,nav-compare', JSON.stringify(nw));
 
   rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   await br.close();

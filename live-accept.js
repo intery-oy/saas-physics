@@ -61,16 +61,16 @@ async function run(pg, want) { const is = await running(pg);
 
   /* ---- NAV ---- */
   const navs = [];
-  for (const id of ['nav-compare', 'nav-system', 'nav-company']) {
+  for (const id of ['nav-compare', 'nav-company']) {
     await press(pg, '#' + id);
     navs.push(await pg.evaluate(i => document.getElementById(i).classList.contains('on'), id));
   }
   /* presets live in the Experiment drawer: the chip, then Browse presets */
   await press(pg, '#rail-toggle'); await press(pg, '#nav-scen');
-  navs.push(await pg.evaluate(() => !document.getElementById('preset-list').hidden && document.querySelectorAll('#preset-list .prow').length === 14 && document.querySelector('.app').classList.contains('rail-open')));
+  navs.push(await pg.evaluate(() => !document.getElementById('preset-list').hidden && document.querySelectorAll('#preset-list .prow').length === 8 && document.querySelector('.app').classList.contains('rail-open')));
   await press(pg, '#rail-close');
   await press(pg, '#nav-company');
-  rec('NAV: with the clock running, Compare, System and Company each take the layer on one press, and the presets open from the Experiment drawer',
+  rec('NAV: with the clock running, Compare and Company each take the layer on one press, and the presets open from the Experiment drawer',
       navs.every(Boolean) && await running(pg), JSON.stringify(navs));
 
   /* ---- FINANCIALS ---- */
@@ -83,8 +83,8 @@ async function run(pg, want) { const is = await running(pg);
   await pg.waitForTimeout(1500);
   const f1 = await pg.evaluate(() => ({ st: Object.assign({}, window.__SP_DEBUG.finStats), m: Math.round(+document.getElementById('scrub').value), kept: document.body.contains(window.__finCell) && document.body.contains(window.__finPath), period: document.querySelector('#lens-cash [data-fp]').textContent }));
   const went = await press(pg, '.fin-go[data-go="cash"]');
-  const landed = await pg.evaluate(() => ({ sys: document.getElementById('nav-system').classList.contains('on'), view: window.__SP_DEBUG.sysView }));
-  rec('FINANCIALS: under a running clock the statements form in place — months pass, the period reads the new month, no rebuild, cells and chart paths are the same nodes — and a press on "Mechanism · System → Cash" lands there',
+  const landed = await pg.evaluate(() => ({ sys: window.__SP_DEBUG.layer === 'flow', view: window.__SP_DEBUG.sysView }));
+  rec('FINANCIALS: under a running clock the statements form in place — months pass, the period reads the new month, no rebuild, cells and chart paths are the same nodes — and a press on "Mechanism · Model Mechanics → Cash" lands there',
       f1.m > f0.m && f1.st.ticks > f0.st.ticks && f1.st.builds === f0.st.builds && f1.kept && f1.period !== f0.period && went && landed.sys && landed.view === 'cash',
       JSON.stringify({ f0: { st: f0.st, m: f0.m, period: f0.period }, f1, landed }));
   await press(pg, '#nav-company');

@@ -40,7 +40,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   await pg.evaluate(() => window.__SP_DEBUG.useBase('customers')); await pg.waitForTimeout(400); await scrub(36); t = await side();
   step('How much of the loss is customers leaving, and how much is customers shrinking?',
        ['World: + Customers (logo retention 92%, contraction 5%). Persistence now reads derived on the Change rail; the Customers lens shows customers and MRR per customer over 60 months, then where MRR growth came from.'].concat(desc(t, ['MRR', 'customers', 'MRR per customer', 'logo retention · R12M', 'net dollar retention · R12M'])).concat([grab(t, 'CUSTOMER BASE DEVELOPMENT', 60), grab(t, 'WHERE DID MRR GROWTH COME FROM', 90)]));
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500); t = await side();
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500); t = await side();
   step('Could two companies with identical ARR, GRR and NRR be losing customers at different rates?',
        ['Preset 10 · Customers behind the ARR (Base L 87.4%/C 0 vs Experiment L 92%/C 5%, both persistence 87.4%).'].concat(rows(t, ['derived persistence', 'max |ΔMRR| over 60 months', 'max |ΔGRR|, |ΔNRR| over all measurement dates', 'logo retention', 'contraction', 'customers M60', 'churned MRR CUM', 'contraction CUM', 'ARPA M60'])).concat([grab(t, 'Same ARR, different system', 200)]));
 
@@ -48,7 +48,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
   await click('#nav-company'); await pg.evaluate(() => window.__SP_DEBUG.useBase('priced')); await pg.waitForTimeout(400); await scrub(36); t = await side();
   step('How much of the revenue change is price, how much usage, how much adoption — and where does expansion stop?',
        ['World: + Monetization (platform €12,000 + usage 80% × 100 units × €100; drivers with caps). The expansion coefficient reads bypassed.'].concat([grab(t, 'MRR COMPOSITION', 60)]).concat(desc(t, ['MRR per customer', 'fixed revenue', 'variable revenue'])));
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.querySelector('#preset-list .prow[data-id="mix"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500); t = await side();
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500); t = await side();
   step('Same customers, same laws — does the revenue mix alone change dollar retention?',
        ['Preset 12 · Fixed or variable? (all platform €20,000 vs platform €12,000 + usage €8,000).'].concat(rows(t, ['opening MRR', 'customers · ARPA', 'M1 contraction', 'R12M GRR at M12', 'variable share M60', 'gross dollar retention R12M', 'MRR M60', 'ending cash M60'])));
 
@@ -69,7 +69,7 @@ function rows(txt, labels) { return labels.map(l => { const m = txt.match(new Re
        ['Preset 14 · A retention programme (Base: no hypothesis; Experiment: persistence × 1.05 from M9 for 24 months, €1.55m).'].concat([grab(t, 'Hypothesis · ↯', 120)]).concat(rows(t, ['leakage CUM', 'expansion CUM', 'Retention programme · persistence', 'hypothesis cost CUM', 'MRR M60', 'EBITA CUM', 'cash trough', 'ending cash M60', 'cash overtakes Base'])));
 
   /* 6. the System map, layer by layer */
-  await click('#nav-company'); await pg.evaluate(() => window.__SP_DEBUG.useBase('full')); await pg.waitForTimeout(400); await scrub(20); await click('#nav-system');
+  await click('#nav-company'); await pg.evaluate(() => window.__SP_DEBUG.useBase('full')); await pg.waitForTimeout(400); await scrub(20); await click('#menu-mech');
   const views = [];
   for (const v of ['ontology', 'company', 'customers', 'monetization', 'cash', 'hypotheses']) { await click('#sysview-' + v); const ok = await pg.evaluate(() => window.__SP_DEBUG.sysView); views.push(v + (ok === v ? ' ✓' : ' ✗')); }
   await click('#menu-ledger');   /* the Model Ledger is reached from ⋯, not a System view */

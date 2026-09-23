@@ -40,7 +40,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
     await pg.waitForTimeout(300);
     await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack);
     await pg.waitForTimeout(300);
-    await pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'System'); if (b) b.click(); });
+    await pg.evaluate(() => document.getElementById('menu-mech').click());   /* Model Mechanics, under ⋯ */
     await pg.waitForTimeout(200);
     await pg.evaluate(() => document.getElementById('sysview-customers').click());
     await pg.waitForTimeout(200);
@@ -222,19 +222,19 @@ const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
         Object.values(reach).every(r => r.drew && r.onScreen && r.transport && !r.hs && r.cvW > 400 && r.cvH > 200), JSON.stringify(reach));
   }
 
-  /* ---------------- the other System views still draw ---------------- */
+  /* ---------------- the other Model Mechanics views still draw ---------------- */
   {
     const pg = await open(1440, 900, 'full');
     const views = await pg.evaluate(async () => {
       const out = {};
-      for (const v of ['ontology', 'company', 'monetization', 'cash', 'hypotheses', 'customers']) {
+      for (const v of ['ontology', 'monetization', 'cash', 'customers']) {
         document.getElementById('sysview-' + v).click();
         await new Promise(r => setTimeout(r, 160));
         out[v] = window.__SP_DEBUG.sysView === v;
       }
       return out;
     });
-    rec('NEIGHBOURS: the other System layers are untouched — each still opens and draws', Object.values(views).every(Boolean), JSON.stringify(views));
+    rec('NEIGHBOURS: the other Model Mechanics views are untouched — each still opens and draws', Object.values(views).every(Boolean), JSON.stringify(views));
     await pg.close();
   }
 

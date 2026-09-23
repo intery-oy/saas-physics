@@ -144,23 +144,20 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('OBSERVE (screen): the Growth engine\'s cohort node at month 20 under a 6-month lag counts the opening base + 14 realised cohorts alive, not 20', alive === 15, 'shown ' + alive);
 
   /* ---- SYSTEM ---- */
-  await jsClick('#nav-system'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
   const sysAbs = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, pending: window.__SP_DEBUG.SS.stateAt(window.__SP_DEBUG.expRes, window.__SP_DEBUG.selectedMonth()).pendingNewARR }));
-  rec('SYSTEM (absolute): the side panel states all three mechanisms with their live settings and what each does not touch',
-      sysAbs.txt.includes('Mechanisms on the map') && sysAbs.txt.includes('Acquisition capacity · €2.00m/mo') && sysAbs.txt.includes('Acquisition lag · 6 months') &&
-      sysAbs.txt.includes('Expansion realisation cost · 0.25× per €1') && sysAbs.txt.includes('touches no ARR quantity') && sysAbs.txt.includes('never how much per euro'), '');
+  rec('MECHANICS: the Overview notes explain structure only — the stock setting its own rates and the links the engine does not have — and leave the live settings to the drawer and Compare',
+      !sysAbs.txt.includes('Mechanisms on the map') && sysAbs.txt.includes('The stock sets its own rates') && sysAbs.txt.includes('Two links the engine does not have'), '');
   rec('SYSTEM: systemstate.stateAt exposes the engine\'s pending stock at the selected month, equal to the month record',
       Math.abs(sysAbs.pending - indep.months[19].pendingNewARR) < 1e-6, sysAbs.pending + ' vs ' + indep.months[19].pendingNewARR);
-  await jsClick('#cmp-delta'); await pg.waitForTimeout(400);
-  const sysDelta = await pg.evaluate(() => document.getElementById('side').textContent);
-  rec('SYSTEM (delta): renders with the mechanisms on and reports the stocks as Experiment − Base', sysDelta.includes('Stocks · month') && sysDelta.includes('Flows into and out of'), '');
-  await jsClick('#cmp-abs'); await pg.waitForTimeout(200);
+  const sysDelta = await pg.evaluate(() => ({ delta: !!document.getElementById('cmp-delta'), tables: /Stocks · month|Flows into and out of/.test(document.getElementById('side').textContent) }));
+  rec('MECHANICS: no Delta mode and no stock or flow tables — Compare owns Base against Experiment, Company and the Ledger own the figures', !sysDelta.delta && !sysDelta.tables, JSON.stringify(sysDelta));
 
   /* ---- SCENARIOS 7–9 ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(400);   /* the Forces rail (and Reset) is hidden on the System layer */
   await jsClick('#reset'); await pg.waitForTimeout(300);
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-expcost'), document.querySelector('#preset-list .prow[data-id="expcost"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-expcost'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s7 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     dARR: Math.max(...window.__SP_DEBUG.expRes.months.map((m, i) => Math.abs(m.closingARR - window.__SP_DEBUG.baseRes.months[i].closingARR))),
     dCash: window.__SP_DEBUG.expRes.months[59].cashClosing - window.__SP_DEBUG.baseRes.months[59].cashClosing }));

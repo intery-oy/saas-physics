@@ -53,8 +53,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const clickHit = async (p, h) => { const pt = await p.evaluate(h => { const c = document.getElementById('scene').getBoundingClientRect(), f = window.__SP_DEBUG.sysFit;
       return { x: c.left + f.ox + h.x * f.s, y: c.top + f.oy + h.y * f.s }; }, h); await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(300); };
   const sys = {}, sysNo = {};
-  for (const v of ['company', 'customers', 'monetization']) {
-    await pg.evaluate(v => { document.getElementById('nav-system').click(); document.getElementById('sysview-' + v).click(); }, v); await pg.waitForTimeout(500);
+  for (const v of ['customers', 'monetization']) {
+    await pg.evaluate(v => { document.getElementById('menu-mech').click(); document.getElementById('sysview-' + v).click(); }, v); await pg.waitForTimeout(500);
     const hits = await pg.evaluate(() => { const D = window.__SP_DEBUG; return D.valveHits.map(h => ({ key: h.key, x: h.x, y: h.y })).concat(D.lawHits.map(h => ({ key: h.key, x: h.x + h.w / 2, y: h.y + h.h / 2 }))); });
     sysNo[v] = await pg.evaluate(() => document.querySelectorAll('.figbox input[type=range], #lawhost *').length);
     for (const h of hits) { if (sys[v + ':' + h.key]) continue;
@@ -62,9 +62,9 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       sys[v + ':' + h.key] = { ok: s.open && s.row === h.key && ring === h.key, row: s.row }; await closeDrawer(pg); await pg.waitForTimeout(150); }
   }
   const w2 = await worlds(pg);
-  rec('SYSTEM: every valve and law mark on the Flows, Customers and Monetization maps opens the Experiment drawer at its law, rings it on the map while open, and writes nothing',
-      Object.keys(sys).length >= 10 && Object.values(sys).every(x => x.ok) && w1 === w2, JSON.stringify(sys));
-  rec('ONE PATH (screen): no slider or on/off toggle outside the Experiment drawer on any Company lens or System map; the map carries no law chips of its own',
+  rec('MECHANICS: every valve and law mark on the Customers and Monetization mechanisms opens the Experiment drawer at its law, rings it on the map while open, and writes nothing',
+      Object.keys(sys).length >= 5 && Object.values(sys).every(x => x.ok) && w1 === w2, JSON.stringify(sys));
+  rec('ONE PATH (screen): no slider or on/off toggle outside the Experiment drawer on any Company lens or Model Mechanics view; the map carries no law chips of its own',
       Object.values(noEdit).every(n => n === 0) && Object.values(sysNo).every(n => n === 0), JSON.stringify({ company: noEdit, system: sysNo }));
 
   /* ---- BASE ---- */
