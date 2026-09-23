@@ -679,7 +679,7 @@ details.pl .cascade{margin-top:8px}
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
     <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">20a70de</span>
+    <span class="chip build" id="build-chip" title="The commit this page was built from">5b348de</span>
   </header>
 
   <aside class="rail">
@@ -5335,11 +5335,10 @@ details.pl .cascade{margin-top:8px}
         ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
         ctx.fillText('B · POPULATION OF VINTAGES', 30, 74);
         ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('every cohort alive this month,', 30, 88);
-        ctx.fillText('oldest at the top', 30, 100);
+        ctx.fillText('one row per cohort alive, oldest first', 30, 88);
         ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('per-customer recurring revenue  ·  position is the quantity', (BX0+BX1)/2, 74);
-        ctx.fillText('customers in that vintage', (NX0+NX1)/2, 74);
+        ctx.fillText('revenue per customer', (BX0+BX1)/2, 74);
+        ctx.fillText('customers', (NX0+NX1)/2, 74);
 
         var perLo = Math.min.apply(null, vints.map(function(x){ return x.per; }));
         var perHi = Math.max.apply(null, vints.map(function(x){ return x.per; }));
@@ -5397,86 +5396,90 @@ details.pl .cascade{margin-top:8px}
         ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle='rgba(230,233,242,.75)'; ctx.lineWidth=1.2;
         ctx.beginPath(); ctx.moveTo(ax, BTOP-8); ctx.lineTo(ax, BBOT+6); ctx.stroke(); ctx.restore();
         ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='rgba(230,233,242,.85)';
-        ctx.fillText('company ARPA '+reurP(cu.arpaClosing)+' /'+bp()+' — the customer-weighted mean of this distribution', ax, BBOT+20);
+        ctx.fillText('company ARPA '+reurP(cu.arpaClosing)+' /'+bp()+'  ·  weighted mean', ax, BBOT+20);
         ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText(vints.length+' vintages alive  ·  click one', 30, BBOT+20);
+        ctx.fillText(vints.length+' vintages  ·  click one', 30, BBOT+20);
 
-        /* ================= A · THE SELECTED VINTAGE ================= */
+        /* ================= A · THE SELECTED VINTAGE =================
+           The equation IS the band. Operands are large, operators quiet, and each
+           row's result lands in one right-hand column that the rows sum down. A law
+           and a cap explain the operand they sit under, so they are drawn beneath
+           it and small: they must never compete with the number they explain.
+           Exact to the euro, and annual — the unit the component laws are written
+           in; the total is restated once in the display basis to cross into B. */
         var AY = 306, AX = 30;
+        var aeur = function(v){ return '€'+Math.round(v).toLocaleString('en-GB'); };
+        var st = sel.r.monetization.state, hr = sel.r.monetization.headroom;
         ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
         ctx.fillText('A · WHY THIS VINTAGE PAYS THAT', AX, AY);
-        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText((sel.base ? 'opening base' : 'vintage M'+sel.id)+' · age '+sel.age+' · '+sel.n.toFixed(1)+' customers'+
-          '   ·   per customer, per year — the unit the component laws are written in', AX, AY+14);
-        var st = sel.r.monetization.state, hr = sel.r.monetization.headroom;
-        /* band A is the altitude where the reader CHECKS the arithmetic, so every
-           figure in it is exact to the euro. Abbreviation belongs to the company
-           bands, where a euro is noise; here a rounded factor breaks the product. */
-        var aeur = function(v){ return '€'+Math.round(v).toLocaleString('en-GB'); };
-        var blockH = Math.min(104, 216 / Math.max(1, st.length));
+        ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+        ctx.fillText((sel.base ? 'opening base' : 'vintage M'+sel.id)+'  ·  age '+sel.age+'  ·  '+sel.n.toFixed(1)+' customers', AX, AY+17);
+        var CP = 196, CU = 296, CR = 396, CE = 458, RR = 640, HY = AY+44;
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.textAlign='center'; ctx.fillText('penetration', CP, HY); ctx.fillText('units', CU, HY); ctx.fillText('price', CR, HY);
+        ctx.textAlign='right';  ctx.fillText('per customer, per year', RR, HY);
+        var ry = HY + 28;
+        function op(t, x){ ctx.textAlign='center'; ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText(t, x, ry); }
+        function sym(t, x){ ctx.textAlign='center'; ctx.font='13px "JetBrains Mono",monospace'; ctx.fillStyle='#4f586e'; ctx.fillText(t, x, ry-1); }
+        function law(key, x){ var v = lv(key);
+          ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(210,164,92,.8)';
+          ctx.fillText('⋈ '+(v>=0?'+':'')+pct(v,1)+'/yr', x, ry+17);
+          /* only a law that HAS a chip is a control; a component law is set in
+             Change, so its mark is a statement — a hit would blank every chip */
+          if(LAWCHIPS.some(function(Lc){ return Lc.k===key; })) lawHits.push({ key:key, x:x-45, y:ry+6, w:90, h:14 }); }
+        function res(v){ ctx.textAlign='right'; ctx.font='16px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2'; ctx.fillText(aeur(v), RR, ry); }
         st.forEach(function(s, k){
-          var sp = spec[k], fixed = sp.kind === 'fixed';
-          var y = AY + 56 + k*blockH;
-          /* a factor is printed at enough precision that the reader multiplying the
-             three cells lands on the product beside them; €33 × 26 missed it by 1.4% */
+          var sp = spec[k], fixed = sp.kind === 'fixed', key = function(f){ return 'monetization.components['+k+'].'+f; };
+          ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle = fixed ? '#c8cedd' : '#8b8df0';
+          ctx.fillText(sp.name, AX, ry-5);
+          ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText(fixed ? 'fixed' : 'variable', AX, ry+8);
           var uTxt = s.units<10 ? s.units.toFixed(2) : s.units<100 ? s.units.toFixed(1) : Math.round(s.units).toLocaleString('en-GB');
           var pTxt = s.price<100 ? '€'+s.price.toFixed(2) : aeur(s.price);
-          var cells = [['penetration', fixed ? '1.00' : pct(s.penetration,1), fixed ? null : 'monetization.components['+k+'].adoptionAnnual'],
-                       ['units',       uTxt,                                  fixed ? null : 'monetization.components['+k+'].usageGrowthAnnual'],
-                       ['price',       pTxt,                                  'monetization.components['+k+'].priceGrowthAnnual']];
-          ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle = fixed ? '#98a2b8' : '#8b8df0';
-          ctx.fillText(sp.name+(fixed ? ' · fixed' : ' · variable'), AX, y);
-          var cw = 118, cx0 = AX + 108;
-          cells.forEach(function(cl, j){
-            var cx = cx0 + j*(cw+10);
-            /* the law that moves this cell, above it */
-            if(cl[2]){
-              var lval = lv(cl[2]);
-              ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
-              ctx.fillText('⋈ '+(lval>=0?'+':'')+pct(lval,1)+'/yr', cx+cw/2, y-24);
-              ctx.strokeStyle='rgba(210,164,92,.55)'; ctx.lineWidth=1;
-              ctx.beginPath(); ctx.moveTo(cx+cw/2, y-20); ctx.lineTo(cx+cw/2, y-6); ctx.stroke();
-              /* only a law that HAS a chip is a control. A component law is set in
-                 Change, not here, so its mark is a statement and nothing else —
-                 registering a hit for it would blank every chip on the layer. */
-              if(LAWCHIPS.some(function(Lc){ return Lc.k===cl[2]; })) lawHits.push({ key:cl[2], x:cx, y:y-32, w:cw, h:16 });
-            }
-            /* the cell: a stock, because state is what the mechanism carries */
-            ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.2;
-            ctx.beginPath(); ctx.roundRect(cx, y+6, cw, 34, 3); ctx.fill(); ctx.stroke();
-            ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-            ctx.fillText(cl[0], cx+cw/2, y+18);
-            ctx.font='12px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-            ctx.fillText(cl[1], cx+cw/2, y+34);
-            if(j<2){ ctx.textAlign='center'; ctx.font='11px "Archivo",sans-serif'; ctx.fillStyle='#66708a'; ctx.fillText('×', cx+cw+5, y+27); }
-          });
-          /* the product, and the caps that bound the two cells that have them */
-          ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-          ctx.fillText('= '+aeur(s.penetration*s.units*s.price)+' /yr', cx0 + 3*(cw+10) + 4, y+34);
           if(fixed){
-            ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-            ctx.fillText('┄ a fixed line has no usage and no adoption: only its price moves', cx0, y+56);
+            /* a fee: every customer pays it, and neither usage nor adoption
+               reaches it — its absent terms are one quiet span, not two 1.00s */
+            ctx.textAlign='center'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#4f586e';
+            if(s.units === 1){
+              ctx.fillText('┄   fixed fee, every customer   ┄', (CP+CR)/2, ry-3);
+              res(s.price); law(key('priceGrowthAnnual'), RR-36);
+            } else {
+              ctx.fillText('┄ every customer ┄', CP, ry-3);
+              op(uTxt, CU); sym('×', (CU+CR)/2); op(pTxt, CR); sym('=', CE); res(s.units*s.price);
+              law(key('priceGrowthAnnual'), CR);
+            }
+            ry += 50;
           } else {
-            var caps = [[0, sp.penetrationCap, hr && hr[k] ? hr[k].penetration : null, 'pen cap '+pct(sp.penetrationCap,0)],
-                        [1, sp.unitsCap,       hr && hr[k] ? hr[k].units : null,       'units cap '+(sp.unitsCap===null?'none':Math.round(sp.unitsCap))]];
-            caps.forEach(function(cp){
+            op(pct(s.penetration,1), CP); sym('×', (CP+CU)/2); op(uTxt, CU); sym('×', (CU+CR)/2); op(pTxt, CR); sym('=', CE);
+            res(s.penetration*s.units*s.price);
+            law(key('adoptionAnnual'), CP); law(key('usageGrowthAnnual'), CU); law(key('priceGrowthAnnual'), CR);
+            /* the caps, as tracks filled to the headroom used, under the two
+               operands they bound */
+            [[CP, sp.penetrationCap, hr && hr[k] ? hr[k].penetration : null, pct(sp.penetrationCap,0)],
+             [CU, sp.unitsCap,       hr && hr[k] ? hr[k].units : null,       sp.unitsCap===null ? null : Math.round(sp.unitsCap).toLocaleString('en-GB')]]
+            .forEach(function(cp){
               if(cp[1]===null || cp[2]===null) return;
-              var cx = cx0 + cp[0]*(cw+10);
-              ctx.textAlign='left'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
-              ctx.fillText('⌈⌉ '+cp[3], cx, y+54);
-              /* the cap as a track, filled to the headroom actually used */
-              ctx.fillStyle='rgba(210,164,92,.16)'; ctx.fillRect(cx, y+58, cw, 5);
-              ctx.fillStyle='rgba(210,164,92,.85)'; ctx.fillRect(cx, y+58, cw*Math.max(0,Math.min(1,cp[2])), 5);
-              ctx.textAlign='right'; ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(210,164,92,.8)';
-              ctx.fillText(pct(cp[2],0)+' used', cx+cw, y+72);
+              var tw = 78, tx = cp[0]-tw/2;
+              ctx.fillStyle='rgba(210,164,92,.14)'; ctx.fillRect(tx, ry+24, tw, 3);
+              ctx.fillStyle='rgba(210,164,92,.7)';  ctx.fillRect(tx, ry+24, tw*Math.max(0,Math.min(1,cp[2])), 3);
+              ctx.textAlign='center'; ctx.font='8px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(210,164,92,.62)';
+              ctx.fillText(pct(cp[2],0)+' of cap '+cp[3], cp[0], ry+37);
             });
+            ry += 66;
           }
         });
-        ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-        var ptY = Math.min(AY + 56 + st.length*blockH + 22, 572);
-        ctx.fillText('this vintage pays  '+aeur(sel.per)+' /yr per customer', AX, ptY);
-        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('= '+reurP(sel.per)+' /'+bp()+' in the display basis  ·  one point in the distribution above', AX + 300, ptY);
+        /* the sum, down the result column */
+        var sy = ry - 20;
+        ctx.strokeStyle='rgba(152,162,184,.45)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(RR-120, sy+0.5); ctx.lineTo(RR, sy+0.5); ctx.stroke();
+        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#c8cedd';
+        ctx.fillText('this vintage pays', AX, sy+20);
+        ctx.textAlign='right'; ctx.font='17px "JetBrains Mono",monospace'; ctx.fillStyle='#ffffff';
+        ctx.fillText(aeur(sel.per), RR, sy+21);
+        if(basis !== 'ARR'){
+          ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
+          ctx.fillText('= '+reurP(sel.per)+' /'+bp()+' in '+basis, RR, sy+35);
+        }
 
         /* ================= C · THE COMPANY ================= */
         var CX = 700, CY = 306;
@@ -5501,16 +5504,24 @@ details.pl .cascade{margin-top:8px}
         ctx.fillText('fixed '+reur(mo.fixedARR)+'  ·  '+pct(1-mo.variableShare,0), CX+8, compY+24);
         ctx.textAlign='right';
         ctx.fillText(pct(mo.variableShare,0)+'  ·  '+reur(mo.variableARR)+' variable', CX+compW-8, compY+24);
-        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
-        var kRes = mo.fixedARR + mo.variableARR - mm.closingARR;
-        ctx.fillText('fixed + variable = '+basis+'   '+(Math.abs(kRes)<=1e-6*Math.max(1,mm.closingARR)?'✓ closes':'✗ '+kRes.toFixed(2)), CX, compY+56);
-        /* measurements, beneath the object they observe */
+        /* the partition's check is one mark at the bar's end: the bar IS the
+           stock, both parts are labelled, and a sentence would only restate it */
+        var kRes = mo.fixedARR + mo.variableARR - mm.closingARR, kOK = Math.abs(kRes)<=1e-6*Math.max(1,mm.closingARR);
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = kOK ? IN : OUT;
+        ctx.fillText(kOK ? '✓' : '✗ '+kRes.toFixed(2), CX+compW+8, compY+23);
+        /* measurements, beneath the object they observe: the name recedes, the value reads */
         var mo12 = m>=12 ? K.monetizationMeasures(expRes, m) : null;
-        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
-        [ '→ price R12M '     +(mo12?pct(mo12.priceEffectR12M,1):'—')+'   → usage R12M '+(mo12?pct(mo12.usageEffectR12M,1):'—'),
-          '→ adoption R12M '  +(mo12?pct(mo12.adoptionEffectR12M,1):'—')+'   → expansion R12M '+(mo12?pct(mo12.expansionR12M,1):'—'),
-          '→ contraction R12M '+(mo12?pct(mo12.contractionR12M,1):'—')+'   → NRR R12M '+(mo12?pct(mo12.nrrR12M,1):'—')
-        ].forEach(function(t2,i){ ctx.fillText(t2, CX, compY+78+i*14); });
+        [ ['price',       mo12 && mo12.priceEffectR12M], ['usage',  mo12 && mo12.usageEffectR12M], ['adoption', mo12 && mo12.adoptionEffectR12M],
+          ['expansion',   mo12 && mo12.expansionR12M],   ['contraction', mo12 && mo12.contractionR12M], ['NRR', mo12 && mo12.nrrR12M]
+        ].forEach(function(q2, i){
+          var qx2 = CX + (i%3)*176, qy2 = compY + 66 + Math.floor(i/3)*16;
+          ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
+          var lab = '→ '+q2[0]+' ';
+          ctx.fillText(lab, qx2, qy2);
+          ctx.fillStyle='#c8cedd'; ctx.fillText(mo12 ? pct(q2[1],1) : '—', qx2 + ctx.measureText(lab).width, qy2);
+        });
+        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#4f586e';
+        ctx.fillText('trailing twelve months', CX, compY + 66 + 2*16 + 2);
 
         /* ================= D · THIS MONTH'S MOVEMENT =================
            Monetization governs SURVIVOR revenue. Two of the seven movements in
@@ -5519,21 +5530,21 @@ details.pl .cascade{margin-top:8px}
            effects would leave the bridge open by exactly those two, so the page
            draws all seven and marks which layer owns each. The boundary of the
            layer is a fact about the model, not a gap to hide. */
-        var DY = 596, DBASE = 676, DH = 58;
+        var DY = 560, DBASE = 640, DH = 58;
         ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
         var dHead = 'D · WHAT MOVED THE COMPANY\'S '+basis+' THIS MONTH';
         ctx.fillText(dHead, 30, DY);
         var dHw = ctx.measureText(dHead).width;
         ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('·  the four effects this layer owns, in the order the engine applies them, and the two movements that belong to other layers', 30+dHw+10, DY);
+        ctx.fillText('·  outlined movements belong to other layers', 30+dHw+10, DY);
         var steps = [
           { n:'opening',       v:mm.openingARR,       kind:'stock' },
           { n:'new',           v:mm.newARR,           kind:'flow', own:false, note:'acquisition ›', go:'company' },
           { n:'logo churn',    v:-cu.logoChurnARR,    kind:'flow', own:false, note:'customers ›',   go:'customers' },
-          { n:'contraction',   v:-mo.contractionARR,  kind:'flow', own:true,  note:'variable units only', law:'contractionAnnual' },
-          { n:'price',         v:mo.priceARR,         kind:'flow', own:true,  note:'every component' },
-          { n:'usage',         v:mo.usageARR,         kind:'flow', own:true,  note:'to the units cap' },
-          { n:'adoption',      v:mo.adoptionARR,      kind:'flow', own:true,  note:'to the penetration cap' },
+          { n:'contraction',   v:-mo.contractionARR,  kind:'flow', own:true,  note:'variable only', law:'contractionAnnual' },
+          { n:'price',         v:mo.priceARR,         kind:'flow', own:true },
+          { n:'usage',         v:mo.usageARR,         kind:'flow', own:true },
+          { n:'adoption',      v:mo.adoptionARR,      kind:'flow', own:true },
           { n:'closing',       v:mm.closingARR,       kind:'stock' }
         ];
         /* the sign is READ OFF THE NUMBER, never asserted by the label: the price
@@ -5593,16 +5604,24 @@ details.pl .cascade{margin-top:8px}
         ctx.beginPath(); ctx.moveTo(cxL-52, oy+0.5); ctx.lineTo(cxL+52, oy+0.5); ctx.stroke(); ctx.restore();
         var dRes = mm.openingARR + mm.newARR - cu.logoChurnARR - mo.contractionARR + mo.priceARR + mo.usageARR + mo.adoptionARR - mm.closingARR;
         monModel.residual = dRes;
-        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
+        /* price + usage + adoption ARE the month's expansion line: said with a
+           bracket over the three columns and the canonical expansion figure,
+           rather than a sentence beside them */
+        var bx0 = DX0 + 4*DXS - 34, bx1 = DX0 + 6*DXS + 34, byy = DBASE + 30;
+        var exPos = mm.expansion >= 0;
+        ctx.strokeStyle = exPos ? 'rgba(79,163,125,.55)' : 'rgba(194,96,106,.55)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(bx0+0.5, byy-5); ctx.lineTo(bx0+0.5, byy+0.5); ctx.lineTo(bx1+0.5, byy+0.5); ctx.lineTo(bx1+0.5, byy-5); ctx.stroke();
+        ctx.textAlign='center'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = exPos ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)';
+        ctx.fillText('= expansion '+(mm.expansion>=0?'+':'−')+reur(Math.abs(mm.expansion)), (bx0+bx1)/2, byy+14);
+        /* the bridge's arithmetic, as its own check: quiet, because every figure in it is already on a bar */
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
         var dTxt = reur(mm.openingARR);
         steps.forEach(function(st0){ if(st0.kind==='flow') dTxt += ' '+(st0.v<0?'−':'+')+' '+reur(Math.abs(st0.v)); });
         dTxt += ' = '+reur(mm.closingARR);
-        ctx.fillText(dTxt, 60, DBASE+58);
+        ctx.fillText(dTxt, 60, DBASE+62);
         var dw = ctx.measureText(dTxt).width, okD = Math.abs(dRes) <= 1e-6*Math.max(1,mm.closingARR);
         ctx.fillStyle = okD ? IN : OUT;
-        ctx.fillText(okD ? '   ✓ closes' : '   ✗ '+dRes.toFixed(2), 60+dw, DBASE+58);
-        ctx.textAlign='right'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-        ctx.fillText('price + usage + adoption = this month\'s expansion, exactly — monetization IS the expansion line, decomposed', 1230, DBASE+58);
+        ctx.fillText(okD ? '   ✓' : '   ✗ '+dRes.toFixed(2), 60+dw, DBASE+62);
 
         ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
         ctx.fillText('LEGEND   ▭ stock (state, and the company\'s)   ▮ flow this month   ⋈ law you set   ⌈⌉ cap, filled to the headroom used   ┄ absent   → measurement', 30, SYS.H-14);
@@ -5626,305 +5645,269 @@ details.pl .cascade{margin-top:8px}
        * spread across the cycle — which is also why only a handful of
        * contracts invoice in any one month.
        *
-       * Band B draws that cycle. It is derived entirely from published
+       * Level 1 draws that cycle. It is derived entirely from published
        * fields: a cohort's age, the term and the timing say where in the
        * cycle it sits, and the page checks its own derivation on screen by
        * asserting that the contracts it places at position 0 are exactly the
        * ones the engine invoiced.
        *
        * Every figure on this page is MONEY, not a run-rate, so none of it
-       * passes through the ARR/MRR basis. That is stated once, in band B.
+       * passes through the ARR/MRR basis. That is stated once, in level 1.
        * ----------------------------------------------------------------- */
       function drawCash(mm){
         var ca = mm.cash, dc = expRes.derived.cash; if(!ca || !dc) return;
         var GOLD='#d2a45c', IN='#4fa37d', OUT='#c2606a', STK='#8b8df0', DIM='#414a60';
         var T = dc.billingTermMonths, adv = dc.billingTiming === 'advance', CDL = dc.collectionDelayMonths;
+        var sg = function(v){ return (v<0?'−':'+')+eur(Math.abs(v)); };
+        var sc = function(v){ return Math.abs(v) < 0.5 ? '#8a93a8' : v>0 ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)'; };
+        /* three levels, one causal descent: the policy creates the book; the
+           book's CHANGE turns recognised revenue into cash; so cash FCF and EBITA
+           differ by exactly that change. The step number carries the descent. */
+        function head(n, t, y){
+          ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif';
+          ctx.fillStyle='#e6e9f2'; ctx.fillText(n+' ·', 30, y);
+          var w = ctx.measureText(n+' · ').width;
+          ctx.fillStyle='#98a2b8'; ctx.fillText(t, 30+w, y);
+        }
 
         /* ---- the book: every contract alive, placed in the billing cycle ---- */
         function posOf(age){ return adv ? (T - (age % T)) % T : ((T - 1 - (age % T)) % T + T) % T; }
         var cols = [], cnt = [], k;
         for(k=0;k<T;k++){ cols.push(0); cnt.push(0); }
-        var baseDef = 0, baseBill = 0, bookSum = 0, alive = 0, invoiced = 0, misplaced = 0;
+        var baseDef = 0, bookSum = 0, alive = 0, invoiced = 0, misplaced = 0;
         expRes.cohorts.forEach(function(c){
           var r = K.rowAt(c, m); if(!r || !r.cash) return;
           alive++; bookSum += r.cash.deferredClosing;
           var bills = Math.abs(r.cash.billings) > 1e-9; if(bills) invoiced++;
-          /* the opening base is not ONE contract at one position: it is a book of
-             T contracts staggered across the whole cycle, so it invoices a T-th of
-             itself every month. Placing it in a column would be a lie. */
-          if(c.acquisitionMonth === 0){ baseDef += r.cash.deferredClosing; baseBill += r.cash.billings; return; }
+          /* the opening base is T contracts staggered across the whole cycle:
+             it sits in every position, so it is not placed in any one */
+          if(c.acquisitionMonth === 0){ baseDef += r.cash.deferredClosing; return; }
           var p = posOf(m - c.acquisitionMonth);
           cols[p] += r.cash.deferredClosing; cnt[p]++;
           if((p === 0) !== bills) misplaced++;     /* the page checks its own derivation */
         });
-
-        /* ================= B · THE BILLING BOOK ================= */
-        var BT = 104, BB = 276, BX0 = 240, BX1 = 900, NX = 950;
-        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-        ctx.fillText('B · THE BILLING BOOK', 30, 74);
-        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('every contract alive this month,', 30, 88);
-        ctx.fillText('by where it sits in its billing cycle', 30, 100);
-        ctx.textAlign='center'; ctx.fillStyle='#66708a';
-        ctx.fillText('deferred revenue carried  ·  months until that contract is next invoiced', (BX0+BX1)/2, 74);
-        /* the policy, stated where the cycle it creates is drawn */
-        ctx.textAlign='right'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
-        ctx.fillText('⋈ '+T+'-month term  ·  billed in '+dc.billingTiming+(CDL>0 ? '  ·  collected +'+CDL+' mo' : '  ·  collected on invoice'), 1230, 74);
-        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-        ctx.fillText('every figure on this page is money, not a run-rate — the '+basis+' switch does not reach it', 1230, 88);
-
-        /* the opening book is EIGHT TIMES the tallest column in a world like A.
-           Letting it set the scale flattens the cycle this band exists to show,
-           so it leaves the chart: it is a different kind of object — one book
-           spread across every position — and it gets a different mark. */
-        /* a ONE-MONTH TERM HAS NO CYCLE. Drawing a chart of one position with
-           nothing in it, beside a cell that says the opening book is "1 contracts
-           staggered across the whole cycle", is worse than drawing nothing: the
-           absence is the finding, so it is stated and the chart is not drawn. */
         var noCycle = (T === 1);
-        var vHi = 0, vLo = 0;
-        cols.forEach(function(v){ vHi = Math.max(vHi, v); vLo = Math.min(vLo, v); });
-        var span = Math.max(1, vHi - vLo) * 1.12, zy = BB - (0 - (vLo - (span-(vHi-vLo))/2)) / span * (BB-BT);
-        function by(v){ return BB - (v - (vLo - (span-(vHi-vLo))/2)) / span * (BB - BT); }
+        var sumOK = Math.abs(bookSum - ca.deferredClosing) <= 1e-6*Math.max(1,Math.abs(ca.deferredClosing));
+
+        /* ================= 1 · THE POLICY CREATES THE BOOK ================= */
+        head('1', 'THE BILLING POLICY CREATES THE BOOK', 74);
+        ctx.textAlign='right'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+        ctx.fillText('money, not a run-rate  ·  the '+basis+' switch does not apply', 1230, 74);
+        ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
+        ctx.fillText('⋈ '+T+'-month term  ·  billed in '+dc.billingTiming+'  ·  '+(CDL>0 ? 'collected +'+CDL+' mo' : 'collected on invoice'), 30, 94);
+
+        var BT = 116, BB = 250, BX0 = 240, BX1 = 860, RX = 900, RV = 1206;
+        var vLo = 0;
         if(noCycle){
+          /* a one-month term has no cycle: the absence is the finding, so it is
+             stated, and no empty chart is drawn */
           ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle=GOLD;
-          ctx.fillText('⌈⌉ a one-month term has no cycle', BX0, BT+34);
-          ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-          ctx.fillText('All '+alive+' contracts invoice every month, so no contract ever sits anywhere but at position 0 and there is', BX0, BT+62);
-          ctx.fillText('no book to draw. '+(adv
-            ? 'Billed in advance, a month is invoiced as it begins: billings equal revenue and almost nothing is deferred.'
-            : 'Billed in arrears, a month is invoiced as it ends: billings equal revenue and nothing is deferred.'), BX0, BT+78);
-          ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-          ctx.fillText(CDL > 0
-            ? 'The only working capital this company carries is the '+CDL+' month'+(CDL>1?'s':'')+' of billings waiting to be collected.'
-            : 'Collected on invoice, so this company carries no working capital at all: its cash line is its P&L line.', BX0, BT+104);
-          ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-          ctx.fillText('A twelve-month term in advance would put a year of every contract on the balance sheet as deferred revenue — a float', BX0, BT+128);
-          ctx.fillText('the size of the book, financed by customers. This policy forgoes it, and forgoes the collection risk that comes with it.', BX0, BT+142);
+          ctx.fillText('⌈⌉ a one-month term has no cycle', BX0, BT+26);
+          ctx.font='10px "Archivo",sans-serif'; ctx.fillStyle='#c8cedd';
+          ctx.fillText('Every contract invoices every month: nothing waits in a book, so billings equal revenue.', BX0, BT+52);
+          ctx.fillStyle='#98a2b8';
+          ctx.fillText(CDL > 0 ? 'The only working capital is the '+CDL+' month'+(CDL>1?'s':'')+' of billings awaiting collection.'
+                               : 'Collected on invoice: no working capital at all — cash moves with EBITA.', BX0, BT+70);
         } else {
-        ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(BX0-14, by(0)+0.5); ctx.lineTo(1010, by(0)+0.5); ctx.stroke();
-        var pitch = (BX1 - BX0) / Math.max(1, T), bw = Math.min(34, pitch - 8);
-        for(k=0;k<T;k++){
-          var cx = BX0 + k*pitch + pitch/2, v = cols[k], y0 = by(0), y1 = by(v), now = (k===0);
-          /* a position with no contract in it draws NOTHING. A sliver at the axis
-             would read as a small balance; the truth is that a company this young
-             has not filled its cycle yet, and an absence is a claim worth making. */
-          if(cnt[k] === 0){
-            ctx.strokeStyle='rgba(65,74,96,.55)'; ctx.lineWidth=1; ctx.save(); ctx.setLineDash([1,3]);
-            ctx.beginPath(); ctx.moveTo(cx-bw/2, y0+0.5); ctx.lineTo(cx+bw/2, y0+0.5); ctx.stroke(); ctx.restore();
-          } else {
-          ctx.fillStyle = now ? 'rgba(79,163,125,.85)' : 'rgba(139,141,240,.42)';
-          ctx.fillRect(cx-bw/2, Math.min(y0,y1), bw, Math.max(3, Math.abs(y1-y0)));
+          var vHi = 0;
+          cols.forEach(function(v){ vHi = Math.max(vHi, v); vLo = Math.min(vLo, v); });
+          var span = Math.max(1, vHi - vLo) * 1.12, lo0 = vLo - (span-(vHi-vLo))/2;
+          var by = function(v){ return BB - (v - lo0) / span * (BB - BT); };
+          ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(BX0-6, by(0)+0.5); ctx.lineTo(BX1+6, by(0)+0.5); ctx.stroke();
+          var pitch = (BX1 - BX0) / T, bw = Math.min(34, pitch - 8);
+          for(k=0;k<T;k++){
+            var cx = BX0 + k*pitch + pitch/2, v = cols[k], y0 = by(0), y1 = by(v), now = (k===0);
+            if(cnt[k] === 0){
+              /* no contract here yet: an absence, not a small balance */
+              ctx.save(); ctx.setLineDash([1,3]); ctx.strokeStyle='rgba(65,74,96,.6)'; ctx.lineWidth=1;
+              ctx.beginPath(); ctx.moveTo(cx-bw/2, y0+0.5); ctx.lineTo(cx+bw/2, y0+0.5); ctx.stroke(); ctx.restore();
+            } else {
+              ctx.fillStyle = now ? 'rgba(79,163,125,.85)' : 'rgba(139,141,240,.42)';
+              ctx.fillRect(cx-bw/2, Math.min(y0,y1), bw, Math.max(3, Math.abs(y1-y0)));
+            }
+            ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace';
+            ctx.fillStyle = now ? '#e6e9f2' : '#66708a';
+            ctx.fillText(String(k), cx, by(0) + 13);
+            if(cnt[k] && (now || k===T-1 || T<=6)){ ctx.fillStyle = now ? IN : '#66708a';
+              ctx.fillText((v<0?'−':'')+eur(Math.abs(v)), cx, y1 + (v>=0 ? -6 : 13)); }
           }
-          ctx.textAlign='center'; ctx.font='8.5px "JetBrains Mono",monospace';
-          ctx.fillStyle = now ? '#e6e9f2' : '#66708a';
-          ctx.fillText(String(k), cx, by(0) + 13);
-          if(cnt[k] && (now || k===T-1 || T<=6)){ ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = now ? IN : '#66708a';
-            ctx.fillText((v<0?'−':'')+eur(Math.abs(v)), cx, y1 + (v>=0 ? -6 : 13)); }
-        }
-        /* the opening book, kept out of the columns because it is in ALL of them.
-           It is drawn as a CELL and not as a bar: a bar beside a chart it is not
-           on the scale of would claim a comparison the drawing cannot make. */
-        ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(65,74,96,.9)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(NX-22, BT-6); ctx.lineTo(NX-22, BB+26); ctx.stroke(); ctx.restore();
-        if(true){
-          var OY = BT + 14;
-          ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.2;
-          ctx.beginPath(); ctx.roundRect(NX, OY, 272, 52, 3); ctx.fill(); ctx.stroke();
-          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-          ctx.fillText('the opening book', NX+12, OY+17);
-          ctx.font='13px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-          ctx.fillText((baseDef<0?'\u2212':'')+eur(Math.abs(baseDef)), NX+12, OY+38);
-          ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a'; ctx.textAlign='right';
-          ctx.fillText(Math.abs(ca.deferredClosing)>1e-9 ? pct(baseDef/ca.deferredClosing,0)+' of the balance' : '\u2014', NX+260, OY+38);
-          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-          ctx.fillText('not one contract at one position but '+T+' contracts staggered', NX, OY+70);
-          ctx.fillText('across the whole cycle: it invoices a '+T+'th of itself every', NX, OY+82);
-          ctx.fillText('month, and sits in every column rather than any one.', NX, OY+94);
-        }
+          ctx.textAlign='right'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText('months to next invoice', BX0-10, by(0)+13);
+          /* the opening book, spread under the whole cycle it occupies. Its height
+             encodes nothing — it is a book across every position, not a column
+             on this scale — so it is a strip with its figure written in it. */
+          var SY0 = BB + 22;
+          ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(139,141,240,.55)'; ctx.lineWidth=1;
+          ctx.fillStyle='rgba(139,141,240,.08)'; ctx.fillRect(BX0, SY0, BX1-BX0, 16);
+          ctx.strokeRect(BX0+0.5, SY0+0.5, BX1-BX0-1, 15); ctx.restore();
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+          ctx.fillText('opening book  ·  '+T+' contracts staggered across every position', BX0+8, SY0+11);
+          ctx.textAlign='right'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#c8cedd';
+          ctx.fillText((baseDef<0?'−':'')+eur(Math.abs(baseDef)), BX1-8, SY0+11);
+          if(vLo < -1e-9){
+            ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='rgba(210,164,92,.85)';
+            ctx.fillText('↓ below the line: recognised beyond what was last invoiced — an expanded contract nearing renewal', BX0, SY0+32);
+          }
         }
 
-        /* a column below the line is not an error: it is revenue recognised
-           beyond what was last invoiced, which is what an expanding contract
-           carries in the last month before its renewal. */
-        if(vLo < -1e-9){
-          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=GOLD;
-          ctx.fillText('\u2193 below the line: revenue recognised beyond what was last invoiced — an unbilled contract asset, which is what a contract that has expanded carries as its renewal approaches', 30, BB+56);
+        /* the book's arithmetic, beside the book: what it holds, and that the
+           opening book is part of the same balance */
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8a93a8';
+        if(!noCycle){
+          ctx.fillText('Each contract is invoiced a full term at once,', RX, BT+4);
+          ctx.fillText('then recognised away month by month.', RX, BT+17);
         }
-        /* what the shape means, said once */
-        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        var saw = T > 1
-          ? 'A contract’s balance amortises to nothing across the term and is topped back up on its anniversary. The company’s balance looks flat only because the cohorts are spread across the cycle.'
-          : 'A one-month term has no cycle: every contract invoices every month, so nothing is ever deferred and there is no float to carry.';
-        ctx.fillText(saw, 30, BB+42);
         ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-        var bookTxt = invoiced+' of '+alive+' contracts invoiced this month  ·  '+eur(ca.billings)+' billed';
-        ctx.fillText(bookTxt, 30, BB+24);
-        var bw2 = ctx.measureText(bookTxt).width;
-        ctx.font='9px "JetBrains Mono",monospace';
-        var bookOK = Math.abs(bookSum - ca.deferredClosing) <= 1e-6*Math.max(1,Math.abs(ca.deferredClosing)) && misplaced===0;
-        ctx.fillStyle = bookOK ? IN : OUT;
-        ctx.fillText(bookOK ? (noCycle ? '   ✓ the book sums to the balance'
-                                       : '   ✓ the book sums to the balance, and every contract placed at 0 is one the engine invoiced')
-                            : '   ✗ '+misplaced+' misplaced, residual '+(bookSum-ca.deferredClosing).toFixed(2), 30+bw2, BB+24);
-
-        /* ================= A · RECOGNISED → INVOICED → RECEIVED ================= */
-        var AY = 348;
-        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-        var aHead = 'A · THIS MONTH, FROM RECOGNISED TO RECEIVED';
-        ctx.fillText(aHead, 30, AY);
-        var aHw = ctx.measureText(aHead).width;
-        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('·  the same euros on three clocks, and the two balances that hold the difference', 30+aHw+10, AY);
-
-        var dDef = ca.deferredClosing - ca.deferredOpening, dRec = ca.receivablesClosing - ca.receivablesOpening;
-        var chain = [
-          { n:'revenue',      s:'recognised',       v:mm.revenue },
-          { n:'billings',     s:'invoiced',         v:ca.billings,     d:dDef,  dn:'+ Δ deferred' },
-          { n:'collections',  s:'cash in',          v:ca.collections,  d:-dRec, dn:'− Δ receivables' },
-          { n:'cash FCF',     s:'collections − cash costs', v:ca.cashFCF, d:-ca.cashCosts, dn:'− cash costs' }
-        ];
-        var CW = 196, CG = 108, CX0 = 40, CYT = AY+22, CHH = 46;
-        chain.forEach(function(st, i){
-          var x = CX0 + i*(CW+CG);
-          ctx.fillStyle='#141925'; ctx.strokeStyle = (i===3 ? (st.v>=0?'rgba(79,163,125,.8)':'rgba(210,164,92,.8)') : 'rgba(58,67,88,.95)');
-          ctx.lineWidth=1.3; ctx.beginPath(); ctx.roundRect(x, CYT, CW, CHH, 3); ctx.fill(); ctx.stroke();
-          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-          ctx.fillText(st.n+'  ·  '+st.s, x+10, CYT+16);
-          ctx.font='14px "JetBrains Mono",monospace'; ctx.fillStyle = (i===3 && st.v<0) ? '#d2a45c' : '#e6e9f2';
-          ctx.fillText((st.v<0?'−':'')+eur(Math.abs(st.v)), x+10, CYT+36);
-          if(st.d !== undefined){
-            var mx = x - CG/2, sg = st.d >= 0;
-            ctx.strokeStyle='rgba(91,104,196,.7)'; ctx.lineWidth=1;
-            ctx.beginPath(); ctx.moveTo(x-CG+4, CYT+CHH/2); ctx.lineTo(x-4, CYT+CHH/2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x-4, CYT+CHH/2); ctx.lineTo(x-10, CYT+CHH/2-3.5); ctx.lineTo(x-10, CYT+CHH/2+3.5); ctx.closePath();
-            ctx.fillStyle='rgba(91,104,196,.9)'; ctx.fill();
-            ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-            ctx.fillText(st.dn, mx, CYT+CHH/2-9);
-            ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle = sg ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)';
-            ctx.fillText((sg?'+':'−')+eur(Math.abs(st.d)), mx, CYT+CHH/2+18);
-          }
-        });
-        ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-        ctx.fillText('billings = revenue + Δdeferred, by construction — not an estimate', CX0+2, CYT+CHH+13);
-        ctx.textAlign='right';
-        ctx.fillText('costs are cash when incurred: no payables', CX0+3*(CW+CG)+CW, CYT+CHH+13);
-
-        /* the two balances, at their own true scale, with the month's change
-           beside them. The whole point of the band: the STOCK is the size of
-           the business and the FLOW that reaches cash is a sliver of it. */
-        var SY = CYT+CHH+52, SBW = 520, SH = 26;
-        var bal = [
-          { n: ca.deferredClosing>=0 ? 'deferred revenue' : 'contract asset (unbilled)', v:ca.deferredClosing, d:dDef,
-            sub: mm.revenue>0 ? (Math.abs(ca.deferredClosing)/mm.revenue).toFixed(1)+' months of revenue, carried' : '—',
-            why: Math.abs(ca.deferredClosing) < 0.005*Math.max(1,mm.revenue)
-                   ? 'nothing is deferred: a '+T+'-month term bills and recognises in the same month'
-                   : ca.deferredClosing>=0 ? 'customers have paid for service not yet delivered' : 'service delivered that has not yet been invoiced' },
-          { n:'receivables', v:ca.receivablesClosing, d:dRec,
-            sub: ca.billings>0 ? Math.round(ca.receivablesClosing/(ca.billings/30.4))+' days of billings, outstanding' : '—',
-            why: CDL>0 ? 'invoiced, not yet collected — the last '+CDL+' month'+(CDL>1?'s':'')+' of billing' : 'collected on invoice: nothing is outstanding' }
-        ];
-        /* ONE scale for this band, and it is an ECONOMIC one: months of this
-           month's revenue. A run-wide euro scale made a €28k balance fill the bar
-           in a world whose balances are economically nil, and it forced the
-           month's change onto a second, magnified scale. On this scale the
-           change needs no magnification — being a sliver of the stock IS the
-           finding, and the reader should see it rather than be told it. */
-        var AXMO = 12, mrev = Math.max(1e-9, mm.revenue);
-        function moW(v){ return Math.min(SBW, Math.abs(v)/mrev/AXMO*SBW); }
-        /* the axis, drawn once above the two bars it governs */
-        ctx.strokeStyle='rgba(65,74,96,.75)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(CX0+200, SY-12.5); ctx.lineTo(CX0+200+SBW, SY-12.5); ctx.stroke();
-        ctx.textAlign='center'; ctx.font='8px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
-        for(var tk=0; tk<=AXMO; tk+=3){
-          var tx = CX0+200+tk/AXMO*SBW;
-          ctx.beginPath(); ctx.moveTo(tx+0.5, SY-12.5); ctx.lineTo(tx+0.5, SY-16.5); ctx.stroke();
-          ctx.fillText(String(tk), tx, SY-20);
+        var invTxt = invoiced+' of '+alive+' contracts invoiced  ';
+        ctx.fillText(invTxt, RX, BT+46);
+        ctx.fillStyle = misplaced===0 ? IN : OUT;
+        ctx.fillText(misplaced===0 ? '✓' : '✗ '+misplaced, RX + ctx.measureText(invTxt).width, BT+46);
+        ctx.fillStyle='#98a2b8'; ctx.textAlign='right';
+        ctx.fillText(eur(ca.billings)+' billed', RV, BT+46);
+        function row(lab, val, y, strong){
+          ctx.textAlign='left'; ctx.font=(strong?'9.5px':'9px')+' "Archivo",sans-serif'; ctx.fillStyle = strong ? '#e6e9f2' : '#98a2b8';
+          ctx.fillText(lab, RX, y);
+          ctx.textAlign='right'; ctx.font=(strong?'11px':'9.5px')+' "JetBrains Mono",monospace'; ctx.fillStyle = strong ? '#ffffff' : '#c8cedd';
+          ctx.fillText((val<0?'−':'')+eur(Math.abs(val)), RV, y);
         }
-        ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('months of this month’s revenue', CX0+200+SBW+10, SY-16);
-        bal.forEach(function(b2, i){
-          var y = SY + i*(SH+34);
-          ctx.textAlign='right'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-          ctx.fillText(b2.n, CX0+186, y+16);
-          ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-          ctx.fillText(b2.why, CX0+186, y+28);
-          var w = Math.max(1.5, moW(b2.v)), over = Math.abs(b2.v)/mrev > AXMO;
-          ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.3;
-          ctx.beginPath(); ctx.roundRect(CX0+200, y, w, SH, 3); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = b2.v>=0 ? 'rgba(139,141,240,.30)' : 'rgba(210,164,92,.26)';
-          ctx.fillRect(CX0+201, y+1, Math.max(0,w-2), SH-2);
-          if(over){ ctx.fillStyle=STK; ctx.beginPath(); ctx.moveTo(CX0+200+w+3, y+SH/2-5);
-            ctx.lineTo(CX0+200+w+11, y+SH/2); ctx.lineTo(CX0+200+w+3, y+SH/2+5); ctx.closePath(); ctx.fill(); }
-          /* the month's change, on the SAME scale as the stock it moved */
-          var dw = Math.abs(b2.d)<1e-9 ? 0 : Math.max(1.5, moW(b2.d));
-          if(dw){ ctx.fillStyle = b2.d>=0 ? IN : OUT; ctx.fillRect(CX0+200+w+(over?14:4), y+3, dw, SH-6); }
-          ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
-          ctx.fillText((b2.v<0?'−':'')+eur(Math.abs(b2.v)), CX0+200+w+dw+(over?32:22), y+13);
-          ctx.font='8.5px "JetBrains Mono",monospace'; ctx.fillStyle = b2.d>=0 ? 'rgba(79,163,125,.95)' : 'rgba(194,96,106,.95)';
-          ctx.fillText('this month '+(b2.d>=0?'+':'−')+eur(Math.abs(b2.d))+
-            (Math.abs(b2.v)>1e-9 ? '  ·  '+pct(Math.abs(b2.d)/Math.abs(b2.v),1)+' of the balance' : ''), CX0+200+w+dw+(over?32:22), y+25);
-          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-          ctx.fillText(b2.sub, CX0+200, y+SH+13);
+        if(!noCycle){
+          row('contracts in the cycle', bookSum - baseDef, BT+92, false);
+          row('opening book', baseDef, BT+108, false);
+          ctx.strokeStyle='rgba(152,162,184,.4)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(RX, BT+115.5); ctx.lineTo(RV, BT+115.5); ctx.stroke();
+        }
+        row(ca.deferredClosing>=0 ? 'deferred revenue' : 'contract asset', ca.deferredClosing, BT+132, true);
+        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = sumOK ? IN : OUT;
+        ctx.fillText(sumOK ? '✓' : '✗', RV+8, BT+132);
+
+        /* ================= 2 · THE BOOK'S CHANGE TURNS REVENUE INTO CASH ================= */
+        var L2 = 336;
+        head('2', 'CHANGES IN THE BOOK TURN RECOGNISED REVENUE INTO CASH', L2);
+        var dDef = ca.deferredClosing - ca.deferredOpening, dRec = ca.receivablesClosing - ca.receivablesOpening;
+        var BXW = 170, BXH = 42, BY2 = L2+16, BXS = [40, 550, 1060];
+        [['revenue', 'recognised', mm.revenue], ['billings', 'invoiced', ca.billings], ['collections', 'cash in', ca.collections]]
+        .forEach(function(b, i){
+          var x = BXS[i];
+          ctx.fillStyle='#141925'; ctx.strokeStyle='rgba(88,98,124,.95)'; ctx.lineWidth=1.3;
+          ctx.beginPath(); ctx.roundRect(x, BY2, BXW, BXH, 3); ctx.fill(); ctx.stroke();
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#8a93a8';
+          ctx.fillText(b[0]+'  ·  '+b[1], x+10, BY2+15);
+          ctx.font='14px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.fillText(eur(b[2]), x+10, BY2+34);
         });
-        ctx.textAlign='right'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-        ctx.fillText('▮ the month’s change, on the same scale — which is why you can barely see it', 1230, SY+SH+52);
+        /* each step is a change in one balance, and that balance hangs beneath
+           the step it feeds — on one shared scale, months of this month's revenue,
+           on which the month's change is as small as it really is */
+        var mrev = Math.max(1e-9, mm.revenue), AXMO = 12, BW = 300;
+        function moW(v){ return Math.min(BW, Math.abs(v)/mrev/AXMO*BW); }
+        [ { d:dDef, dn:'+ Δ deferred', v:ca.deferredClosing, n: ca.deferredClosing>=0 ? 'deferred revenue' : 'contract asset',
+            why: ca.deferredClosing>=0 ? 'paid, not yet delivered' : 'delivered, not yet invoiced',
+            sub: (Math.abs(ca.deferredClosing)/mrev).toFixed(1)+' months of revenue' },
+          { d:-dRec, dn:'− Δ receivables', v:ca.receivablesClosing, n:'receivables',
+            why: CDL>0 ? 'invoiced, not yet collected' : 'collected on invoice',
+            sub: ca.billings>0 ? Math.round(ca.receivablesClosing/(ca.billings/30.4))+' days of billings' : '—', bal:dRec } ]
+        .forEach(function(g, i){
+          var x0 = BXS[i]+BXW+8, x1 = BXS[i+1]-8, ay = BY2+BXH/2, mid = (x0+x1)/2;
+          ctx.strokeStyle='rgba(91,104,196,.7)'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(x0, ay+0.5); ctx.lineTo(x1, ay+0.5); ctx.stroke();
+          ctx.fillStyle='rgba(91,104,196,.9)'; ctx.beginPath(); ctx.moveTo(x1, ay+0.5); ctx.lineTo(x1-6, ay-3); ctx.lineTo(x1-6, ay+4); ctx.closePath(); ctx.fill();
+          ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#8a93a8';
+          ctx.fillText(g.dn, mid-34, ay-7);
+          ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle = sc(g.d);
+          ctx.fillText(sg(g.d), mid+30, ay-7);
+          /* the balance this step changes, directly beneath it */
+          var ox = mid - BW/2, ty = BY2 + BXH + 30;
+          ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#c8cedd';
+          ctx.fillText(g.n, ox, ty);
+          var nw = ctx.measureText(g.n).width;
+          ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+          ctx.fillText('  ·  '+g.why, ox+nw, ty);
+          var yb = ty + 8, w = Math.max(1.5, moW(g.v)), over = Math.abs(g.v)/mrev > AXMO;
+          ctx.fillStyle='#141925'; ctx.strokeStyle=STK; ctx.lineWidth=1.2;
+          ctx.beginPath(); ctx.roundRect(ox, yb, w, 18, 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = g.v>=0 ? 'rgba(139,141,240,.30)' : 'rgba(210,164,92,.26)'; ctx.fillRect(ox+1, yb+1, Math.max(0,w-2), 16);
+          var bal = (g.bal!==undefined ? g.bal : g.d), dw = Math.abs(bal)<1e-9 ? 0 : Math.max(1.5, moW(bal));
+          /* coloured by its effect on CASH, as the arrow above it is: a growing
+             receivables balance is a growing balance and a cash drain at once */
+          if(dw){ ctx.fillStyle = g.d>=0 ? IN : OUT; ctx.fillRect(ox+w+(over?12:3), yb+2, dw, 14); }
+          if(over){ ctx.fillStyle=STK; ctx.beginPath(); ctx.moveTo(ox+w+2, yb+4); ctx.lineTo(ox+w+9, yb+9); ctx.lineTo(ox+w+2, yb+14); ctx.closePath(); ctx.fill(); }
+          ctx.textAlign='left'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.fillText((g.v<0?'−':'')+eur(Math.abs(g.v)), ox+w+dw+(over?20:10), yb+13);
+          /* the shared axis, beneath each bar */
+          ctx.strokeStyle='rgba(65,74,96,.7)'; ctx.lineWidth=1; ctx.textAlign='center'; ctx.font='7.5px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
+          for(var tk=0; tk<=AXMO; tk+=3){ var tx = ox + tk/AXMO*BW;
+            ctx.beginPath(); ctx.moveTo(tx+0.5, yb+22); ctx.lineTo(tx+0.5, yb+25); ctx.stroke(); ctx.fillText(String(tk), tx, yb+33); }
+          if(i===0){ ctx.textAlign='left'; ctx.font='8px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
+            ctx.fillText('months of revenue', ox+BW+8, yb+33); }
+          ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#8a93a8';
+          ctx.fillText(g.sub+(Math.abs(g.v)>1e-9 ? '  ·  moved '+pct(Math.abs(bal)/Math.abs(g.v),1)+' this month' : ''), ox, yb+46);
+        });
 
-        /* ================= C · WHAT THIS LAYER CHANGES ================= */
-        var CY = 586;
-        ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
-        var cHead = 'C · WHAT THIS LAYER CHANGES, AND WHAT IT DOES NOT';
-        ctx.fillText(cHead, 30, CY);
-        var cHw = ctx.measureText(cHead).width;
-        ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('·  EBITA is untouched by billing policy. The entire difference is working capital.', 30+cHw+10, CY);
-
-        var gap = ca.cashFCF - ca.ebita, resid = gap - (dDef - dRec);
-        /* a SIGNED axis with its zero placed by the data. A fixed origin sent
-           both bars off the left edge of the frame in any month the company
-           burned, which is most of them. The name and the number sit above the
-           bar so neither can ever be overrun by it. */
-        var GZ = CY+34, PX0 = 40, PX1 = 560;
-        var negMax = Math.max(0, -Math.min(ca.ebita, ca.cashFCF), 0), posMax = Math.max(0, ca.ebita, ca.cashFCF);
+        /* ================= 3 · SO FCF DIFFERS FROM EBITA BY THAT CHANGE ================= */
+        var L3 = 540;
+        head('3', 'SO CASH FCF DIFFERS FROM EBITA ONLY BY THAT CHANGE', L3);
+        var gap = ca.cashFCF - ca.ebita, cr = ca.collections - mm.revenue, wc = dDef - dRec;
+        /* a SIGNED axis, zero placed by the data; name and number above each bar */
+        var GZ = L3+22, PX0 = 40, PX1 = 520;
+        var negMax = Math.max(0, -Math.min(ca.ebita, ca.cashFCF)), posMax = Math.max(0, ca.ebita, ca.cashFCF);
         var tot = Math.max(1, negMax + posMax), zeroX = PX0 + negMax/tot*(PX1-PX0);
         [['EBITA', ca.ebita, 'rgba(152,162,184,.55)'], ['cash FCF', ca.cashFCF, ca.cashFCF>=ca.ebita ? 'rgba(79,163,125,.8)' : 'rgba(194,96,106,.8)']]
         .forEach(function(g, i){
           var y = GZ + i*40, w = Math.abs(g[1])/tot*(PX1-PX0);
-          ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
+          ctx.textAlign='left'; ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#c8cedd';
           ctx.fillText(g[0], PX0, y+9);
-          ctx.textAlign='right'; ctx.font='10.5px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
+          ctx.textAlign='right'; ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle='#e6e9f2';
           ctx.fillText((g[1]<0?'−':'')+eur(Math.abs(g[1])), PX1, y+9);
-          ctx.fillStyle=g[2]; ctx.fillRect(g[1]<0 ? zeroX-w : zeroX, y+15, Math.max(1.5,w), 15);
-          /* the zero rule is drawn ONLY across the bars: run the full height of
-             the block and it strikes through the second bar's own label. */
+          ctx.fillStyle=g[2]; ctx.fillRect(g[1]<0 ? zeroX-w : zeroX, y+15, Math.max(1.5,w), 14);
           ctx.save(); ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(65,74,96,.95)'; ctx.lineWidth=1;
-          ctx.beginPath(); ctx.moveTo(zeroX+0.5, y+12); ctx.lineTo(zeroX+0.5, y+33); ctx.stroke(); ctx.restore();
+          ctx.beginPath(); ctx.moveTo(zeroX+0.5, y+12); ctx.lineTo(zeroX+0.5, y+32); ctx.stroke(); ctx.restore();
         });
-        ctx.textAlign='center'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle=DIM;
-        ctx.fillText('0', zeroX, GZ+58);
-        ctx.textAlign='left'; ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
-        var idTxt = 'cash FCF − EBITA  =  Δdeferred − Δreceivables   →   '+(gap>=0?'+':'−')+eur(Math.abs(gap))+
-                    '  =  '+(dDef>=0?'+':'−')+eur(Math.abs(dDef))+' − '+(dRec>=0?'+':'−')+eur(Math.abs(dRec));
-        ctx.fillText(idTxt, 30, GZ+108);
-        var idw = ctx.measureText(idTxt).width, idOK = Math.abs(resid) <= 1e-6*Math.max(1, Math.abs(ca.ebita));
-        ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = idOK ? IN : OUT;
-        ctx.fillText(idOK ? '   ✓ closes' : '   ✗ '+resid.toFixed(2), 30+idw, GZ+108);
+        ctx.textAlign='center'; ctx.font='8px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
+        ctx.fillText('0', zeroX, GZ+84);
+
+        /* the derivation, term under term: costs cancel, so the gap is collections
+           less revenue, which is the change in the two balances */
+        var IX = 600;
+        ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8a93a8';
+        ctx.fillText('Costs are the same on both sides — paid when incurred — so', IX, GZ+9);
+        var terms = [['cash FCF − EBITA', gap], ['  =  ', null], ['collections − revenue', cr], ['  =  ', null], ['Δ deferred − Δ receivables', wc]];
+        ctx.font='11px "JetBrains Mono",monospace';
+        var tx0 = IX, idOK = Math.abs(gap-cr) <= 1e-6*Math.max(1,Math.abs(ca.ebita)) && Math.abs(gap-wc) <= 1e-6*Math.max(1,Math.abs(ca.ebita));
+        terms.forEach(function(t2){
+          ctx.font='11px "JetBrains Mono",monospace';
+          var tw = ctx.measureText(t2[0]).width;
+          ctx.textAlign='left'; ctx.fillStyle = t2[1]===null ? '#66708a' : '#e6e9f2';
+          ctx.fillText(t2[0], tx0, GZ+32);
+          if(t2[1]!==null){ ctx.textAlign='center'; ctx.font='11px "JetBrains Mono",monospace';
+            ctx.fillStyle = sc(t2[1]);
+            ctx.fillText(sg(t2[1]), tx0+tw/2, GZ+50); }
+          tx0 += tw;
+        });
+        ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle = idOK ? IN : OUT;
+        ctx.fillText(idOK ? '  ✓' : '  ✗', tx0, GZ+50);
+        /* the one thing most often read backwards, said once and plainly */
+        ctx.font='9.5px "Archivo",sans-serif'; ctx.fillStyle='#c8cedd';
+        ctx.fillText('The balances hold '+eur(Math.abs(ca.deferredClosing))+' and '+eur(Math.abs(ca.receivablesClosing))+
+          '; only their change, '+sg(gap)+', reached cash this month.', IX, GZ+80);
+        /* only a policy that builds a book lends the company anything */
+        if(!noCycle){ ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#8a93a8';
+          ctx.fillText('The level is a loan from customers — drawn while the company grows, repaid if it shrinks.', IX, GZ+96); }
 
         var cm = K.cashMeasures(expRes, m);
-        ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#98a2b8';
-        [ '→ cash conversion R12M '+(cm && cm.cashConversion!==null ? (cm.cashConversion).toFixed(2)+'×' : '—'),
-          '→ billings / revenue R12M '+(cm ? cm.billingsToRevenue.toFixed(3) : '—'),
-          '→ receivable days '+(cm && cm.receivablesDays!==null ? Math.round(cm.receivablesDays) : '—'),
-          '→ deferred, months of revenue '+(cm && cm.deferredMonthsOfRevenue!==null ? cm.deferredMonthsOfRevenue.toFixed(2) : '—')
-        ].forEach(function(t2, i){ ctx.fillText(t2, 620 + (i%2)*310, GZ + Math.floor(i/2)*16 + 6); });
-        ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#66708a';
-        ctx.fillText('The two balances hold '+eur(Math.abs(ca.deferredClosing))+' and '+eur(Math.abs(ca.receivablesClosing))+
-          '. This month they moved '+(dDef>=0?'+':'−')+eur(Math.abs(dDef))+' and '+(dRec>=0?'+':'−')+eur(Math.abs(dRec))+
-          ', and the cash line felt '+(gap>=0?'+':'−')+eur(Math.abs(gap))+'.', 620, GZ+44);
-        ctx.fillStyle=DIM;
-        ctx.fillText('It is the CHANGE that reaches the cash line, never the level. The level is a loan the size of the book,', 620, GZ+56);
-        ctx.fillText('taken once while the company grew, and repaid in full if it ever shrinks. EBITA never hears about it.', 620, GZ+68);
+        [ ['cash conversion', cm && cm.cashConversion!==null ? cm.cashConversion.toFixed(2)+'×' : '—'],
+          ['billings / revenue', cm ? cm.billingsToRevenue.toFixed(3) : '—'],
+          ['receivable days', cm && cm.receivablesDays!==null ? String(Math.round(cm.receivablesDays)) : '—'],
+          ['deferred, months of revenue', cm && cm.deferredMonthsOfRevenue!==null ? cm.deferredMonthsOfRevenue.toFixed(2) : '—']
+        ].forEach(function(q2, i){
+          var qx = 40 + i*300, qy = GZ + 136;
+          ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
+          var lab = '→ '+q2[0]+' ';
+          ctx.fillText(lab, qx, qy);
+          ctx.fillStyle='#c8cedd'; ctx.fillText(q2[1], qx + ctx.measureText(lab).width, qy);
+        });
+        ctx.textAlign='left'; ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#4f586e';
+        ctx.fillText('trailing twelve months', 40, GZ+150);
 
         ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle=DIM;
         ctx.fillText('LEGEND   ▭ stock (a working-capital balance)   ▮ this month’s change   ⋈ policy you set   → measurement', 30, SYS.H-14);
@@ -8239,7 +8222,7 @@ details.pl .cascade{margin-top:8px}
           '<em>mix</em> of vintages moves, even with every law held still. A month of heavy acquisition pulls it down without any price falling.')+
         mblk('Band A is annual, per customer', 'Bands B, C and D are in the display basis ('+basis+'). Band A is in <b style="color:var(--ink)">annual euros per customer</b>, exact to the euro, '+
           'because that is the unit the component laws are written in — priceAnnual, and units per customer per year. Converting a unit price to a monthly figure would misname the law. '+
-          'The selected vintage\'s total is restated in the display basis on the same line, so the boundary is crossed once and in the open.')+
+          'The selected vintage\'s total is restated beneath it in the display basis, so the boundary is crossed once and in the open.')+
         mblk('Why band D draws seven movements', 'Only <b style="color:var(--ink)">four</b> of them belong to this layer: contraction, price, usage, adoption. Those govern the revenue of <em>surviving</em> customers and nothing else. '+
           'New business and departing logos change the company\'s '+basis+' by moving <em>customers</em>, which is the layer next door. Drawing only this layer\'s four would leave the bridge open by exactly '+
           reur(mmN.newARR - cuM.logoChurnARR)+' this month, so all seven are drawn and the two that are not ours are drawn in <b style="color:var(--ink)">outline</b>, each linking to the layer that owns it. '+
@@ -8267,16 +8250,17 @@ details.pl .cascade{margin-top:8px}
           'Cash FCF is collections less cash costs. Everything on this page is <b style="color:var(--ink)">money</b>, not a run-rate, so the '+basis+' switch does not reach it.')+
         ablk('Why the book is a sawtooth', (Tn > 1
           ? 'Each contract is invoiced a whole '+Tn+'-month period at once and then recognises it away a month at a time, so its deferred balance falls to nearly nothing and is topped back up on its anniversary. '+
-            'Band B places every contract by how many months remain before that top-up. The company’s balance looks flat only because the cohorts are spread across the cycle — which is also why only a handful of contracts invoice in any one month, '+
-            'and why band B draws <em>nothing at all</em> at a position no contract has reached yet.'
-          : 'There is no sawtooth here: a one-month term invoices every contract every month, so nothing is ever deferred. Band B says so rather than drawing an empty chart — the absence is the finding.')+
+            'Level 1 places every contract by how many months remain before that top-up. The company’s balance looks flat only because the cohorts are spread across the cycle — which is also why only a handful of contracts invoice in any one month, '+
+            'and why level 1 draws <em>nothing at all</em> at a position no contract has reached yet.'
+          : 'There is no sawtooth here: a one-month term invoices every contract every month, so nothing is ever deferred. Level 1 says so rather than drawing an empty chart — the absence is the finding.')+
           ' A column below the line is not an error: it is revenue recognised beyond what was last invoiced, which is what a contract that has expanded carries as its renewal approaches.')+
-        ablk('The page checks its own derivation', 'Where a contract sits in the cycle is not a published field — it is derived from the cohort’s age, the term and the timing. So band B tests the derivation on screen: '+
-          'it asserts that the contracts it places at position 0 are <b style="color:var(--ink)">exactly</b> the ones the engine invoiced this month, and that the book sums to the published balance. '+
-          'A ✓ there is a claim about the drawing, not about the engine.')+
+        ablk('The page checks its own derivation', 'Where a contract sits in the cycle is not a published field — it is derived from the cohort’s age, the term and the timing. So level 1 tests the derivation on screen: '+
+          'the ✓ beside the invoiced count asserts that the contracts placed at position 0 are <b style="color:var(--ink)">exactly</b> the ones the engine invoiced, and the ✓ beside the balance that the book sums to the published figure. '+
+          'Each is a claim about the drawing, not about the engine.')+
         ablk('Why the opening book is not on the chart', 'It is not one contract at one position. The opening base is a book of '+Tn+' contracts whose renewal dates are spread evenly across the term — derived state, reported, never an input — '+
-          'so it sits in every column rather than any one, and it invoices a '+Tn+'th of itself every month. It is drawn as a <b style="color:var(--ink)">cell</b> and not as a bar because a bar beside a chart it is not on the scale of '+
-          'would claim a comparison the drawing cannot make: in a world like A it is eight times the tallest column, and letting it set the scale flattens the cycle the band exists to show.')+
+          'so it sits in every column rather than any one, and it invoices a '+Tn+'th of itself every month. It is drawn as a <b style="color:var(--ink)">strip beneath the whole cycle</b>, with its figure written in it, '+
+          'and not as a bar: in a world like A it is eight times the tallest column, and putting it on that scale would flatten the cycle the chart exists to show. Its height encodes nothing. '+
+          'Beside the chart it is added in as a line of its own, so the book and the balance it produces are one sum.')+
         ablk('Why the balances are drawn in months of revenue', 'A euro scale makes a €28k balance fill the bar in a company whose working capital is economically nil. Months of revenue is the unit that makes '+
           'two balances, two policies and two companies comparable, so both bars and <b style="color:var(--ink)">both changes</b> are drawn on it. '+
           'The month’s change needs no magnification on that scale: being a sliver of the stock <em>is</em> the finding.')+
