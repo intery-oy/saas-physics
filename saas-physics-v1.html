@@ -286,6 +286,63 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .lensnav .btn{font-size:11px;padding:5px 11px}
 .lensnav .btn.on{border-color:var(--ink-2);color:var(--ink);background:var(--raised)}
 .lens{padding:18px 2px 20px;border-bottom:1px solid var(--line-soft)}
+/* ---- Company · Financials: typeset statements, not a dashboard ---- */
+.fin{padding:4px 0 6px}
+.fin-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;margin:6px 0 4px}
+.fin-per .btn{font-size:10.5px;padding:4px 10px}
+.fin-period{font-family:var(--display);font-size:17px;color:var(--ink)}
+.fin-range{font:10.5px var(--mono);color:var(--ink-3)}
+.fin-links{margin-left:auto;display:flex;gap:16px}
+.fin-go{background:none;border:0;padding:0;font:10.5px var(--ui);color:var(--base);cursor:pointer}
+.fin-go:hover{color:var(--exp)}
+.fin-units{font-size:10px;color:var(--ink-3);letter-spacing:.03em;margin:0 0 20px}
+.fin-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px 56px;align-items:start}
+@media (max-width:980px){.fin-grid{grid-template-columns:minmax(0,1fr)}}
+table.fs{width:100%;border-collapse:collapse;font:12.5px var(--ui);font-variant-numeric:tabular-nums lining-nums;margin:0 0 6px}
+table.fs caption{caption-side:top;text-align:left;font-family:var(--display);font-size:15.5px;color:var(--ink);padding:0 0 9px;white-space:nowrap}
+table.fs caption .cap-q{font:italic 11px var(--display);color:var(--ink-3);margin-left:8px}
+table.fs th{font:500 9.5px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:right;padding:0 0 6px 14px;border-bottom:1px solid var(--line)}
+table.fs th.l{text-align:left;padding-left:0}
+table.fs th.cb,table.fs td.cb{color:var(--ink-4)}
+table.fs td{padding:5px 0 5px 14px;vertical-align:baseline}
+table.fs td.l{padding-left:0;color:var(--ink-2)}
+table.fs td.n{text-align:right;color:var(--ink);white-space:nowrap;width:1%}
+table.fs td.n.cb{font-size:11px;color:var(--ink-3)}
+table.fs tr.in td.l{padding-left:18px}
+table.fs tr.sub td{border-top:1px solid var(--ink-4);font-weight:600;color:var(--ink);padding-top:7px}
+table.fs tr.sub td.l{color:var(--ink)}
+table.fs tr.tot td{border-top:1px solid var(--ink-3);border-bottom:3px double var(--ink-4);font-weight:600;color:var(--ink);padding:7px 0 7px 14px}
+table.fs tr.tot td.l{padding-left:0;color:var(--ink)}
+table.fs tr.pct td{font-size:11px;font-style:italic;color:var(--ink-3);padding-top:0}
+table.fs tr.pct td.n{color:var(--ink-3)}
+table.fs tr.memo td{font-size:11px;color:var(--ink-3);padding-top:14px}
+table.fs tr.memo td.n{color:var(--ink-2)}
+table.fs tr.nwc td.l,table.fs tr.nwc td.n{color:var(--exp)}
+table.fs tr.absent td{color:var(--ink-3);font-style:italic}
+table.fs tr.absent td.n{text-align:right}
+table.fs .q{font-size:10.5px;color:var(--ink-3)}
+table.fs sup{font-size:8px;color:var(--ink-3);margin-left:1px}
+table.fs + table.fs,.fin-proof + table.fs,.fin-note + table.fs,.fin-ctx + table.fs{margin-top:28px}
+table.fs.wc td{padding-top:6px;padding-bottom:6px}
+.fin-ctx{font-size:11px;color:var(--ink-3);margin:6px 0 2px;line-height:1.5}
+.fin-ctx.nwc b{color:var(--exp);font-weight:500}
+.fin-proof{font:10.5px var(--mono);color:var(--ink-3);margin:4px 0 0}
+.fin-proof .ok{color:var(--in,#4fa37d)}.fin-proof .bad{color:#c2606a}
+.unf{font:italic 10.5px var(--display);color:var(--law);font-weight:400;margin-left:6px}
+.fin-cmp{font-size:10.5px;color:var(--ink-3);margin-top:6px}
+.fin-note{font-size:11px;color:var(--ink-3);line-height:1.55;margin-top:12px;max-width:440px}
+.fin-fig{margin-top:30px;padding-top:16px;border-top:1px solid var(--line-soft)}
+.fin-fig svg{display:block;max-width:880px}
+.fin-fig-t{font-family:var(--display);font-size:15.5px;color:var(--ink);margin-bottom:6px}
+.fin-fig .fl{font:9px var(--ui);fill:var(--ink-3);letter-spacing:.04em}
+.fin-leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:10.5px;color:var(--ink-3);margin-top:4px}
+.fin-leg i{display:inline-block;width:14px;height:8px;margin-right:6px;vertical-align:middle;border-radius:1px}
+.fin-leg i.dash{height:0;border-top:1.5px dashed var(--ink-3)}
+.fin-notes{margin-top:22px;padding-top:12px;border-top:1px solid var(--line-soft);columns:2 340px;column-gap:40px;font-size:10.5px;color:var(--ink-3);line-height:1.55}
+.fin-notes p{margin:0 0 5px;break-inside:avoid}
+.fin-notes p.conv{color:var(--law)}
+.fin-notes sup{font-size:8px}
+
 .lens-head{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
 .lens-n{font-family:var(--mono);font-size:9.5px;color:var(--ink-4)}
 .lens-q{font-family:var(--display);font-style:italic;font-size:12.5px;color:var(--ink-2);flex-grow:1;line-height:1.35}
@@ -630,7 +687,7 @@ details.pl .cascade{margin-top:8px}
       <div>
         <h5>The portal</h5>
         <ol>
-          <li><b>Company</b> &middot; one company at a time: a hero line, then five lenses &mdash; Company, Customers, Growth engine, Monetization, Economics &amp; cash &mdash; with the sixty-month figure beneath as context.</li>
+          <li><b>Company</b> &middot; one company at a time: a hero line, then five lenses &mdash; Company, Customers, Growth engine, Monetization, Financials &mdash; with the sixty-month figure beneath as context.</li>
           <li><b>Change</b> &middot; the button in the header opens the model-building drawer: pick a world, then set laws, constraints, inputs and one hypothesis. Close it to read the company.</li>
           <li><b>Compare</b> &middot; when the Experiment differs from Base, one line beneath the lens says so; Compare reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
           <li><b>System</b> &middot; the company as an economic machine. Click a node to open its layer; Notes reads the map.</li>
@@ -680,7 +737,7 @@ details.pl .cascade{margin-top:8px}
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
     <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">a769d5a</span>
+    <span class="chip build" id="build-chip" title="The commit this page was built from">4c2fd19</span>
   </header>
 
   <aside class="rail">
@@ -7280,7 +7337,7 @@ details.pl .cascade{margin-top:8px}
     var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
     var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || pairMode;
     var sx = E.summarise(expRes);
-    var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Economics & cash']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
+    var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Financials']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
     var S12 = function(f){ return sumM(expRes, w.from, w.to, f); };
     var h = '';
     var model = 'MODEL · ARR'+(cuOn?' · Customers':'')+(moOn?' · Monetization':'')+(caOn?' · Cash':'');
@@ -7471,29 +7528,200 @@ details.pl .cascade{margin-top:8px}
     }
     h += '</div>';
 
-    /* ================= 5. ECONOMICS & CASH ================= */
-    var P = function(k){ return S12(function(x){ return x[k]; }); };
-    var rev=P('revenue'), eb=P('ebita');
-    var revX=seriesOf(expRes, function(x){ return x.revenue; }), gpX=seriesOf(expRes, function(x){ return x.grossProfit; }), ebX=seriesOf(expRes, function(x){ return x.ebita; }), ebB=seriesOf(baseRes, function(x){ return x.ebita; });
-    var cashX=seriesOf(expRes, function(x){ return x.cashClosing; }), cashB=seriesOf(baseRes, function(x){ return x.cashClosing; }); cashX[0]=expRes.months[0].cashOpening; cashB[0]=baseRes.months[0].cashOpening;
-    var ebDiff = Math.abs(ebX[m]-ebB[m])>1, cashDiff = Math.abs(cashX[m]-cashB[m])>1;
-    h += lensHead('5', 'How does '+basis+' turn into profit and cash?', w.tag, 'cash');
-    h += '<div class="hl desc">'+
-      dv(eur(rev), 'revenue · '+w.tag)+
-      dv(eur(eb), 'EBITA · '+w.tag)+
-      dv('→ '+(rev>0 ? pct(eb/rev,1) : '—'), 'EBITA margin · '+w.tag, 'meas')+
-      dv(eur(em.cashClosing), 'cash · '+Mt)+
-      dv(eur(sx.cashTrough), 'cash trough · M'+sx.cashTroughMonth)+
-      '</div>';
-    h += chartBlock('Economics over time · monthly', Mt, [{n:'revenue', c:'var(--ink-2)'}, {n:'gross profit', c:'var(--ink)'}, {n:'EBITA', c:'var(--exp)'}].concat(ebDiff ? [{n:'Base EBITA', c:'var(--base)', dash:true}] : []),
-      chart({ h:HC, sel:m, yFmt:eur, aria:'revenue, gross profit and EBITA per month over 60 months', series:[
-        { k:'line', pts:revX, color:'var(--ink-2)', width:1.3, label:'revenue' }, { k:'line', pts:gpX, color:'var(--ink)', width:1.3, label:'gross profit' }, { k:'area', pts:ebX, color:'var(--exp)', opacity:0.18, label:'EBITA' } ]
-        .concat(ebDiff ? [{ k:'line', pts:ebB, color:'var(--base)', base:true }] : []) }));
-    h += chartBlock('Cash over time', Mt, [{n:'cash balance', c:'var(--exp)'}].concat(cashDiff ? [{n:'Base', c:'var(--base)', dash:true}] : []).concat(caOn ? [] : [{n:'FCF = EBITA · cash physics off', c:'transparent'}]),
-      chart({ h:HC, sel:m, yFmt:eur, aria:'cash balance over 60 months', marks:[{ m:sx.cashTroughMonth, v:sx.cashTrough, label:'trough '+eur(sx.cashTrough)+' · M'+sx.cashTroughMonth, below:true }], series:[
-        { k:'area', pts:cashX, color:'var(--exp)', opacity:0.2, label:'cash' } ].concat(cashDiff ? [{ k:'line', pts:cashB, color:'var(--base)', base:true }] : []) }));
-    h += '<details class="bnd pl" id="pl-details"><summary>Monthly P&amp;L waterfall · '+Mt+'</summary><div id="pl-slot"></div></details></div>';
+    /* ================= 5. FINANCIALS =================
+       The same canonical month, in the language a CFO reads: a statement of
+       operations, the working-capital balances the model actually carries, and
+       the indirect bridge from EBITA to cash. Nothing here is recalculated: every
+       line is a published field, or a sum of published fields over the period.
+       The statements are the primary object; the one figure beneath shows what a
+       single-period statement cannot — how conversion and working capital move
+       through time. System → Cash is the mechanism; the Model Ledger is the proof. */
+    var trail = finPeriod === 'trail', pf = trail ? Math.max(1, m-11) : m, pn = m - pf + 1;
+    function finOf(res){
+      var s = function(f){ return sumM(res, pf, m, f); }, mS = res.months[pf-1], mE = res.months[m-1];
+      var o = { rev:s(function(x){ return x.revenue; }), cogs:s(function(x){ return x.cogs; }), gp:s(function(x){ return x.grossProfit; }),
+        sm:s(function(x){ return x.sm; }), rd:s(function(x){ return x.rd; }), ga:s(function(x){ return x.ga; }),
+        xc:s(function(x){ return x.expansionCost; }), iv:s(function(x){ return x.interventionCost; }),
+        ebita:s(function(x){ return x.ebita; }), fcf:s(function(x){ return x.fcf; }),
+        cashO:mS.cashOpening, cashC:mE.cashClosing, runRate:mE.closingARR, cash:!!mE.cash };
+      if(o.cash){ o.arO=mS.cash.receivablesOpening; o.arC=mE.cash.receivablesClosing; o.dfO=mS.cash.deferredOpening; o.dfC=mE.cash.deferredClosing;
+        o.coll=s(function(x){ return x.cash.collections; }); o.costs=s(function(x){ return x.cash.cashCosts; });
+        o.nwcO=o.arO-o.dfO; o.nwcC=o.arC-o.dfC; o.dNwc=o.nwcC-o.nwcO; }
+      return o;
+    }
+    var F = finOf(expRes), FB = finOf(baseRes), cmpOn = differs;
+    var CDL = caOn ? expRes.derived.cash.collectionDelayMonths : 0;
+    var rampOn = caOn && CDL > 0 && pf <= CDL;             /* the period includes the opening-receivables build */
+    var tagP = trail ? 'M'+pf+'–M'+m : Mt;
+    /* € thousands; negatives in parentheses; an exact zero is a dash */
+    function fk(v){ if(v===null || v===undefined || !isFinite(v)) return '—'; if(Math.abs(v) < 0.5) return '—';
+      var r = Math.abs(Math.round(v/1000)).toLocaleString('en-GB'); return v < 0 ? '('+r+')' : r; }
+    function cells(e, b){ return '<td class="n">'+fk(e)+'</td>'+(cmpOn ? '<td class="n cb">'+fk(b)+'</td><td class="n cb">'+fk(e-b)+'</td>' : ''); }
+    function row(cls, label, e, b){ return '<tr'+(cls?' class="'+cls+'"':'')+'><td class="l">'+label+'</td>'+cells(e, b)+'</tr>'; }
+    function pctRow(label, e, b){ var pe = F.rev ? e/F.rev : null, pb = FB.rev ? b/FB.rev : null;
+      var f = function(v){ return v===null ? '—' : (v<0?'−':'')+Math.abs(v*100).toFixed(1)+'%'; };
+      return '<tr class="pct"><td class="l">'+label+'</td><td class="n">'+f(pe)+'</td>'+(cmpOn ? '<td class="n cb">'+f(pb)+'</td><td class="n cb">'+(pe!==null&&pb!==null ? ((pe-pb)*100>=0?'+':'−')+Math.abs((pe-pb)*100).toFixed(1)+' pt' : '—')+'</td>' : '')+'</tr>'; }
+    function head(t){ return '<thead><tr><th class="l">'+t+'</th><th>'+(cmpOn ? 'Experiment' : '')+'</th>'+(cmpOn ? '<th class="cb">Base</th><th class="cb">Δ</th>' : '')+'</tr></thead>'; }
+    var sup = function(n){ return '<sup>'+n+'</sup>'; };
+    var xcOn = expRes.mechanisms.expansionCost || baseRes.mechanisms.expansionCost, ivOn2 = expRes.mechanisms.interventions || baseRes.mechanisms.interventions;
+
+    h += lensHead('5', 'How does the operating system translate into profit, working capital and cash?', tagP, 'cash');
+    h += '<div class="fin">';
+    h += '<div class="fin-top">'+
+      '<div class="btn-row fin-per"><button class="btn'+(trail?'':' on')+'" data-finp="month">Month</button><button class="btn'+(trail?' on':'')+'" data-finp="trail">Trailing window</button></div>'+
+      '<span class="fin-period">'+(trail ? (pn===12 ? 'Twelve months to M'+m : pn+' months to M'+m) : 'Month '+m)+'</span>'+
+      (trail ? '<span class="fin-range">M'+pf+'–M'+m+(pn<12 ? ' · the window is not yet twelve months' : '')+'</span>' : '')+
+      '<span class="fin-links"><button class="fin-go" data-go="cash">Mechanism · System → Cash ›</button><button class="fin-go" data-go="ledger">Proof · Model Ledger ›</button></span>'+
+      '</div>'+
+      '<div class="fin-units">€ thousands · money, not run-rate — the '+basis+' switch does not apply</div>';
+
+    /* ---- left: operations, then the bridge to cash, then cash ---- */
+    var L1 = '<table class="fs"><caption>Statement of operations</caption>'+head('')+'<tbody>'+
+      row('', 'Revenue <span class="q">recognised</span>', F.rev, FB.rev)+
+      row('in', 'Cost of revenue'+sup(1), -F.cogs, -FB.cogs)+
+      row('sub', 'Gross profit', F.gp, FB.gp)+
+      pctRow('Gross margin', F.gp, FB.gp)+
+      row('in', 'Sales &amp; marketing', -F.sm, -FB.sm)+
+      row('in', 'Research &amp; development', -F.rd, -FB.rd)+
+      row('in', 'General &amp; administrative', -F.ga, -FB.ga)+
+      (xcOn ? row('in', 'Expansion realisation cost', -F.xc, -FB.xc) : '')+
+      (ivOn2 ? row('in', 'Hypothesis programme cost', -F.iv, -FB.iv) : '')+
+      row('sub', 'EBITA'+sup(2), F.ebita, FB.ebita)+
+      pctRow('EBITA margin', F.ebita, FB.ebita)+
+      '<tr class="memo"><td class="l">Memo · closing '+basis+' <span class="q">run-rate, not recognised revenue</span></td>'+cells(rc(F.runRate), rc(FB.runRate))+'</tr>'+
+      '</tbody></table>';
+
+    var cfTitle = 'Cash flow'+(trail ? '' : '');
+    var L2 = '<table class="fs"><caption>'+cfTitle+' <span class="cap-q">indirect</span></caption>'+head('')+'<tbody>'+
+      row('', 'EBITA', F.ebita, FB.ebita)+
+      (F.cash
+        ? row('nwc', '(Increase) / decrease in working capital', -F.dNwc, FB.cash ? -FB.dNwc : 0)
+        : '<tr class="absent"><td class="l">Working-capital movement</td><td class="n" colspan="'+(cmpOn?3:1)+'">not modelled</td></tr>')+
+      row('sub', 'Cash free cash flow'+sup(3), F.fcf, FB.fcf)+
+      '</tbody></table>';
+    /* the bridge's context and its proof: quiet lines, not a second statement */
+    var ctx2 = '';
+    if(F.cash){
+      ctx2 += '<div class="fin-ctx nwc">Net working capital at period end <b>'+fk(F.nwcC)+'</b>'+
+        (F.nwcC < 0 ? ' — negative: customers pay ahead of delivery, so the company is financed by them' : F.nwcC > 0 ? ' — positive: the company waits to be paid' : '')+'</div>';
+      var dRes = F.fcf - (F.coll - F.costs), iRes = F.fcf - (F.ebita - F.dNwc);
+      var ok = Math.abs(dRes) <= 1e-6*Math.max(1,Math.abs(F.rev)) && Math.abs(iRes) <= 1e-6*Math.max(1,Math.abs(F.rev));
+      ctx2 += '<div class="fin-proof">Direct method · collections '+fk(F.coll)+' − cash costs '+fk(F.costs)+' = '+fk(F.coll-F.costs)+
+        ' <span class="'+(ok?'ok':'bad')+'">'+(ok ? '✓' : '✗ '+(dRes+iRes).toFixed(2))+'</span></div>';
+    } else {
+      ctx2 += '<div class="fin-ctx">Cash Physics is off: no billing is modelled, so cash free cash flow equals EBITA.</div>';
+    }
+    var L3 = '<table class="fs"><caption>Cash</caption>'+head('')+'<tbody>'+
+      row('', 'Cash at beginning of period', F.cashO, FB.cashO)+
+      row('', 'Cash free cash flow', F.fcf, FB.fcf)+
+      row('tot', 'Cash at end of period'+sup(5)+(F.cashC < 0 ? ' <span class="unf">unfunded</span>' : ''), F.cashC, FB.cashC)+
+      '</tbody></table>';
+
+    /* ---- right: the balances the model carries, rolled forward ---- */
+    var R1;
+    if(F.cash){
+      var dfPart = function(d){ return Math.max(0, d); }, caPart = function(d){ return Math.max(0, -d); };
+      var showCA = F.dfO < 0 || F.dfC < 0;
+      var rf = function(cls, label, o, c){ return '<tr'+(cls?' class="'+cls+'"':'')+'><td class="l">'+label+'</td><td class="n">'+fk(o)+'</td><td class="n">'+fk(c-o)+'</td><td class="n">'+fk(c)+'</td></tr>'; };
+      R1 = '<table class="fs wc"><caption>Working capital'+sup(4)+' <span class="cap-q">modelled operating balances only</span></caption>'+
+        '<thead><tr><th class="l"></th><th>'+(trail ? 'M'+(pf-1) : 'M'+(m-1))+'</th><th>Movement</th><th>'+Mt+'</th></tr></thead><tbody>'+
+        rf('', 'Receivables'+(rampOn ? sup(6) : ''), F.arO, F.arC)+
+        (showCA ? rf('', 'Contract asset <span class="q">unbilled</span>', caPart(F.dfO), caPart(F.dfC)) : '')+
+        rf('', 'Deferred revenue', -dfPart(F.dfO), -dfPart(F.dfC))+
+        rf('sub nwc', 'Net working capital', F.nwcO, F.nwcC)+
+        '</tbody></table>'+
+        (cmpOn && FB.cash ? '<div class="fin-cmp">Base · net working capital '+fk(FB.nwcC)+', movement '+fk(FB.dNwc)+'</div>' : '')+
+        '<div class="fin-note">A rise in net working capital uses cash; a fall releases it. The movement column is what the cash flow carries, with its sign reversed.</div>';
+    } else {
+      R1 = '<table class="fs wc"><caption>Working capital'+sup(4)+'</caption><tbody><tr class="absent"><td class="l">'+
+        'Cash Physics is off. No billing term, deferred revenue or receivables are modelled — this is an absence, not a zero balance.</td></tr></tbody></table>';
+    }
+    /* profit on the left; on the right the bridge to cash, with the balances whose movement
+       it carries directly beneath it, then cash. Stacked on a narrow screen, the same order. */
+    h += '<div class="fin-grid"><div class="fin-col">'+L1+'</div><div class="fin-col">'+L2+ctx2+R1+L3+'</div></div>';
+
+    /* ---- the one figure: conversion through time ----
+       Upper pane, each month: EBITA and cash FCF, and the band between them — the
+       month's working-capital movement, shaded by what it did to cash. Lower pane:
+       net working capital, the running total of that band. Flow above, stock
+       below, on one time axis; the selected month and period are marked. */
+    h += finFigure(caOn, pf, m, CDL);
+
+    var gmLaw = lawNow('grossMargin');
+    h += '<div class="fin-notes">'+
+      '<p>'+sup(1)+' Cost of revenue derives from the gross-margin law ('+pct(gmLaw,0)+' in force at '+Mt+'); it is not a build-up of costs.</p>'+
+      '<p>'+sup(2)+' EBITA — no depreciation is modelled, so EBITA, EBITDA and EBIT coincide.</p>'+
+      '<p>'+sup(3)+' Free cash flow is pre-tax, with no capex, financing, payables or bad debt; costs are paid when incurred.</p>'+
+      '<p>'+sup(4)+' Working capital: modelled operating balances only — the model carries receivables and deferred revenue, not a balance sheet.</p>'+
+      '<p>'+sup(5)+' A negative cash balance is unfunded: no financing is modelled.</p>'+
+      (rampOn ? '<p class="conv">'+sup(6)+' Opening-state convention: the model seeds the opening deferred-revenue book at M0 but starts receivables at zero, so months 1–'+CDL+
+        ' build '+eur(expRes.months[CDL-1].cash.receivablesClosing)+' of receivables from nothing — a draw on cash that reflects the opening state, not an event in the period.</p>' : '')+
+      '</div></div></div>';
     return h;
+  }
+  /* The conversion figure (Financials). Its own drawing rather than chart(): the
+     band between two series is the subject, and a second pane carries the stock
+     that band accumulates into. It keeps the lens-chart geometry (640 wide, the
+     same margins, Y1–Y5), so a click moves the month exactly as it does on every
+     other lens chart. */
+  function finFigure(caOn, pf, m, CDL){
+    var W=CHG.W, L=CHG.L, R=CHG.R, pw=W-L-R, T1=18, H1=118, GAP=34, H2=caOn?74:0, Hh=T1+H1+(caOn?GAP+H2:0)+22;
+    var x = function(t){ return L + (t/H)*pw; };
+    var sE = function(v){ return v<0 ? '−'+eur(-v) : eur(v); };
+    var eb=[], fc=[], nw=[], t;
+    for(t=1;t<=H;t++){ var q=expRes.months[t-1]; eb[t]=q.ebita; fc[t]=q.fcf; nw[t]=q.cash ? q.cash.receivablesClosing-q.cash.deferredClosing : null; }
+    var lo=0, hi=0; for(t=1;t<=H;t++){ lo=Math.min(lo,eb[t],fc[t]); hi=Math.max(hi,eb[t],fc[t]); }
+    var sp=(hi-lo)||1; lo-=sp*0.06; hi+=sp*0.06;
+    var y1 = function(v){ return T1 + H1 - (v-lo)/(hi-lo)*H1; };
+    var g = '';
+    /* period band and year grid */
+    g += '<rect x="'+x(pf-1).toFixed(1)+'" y="'+(T1-6)+'" width="'+Math.max(1.5, x(m)-x(pf-1)).toFixed(1)+'" height="'+(Hh-T1-12)+'" fill="rgba(139,141,240,.07)"/>';
+    for(var yr=1;yr<=5;yr++){ var gx=x(yr*12).toFixed(1); g+='<line class="gy" x1="'+gx+'" x2="'+gx+'" y1="'+(T1-6)+'" y2="'+(Hh-18)+'"/><text class="ax" x="'+gx+'" y="'+(Hh-4)+'" text-anchor="middle">Y'+yr+'</text>'; }
+    g += '<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y1(0).toFixed(1)+'" y2="'+y1(0).toFixed(1)+'"/>';
+    g += '<text class="ax" x="'+(L-6)+'" y="'+(y1(hi)+8).toFixed(1)+'" text-anchor="end">'+esc(sE(hi))+'</text><text class="ax" x="'+(L-6)+'" y="'+(y1(0)+3).toFixed(1)+'" text-anchor="end">0</text>';
+    g += '<text class="fl" x="'+L+'" y="'+(T1-8)+'">EBITA and cash free cash flow · each month</text>';
+    /* the band: one trapezoid per month, green where cash beat profit, red where working capital absorbed it */
+    if(caOn){
+      for(t=1;t<H;t++){
+        var a1=fc[t]-eb[t], a2=fc[t+1]-eb[t+1];
+        var col = (a1+a2)>=0 ? 'rgba(79,163,125,.42)' : 'rgba(194,96,106,.42)';
+        g += '<path d="M'+x(t).toFixed(1)+' '+y1(eb[t]).toFixed(1)+'L'+x(t+1).toFixed(1)+' '+y1(eb[t+1]).toFixed(1)+'L'+x(t+1).toFixed(1)+' '+y1(fc[t+1]).toFixed(1)+'L'+x(t).toFixed(1)+' '+y1(fc[t]).toFixed(1)+'Z" fill="'+col+'"/>';
+      }
+    }
+    function line(arr, yf, cls, st){ var d=''; for(var k=1;k<=H;k++){ if(arr[k]===null) continue; d+=(d?'L':'M')+x(k).toFixed(1)+' '+yf(arr[k]).toFixed(1); } return '<path class="ln '+cls+'" d="'+d+'" style="'+st+'"/>'; }
+    g += line(eb, y1, 'eb', 'stroke:var(--ink-3);stroke-width:1.2;stroke-dasharray:3 2');
+    g += line(fc, y1, 'fc', 'stroke:var(--ink);stroke-width:1.5');
+    var xm=x(m).toFixed(1);
+    g += '<line class="cur" x1="'+xm+'" x2="'+xm+'" y1="'+(T1-6)+'" y2="'+(Hh-18)+'"/>';
+    /* the month's two values at the right edge */
+    /* the month's values at the right edge: two labelled values need 24 units between them */
+    if(!caOn){
+      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(y1(fc[m])+3.5).toFixed(1)+'" fill="var(--ink)">'+esc(sE(fc[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(y1(fc[m])+13).toFixed(1)+'">EBITA = FCF</text>';
+    } else {
+      var ry1=y1(fc[m]), ry2=y1(eb[m]), mid=(ry1+ry2)/2;
+      if(Math.abs(ry1-ry2)<24){ if(ry1<=ry2){ ry1=mid-12; ry2=mid+12; } else { ry1=mid+12; ry2=mid-12; } }
+      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(ry1+3.5).toFixed(1)+'" fill="var(--ink)">'+esc(sE(fc[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(ry1+12).toFixed(1)+'">cash FCF</text>';
+      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(ry2+3.5).toFixed(1)+'" fill="var(--ink-3)">'+esc(sE(eb[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(ry2+12).toFixed(1)+'">EBITA</text>';
+    }
+    if(caOn){
+      var T2=T1+H1+GAP, nlo=0, nhi=0; for(t=1;t<=H;t++){ nlo=Math.min(nlo,nw[t]); nhi=Math.max(nhi,nw[t]); }
+      var ns=(nhi-nlo)||1; nlo-=ns*0.08; nhi+=ns*0.08;
+      var y2 = function(v){ return T2 + H2 - (v-nlo)/(nhi-nlo)*H2; };
+      g += '<text class="fl" x="'+L+'" y="'+(T2-8)+'">Net working capital · month end — the running total of the band above</text>';
+      var d2='M'+x(1).toFixed(1)+' '+y2(0).toFixed(1); for(t=1;t<=H;t++) d2+='L'+x(t).toFixed(1)+' '+y2(nw[t]).toFixed(1); d2+='L'+x(H).toFixed(1)+' '+y2(0).toFixed(1)+'Z';
+      g += '<path d="'+d2+'" fill="rgba(139,141,240,.20)" stroke="rgba(139,141,240,.75)" stroke-width="1"/>';
+      g += '<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y2(0).toFixed(1)+'" y2="'+y2(0).toFixed(1)+'"/>';
+      g += '<text class="ax" x="'+(L-6)+'" y="'+(y2(0)+3).toFixed(1)+'" text-anchor="end">0</text><text class="ax" x="'+(L-6)+'" y="'+(y2(nlo)+0).toFixed(1)+'" text-anchor="end">'+esc(sE(nlo))+'</text>';
+      g += '<line class="cur" x1="'+xm+'" x2="'+xm+'" y1="'+T2+'" y2="'+(T2+H2)+'"/>';
+      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(y2(nw[m])+3.5).toFixed(1)+'" fill="var(--exp)">'+esc(sE(nw[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(y2(nw[m])+13).toFixed(1)+'">NWC</text>';
+      if(CDL>0){ g += '<text class="ax" x="'+(x(CDL)+4).toFixed(1)+'" y="'+(T1+H1-2)+'" fill="var(--law)">⁶ opening state</text>'; }
+    }
+    var legend = caOn
+      ? '<span><i style="background:var(--ink)"></i>cash FCF</span><span><i class="dash"></i>EBITA</span><span><i style="background:rgba(79,163,125,.6)"></i>working capital released cash</span><span><i style="background:rgba(194,96,106,.6)"></i>working capital absorbed cash</span><span><i style="background:rgba(139,141,240,.45)"></i>net working capital</span>'
+      : '<span><i style="background:var(--ink)"></i>cash FCF = EBITA · Cash Physics off</span>';
+    return '<div class="fin-fig"><div class="fin-fig-t">Conversion over sixty months</div>'+
+      '<svg class="ch" data-l="'+L+'" data-r="'+R+'" viewBox="0 0 '+W+' '+Hh+'" width="100%" role="img" aria-label="EBITA and cash free cash flow per month with the working-capital band between them, and net working capital beneath">'+g+'</svg>'+
+      '<div class="fin-leg">'+legend+'</div></div>';
   }
   /* the law in force this month for a flat or nested key (a hypothesis may have moved it) */
   function lawNow(key){ var m=selectedMonth(), iv=expRes.months[m-1].interventions; var ch = iv && iv.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; var v = ch ? ch.to : getK(expA, key); return v; }
@@ -7516,7 +7744,7 @@ details.pl .cascade{margin-top:8px}
       '</svg>';
   }
 
-  /* the P&L waterfall lives inside Economics & cash; between renders it is parked so innerHTML never destroys it */
+  /* the P&L waterfall is parked between renders so innerHTML never destroys it (it no longer has a lens slot) */
   /* ================================================================== *
    * §11 — MODEL LEDGER. An auditor's truth surface, not a visualization.
    *
@@ -7885,6 +8113,7 @@ details.pl .cascade{margin-top:8px}
   function parkCascade(){ var c=document.querySelector('.cascade'), p=document.getElementById('cascade-park'); if(c && p && c.parentNode!==p){ p.appendChild(c); } }
   function placeCascade(){ var c=document.querySelector('.cascade'), slot=document.getElementById('pl-slot'); if(c && slot){ slot.appendChild(c); c.hidden=false; } }
   var activeLens = 'company', figPref = {};
+  var finPeriod = 'month';   /* Financials: the selected month, or the trailing window to it */
   var leverDown = false, sideStale = false, figLegend = '';
   /* A finger or a cursor is pressed on the stage. While time is running the clock rebuilds the
      stage's markup about eleven times a second, and a rebuild between press and release destroys
@@ -7917,6 +8146,11 @@ details.pl .cascade{margin-top:8px}
   function stopClock(){ playing = false; var pb = document.getElementById('play'); if(pb){ pb.classList.remove('play'); playIcon(); } }
   function chartScrub(e){ var sv = e.target && e.target.closest ? e.target.closest('svg.ch') : null; if(!sv || sv.dataset.x) return;   /* the response curve's x is money, not time */ var r = sv.getBoundingClientRect(), L = +sv.dataset.l, R = +sv.dataset.r, vw = 640; var px = (e.clientX - r.left) / r.width * vw; var mm = Math.round(Math.max(0, Math.min(H, (px - L) / (vw - L - R) * H))); stopClock(); tau = mm; document.getElementById('scrub').value = mm; syncTime(); render(); }
   document.getElementById('side').addEventListener('click', chartScrub);
+  document.getElementById('side').addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target : null; if(!t) return;
+    var fp = t.closest('[data-finp]'); if(fp){ finPeriod = fp.dataset.finp; renderSide(); return; }
+    var go = t.closest('[data-go]'); if(go){ setLayer('flow'); sysView = go.dataset.go; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
+  });
   document.getElementById('cohort-life').addEventListener('click', chartScrub);
   function setLens(id){
     activeLens = id;
@@ -9124,7 +9358,7 @@ details.pl .cascade{margin-top:8px}
       { sel:'#packs', t:'World', x:'Which layers the Base world carries: ARR physics alone, customers beneath it, monetization, cash, a hypothesis \u2014 or one of three illustrative company shapes. Reset returns to the chosen world.', rail:true },
       { sel:'#rail-change', t:'Change', x:'A drawer over the company. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
       { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
-      { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Economics & cash \u2014 each a question and its readouts with their time basis. When Experiment differs from Base, one line beneath the lens says so and opens Compare.' },
+      { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Financials \u2014 each a question and its readouts with their time basis. When Experiment differs from Base, one line beneath the lens says so and opens Compare.' },
       { sel:'.transport', t:'Time', x:'Play, or drag the scrubber. Every basis tag on every lens follows the selected month. Month 36 is a good place to read a mature company.' }
     ];
     var step = -1, hl = null, card = document.getElementById('tourcard');
