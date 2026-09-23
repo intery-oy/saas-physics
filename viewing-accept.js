@@ -62,11 +62,12 @@ const PREV = 'file://' + PREV_FILE;
   }
   for (const pk of ['wA', 'arr']) {
     const A = await open(URL, pk, true, 'exp'), B = await open(PREV, pk, true, null);
-    unch[pk] = await surfaces(A, B); await A.close(); await B.close();
+    /* Step 1D made Company one world on purpose (company-accept holds it); System and the Ledger stay exactly as they were */
+    unch[pk] = (await surfaces(A, B)).filter(x => !/^Company/.test(x)); await A.close(); await B.close();
   }
   rec('INVARIANT: viewing Base with an Experiment present, every Company lens, System view and the Model Ledger is identical — markup, canvas pixels, ledger table — to the same world with no Experiment at all (worlds A, C and ARR physics)',
       Object.values(inv).every(x => x.length === 0), JSON.stringify(inv).slice(0, 600));
-  rec('UNCHANGED: viewing the Experiment reproduces the previous build exactly on every Company lens, System view and the Ledger, apart from the control and Financials\' retired Experiment / Base buttons',
+  rec('UNCHANGED: viewing the Experiment reproduces the previous build exactly on every System view and the Ledger (Company is one world since Step 1D — company-accept)',
       Object.values(unch).every(x => x.length === 0), JSON.stringify(unch).slice(0, 600));
 
   /* ---- HIT-TESTS and INSPECT ---- */

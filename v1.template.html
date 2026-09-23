@@ -188,9 +188,6 @@ button,input{font:inherit;color:inherit}
 #side[data-reading="all"] .lens.tab{display:block}
 .lens.herolens{padding:24px 2px 16px;border-bottom:none}
 .herolens .hero .hv{font-size:42px}
-.cmpstrip{display:flex;gap:12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--ink-2);flex-wrap:wrap}
-.cmpstrip b{color:var(--ink);font-family:var(--mono);font-weight:500}
-.cmpstrip .btn{margin-left:auto}
 .inspecthead{display:flex;align-items:baseline;gap:12px;padding:12px 0 6px}
 .inspecthead .btn{font-size:11px}
 /* viewport-fit is cover, so the last row clears the home indicator itself */
@@ -763,7 +760,7 @@ details.pl .cascade{margin-top:8px}
           <li><b>Company</b> &middot; one company at a time: a hero line, then five lenses &mdash; Company, Customers, Growth engine, Monetization, Financials &mdash; with the sixty-month figure beneath as context.</li>
           <li><b>World</b> &middot; the menu beside the title picks the Base company: three illustrative worlds, or the base model built up layer by layer.</li>
           <li><b>Experiment</b> &middot; the chip in the header opens the drawer where you change the laws &mdash; or start from one of fourteen presets. It names what differs from Base; close it to read the company.</li>
-          <li><b>Compare</b> &middot; when the Experiment differs from Base, one line beneath the lens says so; Compare reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
+          <li><b>Compare</b> &middot; reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
           <li><b>System</b> &middot; the company as an economic machine. Click a node to open its layer; Notes reads the map.</li>
                     <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR down to the cash it recovered; &lsaquo; Company returns.</li>
         </ol>
@@ -1095,10 +1092,18 @@ details.pl .cascade{margin-top:8px}
   var viewedWorld = 'exp';          /* 'exp' | 'base' — never changes either world */
   var worldsDiffer = false;         /* set by recompute: whether an Experiment exists to be viewed apart from Base */
   function viewingBase(){ return viewedWorld==='base' && worldsDiffer && (layer==='stock' || layer==='flow'); }
+  /* Step 1D — Company is a SINGLE-WORLD surface: it shows the company the viewed world creates and
+     never how the two worlds differ (Compare owns that). So on Company the world read against is
+     the viewed world itself, exactly as on a Base page: every comparison has nothing to compare.
+     `single` says so. System still reads the Experiment against Base (its Flows delta is Compare's
+     job to absorb later); Compare and Scenarios read both worlds directly, not through VW(). */
   function VW(){
-    return viewingBase()
-      ? { res:baseRes, S:baseS, A:baseA, start:baseStart, oRes:baseRes, oS:baseS, oA:baseA, oStart:baseStart, base:true }
-      : { res:expRes,  S:expS,  A:expA,  start:expStart,  oRes:baseRes, oS:baseS, oA:baseA, oStart:baseStart, base:false };
+    var b = viewingBase(), single = b || layer==='stock';
+    var R = b ? { res:baseRes, S:baseS, A:baseA, start:baseStart } : { res:expRes, S:expS, A:expA, start:expStart };
+    R.base = b; R.single = single;
+    if(single){ R.oRes = R.res; R.oS = R.S; R.oA = R.A; R.oStart = R.start; }
+    else { R.oRes = baseRes; R.oS = baseS; R.oA = baseA; R.oStart = baseStart; }
+    return R;
   }
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
   var capitalMode = false, capAgg = null;
@@ -2289,17 +2294,19 @@ details.pl .cascade{margin-top:8px}
     for(var fm2=Math.ceil(t); fm2<=H; fm2++) ctx.lineTo(X(fm2), S.yA(expS.arr[fm2]));
     ctx.strokeStyle='rgba(139,141,240,.85)'; ctx.lineWidth=2; ctx.stroke();
 
-    /* --- BASE: the frozen reference future, dashed and cool --- */
-    ctx.save(); ctx.setLineDash([5,4]);
-    ctx.beginPath();
-    for(var bm=0; bm<=H; bm++){ var px=X(bm), py=S.yA(baseS.arr[bm]); bm?ctx.lineTo(px,py):ctx.moveTo(px,py); }
-    ctx.strokeStyle='rgba(91,104,196,.78)'; ctx.lineWidth=1.8; ctx.stroke();
-    ctx.restore();
+    /* --- BASE: the frozen reference future, dashed and cool (not on Company, which shows one world) --- */
+    if(!V_.single){
+      ctx.save(); ctx.setLineDash([5,4]);
+      ctx.beginPath();
+      for(var bm=0; bm<=H; bm++){ var px=X(bm), py=S.yA(baseS.arr[bm]); bm?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+      ctx.strokeStyle='rgba(91,104,196,.78)'; ctx.lineWidth=1.8; ctx.stroke();
+      ctx.restore();
+    }
 
     /* --- the experiment's entry, and its accumulated consequence at the selected month
        (docs/LENS-VISUAL-GRAMMAR.md · CHANGE MARKER, DELTA): one tick, one bracket --- */
     var chg = E.compare(baseRes, expRes).changed;
-    if(!V_.base && (chg.length || pairMode)){
+    if(!V_.single && (chg.length || pairMode)){
       var ef = effectFrom(), mSel0 = selectedMonth();
       var lbl = chg.length===1 ? chLabel(chg[0])+' '+chText(chg[0]) : (!chg.length ? 'declared pair' : chg.length+' assumptions changed');
       ctx.font='9.5px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='rgba(139,141,240,.95)';
@@ -2337,9 +2344,9 @@ details.pl .cascade{margin-top:8px}
       ctx.beginPath(); ctx.moveTo(X(t), S.yL(lerpAt(expS.leak,t)));
       for(var lf=Math.ceil(t); lf<=H; lf++) ctx.lineTo(X(lf), S.yL(expS.leak[lf]));
       ctx.strokeStyle='rgba(194,96,106,.4)'; ctx.lineWidth=1.4; ctx.stroke();
-      ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
-      for(var lb=0; lb<=H; lb++){ var lx=X(lb), ly=S.yL(baseS.leak[lb]); lb?ctx.lineTo(lx,ly):ctx.moveTo(lx,ly); }
-      ctx.strokeStyle='rgba(91,104,196,.42)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
+      if(!V_.single){ ctx.save(); ctx.setLineDash([5,4]); ctx.beginPath();
+        for(var lb=0; lb<=H; lb++){ var lx=X(lb), ly=S.yL(baseS.leak[lb]); lb?ctx.lineTo(lx,ly):ctx.moveTo(lx,ly); }
+        ctx.strokeStyle='rgba(91,104,196,.42)'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore(); }
       ctx.textAlign='left'; ctx.font='9px "Archivo",sans-serif'; ctx.fillStyle='#98a2b8';
       ctx.fillText('CUMULATIVE HISTORICAL LEAKAGE', geo.L+8, geo.leakTop+10);
       ctx.font='9.5px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(194,96,106,.9)';
@@ -2360,7 +2367,7 @@ details.pl .cascade{margin-top:8px}
         var gLo=Math.min(0, Math.min.apply(null,gAll)), gHi=Math.max.apply(null,gAll)*1.15||0.1, gTop=geo.massTop+26, gBot=geo.massBot-8;
         var yG=function(v){ return gBot-((v-gLo)/((gHi-gLo)||1))*(gBot-gTop); };
         var gline=function(arr, col, dash, wdt){ ctx.save(); if(dash) ctx.setLineDash(dash); ctx.beginPath(); var on=false; for(var q=0;q<H;q++){ if(arr[q]===null){ on=false; continue; } var gx=X(q+1), gy=yG(arr[q]); on?ctx.lineTo(gx,gy):ctx.moveTo(gx,gy); on=true; } ctx.strokeStyle=col; ctx.lineWidth=wdt; ctx.stroke(); ctx.restore(); };
-        gline(gB, 'rgba(102,112,138,.5)', [3,4], 0.9);
+        if(!V_.single) gline(gB, 'rgba(102,112,138,.5)', [3,4], 0.9);
         gline(gX, 'rgba(230,233,242,.55)', null, 1);
         /* the % axis: a hairline on the right edge, nice ticks, its own caption */
         var gSpan=gHi-gLo, gStep=[0.02,0.05,0.1,0.2,0.25,0.5,1,2,5].filter(function(st){ return gSpan/st<=4; })[0] || 5;
@@ -3971,7 +3978,7 @@ details.pl .cascade{margin-top:8px}
          Computed up front so the payback label below can read its age and
          merge into ONE sentence — two independently positioned labels used
          to collide whenever the two payback ages landed close together. */
-      var bcap = CAP.cohortCapital(baseRes, subj.index);
+      var bcap = V_.single ? null : CAP.cohortCapital(baseRes, subj.index);
       var j=subj.acquisitionMonth;
       var pts=[[X(j), -subj.acquisitionCost]];
       subj.series.forEach(function(s){ if(s.t<=t) pts.push([X(s.t), s.net]); });
@@ -4694,7 +4701,7 @@ details.pl .cascade{margin-top:8px}
     var Mt = 'M'+m, w = trailing12(m);
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
-    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || (pairMode && !V_.base);
+    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || (pairMode && !V_.single);
     var sx = E.summarise(expRes);
     var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Financials']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
     var S12 = function(f){ return sumM(expRes, w.from, w.to, f); };
@@ -4708,7 +4715,7 @@ details.pl .cascade{margin-top:8px}
     h += lensHead('1', 'What kind of company did these assumptions create?', Mt, 'company').replace('<span class="basis">', viewingCtl()+'<span class="basis">') +
       '<div class="hero"><span class="hv">'+reur(em.closingARR)+'</span><span class="hs">'+basis+'</span>'+
         '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
-        (V_.base ? '' : Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
+        (V_.single ? '' : Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
       '<div class="hl desc">'+
         dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+
         dv('⋈ '+pct(lawNow('grossMargin'),0), 'gross margin · law', 'law')+
@@ -6503,14 +6510,7 @@ details.pl .cascade{margin-top:8px}
     var slot=document.getElementById(layer==='cmp' ? 'compare-panel' : 'causal-slot'); if(!slot) return;
     var c=E.compare(baseRes, expRes), b=c.base, x=c.experiment, d=c.delta;
     if(layer!=='cmp'){
-      /* Company keeps one line: that a comparison exists, and where it lives */
-      if(layer!=='stock' || viewingBase() || (!c.changed.length && !pairMode)){ slot.innerHTML=''; return; }
-      var sb=E.summarise(baseRes), sx=E.summarise(expRes), dM=sx.finalARR-sb.finalARR, nC=c.changed.length;
-      slot.innerHTML='<div class="cmpstrip"><span>'+(pairMode ? 'A declared pair: two worlds, one comparison' : 'Experiment differs from Base · <b>'+nC+' assumption'+(nC>1?'s':'')+'</b>')+
-        ' · '+basis+' M60 <b>'+(Math.abs(dM)<1?'=':reurS(dM))+'</b> · ending cash <b>'+(Math.abs(sx.endingCash-sb.endingCash)<1?'=':eurS(sx.endingCash-sb.endingCash))+'</b></span>'+
-        '<button class="btn" id="goto-compare">Compare ›</button></div>';
-      document.getElementById('goto-compare').addEventListener('click', function(){ setLayer('cmp'); });
-      return;
+      slot.innerHTML=''; return;   /* Company is one world (Step 1D): Base against Experiment is read on Compare */
     }
     if(!c.changed.length && !pairMode){
       slot.innerHTML='<div class="causal idle"><h4>Experiment equals Base</h4>'+
@@ -6827,8 +6827,8 @@ details.pl .cascade{margin-top:8px}
       { sel:'.head .nav', t:'See · change · compare · understand', x:'<b>Company</b> reads one company. <b>Experiment</b> changes its laws. <b>Compare</b> reads why the Experiment differs from Base. <b>System</b> draws the machine that made the difference. Under <b>⋯</b>: the Model Ledger that proves it, MRR or ARR, this guide.' },
       { sel:'#world-wrap', t:'World', x:'The Base company: one of three illustrative shapes, or the base model built up layer by layer \u2014 ARR physics alone, then customers, monetization, cash, a hypothesis. Changing it clears the Experiment, so it asks first.' },
       { sel:'#rail-change', t:'Experiment', x:'A drawer over the company; start from a preset or change the laws yourself. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
-      { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
-      { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Financials \u2014 each a question and its readouts with their time basis. When Experiment differs from Base, one line beneath the lens says so and opens Compare.' },
+      { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. Click a stratum to inspect that cohort.' },
+      { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Financials \u2014 each a question and its readouts with their time basis.'},
       { sel:'.transport', t:'Time', x:'Play, or drag the scrubber. Every basis tag on every lens follows the selected month. Month 36 is a good place to read a mature company.' }
     ];
     var step = -1, hl = null, card = document.getElementById('tourcard');
@@ -6859,7 +6859,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get valveHits(){ return valveHits; }, get lawHits(){ return lawHits; }, get openChip(){ return openChip; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, finRebuild: function(){ finLive = null; renderSide(); },
+    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get valveHits(){ return valveHits; }, get lawHits(){ return lawHits; }, get openChip(){ return openChip; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, rebaseToExperiment: function(){ /* test hook: the Experiment's company as the only world */ baseA = Object.assign({}, expA); baseStart = expStart; recompute(); render(); renderSide(); }, finRebuild: function(){ finLive = null; renderSide(); },
     get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,

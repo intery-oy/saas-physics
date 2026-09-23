@@ -10,7 +10,7 @@
  *                year to date (flows summed through T, balances at T, movements from the prior
  *                year-end); years not begun are blank, never forecast
  *   BACKWARD     scrubbing back unforms the statements exactly
- *   BOUNDARY     Base, Experiment and Δ are cut at the same month
+ *   BOUNDARY     Base and Experiment are cut at the same month; Financials has no Δ mode (Compare owns differences)
  *   COST         a month change on Financials is a tick, never a build; the hidden lenses and
  *                the chart's paths are not rebuilt; a structural change forces a build
  *   MOBILE       with the period row hidden, the year in progress still reads YTD
@@ -30,12 +30,11 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const pack = async (pg, id) => { await D(pg, id => document.getElementById('pack-' + id).click(), id); await pg.waitForTimeout(400); };
   const lens = async (pg, id) => { await D(pg, id => document.querySelector('.lensnav .btn[data-lens="' + id + '"]').click(), id); await pg.waitForTimeout(250); };
   const experiment = async pg => { await D(pg, () => { const i = document.querySelector('input[data-k="sm"], #f-sm'); i.value = +i.value * 1.4; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(400); };
-  /* Base / Experiment is the page-level viewing control (Step 1B); Financials keeps only its Δ vs Base toggle */
+  /* Base / Experiment is the page-level viewing control (Step 1B); Company, Financials included, shows one world (Step 1D) */
   const view = async (pg, v) => { await D(pg, v => { const q = s => document.querySelector(s);
     if (v === 'base') { q('[data-vw="base"]').click(); return; }
     q('[data-vw="exp"]').click();
     const on = q('[data-finv="exp"]');                     /* present only while Δ is on */
-    if (v === 'delta' && !on) q('[data-finv="delta"]').click();
     if (v === 'exp' && on) on.click(); }, v); await pg.waitForTimeout(200); };
   /* scrub the way the transport does, then report whether the month was a tick */
   const scrub = (pg, m) => D(pg, m => { const s = window.__SP_DEBUG.finStats, b = s.builds, t = s.ticks, sc = document.getElementById('scrub');
@@ -44,7 +43,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const MONTHS = [1, 2, 5, 11, 12, 13, 24, 25, 30, 36, 37, 40, 47, 48, 49, 59, 60, 44, 36, 12, 3, 1];
 
   /* ---- EQUIVALENCE ---- */
-  const cases = [['wA', null], ['wA', 'exp'], ['wA', 'base'], ['wA', 'delta'], ['wC', null], ['arr', null], ['arr', 'delta']];
+  const cases = [['wA', null], ['wA', 'exp'], ['wA', 'base'], ['wC', null], ['wC', 'base'], ['arr', null], ['arr', 'base']];
   const eq = {};
   for (const [pk, v] of cases) {
     const pg = await open(1440, 900); await pack(pg, pk); if (v) await experiment(pg); await lens(pg, 'cash'); if (v) await view(pg, v);
@@ -86,10 +85,9 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
   /* ---- BOUNDARY ---- */
   await view(pg, 'base'); const b40 = await cols(pg), eb = await eng(pg, 'baseRes', 40);
-  await view(pg, 'delta'); const d40 = await cols(pg);
-  const dOk = [0, 1, 2, 3].every(i => d40.rev[i] === fk(e40[i].r - eb[i].r) && d40.fcf[i] === fk(e40[i].f - eb[i].f)) && d40.rev[4] === '' && d40.fcf[4] === '';
-  rec('BOUNDARY: Base and Δ are cut at the same month as the Experiment — Base\'s Y4 is its own M37–M40, Δ is Experiment less Base over the same months, and Y5 is blank in all three',
-      same(b40.rev, 'r', eb) && same(b40.fcf, 'f', eb) && b40.heads.join('|') === c40.heads.join('|') && dOk && d40.heads.join('|') === c40.heads.join('|'), JSON.stringify({ base: b40.rev, delta: d40.rev }));
+  const noDelta = await D(pg, () => document.querySelectorAll('#lens-cash [data-finv]').length);
+  rec('BOUNDARY: viewing Base, Financials is cut at the same month as the Experiment — Base\'s Y4 is its own M37–M40, Y5 blank — and there is no Δ vs Base mode: Financials states one world',
+      same(b40.rev, 'r', eb) && same(b40.fcf, 'f', eb) && b40.heads.join('|') === c40.heads.join('|') && noDelta === 0, JSON.stringify({ base: b40.rev, noDelta }));
   await view(pg, 'exp');
 
   /* ---- BACKWARD ---- */
@@ -107,10 +105,10 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     return { months: Math.round(+sc.value) - 10, builds: s.builds - b, ticks: s.ticks - t, hidden: document.body.contains(hid), cell: document.body.contains(cell), path: document.body.contains(path) }; });
   rec('COST: while the clock plays on Financials every month change is a tick and none is a build; the hidden lenses, the statement cells and the chart\'s paths are the same nodes throughout',
       cost.months >= 2 && cost.builds === 0 && cost.ticks >= cost.months && cost.hidden && cost.cell && cost.path, JSON.stringify(cost));
-  const struct = await D(pg, () => { const s = window.__SP_DEBUG.finStats, b = s.builds; document.querySelector('[data-finv="delta"]').click(); const v1 = s.builds - b;
-    document.querySelector('[data-finv="exp"]').click(); document.querySelector('.lensnav .btn[data-lens="growth"]').click(); document.querySelector('.lensnav .btn[data-lens="cash"]').click();
+  const struct = await D(pg, () => { const s = window.__SP_DEBUG.finStats, b = s.builds; document.querySelector('[data-vw="base"]').click(); const v1 = s.builds - b;
+    document.querySelector('[data-vw="exp"]').click(); document.querySelector('.lensnav .btn[data-lens="growth"]').click(); document.querySelector('.lensnav .btn[data-lens="cash"]').click();
     const sc = document.getElementById('scrub'), t = s.ticks; sc.value = '33'; sc.dispatchEvent(new Event('input', { bubbles: true })); return { view: v1, afterLens: s.ticks - t }; });
-  rec('STRUCTURE: a structural change (the Δ vs Base toggle, a lens change) forces a full build, after which month changes are ticks again', struct.view === 1 && struct.afterLens === 1, JSON.stringify(struct));
+  rec('STRUCTURE: a structural change (the viewed world, a lens change) forces a full build, after which month changes are ticks again', struct.view === 1 && struct.afterLens === 1, JSON.stringify(struct));
   await pg.close();
 
   /* ---- MOBILE ---- */

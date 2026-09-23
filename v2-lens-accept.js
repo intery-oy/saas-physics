@@ -164,12 +164,12 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const c2 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
     return { op: c.op, base: c.base, lawMoved: c.lawMoved, floor: c.floor, cap: c.cap, baseCurves: s.querySelectorAll('path.ln.base').length,
       dots: [...s.querySelectorAll('circle')].map(x => x.getAttribute('fill')), mark: [...s.querySelectorAll('.mk')].map(e => e.textContent) }; });
-  rec('GROWTH ENGINE · moving the S&M lever to €1.20m slides the operating point ALONG the curve — average CAC rises, marginal rises faster, the Base operating point appears where the run used to stand, and the curve itself does not move because the law did not change',
+  rec('GROWTH ENGINE · moving the S&M lever to €1.20m slides the operating point ALONG the curve — average CAC rises, marginal rises faster, and the curve itself does not move because the law did not change; Company shows one world, so no Base operating point is drawn (Compare owns the difference)',
       q2.sm === 1200000 && q2.avg > eng.avg && (q2.marg - eng.marg) > (q2.avg - eng.avg) &&
-      c2.op.sm === 1200000 && Math.abs(c2.op.avg - q2.avg) < 1e-9 && c2.base.sm === eng.sm0 && !c2.lawMoved && c2.baseCurves === 0 &&
-      c2.dots.length === 2 && c2.dots.indexOf('none') >= 0 && c2.mark.length === 2 &&
-      gr2.rv.indexOf((q2.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && /Base/.test(gr2.legend.join('|')),
-      JSON.stringify({ q2, op: c2.op, base: c2.base, lawMoved: c2.lawMoved }));
+      c2.op.sm === 1200000 && Math.abs(c2.op.avg - q2.avg) < 1e-9 && c2.base.sm === 1200000 && !c2.lawMoved && c2.baseCurves === 0 &&
+      c2.dots.length === 1 && c2.mark.length === 1 && c2.mark[0] === 'S&M €1.20m' &&   /* the run's own point only */
+      gr2.rv.indexOf((q2.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && !/Base/.test(gr2.legend.join('|')),
+      JSON.stringify({ q2, op: c2.op, base: c2.base, lawMoved: c2.lawMoved, dots: c2.dots, mark: c2.mark, legend: gr2.legend }));
   /* the law itself: a cheaper floor lifts the whole curve, a lower capacity bends it sooner */
   await D(pg, () => { const i = document.getElementById('f-cacPerARR'); i.value = 0.8; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const c3 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
@@ -177,8 +177,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     return { floor: c.floor, lawMoved: c.lawMoved, baseCurves: s.querySelectorAll('path.ln.base').length, n: c.op.n, worst: c.samples.reduce((a, [sm, n]) => Math.max(a, Math.abs(n - law(sm))), 0) }; });
   await D(pg, () => { const i = document.getElementById('f-maxMonthlyNewARR'); i.value = 600000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const c4 = await D(pg, () => { const c = window.__SP_DEBUG.acqCurve; return { cap: c.cap, used: c.op.used, marg: c.op.marg, n: c.op.n }; });
-  rec('GROWTH ENGINE · changing the law changes the CURVE: a cheaper CAC floor lifts it (more new ARR for the same spend) and draws the Base law dashed beneath it; a lower capacity bends it sooner, so the same spend buys less and marginal CAC climbs',
-      c3.floor === 0.8 && c3.lawMoved && c3.baseCurves === 1 && c3.n > c2.op.n && c3.worst < 1e-6 &&
+  rec('GROWTH ENGINE · changing the law changes the CURVE: a cheaper CAC floor lifts it (more new ARR for the same spend), with no Base law drawn beside it on Company; a lower capacity bends it sooner, so the same spend buys less and marginal CAC climbs',
+      c3.floor === 0.8 && !c3.lawMoved && c3.baseCurves === 0 && c3.n > c2.op.n && c3.worst < 1e-6 &&
       c4.cap === 600000 && c4.n < c3.n && c4.marg > c2.op.marg && c4.used > c2.op.used,
       JSON.stringify({ c3, c4 }));
   await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
@@ -192,7 +192,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   await D(pg, () => { const i = document.getElementById('f-monetization.components[1].usageGrowthAnnual'); i.value = 0.30; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
   const mo2 = await page(pg, 'monetization');
   const v2 = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), x = W.expRes.months[m - 1].monetization; return { share: x.variableARR / (x.fixedARR + x.variableARR) }; });
-  rec('MONETIZATION · the usage-growth lever reshapes the composition (variable share rises) and the Base total appears as a quiet dashed reference', v2.share > vShare + 0.005 && mo2.baseLines[0] === 1 && /Base total/.test(mo2.legend.join('|')), JSON.stringify({ v2, vShare, baseLines: mo2.baseLines }));
+  rec('MONETIZATION · the usage-growth lever reshapes the composition (variable share rises); Company shows one world, so no Base total is drawn', v2.share > vShare + 0.005 && mo2.baseLines[0] === 0 && !/Base/.test(mo2.legend.join('|')), JSON.stringify({ v2, vShare, baseLines: mo2.baseLines }));
   await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
 
   /* ---- FINANCIALS ---- */

@@ -66,8 +66,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     gone: ['mode-chip', 'nav-scen'].map(id => { const e = document.getElementById(id); return !e || !e.closest('.head'); }), scenIn: !!document.querySelector('.rail #nav-scen') }));
   rec('HEADER: SaaS Physics · World ▾ · Company · Experiment · Compare · System · ⋯ — the ⋯ menu holds Model Ledger, recurring-revenue basis, Guide, Method and the build; no mode chip, no Scenarios in the header, presets entered from the Experiment drawer',
       hdr.order.join(',') === 'H1,world-btn,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide|Method' && hdr.build && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
-  const strip = await pg.evaluate(() => { const s = document.querySelector('#causal-slot .cmpstrip'); return s ? s.innerText : ''; });
-  rec('COMPANY: with a change, Company carries one line only — n assumptions, the M60 and cash deltas, and a Compare link; the spine is not on Company', /1 assumption/.test(strip) && /Compare/.test(strip) && !(await pg.evaluate(() => !!document.querySelector('#causal-slot .spine'))), strip.replace(/\n/g, ' | '));
+  const one = await pg.evaluate(() => ({ slot: document.getElementById('causal-slot').innerHTML.length, live: document.getElementById('nav-compare').classList.contains('live'), chip: document.getElementById('rail-toggle').textContent }));
+  rec('COMPANY: with a change, Company carries no comparison of its own — no strip, no spine; the header names the Experiment ("1 change") and Compare is lit as where the difference is read', one.slot === 0 && one.live && /1 change/.test(one.chip), JSON.stringify(one));
   await click(pg, '#reset'); await scrub(pg, 36);
 
   /* ---- LENSES: navigation ---- */
