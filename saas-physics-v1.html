@@ -115,14 +115,9 @@ button,input{font:inherit;color:inherit}
 .prow:disabled:hover{background:none}
 .prow .pwhy{font-size:10.5px;color:var(--ink-4);font-style:italic;grid-column:2}
 /* Base Settings cards: one per assumption category, each with its own accent */
-.bs-jump{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 2px}
-.bs-jump button{font:11px var(--ui);background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc,var(--line));border-radius:3px;color:var(--ink-2);padding:5px 9px;cursor:pointer}
-.bs-jump button:hover{color:var(--ink)} .bs-jump button .st{font-family:var(--mono);font-size:9.5px;margin-left:6px;color:var(--ink-4)} .bs-jump button.on .st{color:var(--good)}
 .bs-card{--acc:var(--exp);background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--acc);border-radius:4px;padding:12px 16px 6px;margin:0 0 14px;scroll-margin-top:70px}
 .bs-card[data-l="start"]{--acc:var(--stock)} .bs-card[data-l="customers"]{--acc:var(--in)} .bs-card[data-l="monetization"]{--acc:var(--law)}
 .bs-card[data-l="cash"]{--acc:#5b8fd0} .bs-card[data-l="interventions"]{--acc:var(--hyp)}
-.bs-jump button[data-l="start"]{--acc:var(--stock)} .bs-jump button[data-l="arr"]{--acc:var(--exp)} .bs-jump button[data-l="customers"]{--acc:var(--in)}
-.bs-jump button[data-l="monetization"]{--acc:var(--law)} .bs-jump button[data-l="cash"]{--acc:#5b8fd0} .bs-jump button[data-l="interventions"]{--acc:var(--hyp)}
 .bs-ch{display:flex;align-items:baseline;gap:10px}
 .bs-cn{font-family:var(--display);font-size:17px;color:var(--ink)}
 .bs-ct{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4)}
@@ -140,6 +135,45 @@ button,input{font:inherit;color:inherit}
 .basepage:not(.defs) .force-sub,.basepage:not(.defs) .fgrp-note{display:none}
 .basepage .force{margin-bottom:10px}
 #bs-defs.on{border-color:var(--exp);color:var(--exp)}
+/* the Base economic map: six blocks in causal order, relationships beneath, read-only */
+.emap{margin:12px 0 4px;padding:12px 14px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
+.emap.frz{border-color:rgba(79,163,125,.45)}
+.emap-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.emap-t{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--exp)}
+.emap.frz .emap-t{color:var(--good)}
+.emap-p{font-size:11px;color:var(--ink-3)}
+.emap-sw{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.emap-sw button{font:10.5px var(--ui);background:none;border:0;color:var(--ink-3);padding:3px 9px;cursor:pointer}
+.emap-sw button.on{background:var(--sunk);color:var(--ink)}
+.emap-g,.emap-x{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));column-gap:18px}
+.emap-b{--acc:var(--exp);position:relative;display:flex;flex-direction:column;gap:3px;text-align:left;font:inherit;color:inherit;background:var(--ground);border:1px solid var(--line);border-top:2px solid var(--acc);border-radius:3px;padding:8px 9px 9px;cursor:pointer;min-width:0}
+.emap-b:hover{border-color:var(--acc)}
+.emap-b[data-b="start"]{--acc:var(--stock)} .emap-b[data-b="cust"]{--acc:var(--in)} .emap-b[data-b="mon"]{--acc:var(--law)} .emap-b[data-b="econ"]{--acc:var(--ink-3)} .emap-b[data-b="cash"]{--acc:#5b8fd0}
+.emap-b:not(:last-child)::after{content:'→';position:absolute;right:-15px;top:6px;color:var(--ink-4);font-size:12px}
+.emap-b.off{border-style:dashed;border-top-style:solid;opacity:.6}
+.emap-bt{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);margin-bottom:3px}
+.emap-bt i{font-style:normal;color:var(--ink-4);letter-spacing:.08em}
+.emap-r{display:flex;flex-direction:column;line-height:1.3}
+.emap-r .k{font-size:10px;color:var(--ink-3)} .emap-r .v{font-family:var(--mono);font-size:11px;color:var(--ink)}
+.emap-r .v i{font-family:var(--ui);font-style:italic;font-size:9.5px;color:var(--ink-4)}
+.emap-r.q .v{color:var(--ink-4)}
+.emap-r.dual .k::after{content:' ⇄';color:var(--exp)}
+.emap-r.nob .k::after{content:' ⊘';color:var(--warn)}
+.emap-r .chg{color:var(--exp);font-weight:400}
+.emap-x{row-gap:5px;margin-top:10px}
+.emx{position:relative;border-top:1px dashed var(--line);padding-top:3px;cursor:pointer}
+.emx::before,.emx::after{content:'';position:absolute;top:-5px;width:1px;height:5px;background:var(--line)}
+.emx::before{left:0} .emx::after{right:0}
+.emx span{font-size:10.5px;color:var(--ink-3)}
+.emx.sm{border-top-color:var(--exp)} .emx.sm::before,.emx.sm::after{background:var(--exp)} .emx.sm span{color:var(--ink-2)}
+.emx.tim{border-top-color:#5b8fd0} .emx.tim::before,.emx.tim::after{background:#5b8fd0}
+.emx.nob,.emx.bnd{border-top-color:rgba(210,164,92,.6)} .emx.nob::before,.emx.nob::after,.emx.bnd::before,.emx.bnd::after{background:rgba(210,164,92,.6)} .emx.bnd span,.emx.nob span{color:var(--warn)}
+.emx.hyp{border-top-color:var(--hyp)} .emx.hyp span{color:var(--hyp)}
+.emx.q{opacity:.6}
+@media (max-width:1100px){.emap-g{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px}.emap-b:nth-child(3)::after{display:none}.emap-x{grid-template-columns:minmax(0,1fr)}.emx{grid-column:1 / -1 !important}}
+@media (max-width:640px){.emap-g{grid-template-columns:repeat(2,minmax(0,1fr))}.emap-b::after{display:none}}
+.bs-card.flash{animation:bsflash 1.2s ease-out}
+@keyframes bsflash{0%{box-shadow:0 0 0 2px var(--acc)}100%{box-shadow:0 0 0 0 transparent}}
 /* the preset browser: a list inside the Experiment drawer — discover and load, never analyse */
 .plist{display:grid;margin-top:9px;border-top:1px solid var(--line-soft)}
 .prow{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 8px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
@@ -872,7 +906,7 @@ details.pl .cascade{margin-top:8px}
              one), and the few principles that make the instrument trustworthy. The mechanics live where
              they act: the Experiment drawer, Model Mechanics, the Model Ledger, the presets. -->
         <details class="mabout" id="about">
-          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">e186903</span></summary>
+          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">bcc5950</span></summary>
           <p><b>Deterministic.</b> A cohort simulation over sixty months — no randomness, no fitted parameters. Company ARR is only ever the sum of its cohorts.</p>
           <p><b>Laws → state → outputs.</b> You set the laws; everything else is a consequence. Retention, NRR and payback are measured from the run, never entered — so a 90% persistence law can measure as 89.6% GRR, and that gap is real, not an error.</p>
           <p><b>Traceable.</b> The engine decides every figure; the words only narrate it. The Model Ledger shows each month as the engine published it, with checks that reconcile.</p>
@@ -913,7 +947,13 @@ details.pl .cascade{margin-top:8px}
       <button class="btn" id="bs-defs" title="Show what every setting means, its unit and direction">Definitions</button>
       <button class="btn primary" id="base-freeze">Freeze Base</button>
     </div>
-    <nav class="bs-jump" id="bs-jump" aria-label="Assumption categories"></nav>
+    <!-- the Base economic map: what is assumed, and where each assumption enters the economics.
+         Read-only; a block only takes you to its controls below. -->
+    <section class="emap" id="emap" aria-label="Base economic map">
+      <div class="emap-h"><span class="emap-t" id="emap-title"></span><span class="emap-sw" id="emap-sw" hidden><button class="on" data-emv="draft">Draft</button><button data-emv="frozen">Frozen Base</button></span><span class="emap-p" id="emap-purpose"></span></div>
+      <div class="emap-g" id="emap-grid"></div>
+      <div class="emap-x" id="emap-x"></div>
+    </section>
     <div class="bp-confirm" id="freeze-confirm" hidden></div>
     <div class="hint bp-draft" id="bp-draft"></div>
     <div class="bp-cols">
@@ -4175,7 +4215,7 @@ details.pl .cascade{margin-top:8px}
     draftChanged();
   }
   function draftChanged(){
-    draftErr = null;
+    draftErr = null; emapView = 'draft';          /* an edit is a proposal: the map follows the draft */
     try { draftRes = E.run(draftBase.a, draftBase.start); } catch(err){ draftRes = null; draftErr = err && err.message ? err.message : String(err); }
     syncBaseSettings();
   }
@@ -4200,6 +4240,7 @@ details.pl .cascade{margin-top:8px}
   function freezeBase(){
     var nb = normBase(draftBase.a, draftBase.start);
     frozenBase = deepFreeze({ a: nb.a, start: nb.start, src: draftBase.src, label: draftBase.label, edited: draftBase.edited, n: frozenBase ? frozenBase.n + 1 : 1 });
+    emapView = 'frozen';
     adoptFrozenBase();
   }
   function adoptFrozenBase(){
@@ -4229,6 +4270,98 @@ details.pl .cascade{margin-top:8px}
     });
   }
 
+  /* ---- the Base economic map ------------------------------------------------------------------
+     What is assumed, and where each assumption enters the economics — read straight from ONE Base
+     state (the draft, or the frozen Base), never mixed. Values are the state's own fields; the few
+     the engine derives (opening ARR under Monetization, persistence L × (1 − C), ARR per new logo)
+     are read from that state's own run and labelled derived. Nothing here writes: a block only
+     takes you to its controls. */
+  var emapView = 'draft';
+  var EMAP_GO = { start:['start'], acq:['arr','Acquisition response'], cust:['customers'], mon:['monetization'], econ:['arr','Economic conversion'], cash:['cash'], hyp:['interventions'] };
+  function goBaseSection(k){
+    var g = EMAP_GO[k]; if(!g) return; var card = document.getElementById('bs-card-'+g[0]); if(!card) return;
+    var t = g[1] ? (card.querySelector('.fgrp[data-kind="'+g[1]+'"]') || card) : card;
+    try { t.scrollIntoView({ block:'start', behavior:'smooth' }); } catch(e){ t.scrollIntoView(); }
+    card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+  }
+  function econMapModel(B, R){
+    var a = B.a, st = B.start, on = function(L){ return !!R && LAYER_META[L].on(R); };
+    var cu = on('customers'), mo = on('monetization'), ca = on('cash'), rows = {};
+    function r(k, v, o){ return Object.assign({ k:k, v:v }, o||{}); }
+    rows.start = [
+      mo && R ? r('Opening ARR', eur(R.months[0].openingARR), { d:true, id:'openingARR' }) : r('Opening ARR', eur(st.openingARR), { id:'openingARR' }),
+      cu ? r('Opening customers', Math.round(st.openingCustomers).toLocaleString('en'), { id:'openingCustomers' }) : null,
+      st.openingCohorts && st.openingCohorts.length ? r('Opening book', st.openingCohorts.map(function(c){ return 'age '+c.age+' mo'; }).join(' + '), { id:'openingCohorts' }) : null,
+      r('Opening cash', eur(st.openingCash), { id:'openingCash' })
+    ];
+    rows.acq = [
+      r('S&M', fmtF('eur', a.sm)+'/mo', { id:'sm', dual:true }),
+      r('CAC floor', fmtF('x', a.cacPerARR), { id:'cacPerARR' }),
+      r('Capacity', fmtF('cap', a.maxMonthlyNewARR), { id:'maxMonthlyNewARR', quiet: a.maxMonthlyNewARR===null || a.maxMonthlyNewARR===undefined }),
+      r('Lag', (a.acquisitionLagMonths||0)+' mo'+(a.openingPipelineMonths ? ' · pipeline '+a.openingPipelineMonths+' mo' : ''), { id:'acquisitionLagMonths', quiet: !(a.acquisitionLagMonths>0) }),
+      cu ? (mo && R ? r('ARR per new logo', eur(R.derived.monetization.newLogoRevenuePerCustomer), { d:true, id:'newLogoARPA' })
+                    : r('ARR per new logo', fmtF('arpa', a.newLogoARPA), { id:'newLogoARPA' })) : null
+    ];
+    rows.cust = a.bands ? [ r('Laws by cohort age', a.bands.map(function(b){ return b.name+' '+pct(b.persistenceAnnual,0); }).join(' · '), { id:'bands' }) ]
+      : cu ? [ r('Logo retention', pct(a.logoRetentionAnnual,1), { id:'logoRetentionAnnual' }), r('Contraction', pct(a.contractionAnnual,1), { id:'contractionAnnual' }),
+               mo ? r('Persistence', 'emergent from the mix', { d:true, id:'persist' }) : r('Persistence', R ? pct(R.derived.persistenceAnnualEffective,1) : '—', { d:true, id:'persist' }) ]
+      : [ r('Persistence', pct(a.persistenceAnnual,1), { id:'persistenceAnnual' }), r('Customer layer', 'off', { quiet:true, off:true }) ];
+    if(mo){
+      var f = a.monetization.components[0], u = a.monetization.components[1];
+      rows.mon = [ r('Fixed', eur(f.priceAnnual)+'/yr · '+pp(f.priceGrowthAnnual||0,0).replace(' pp','%')+'/yr', { id:'fixed' }) ];
+      if(u) rows.mon = rows.mon.concat([
+        r('Usage price', fmtF('eur', u.priceAnnual)+'/unit · '+pct(u.priceGrowthAnnual||0,0)+'/yr', { id:'uprice' }),
+        r('Usage', Math.round(u.units)+' → cap '+Math.round(u.unitsCap)+' · +'+pct(u.usageGrowthAnnual||0,0)+'/yr', { id:'usage' }),
+        r('Adoption', pct(u.penetration,0)+' → cap '+pct(u.penetrationCap,0)+' · '+pct(u.adoptionAnnual||0,0)+'/yr', { id:'adopt' }) ]);
+    } else rows.mon = [ r('Expansion', pct(a.expansionCoefficientAnnual,1)+'/yr coefficient', { id:'expansionCoefficientAnnual' }), r('Monetization layer', 'off', { quiet:true, off:true }) ];
+    rows.econ = [
+      r('Gross margin', pct(a.grossMargin,1), { id:'grossMargin' }),
+      r('S&M', fmtF('eur', a.sm)+'/mo', { id:'sm', dual:true }),
+      r('R&D', fmtF('eur', a.rd)+'/mo', { id:'rd', nob:true }),
+      r('G&A', fmtF('eur', a.ga)+'/mo', { id:'ga', nob:true }),
+      r('Expansion cost', a.expansionCostPerARR>0 ? a.expansionCostPerARR.toFixed(2)+'× per €1' : 'free', { id:'expansionCostPerARR', quiet: !(a.expansionCostPerARR>0) })
+    ];
+    rows.cash = ca ? [ r('Billing term', a.billingTermMonths+' mo', { id:'billingTermMonths' }), r('Timing', 'in '+a.billingTiming, { id:'billingTiming' }),
+                       r('Collection delay', (a.collectionDelayMonths||0)+' mo', { id:'collectionDelayMonths' }) ]
+                    : [ r('Cash layer', 'off · cash moves with EBITA', { quiet:true, off:true }) ];
+    Object.keys(rows).forEach(function(k){ rows[k] = rows[k].filter(Boolean); });
+    var hyp = (a.interventions||[]).map(function(h){ return '↯ '+(h.name||h.id)+' · '+hypTargetLabel(h.target)+' × '+h.value+' · M'+(h.startMonth+(h.lagMonths||0))+(h.durationMonths ? '–M'+(h.startMonth+(h.lagMonths||0)+h.durationMonths-1) : '+'); });
+    return { rows:rows, on:{ start:true, acq:true, cust:cu || !!a.bands, mon:mo, econ:true, cash:ca }, hyp:hyp };
+  }
+  function renderEconMap(){
+    if(!draftBase) return;
+    var hasF = !!frozenBase, differs = hasF && draftDiffers();
+    if(!differs) emapView = hasF ? 'frozen' : 'draft';
+    var useF = emapView==='frozen' && hasF;
+    var B = useF ? frozenBase : draftBase, R = useF ? frozenRes : draftRes;
+    var M = econMapModel(B, R), O = differs && !useF ? econMapModel(frozenBase, frozenRes) : null;
+    var sw = document.getElementById('emap-sw'); sw.hidden = !differs;
+    [].forEach.call(sw.querySelectorAll('[data-emv]'), function(b){ b.classList.toggle('on', b.dataset.emv===(useF?'frozen':'draft')); });
+    document.getElementById('emap').classList.toggle('frz', useF);
+    document.getElementById('emap-title').textContent = useF ? (differs ? 'Frozen Base · economic map · read-only' : 'Base · economic map · frozen ✓') : 'Draft Base · economic map';
+    document.getElementById('emap-purpose').textContent = useF ? 'These are the assumptions every Experiment is measured against.'
+      : differs ? 'Your editable proposal. The frozen Base stays in force until you freeze again; • marks a value that differs from it.'
+      : 'Review what you are assuming before freezing the baseline.';
+    var BL = [['start','Starting state'],['acq','Acquisition'],['cust','Customers'],['mon','Monetization'],['econ','Economics'],['cash','Cash']];
+    document.getElementById('emap-grid').innerHTML = BL.map(function(b){
+      var k=b[0], rows=M.rows[k], orow = O ? O.rows[k] : null;
+      return '<button class="emap-b'+(M.on[k]?'':' off')+'" data-go="'+k+'" data-b="'+k+'" title="Go to these settings">'+
+        '<span class="emap-bt">'+b[1]+(M.on[k]?'':' <i>off</i>')+'</span>'+
+        rows.map(function(x){
+          var ov = orow && x.id ? (orow.filter(function(y){ return y.id===x.id && y.k===x.k; })[0]||{}).v : undefined, ch = O && x.id && ov!==x.v;
+          return '<span class="emap-r'+(x.quiet?' q':'')+(x.dual?' dual':'')+(x.nob?' nob':'')+'"'+(ch ? ' title="frozen: '+esc(ov===undefined?'—':ov)+'"' : '')+'><span class="k">'+esc(x.k)+'</span>'+
+                 '<span class="v">'+esc(x.v)+(ch?' <b class="chg">•</b>':'')+(x.d?' <i>derived</i>':'')+'</span></span>';
+        }).join('')+'</button>';
+    }).join('');
+    /* the relationships most easily misread — each spans the blocks it connects */
+    var ca = M.on.cash;
+    document.getElementById('emap-x').innerHTML =
+      '<div class="emx sm" style="grid-column:2 / 6" data-go="acq"><span>S&amp;M · one input, two effects — a cost this month (Economics) and new ARR later (Acquisition)</span></div>'+
+      '<div class="emx nob" style="grid-column:5 / 6" data-go="econ"><span>R&amp;D, G&amp;A · cost only — no modelled benefit</span></div>'+
+      '<div class="emx tim'+(ca?'':' q')+'" style="grid-column:5 / 7" data-go="cash"><span>'+(ca ? 'Billing and collection move cash timing only — EBITA is unchanged' : 'Cash layer off · cash moves with EBITA')+'</span></div>'+
+      '<div class="emx bnd" style="grid-column:2 / 7" data-go="cash"><span>⊘ Cash never constrains S&amp;M — spend continues whatever the cash does</span></div>'+
+      (M.hyp.length ? '<div class="emx hyp" style="grid-column:1 / 7" data-go="hyp"><span>'+esc(M.hyp.join(' · '))+' — a hypothesis the Base carries</span></div>' : '');
+  }
   /* ---- Base Settings: the page ---- */
   var DRAFT_T = null;   /* the draft's control target — set once the force rows exist */
   var START_FORCES = [
@@ -4270,12 +4403,9 @@ details.pl .cascade{margin-top:8px}
       }
       if(cur) cur.appendChild(el);
     });
-    var jump = document.getElementById('bs-jump'); jump.innerHTML='';
-    [['start','Opening state']].concat(LAYER_ORDER.map(function(L){ return [L, LAYER_META[L].name]; })).forEach(function(c){
-      var b=document.createElement('button'); b.dataset.l=c[0]; b.innerHTML=esc(c[1])+'<span class="st"></span>';
-      b.addEventListener('click', function(){ var t=document.getElementById('bs-card-'+c[0]); if(t) t.scrollIntoView({ block:'start', behavior:'smooth' }); });
-      jump.appendChild(b);
-    });
+    document.getElementById('emap-sw').addEventListener('click', function(e){ var b=e.target.closest('[data-emv]'); if(!b) return; emapView = b.dataset.emv; renderEconMap(); });
+    document.getElementById('emap-grid').addEventListener('click', function(e){ var b=e.target.closest('[data-go]'); if(b) goBaseSection(b.dataset.go); });
+    document.getElementById('emap-x').addEventListener('click', function(e){ var b=e.target.closest('[data-go]'); if(b) goBaseSection(b.dataset.go); });
     document.getElementById('bs-defs').addEventListener('click', function(){ var on = document.getElementById('basepage').classList.toggle('defs'); this.classList.toggle('on', on); });
     document.getElementById('base-freeze').addEventListener('click', requestFreeze);
   }
@@ -4312,10 +4442,10 @@ details.pl .cascade{margin-top:8px}
     document.getElementById('bs-ro').innerHTML = ro.map(esc).join('<br>');
     syncForces(DRAFT_T);
     if(!frozenBase) [].forEach.call(document.querySelectorAll('#bs-forces .force-base'), function(e){ e.textContent = ''; });   /* nothing frozen to read against */
+    renderEconMap();
     LAYER_ORDER.forEach(function(L){
-      var on = L==='arr' || (draftRes ? LAYER_META[L].on(draftRes) : false), c=document.getElementById('bs-card-'+L), j=document.querySelector('#bs-jump button[data-l="'+L+'"]');
+      var on = L==='arr' || (draftRes ? LAYER_META[L].on(draftRes) : false), c=document.getElementById('bs-card-'+L);
       if(c){ c.classList.toggle('off', !on); var cs=c.querySelector('.bs-cs'); if(cs) cs.textContent = on ? 'on' : 'off'; }
-      if(j){ j.classList.toggle('on', on); j.querySelector('.st').textContent = L==='arr' ? '' : (on ? 'on' : 'off'); }
     });
   }
   /* ---- the header: ⋯ is a small menu; opening it never redraws the page ---- */
@@ -4615,7 +4745,7 @@ details.pl .cascade{margin-top:8px}
     var host = document.getElementById(T.host); host.innerHTML='';
     var lastLayer = null;
     function fixedCostsGroup(){
-      var fx=document.createElement('div'); fx.className='fgrp';
+      var fx=document.createElement('div'); fx.className='fgrp'; fx.dataset.kind='Financial levers';
       fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
         '<div class="fgrp-note">Affect EBITA, FCF and cash directly. The model gives them no effect on retention, expansion or acquisition.</div>';
       FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F, T)); });
@@ -4629,7 +4759,7 @@ details.pl .cascade{margin-top:8px}
         hd.innerHTML='<span class="lh-name"></span> <small>'+esc(LAYER_META[L].note)+'</small>';
         host.appendChild(hd); lastLayer = L;
       }
-      var g=document.createElement('div'); g.className='fgrp'; g.dataset.layer = L;
+      var g=document.createElement('div'); g.className='fgrp'; g.dataset.layer = L; g.dataset.kind = G.kind;
       g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">'+esc(G.kind)+'</span></div>'+
                   '<div class="fgrp-note">'+esc(G.note)+'</div>';
       G.forces.forEach(function(F){ g.appendChild(forceRow(F, T)); });
