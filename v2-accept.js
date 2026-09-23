@@ -27,9 +27,9 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });
-  await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html'));
+  await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html')); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
-  await pg.evaluate(() => { document.getElementById('pack-arr').click(); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
+  await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
@@ -44,7 +44,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
     tog: document.getElementById('t-logoRetentionAnnual').textContent, Lv: document.getElementById('v-logoRetentionAnnual').textContent,
     Kv: document.getElementById('v-newLogoARPA').textContent, Pv: document.getElementById('v-persistenceAnnual').textContent,
     Pdis: document.getElementById('f-persistenceAnnual').disabled, A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms,
-    group: [...document.querySelectorAll('.fgrp-kind')].map(e => e.textContent)
+    group: [...document.querySelectorAll('.rail .fgrp-kind')].map(e => e.textContent)
   }));
   rec('A · CONTROLS: the three customer controls exist in their own "Customer physics" group, read null (logo retention off, ARR per new logo = opening ARPA), and persistence is an ordinary input',
       c0.L && c0.C && c0.K && c0.tog === 'off' && c0.Lv === '' && c0.Kv === 'opening ARPA' && c0.Pv === '90.0%' && !c0.Pdis && c0.A.logoRetentionAnnual === null && c0.mech.customerPhysics === false && c0.group.includes('Customer physics'),
@@ -106,7 +106,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- A · SCENARIO 10 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s10 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     b: window.__SP_DEBUG.baseRes.months[59].closingARR, x: window.__SP_DEBUG.expRes.months[59].closingARR,
     cb: window.__SP_DEBUG.baseRes.months[59].customers.closing, cx: window.__SP_DEBUG.expRes.months[59].customers.closing }));
@@ -119,7 +119,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- NULL ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr'));   /* the preset above ran on its own example Base, and Reset returns to that Base: the layer-off world is the ARR-physics Base */ await pg.waitForTimeout(300);
   const nul = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-logoRetentionAnnual').textContent,
     Pv: document.getElementById('v-persistenceAnnual').textContent, Pdis: document.getElementById('f-persistenceAnnual').disabled, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   await setScrub(36);
@@ -175,12 +175,12 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- B · SCENARIOS 11, 12 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="monetization"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-monetization'), document.querySelector('#preset-list .prow[data-id="monetization"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s11 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
   rec('B · SCENARIO 11: Base is the customer world with a coefficient, Experiment the same customers priced as components (same €20m opening); the panel shows cumulative price/usage/adoption effects, the R12M decomposition and the headroom used',
       !s11.bm.monetization && s11.xm.monetization && s11.b0 === 20000000 && s11.x0 === 20000000 && /MONETIZATION\nMonetization · off → on/.test(s11.txt) && /price effect CUM\n— → €[\d.]+[km]\nnew/.test(s11.txt) && /usage effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /adoption effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /variable share M60\n— → [\d.]+%/.test(s11.txt) && /expansion CUM\n€[\d.]+[km] → €[\d.]+[km]/.test(s11.txt),
       s11.txt.slice(s11.txt.indexOf('CONSEQUENCE'), s11.txt.indexOf('CONSEQUENCE') + 200).replace(/\n/g, ' | '));
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="mix"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.querySelector('#preset-list .prow[data-id="mix"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s12 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
   const gb12 = await pg.evaluate(() => { const D = window.__SP_DEBUG; return { gb: D.K.measureR12M(D.baseRes, 12).grr, gx: D.K.measureR12M(D.expRes, 12).grr, cb: D.baseRes.months[0].monetization.contractionARR, cx: D.expRes.months[0].monetization.contractionARR, ob: D.baseRes.months[0].openingARR, ox: D.expRes.months[0].openingARR }; });
   rec('B · SCENARIO 12: same opening ARR, customers and laws; contraction €0 in the all-platform Base and > 0 in the mixed Experiment; GRR differs; the match block is on screen',
@@ -191,7 +191,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- B · NULL ---- */
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr'));   /* the preset above ran on its own example Base, and Reset returns to that Base: the layer-off world is the ARR-physics Base */ await pg.waitForTimeout(300);
   const bn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   rec('B · NULL-ON-SCREEN: Reset switches Monetization off; the expansion coefficient is an input again (10.0%, enabled); no composition block on screen',
       bn.A.monetization === null && !bn.mech.monetization && bn.tog === 'off' && bn.Xv === '10.0%' && !bn.Xdis && !bn.txt.includes('WHERE THE MRR COMES FROM'), '');
@@ -344,26 +344,26 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('D · NULL-ON-SCREEN: Reset removes the hypothesis; no Hypotheses block, no cost step', dn.A.interventions.length === 0 && !dn.mech.interventions && dn.tog === 'off' && !dn.txt.includes('HYPOTHESES') && !dn.wf.includes('− Hypothesis cost'), '');
 
   /* ---- FINAL · rail by layer, restraint, packs, hierarchical map ---- */
-  const rail = await pg.evaluate(() => ({ heads: [...document.querySelectorAll('.layerhead .lh-name')].map(e => e.textContent), kinds: [...document.querySelectorAll('#forces .fgrp-kind')].map(e => e.textContent),
+  const rail = await pg.evaluate(() => ({ heads: [...document.querySelectorAll('.rail .layerhead .lh-name')].map(e => e.textContent), kinds: [...document.querySelectorAll('#forces .fgrp-kind')].map(e => e.textContent),
     hidden: ['f-collectionDelayMonths', 'f-interventions[0].value', 'f-monetization.components[1].usageGrowthAnnual'].map(id => document.getElementById(id).closest('.force').style.display === 'none') }));
   rec('FINAL · RAIL: the Change surface is grouped by layer in order (ARR physics → Customer → Monetization → Cash → Hypotheses) with a header per layer stating on/off; the financial levers sit inside the ARR layer; a layer that is off shows only its switch',
       rail.heads.length === 5 && /ARR physics/.test(rail.heads[0]) && /Customer physics.*off/.test(rail.heads[1]) && /Monetization physics.*off/.test(rail.heads[2]) && /Cash physics.*off/.test(rail.heads[3]) && /Hypotheses.*off/.test(rail.heads[4]) &&
       rail.kinds.indexOf('Financial levers') < rail.kinds.indexOf('Customer physics') && rail.hidden.every(Boolean), JSON.stringify(rail.heads));
-  await jsClick('#pack-full'); await pg.waitForTimeout(500);
-  const pk = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.activePack, mech: window.__SP_DEBUG.expRes.mechanisms, bmech: window.__SP_DEBUG.baseRes.mechanisms, summary: document.getElementById('experiment-summary').innerText,
-    heads: [...document.querySelectorAll('.layerhead .lh-name')].map(e => e.textContent), shown: document.getElementById('f-collectionDelayMonths').closest('.force').style.display !== 'none' }));
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('full')); await pg.waitForTimeout(400); await pg.waitForTimeout(500);
+  const pk = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.baseSource, mech: window.__SP_DEBUG.expRes.mechanisms, bmech: window.__SP_DEBUG.baseRes.mechanisms, summary: document.getElementById('experiment-summary').innerText,
+    heads: [...document.querySelectorAll('.rail .layerhead .lh-name')].map(e => e.textContent), shown: document.getElementById('f-collectionDelayMonths').closest('.force').style.display !== 'none' }));
   rec('FINAL · PACKS: "+ Hypothesis" sets Base = Experiment = every layer on with a costed programme (0 assumptions changed); every layer header reads on; the dependent controls appear',
       pk.pack === 'full' && pk.mech.customerPhysics && pk.mech.monetization && pk.mech.cashPhysics && pk.mech.interventions && pk.bmech.interventions && /0 assumptions changed/.test(pk.summary) && pk.heads.every(h => !/off/.test(h)) && pk.shown, JSON.stringify(pk.mech));
   await setSlider('f-sm', 1200000);
   await jsClick('#reset'); await pg.waitForTimeout(400);
-  const pk2 = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.activePack, sm: window.__SP_DEBUG.expA.sm, mech: window.__SP_DEBUG.expRes.mechanisms }));
+  const pk2 = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.baseSource, sm: window.__SP_DEBUG.expA.sm, mech: window.__SP_DEBUG.expRes.mechanisms }));
   rec('FINAL · PACKS: Reset returns to the active pack\'s world (S&M back to €900k, every layer still on), not to the v1.3 Base', pk2.pack === 'full' && pk2.sm === 900000 && pk2.mech.cashPhysics && pk2.mech.interventions, JSON.stringify(pk2));
   await jsClick('#nav-system'); await pg.waitForTimeout(400);
   const viewsOK = [];
   for (const v of ['customers', 'monetization', 'cash', 'hypotheses', 'company']) { await jsClick('#sysview-' + v); await pg.waitForTimeout(350); viewsOK.push(await pg.evaluate(() => window.__SP_DEBUG.sysView)); }
   rec('FINAL · SYSTEM MAP: the hierarchical map offers a sub-view per layer that is on; each renders without a page error and the company view returns', viewsOK.join(',') === 'customers,monetization,cash,hypotheses,company' && errs.length === 0, viewsOK.join(','));
   await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await jsClick('#pack-arr'); await pg.waitForTimeout(400);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(400); await pg.waitForTimeout(400);
   const disabled = await pg.evaluate(() => ['customers', 'monetization', 'cash', 'hypotheses'].map(v => document.getElementById('sysview-' + v).disabled));
   rec('FINAL · SYSTEM MAP: with the ARR pack the layer sub-views are disabled (nothing to draw) and the map is the v1.3 company view', disabled.every(Boolean) && (await pg.evaluate(() => window.__SP_DEBUG.sysView)) === 'company', '');
 

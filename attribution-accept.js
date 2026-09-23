@@ -13,9 +13,9 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + '');
+  await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + ''); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
-  await pg.evaluate(() => { document.getElementById('pack-arr').click(); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
+  await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
@@ -102,7 +102,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
      state differs), and the page renders without error ---- */
   await jsClick('#reset'); await pg.waitForTimeout(300);
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="history"]').click(), document.getElementById('nav-compare').click()));
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-history'), document.querySelector('#preset-list .prow[data-id="history"]').click(), document.getElementById('nav-compare').click()));
   await pg.waitForTimeout(400);
   await jsClick('#nav-company'); await pg.waitForTimeout(400);
   const scen6 = await pg.evaluate(() => ({

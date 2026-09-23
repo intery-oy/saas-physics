@@ -28,7 +28,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const errs = [];
   const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await pg.goto(URL); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); document.getElementById('pack-arr').click(); }); await pg.waitForTimeout(400); return pg; };   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); window.__SP_DEBUG.useBase('arr'); }); await pg.waitForTimeout(400); return pg; };   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */
   const click = async (pg, sel) => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(350); };
   const scrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
   const vis = (pg, sel) => pg.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; }, sel);
@@ -36,7 +36,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const sideText = pg => pg.evaluate(() => document.getElementById('side').innerText);
 
   const pg = await open(1440, 900);
-  await click(pg, '#rail-toggle'); await click(pg, '#pack-wA'); await click(pg, '#rail-close'); await scrub(pg, 36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(pg, 36);
 
   /* ---- CHANGE: a drawer ---- */
   const r0 = await rect(pg, '.rail'), open0 = await pg.evaluate(() => document.querySelector('.app').classList.contains('rail-open'));
@@ -57,16 +57,16 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const open4 = await pg.evaluate(() => document.querySelector('.app').classList.contains('rail-open'));
   rec('CHANGE: Close, Escape and the scrim each close the drawer', !open2 && !open3 && !open4, JSON.stringify([open2, open3, open4]));
   const label0 = await pg.evaluate(() => document.getElementById('rail-toggle').textContent);
-  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 900000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close');
+  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close');
   const label1 = await pg.evaluate(() => document.getElementById('rail-toggle').textContent);
   rec('CHANGE: the entry point names the state — "Experiment" when it equals Base, "Experiment · n change(s)" when it differs', /^Experiment$/.test(label0) && /^Experiment · 1 change$/.test(label1), label0 + ' → ' + label1);
   /* the header reads in the order of the journey: world, then see → change → compare → understand, then ⋯ */
-  const hdr = await pg.evaluate(() => ({ order: [...document.querySelectorAll('.head h1, #world-btn, .head .nav > .btn, #more-btn')].map(e => e.id || e.tagName),
+  const hdr = await pg.evaluate(() => ({ order: [...document.querySelectorAll('.head h1, .head .nav > .btn, #more-btn')].map(e => e.id || e.tagName),
     more: [...document.querySelectorAll('#more-menu .mi')].map(e => (e.firstChild.textContent || '').trim()), build: !!document.querySelector('#more-menu #about #build-chip'),
     about: !!document.querySelector('#more-menu details#about'), method: !!document.getElementById('keybtn') || !!document.getElementById('key'),
     gone: ['mode-chip', 'nav-scen'].map(id => { const e = document.getElementById(id); return !e || !e.closest('.head'); }), scenIn: !!document.querySelector('.rail #nav-scen') }));
   rec('HEADER: SaaS Physics · World ▾ · Company · Experiment · Compare · System · ⋯ — the ⋯ menu holds Model Ledger, recurring-revenue basis, Guide and About (with the build) — no Method page; no mode chip, no Scenarios in the header, presets entered from the Experiment drawer',
-      hdr.order.join(',') === 'H1,world-btn,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide' && hdr.build && hdr.about && !hdr.method && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
+      hdr.order.join(',') === 'H1,nav-base,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide' && hdr.build && hdr.about && !hdr.method && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
   const one = await pg.evaluate(() => ({ slot: document.getElementById('causal-slot').innerHTML.length, live: document.getElementById('nav-compare').classList.contains('live'), chip: document.getElementById('rail-toggle').textContent }));
   rec('COMPANY: with a change, Company carries no comparison of its own — no strip, no spine; the header names the Experiment ("1 change") and Compare is lit as where the difference is read', one.slot === 0 && one.live && /1 change/.test(one.chip), JSON.stringify(one));
   await click(pg, '#reset'); await scrub(pg, 36);
@@ -108,12 +108,21 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('SYSTEM: drill-down into Cash and back to the Ontology through the view list', drill.view === 'cash' && drill.on === 'Cash' && back === 'ontology', JSON.stringify({ drill, back }));
 
   /* ---- PRESETS: a browser inside the Experiment drawer; Compare analyses the loaded preset ---- */
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(300);   /* recipes are written for the reference model's laws */
   await click(pg, '#rail-toggle'); await click(pg, '#nav-scen');
-  const idx = await pg.evaluate(() => { const l = document.getElementById('preset-list'), rows = [...l.querySelectorAll('.prow')];
+  const idx = await pg.evaluate(() => { const l = document.getElementById('preset-list'), rows = [...l.querySelectorAll('.prow')].filter(r => !r.hidden && !r.disabled);
     return { inRail: !!l.closest('.rail'), shown: !l.hidden, rows: rows.length, ids: rows.map(r => r.dataset.id).join(','), full: rows.every(r => r.querySelector('.pname').textContent && r.querySelector('.ptitle').textContent && r.querySelector('.plesson').textContent && r.querySelector('.pchg').textContent),
       analysis: l.querySelectorAll('.cause, .recon, details, table, svg, canvas').length, layers: window.__SP_DEBUG.layer }; });
-  rec('PRESETS: Browse presets opens a fourteen-row list inside the Experiment drawer (name · title · lesson · what changes) with no analysis in it', idx.inRail && idx.shown && idx.rows === 14 && idx.full && idx.analysis === 0 &&
-      idx.ids === 'retention,expansion,efficiency,margin,pair,history,expcost,bounded,lag,customers,monetization,mix,billing,hypothesis', JSON.stringify(idx));
+  rec('PRESETS: Browse presets opens the recipe list inside the Experiment drawer (name · title · lesson · what changes) with no analysis in it; on the reference Base all eight recipes apply and no example comparison is offered', idx.inRail && idx.shown && idx.rows === 8 && idx.full && idx.analysis === 0 &&
+      idx.ids === 'retention,expansion,efficiency,margin,bounded,lag,billing,hypothesis', JSON.stringify(idx));
+  const gate = await pg.evaluate(() => { const D = window.__SP_DEBUG, row = id => document.querySelector('#preset-list .prow[data-id="' + id + '"]');
+    D.useBase('wA'); const onA = { ret: row('retention').disabled, why: row('retention').querySelector('.pwhy').textContent, ex: row('customers').hidden };
+    D.useBase('ex-customers'); const onEx = { shown: !row('customers').hidden && !row('customers').disabled };
+    const before = JSON.stringify(D.frozenBase); row('customers').click(); const after = JSON.stringify(D.frozenBase);
+    const r = { onA, onEx, applied: D.activeScenario && D.activeScenario.id, baseSame: before === after, baseIsFrozen: D.baseA === D.frozenBase.a };
+    D.useBase('arr'); return r; });
+  rec('PRESETS: a recipe that would not mean what its lesson says on this Base is offered but disabled with the reason; an example comparison appears only while its own example Base is frozen; loading one never touches the frozen Base',
+      gate.onA.ret && /customer laws/.test(gate.onA.why) && gate.onA.ex && gate.onEx.shown && gate.applied === 'customers' && gate.baseSame && gate.baseIsFrozen, JSON.stringify(gate));
   const layer0 = await pg.evaluate(() => window.__SP_DEBUG.layer);
   await pg.evaluate(() => document.querySelector('#preset-list .prow[data-id="hypothesis"]').click()); await pg.waitForTimeout(400);
   const ld = await pg.evaluate(() => ({ id: window.__SP_DEBUG.activeScenario && window.__SP_DEBUG.activeScenario.id, listHidden: document.getElementById('preset-list').hidden, railOpen: document.querySelector('.app').classList.contains('rail-open'),
@@ -139,7 +148,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('COMPARE: secondary effects are collapsed under one summary whose counts equal the rows inside; nothing is dropped', cmp && cmp.secOpen === false && /^Secondary effects · /.test(cmp.sum) && (n ? +n[1] : 0) === secMoved && (u ? +u[1] : 0) === secSame && cmp.secRows.length > 0, JSON.stringify({ sum: cmp && cmp.sum, secMoved, secSame }));
   await click(pg, '#reset'); await click(pg, '#nav-company');
   /* a change that enters at acquisition: acquisition rows primary, everything else secondary */
-  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 900000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close'); await click(pg, '#nav-compare');
+  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close'); await click(pg, '#nav-compare');
   const cmp2 = await pg.evaluate(() => { const l2 = document.querySelector('#compare-panel .cause.l2'); return { heads: [...l2.querySelectorAll(':scope > .mech .mh')].map(e => e.textContent), sec: [...l2.querySelectorAll('details.bnd.sec .mech .mh')].map(e => e.textContent), sum: l2.querySelector('details.bnd.sec summary').textContent }; });
   rec('COMPARE: for an S&M change the primary rows are the acquisition section; the installed base moves only as a secondary effect', cmp2.heads.join('|') === 'acquisition' && cmp2.sec.indexOf('installed base') >= 0 && /additional change/.test(cmp2.sum), JSON.stringify(cmp2));
   await click(pg, '#reset'); await click(pg, '#nav-company');
@@ -173,12 +182,12 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     const q = await open(w, h);
     await click(q, '#rail-toggle');
     const rr = await rect(q, '.rail');
-    await click(q, '#pack-wA'); await click(q, '#rail-close'); await scrub(q, 36);
+    await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.waitForTimeout(400); await click(q, '#rail-close'); await scrub(q, 36);
     const st = await q.evaluate(() => { const nav = ['nav-company', 'nav-compare', 'nav-system', 'nav-scen', 'rail-toggle'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth; });
       const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect();
       return { nav, order: h.top < n.top && n.top < f.top, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, stageScroll: document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1, open: document.querySelector('.app').classList.contains('rail-open') }; });
     rec('RESPONSIVE ' + w + ': the four surfaces and Change are reachable; the drawer opens ' + (w <= 760 ? 'full width' : 'as a 460px drawer') + ' and closes; hero → lenses → figure; no horizontal scroll', st.nav.every(Boolean) && (w <= 760 ? Math.abs(rr.w - w) <= 1 : rr.w >= 400 && rr.w < w) && !st.open && st.order && !st.hscroll && !st.stageScroll, JSON.stringify({ rail: rr.w, st }));
-    await click(q, '#rail-toggle'); await click(q, '#nav-scen'); const pl = await q.evaluate(() => { const r = document.querySelector('#preset-list .prow').getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth + 1; });
+    await q.evaluate(() => window.__SP_DEBUG.useBase('arr')); await click(q, '#rail-toggle'); await click(q, '#nav-scen'); const pl = await q.evaluate(() => { const r = document.querySelector('#preset-list .prow').getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth + 1; });
     await q.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await q.waitForTimeout(500);
     const sx = await q.evaluate(() => ({ pl: 0, eb: document.querySelector('#compare-panel h4').textContent, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }));
     await click(q, '#nav-system');

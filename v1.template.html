@@ -66,7 +66,6 @@ button,input{font:inherit;color:inherit}
 .layerhead b{color:var(--exp);font-weight:600}
 .layerhead .off{color:var(--ink-4);font-weight:400}
 .layerhead small{display:block;font-family:var(--ui);font-size:10px;letter-spacing:0;text-transform:none;color:var(--ink-4);margin-top:3px;line-height:1.45}
-#packlist .btn.on{border-color:var(--exp);color:var(--exp)}
 #sysviews .btn{font-size:10.5px}
 #sysviews .btn[disabled]{opacity:.35}
 .fgrp.inert .force-val{color:var(--ink-2)}
@@ -82,12 +81,45 @@ button,input{font:inherit;color:inherit}
 .illus{background:rgba(210,164,92,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
 .illus b{color:var(--warn);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
 @media (max-width:760px){.exphead{flex-wrap:wrap}.exphead .lens-n{flex-basis:100%}}
+/* Base Settings: a page of its own, the draft beside the controls it is made of */
+.basepage{max-width:1180px;margin:0 auto;padding:16px 24px 64px}
+.app.base .stagecol,.app.base .transport,.app.base .scrim{display:none!important}
+.bp-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 0 12px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--ground);z-index:3}
+.bp-title{display:flex;align-items:baseline;gap:10px;flex-grow:1;flex-wrap:wrap}
+.bp-state{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.bp-state.ok{color:var(--good)}
+#nav-base.pending{border-style:dashed}
+.bp-confirm{border:1px solid var(--exp);border-radius:4px;padding:10px 12px;margin:10px 0;max-width:560px}
+.bp-confirm .wq{font-size:13px;margin-bottom:4px}
+.bp-confirm .btn-row{margin-top:8px}
+.bp-draft{margin:10px 0 4px;min-height:1em}
+.bp-draft.err{color:var(--churn)}
+.bp-cols{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:8px 28px;margin-top:10px}
+@media (max-width:900px){.bp-cols{grid-template-columns:minmax(0,1fr)}}
+.bp-col .fgrp{padding-left:0;padding-right:0}
+.bp-tpls{padding:10px 0 14px}
+.bp-tl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:10px 0 5px}
+.bp-tl span{letter-spacing:0;text-transform:none;font-family:var(--ui);color:var(--ink-4);margin-left:6px}
+.bp-tpls .btn.on{border-color:var(--exp);color:var(--exp)}
+.bp-examples{margin-top:14px;border-top:1px solid var(--line-soft);padding-top:10px}
+.bp-examples summary{cursor:pointer;font-size:12px;color:var(--ink-2)}
+.bp-ex{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.bp-ex .pname{font-weight:600;font-size:12px}
+.bp-ex .ptitle{font-family:var(--display);font-style:italic;color:var(--ink-2);font-size:12px;grid-column:1}
+.bp-ex .btn{grid-row:1 / span 2;grid-column:2}
+.bp-ro{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);line-height:1.6;margin-top:6px}
+.force-top .force-base.frz{color:var(--ink-4)}
+.nav .btn:disabled{opacity:.4;cursor:not-allowed}
+.plist .pgroup{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding:10px 4px 4px}
+.prow:disabled{cursor:default;opacity:.55}
+.prow:disabled:hover{background:none}
+.prow .pwhy{font-size:10.5px;color:var(--ink-4);font-style:italic;grid-column:2}
 /* the preset browser: a list inside the Experiment drawer — discover and load, never analyse */
 .plist{display:grid;margin-top:9px;border-top:1px solid var(--line-soft)}
 .prow{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 8px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
 .prow:hover{background:var(--sunk)}
 .prow.on{background:rgba(139,141,240,.10);box-shadow:inset 2px 0 0 var(--exp)}
-.prow .pn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);grid-row:span 4}
+.prow .pn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);grid-row:span 5}
 .prow .pname{font-weight:600}
 .prow .ptitle{font-family:var(--display);font-style:italic;color:var(--ink-2)}
 .prow .plesson{font-size:11px;color:var(--ink-3);line-height:1.5}
@@ -115,7 +147,6 @@ button,input{font:inherit;color:inherit}
 .head{display:flex;align-items:center;gap:14px;padding:11px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:relative;z-index:30}
 .head .nav{display:flex;gap:6px;align-items:center}
 .hbtn .caret{margin-left:7px;font-size:9px;color:var(--ink-3)}
-#world-btn{font-family:var(--display);font-size:14px;padding:5px 12px}
 #more-btn{font-size:15px;letter-spacing:.1em;padding:4px 12px}
 .xchip{border-style:dashed;color:var(--ink-3);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xchip.live{border-style:solid;border-color:var(--exp);color:var(--exp)}
@@ -150,7 +181,6 @@ button,input{font:inherit;color:inherit}
 .menu .mabout[open] summary::after{transform:rotate(90deg)}
 .menu .mabout p{margin:8px 0 0;max-width:340px}
 .menu .mabout b{color:var(--ink-2);font-weight:500}
-.menu #packnote{padding:4px 8px 2px;font-size:10.5px}
 .wconfirm{margin:8px 4px 2px;padding:10px;border:1px solid var(--exp);border-radius:3px;background:var(--panel)}
 .wconfirm .wq{font-size:13px;color:var(--ink);margin-bottom:4px}
 .wconfirm .btn-row{margin-top:9px;gap:8px}
@@ -597,9 +627,9 @@ details.pl .cascade{margin-top:8px}
   .herolens .hero .hv{font-size:34px}
   .head{padding:10px 16px;gap:10px}
   .head h1{font-size:17px}
-  .head .nav{order:3;flex-basis:100%;gap:5px}
-  .head .nav .btn{padding:6px 9px;font-size:12.5px}
-  .xchip .xw{display:none} .xchip.pre::after{content:"preset"}
+  .head .nav{order:3;flex-basis:100%;gap:4px}
+  .head .nav .btn{padding:6px 6px;font-size:12px}
+  .xchip .xw{display:none} .xchip.pre::after{content:"preset"} #nav-base .bw{display:none}
   .head .spacer{display:none}
   #more-wrap{margin-left:auto}
   .lens{padding:14px 16px 15px}
@@ -758,8 +788,8 @@ details.pl .cascade{margin-top:8px}
         <h5>The portal</h5>
         <ol>
           <li><b>Company</b> &middot; one company at a time: a hero line, then five lenses &mdash; Company, Customers, Growth engine, Monetization, Financials &mdash; with the sixty-month figure beneath as context.</li>
-          <li><b>World</b> &middot; the menu beside the title picks the Base company: three illustrative worlds, or the base model built up layer by layer.</li>
-          <li><b>Experiment</b> &middot; the chip in the header opens the drawer where you change the laws &mdash; or start from one of fourteen presets. It names what differs from Base; close it to read the company.</li>
+          <li><b>Base Settings</b> &middot; define the company &mdash; from a template or by hand &mdash; and freeze it. The frozen Base is the reference every Experiment runs against; it changes only when you freeze again.</li>
+          <li><b>Experiment</b> &middot; the chip in the header opens the drawer where you change the laws &mdash; or start from a preset recipe. It names what differs from the frozen Base; close it to read the company.</li>
           <li><b>Compare</b> &middot; reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
           <li><b>System</b> &middot; the company as an economic machine. Click a node to open its layer; Notes reads the map.</li>
                     <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR down to the cash it recovered; &lsaquo; Company returns.</li>
@@ -772,7 +802,7 @@ details.pl .cascade{margin-top:8px}
           <span class="m">&#8968;&#8969;</span><span>a constraint &mdash; a bound, never a benefit</span>
           <span class="m meas">&rarr;</span><span>a measurement &mdash; read, never set</span>
           <span class="m hyp">&#8623;</span><span>a hypothesis &mdash; costed, lagged, temporary</span>
-          <span class="m off">&middot; &middot;</span><span>off &mdash; a mechanism this world does not carry</span>
+          <span class="m off">&middot; &middot;</span><span>off &mdash; a mechanism this Base does not carry</span>
         </div>
         <h5 style="margin-top:18px">Time</h5>
         <p class="wsmall">Every figure names its basis: <span class="basis">M36</span> a month&rsquo;s closing state, <span class="basis">M36 &middot; month</span> that month&rsquo;s flows, <span class="basis">R12M</span> the trailing twelve months, <span class="basis">CUM</span> since the start, <span class="basis">M60</span> the horizon. The transport at the bottom is the only clock.</p>
@@ -782,7 +812,7 @@ details.pl .cascade{margin-top:8px}
     </div>
     <h5>Three ways to start</h5>
     <div class="wstart">
-      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>The portal opens on <b>A &middot; Enterprise</b> with every layer on. Press play and stop around month 36; the other worlds are under <b>World</b> in the header.</div>
+      <div class="ws"><b class="t"><span class="n">1</span>Freeze a Base</b>Open <b>Base Settings</b>, keep <b>A &middot; Enterprise</b> or pick another template, press <b>Freeze Base</b>, then play the company and stop around month 36.</div>
       <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>Open <b>Experiment</b>, move <b>S&amp;M investment</b> or <b>Logo retention</b>, close the drawer and open <b>Compare</b>.</div>
       <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
     </div>
@@ -797,20 +827,10 @@ details.pl .cascade{margin-top:8px}
 <div class="app">
   <header class="head">
     <h1>SaaS Physics</h1>
-    <!-- SEE → CHANGE → COMPARE → UNDERSTAND: the world, then the four moves in reading order -->
-    <div class="menu-wrap" id="world-wrap">
-      <button class="btn hbtn" id="world-btn" aria-haspopup="true" aria-expanded="false" title="The Base world: which company, and which layers it carries"><span id="world-name">World</span><span class="caret">▾</span></button>
-      <div class="menu" id="world-menu" hidden>
-        <div class="wconfirm" id="world-confirm" hidden></div>
-        <div class="mh">Worlds <span>three company shapes built from the same laws · illustrative, not benchmarks</span></div>
-        <div class="mlist" id="worldlist"></div>
-        <div class="mh">Build up the base model <span>which layers the Base world carries</span></div>
-        <div class="mlist" id="packlist"></div>
-        <div class="hint" id="packnote"></div>
-      </div>
-    </div>
+    <!-- BASE → SEE → CHANGE → COMPARE → UNDERSTAND: the frozen Base first, then the moves in reading order -->
     <nav class="nav" aria-label="Surfaces">
-      <button class="btn on" id="nav-company">Company</button>
+      <button class="btn" id="nav-base" title="Define and freeze the Base every Experiment runs against">Base<span class="bw"> Settings</span></button>
+      <button class="btn" id="nav-company">Company</button>
       <button class="btn xchip" id="rail-toggle" aria-label="Open or close the Experiment" title="Change the laws: the Experiment runs against the unchanged Base">Experiment</button>
       <button class="btn" id="nav-compare">Compare</button>
       <button class="btn" id="nav-system">System</button>
@@ -842,7 +862,7 @@ details.pl .cascade{margin-top:8px}
     <div class="grp" id="presets">
       <div class="eyebrow" style="margin-bottom:6px">Start from a preset</div>
       <button class="btn btn-wide" id="nav-scen" aria-expanded="false" aria-controls="preset-list">Browse presets · 14 ›</button>
-      <div class="hint rail-doc" style="margin-top:7px">Each preset is a canonical Experiment on its own reference world. Loading one replaces the World choice and the changes below; Compare then analyses it.</div>
+      <div class="hint rail-doc" style="margin-top:7px">A preset is a recipe of law changes applied to the frozen Base. Loading one replaces the changes below; the Base never moves. Compare then analyses it.</div>
       <div class="plist" id="preset-list" hidden></div>
     </div>
     <div class="grp" id="rail-change">
@@ -858,6 +878,34 @@ details.pl .cascade{margin-top:8px}
   <div class="scrim" id="scrim"></div>
 
   <main class="stage">
+   <!-- BASE SETTINGS — the editable draft. Nothing here runs until Freeze Base; freezing snapshots
+        the draft into the immutable reference case every Experiment is cloned from. -->
+   <section class="basepage" id="basepage" hidden aria-label="Base Settings">
+    <div class="bp-top">
+      <div class="bp-title"><span class="lens-n">Base Settings</span><span class="lens-q">The company every Experiment runs against</span></div>
+      <span class="bp-state" id="bp-state"></span>
+      <button class="btn primary" id="base-freeze">Freeze Base</button>
+    </div>
+    <div class="bp-confirm" id="freeze-confirm" hidden></div>
+    <div class="hint bp-draft" id="bp-draft"></div>
+    <div class="bp-cols">
+      <div class="bp-col">
+        <div class="bp-tpls">
+          <div class="eyebrow">Start from a template</div>
+          <div class="hint" style="margin:4px 0 8px">Fills the draft only. Every setting stays editable, and nothing changes until you freeze.</div>
+          <div class="bp-tl">Companies <span>illustrative shapes, not benchmarks</span></div><div class="btn-row" id="tpl-companies"></div>
+          <div class="bp-tl">Reference model, layer by layer <span>one company, each layer switched on in turn</span></div><div class="btn-row" id="tpl-layers"></div>
+          <div class="hint" id="tpl-note" style="margin-top:8px"></div>
+        </div>
+        <div class="layerhead">Opening state <small>where the company stands at month 0 · state, not a law</small></div>
+        <div class="fgrp" id="bs-start"></div>
+        <details class="bp-examples" id="bp-examples"><summary>Examples · a Base built to demonstrate one property</summary>
+          <div class="hint" style="margin:6px 0 8px">Each needs a Base of its own. Load it, freeze it, then open <b>Experiment → Browse presets</b>: its comparison appears there.</div>
+          <div id="tpl-examples"></div></details>
+      </div>
+      <div class="bp-col" id="bs-forces"></div>
+    </div>
+   </section>
    <div class="stagecol">
     <aside class="side" id="side"></aside>
     <details class="figwrap" id="figwrap" open>
@@ -929,16 +977,22 @@ details.pl .cascade{margin-top:8px}
   var E = window.SaaSPhysics, K = window.SaaSPhysicsKPI, CAP = window.SaaSPhysicsCapital, SS = window.SaaSPhysicsSystemState, BS = window.SaaSPhysicsBasis;
   var H = E.HORIZON;                               // 60 months
 
-  /* Base is frozen. The Experiment is always a copy. */
+  /* ---- THE STATE MODEL -----------------------------------------------------------------------
+     Three objects, never interchangeable:
+       draftBase   Base Settings' editable draft { a, start, src, label, edited }. Nothing runs from it.
+       frozenBase  the immutable reference case: a deep-frozen snapshot of the draft, made ONLY by
+                   Freeze Base. `baseA`/`baseStart` are its two halves and are assigned in exactly
+                   one place, adoptFrozenBase(). The template is strict, so a write to it throws.
+       Experiment  `expA`/`expStart`: a clone of the frozen Base plus changes (the drawer, a preset).
+     BASE_A is the reference model's laws: what templates and examples are built from, never a Base. */
   var BASE_A = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS));
-  var expA   = Object.assign({}, E.DEFAULT_ASSUMPTIONS);
-  var baseA  = BASE_A;                             // swapped only in paired mode
-  var pairMode = false;
-  /* Base and Experiment may differ in STATE as well as in assumptions. That is
-     what Scenario 6 needs: one law set, two opening cohort compositions. */
-  var baseStart = undefined, expStart = undefined;
+  var draftBase = null, draftRes = null, draftErr = null;
+  var frozenBase = null, frozenRes = null, frozenS = null;
+  var baseA = null, baseStart = undefined;         /* = frozenBase.a / frozenBase.start */
+  var expA = null, expStart = undefined;           /* the Experiment; its start is the Base's unless a preset states otherwise */
   var activeScenario = null;
   var baseRes, expRes, baseS, expS;
+  var pendingTour = false, startTour = function(){};   /* the tour reads a company: it waits for the first freeze */
   /* ---- Step 1B · the viewed world ----------------------------------------------------------
      Company, System and the Model Ledger show ONE world at a time. `viewedWorld` says which; VW()
      is the only way those pages reach a world. It hands back the viewed world as `res/S/A/start`
@@ -1144,10 +1198,11 @@ details.pl .cascade{margin-top:8px}
     return A2;
   }
   function recompute(prevExp){
-    expA = pipeFit(expA); baseA = pipeFit(baseA);
-    baseRes = E.run(baseA, baseStart); expRes = E.run(expA, expStart);
-    baseS = stacksOf(baseRes); expS = stacksOf(expRes);
-    worldsDiffer = pairMode || !!activeScenario || E.compare(baseRes, expRes).changed.length > 0;
+    if(!frozenBase) return;
+    expA = pipeFit(expA);
+    baseRes = frozenRes; baseS = frozenS;                 /* the frozen Base ran once, when it was frozen */
+    expRes = E.run(expA, expStart); expS = stacksOf(expRes);
+    worldsDiffer = expStart!==baseStart || E.compare(baseRes, expRes).changed.length > 0;
     viewedWorld = 'exp';   /* a law was edited, or the worlds were replaced: look at the Experiment */
     capAgg = aggCapital(expRes);
     if(attributionValid()){
@@ -1161,7 +1216,7 @@ details.pl .cascade{margin-top:8px}
                                             /* v2 Gate A: the customer laws generate persistence, so they are installed-base levers */
                                             logoRetentionAnnual: expA.logoRetentionAnnual, contractionAnnual: expA.contractionAnnual, newLogoARPA: expA.newLogoARPA,
                                             monetization: expA.monetization });   /* v2 Gate B: revenue components are installed-base levers too */
-      attrAcqRes = E.run(acqA); attrIbRes = E.run(ibA);
+      attrAcqRes = E.run(acqA, baseStart); attrIbRes = E.run(ibA, baseStart);
       var changedLevers = E.compare(baseRes, expRes).changed;
       attrCash = changedLevers.map(function(c){
         var soA = setK(baseA, c.key, getK(expA, c.key));     /* nested keys (monetization.…) handled by setK */
@@ -1174,11 +1229,11 @@ details.pl .cascade{margin-top:8px}
            rather than crashing the surface. */
         if(soA.monetization && (soA.logoRetentionAnnual===null || soA.logoRetentionAnnual===undefined)) soA.logoRetentionAnnual = expA.logoRetentionAnnual;
         if(wA.monetization && (wA.logoRetentionAnnual===null || wA.logoRetentionAnnual===undefined)) wA.monetization = null;
-        try { return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA), withoutRes: E.run(wA) }; }
+        try { return { key:c.key, from:c.from, to:c.to, standAloneRes: E.run(soA, baseStart), withoutRes: E.run(wA, expStart) }; }
         catch(err){ return null; }
       }).filter(function(c){ return c!==null; });
     } else { attrAcqRes = attrIbRes = attrCash = null; }
-    syncForces(); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
+    syncForces(EXP_T); syncMeasuredKPI(); renderExperimentSummary(); renderCausal(prevExp); renderSide(); renderCascade();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1219,7 +1274,7 @@ details.pl .cascade{margin-top:8px}
      programme, decided in M6, working from M9 for 24 months, costed. The target
      cycles over the laws that are ON in the current Experiment. */
   var HYP_DEFAULT = { id:'h1', name:'Hypothesis', target:'persistenceAnnual', effect:'multiply', value:1.05, startMonth:6, lagMonths:3, durationMonths:24, cost:{ oneOff:200000, monthly:50000 } };
-  function hypDefault(){ var h = JSON.parse(JSON.stringify(HYP_DEFAULT)); if(expA.logoRetentionAnnual!==null && expA.logoRetentionAnnual!==undefined){ h.target='logoRetentionAnnual'; h.value=1.03; } return [h]; }
+  function hypDefault(A){ var h = JSON.parse(JSON.stringify(HYP_DEFAULT)); if(A.logoRetentionAnnual!==null && A.logoRetentionAnnual!==undefined){ h.target='logoRetentionAnnual'; h.value=1.03; } return [h]; }
   var HYP_TARGETS = [
     {k:'persistenceAnnual', label:'persistence', when:function(a){ return a.logoRetentionAnnual===null||a.logoRetentionAnnual===undefined; }},
     {k:'logoRetentionAnnual', label:'logo retention', when:function(a){ return a.logoRetentionAnnual!==null && a.logoRetentionAnnual!==undefined; }},
@@ -1233,14 +1288,13 @@ details.pl .cascade{margin-top:8px}
   ];
   function hypTargetLabel(k){ var t = HYP_TARGETS.filter(function(x){ return x.k===k; })[0]; return t ? t.label : k; }
 
-  /* v2 — ASSUMPTION PACKS. Which layers the Base world carries, nothing else:
-     no scenario logic, no targets. Applying a pack sets Base = Experiment =
-     the pack world; Reset returns to the pack. The canonical scenarios stay
-     anchored to the v1.3 Base (BASE_A) by design. */
+  /* ---- BASE TEMPLATES — shortcuts that fill the draft, nothing more. Loading one never touches the
+     frozen Base or the Experiment; every setting stays editable. Two families: the reference model
+     built up layer by layer (which layers a Base carries), and three illustrative companies. */
   var CUST_PACK = { logoRetentionAnnual:0.92, contractionAnnual:0.05 };
   var PACKS = [
     { id:'arr',       name:'ARR physics',    a:function(){ return {}; },
-      note:'Cohort ARR alone: one persistence coefficient, one expansion coefficient, FCF = EBITA. The frozen Base.' },
+      note:'Cohort ARR alone: one persistence coefficient, one expansion coefficient, FCF = EBITA.' },
     { id:'customers', name:'+ Customers',    a:function(){ return Object.assign({}, CUST_PACK); },
       note:'Customer Physics on: logo retention 92%, contraction 5%; persistence derived as 87.4%.' },
     { id:'priced',    name:'+ Monetization', a:function(){ return Object.assign({}, CUST_PACK, { monetization: monDefault() }); },
@@ -1249,9 +1303,9 @@ details.pl .cascade{margin-top:8px}
       note:'Plus Cash Physics: billed 12 months in advance, collected one month after invoice.' },
     { id:'full',      name:'+ Hypothesis',   a:function(){ var h = JSON.parse(JSON.stringify(HYP_DEFAULT)); h.id='ret'; h.name='Retention programme'; h.target='logoRetentionAnnual'; h.value=1.03;
                                                             return Object.assign({}, CUST_PACK, { monetization: monDefault(), billingTermMonths:12, collectionDelayMonths:1, interventions:[h] }); },
-      note:'Every layer on, plus a costed retention programme (logo retention × 1.03 from M9 for 24 months) as the hypothesis in the Base world.' }
+      note:'Every layer on, plus a costed retention programme (logo retention × 1.03 from M9 for 24 months) as a hypothesis the Base itself carries.' }
   ];
-  /* ACCEPTANCE WORLDS — illustrative company shapes built from the SAME laws,
+  /* COMPANY TEMPLATES — illustrative company shapes built from the SAME laws,
      so the representation can be read against three economies a CFO recognises.
      Not benchmarks: every number is a plausible setting of an existing law, and
      the opening book is derived from the components exactly as any pack's is. */
@@ -1276,43 +1330,151 @@ details.pl .cascade{margin-top:8px}
         billingTermMonths:1, billingTiming:'advance', collectionDelayMonths:0 }; },
       note:'World C · SMB: 8,000 customers at ~€2.1k, a €1,800 plan plus light add-on usage, billed monthly in advance and collected on invoice, cheap but capacity-bound acquisition, 78% logo retention — a treadmill: a fifth of the base must be replaced every year before the company grows. Illustrative, not a benchmark.' }
   ];
-  PACKS = PACKS.concat(WORLDS);
-  var packA = BASE_A, packStart = undefined, activePack = 'arr';
-  function applyPack(id){
-    var P = PACKS.filter(function(p){ return p.id===id; })[0]; if(!P) return;
-    exitPair(); clearScenario();
-    packA = Object.freeze(Object.assign({}, E.DEFAULT_ASSUMPTIONS, P.a())); activePack = id;
-    packStart = P.start ? Object.freeze(P.start()) : undefined;
-    baseA = packA; expA = Object.assign({}, packA);
-    baseStart = packStart; expStart = packStart;
+  var TEMPLATES = PACKS.map(function(P){ return Object.assign({ group:'layers' }, P); })
+    .concat(WORLDS.map(function(P){ return Object.assign({ group:'company' }, P); }));
+  function tplOf(id){ return TEMPLATES.filter(function(T){ return T.id===id; })[0] || EXAMPLE_TEMPLATES().filter(function(T){ return T.id===id; })[0]; }
+
+  /* structuredClone keeps Infinity (an age band's open end) where JSON would not */
+  function cloneState(x){ return x===undefined ? undefined : structuredClone(x); }
+  function deepFreeze(o){ if(o && typeof o==='object' && !Object.isFrozen(o)){ Object.freeze(o); Object.keys(o).forEach(function(k){ deepFreeze(o[k]); }); } return o; }
+  function canon(x){ return JSON.stringify(x, function(k, v){ return typeof v==='number' && !isFinite(v) ? 'num:'+v : v; }); }
+  function fullStart(s2){ return Object.assign({}, E.DEFAULT_START, s2 || {}); }
+  /* a Base as the engine will run it: every assumption stated, the pipeline fitted to its lag */
+  function normBase(a, start){ return { a: pipeFit(Object.assign({}, E.DEFAULT_ASSUMPTIONS, cloneState(a))), start: fullStart(cloneState(start)) }; }
+  function sameState(x, y){ return !!x && !!y && canon({ a:x.a, start:x.start }) === canon({ a:y.a, start:y.start }); }
+
+  /* ---- Base Settings: the draft ---- */
+  function loadTemplate(id){
+    var T = tplOf(id); if(!T) return;
+    var nb = normBase(T.a(), T.start ? T.start() : undefined);
+    draftBase = { a: nb.a, start: nb.start, src: id, label: T.name, edited: false };
+    draftChanged();
+  }
+  function draftChanged(){
+    draftErr = null;
+    try { draftRes = E.run(draftBase.a, draftBase.start); } catch(err){ draftRes = null; draftErr = err && err.message ? err.message : String(err); }
+    syncBaseSettings();
+  }
+  function draftDiffers(){ return !frozenBase || !sameState(draftBase, frozenBase); }
+
+  /* ---- Freeze Base: the one way the reference case is made or replaced ---- */
+  function experimentDiffers(){ return !!frozenBase && !!expRes && (expStart!==baseStart || E.compare(baseRes, expRes).changed.length>0); }
+  function requestFreeze(){
+    if(draftErr) return;
+    if(frozenBase && experimentDiffers()){ freezeConfirm(true); return; }
+    freezeBase();
+  }
+  function freezeConfirm(on){
+    var box = document.getElementById('freeze-confirm');
+    if(!on){ box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="wq">Freeze new Base?</div><div class="hint">This replaces the current baseline and resets the Experiment.</div>'+
+      '<div class="btn-row"><button class="btn primary" id="freeze-yes">Freeze new Base</button><button class="btn" id="freeze-no">Cancel</button></div>';
+    box.hidden = false;
+    document.getElementById('freeze-yes').addEventListener('click', function(){ freezeConfirm(false); freezeBase(); });
+    document.getElementById('freeze-no').addEventListener('click', function(){ freezeConfirm(false); });
+  }
+  function freezeBase(){
+    var nb = normBase(draftBase.a, draftBase.start);
+    frozenBase = deepFreeze({ a: nb.a, start: nb.start, src: draftBase.src, label: draftBase.label, edited: draftBase.edited, n: frozenBase ? frozenBase.n + 1 : 1 });
+    adoptFrozenBase();
+  }
+  function adoptFrozenBase(){
+    baseA = frozenBase.a; baseStart = frozenBase.start;            /* the ONLY assignment of either */
+    frozenRes = E.run(baseA, baseStart); frozenS = stacksOf(frozenRes);
+    viewedWorld = 'exp';
+    resetExperiment();
+    /* a new company: it forms from month 0, as the page used to on load */
+    tau = 0; document.getElementById('scrub').value = 0; playing = true; document.getElementById('play').classList.add('play'); playIcon(); syncTime();
+    syncNavAvailability(); syncScenButtons();          /* which presets mean something on this Base */
+    setLayer('stock');
+    if(pendingTour){ pendingTour = false; startTour(); }
+  }
+  /* Reset: the Experiment becomes the frozen Base again, exactly */
+  function resetExperiment(){
+    clearScenario();
+    expA = cloneState(frozenBase.a); expStart = frozenBase.start;
     lastMsg = null; pinned = null; capitalMode = anatomy = false;
     resize(); recompute(); render();
   }
-  function buildPacks(){
-    var host=document.getElementById('packlist'); host.innerHTML='';
-    PACKS.forEach(function(P){
-      var b=document.createElement('button'); b.className='mi'; b.id='pack-'+P.id; b.textContent=P.name; b.title=P.note;
-      b.addEventListener('click', function(){ chooseWorld(P.id); });
-      (P.world ? document.getElementById('worldlist') : host).appendChild(b);
+  function syncNavAvailability(){
+    var none = !frozenBase;
+    ['nav-company','nav-compare','nav-system','rail-toggle','menu-ledger'].forEach(function(id){
+      var b = document.getElementById(id); if(!b) return;
+      b.disabled = none; b.title = none ? 'Freeze a Base first — Base Settings' : (b.dataset.t0 || b.title);
     });
   }
-  function syncPackButtons(){
-    /* a preset carries its own Base, so while one is loaded no world is the Base */
-    PACKS.forEach(function(P){ var b=document.getElementById('pack-'+P.id); if(b) b.classList.toggle('on', !activeScenario && activePack===P.id); });
-    var P = PACKS.filter(function(p){ return p.id===activePack; })[0];
-    var n=document.getElementById('packnote');
-    if(n) n.textContent = activeScenario ? 'A preset is loaded: it sets the Base world itself. Choosing a world here clears it.' : P ? P.note : '';
-    var w=document.getElementById('world-name'); if(w) w.textContent = activeScenario ? 'Preset world' : P ? P.name : 'World';
-  }
 
-  /* ---- the header: World ▾ and ⋯ are small menus; opening one never redraws the page ---- */
+  /* ---- Base Settings: the page ---- */
+  var DRAFT_T = null;   /* the draft's control target — set once the force rows exist */
+  var START_FORCES = [
+    {k:'openingARR', label:'Opening ARR', sub:'the installed base at month 0 · not read when Monetization derives it from the components', min:1000000, max:100000000, step:500000, f:'eur'},
+    {k:'openingCustomers', label:'Opening customers', sub:'customers in the installed base at month 0 · read when the customer layer is on', min:10, max:20000, step:10, f:'n'},
+    {k:'openingCash', label:'Opening cash', sub:'the cash balance at month 0', min:0, max:50000000, step:500000, f:'eur'}
+  ];
+  function buildBaseSettings(){
+    function tplBtn(T, host){ var b=document.createElement('button'); b.className='btn'; b.id='tpl-'+T.id; b.textContent=T.name; b.title=T.note||'';
+      b.addEventListener('click', function(){ freezeConfirm(false); loadTemplate(T.id); }); host.appendChild(b); }
+    var hc=document.getElementById('tpl-companies'), hl=document.getElementById('tpl-layers'); hc.innerHTML=''; hl.innerHTML='';
+    TEMPLATES.forEach(function(T){ tplBtn(T, T.group==='company' ? hc : hl); });
+    var he=document.getElementById('tpl-examples'); he.innerHTML='';
+    EXAMPLE_TEMPLATES().forEach(function(T){
+      var d=document.createElement('div'); d.className='bp-ex';
+      d.innerHTML='<span class="pname">'+esc(T.name)+'</span><span class="ptitle">'+esc(T.sc.title)+'</span><button class="btn" id="tpl-'+T.id+'">Load this Base</button>';
+      d.querySelector('button').addEventListener('click', function(){ freezeConfirm(false); loadTemplate(T.id); document.querySelector('.basepage').scrollTop = 0; window.scrollTo(0,0); });
+      he.appendChild(d);
+    });
+    var hs=document.getElementById('bs-start'); hs.innerHTML='';
+    START_FORCES.forEach(function(F){
+      var d=document.createElement('div'); d.className='force';
+      d.innerHTML='<div class="force-top"><span class="kg state" title="state — where the company starts">▭</span><label for="bs-s-'+F.k+'">'+esc(F.label)+'</label><span class="force-val" id="bs-sv-'+F.k+'"></span><span class="force-base frz" id="bs-sb-'+F.k+'"></span></div>'+
+        '<div class="force-sub">'+esc(F.sub)+'</div><input type="range" id="bs-s-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">';
+      d.querySelector('input').addEventListener('input', function(e){
+        draftBase.start = Object.assign({}, draftBase.start); draftBase.start[F.k] = parseFloat(e.target.value); draftBase.edited = true; draftChanged(); });
+      hs.appendChild(d);
+    });
+    var ro=document.createElement('div'); ro.className='bp-ro'; ro.id='bs-ro'; hs.appendChild(ro);
+    buildForces(DRAFT_T);
+    document.getElementById('base-freeze').addEventListener('click', requestFreeze);
+  }
+  function syncBaseSettings(){
+    if(!draftBase) return;
+    var st=document.getElementById('bp-state'), fz=document.getElementById('base-freeze'), dn=document.getElementById('bp-draft');
+    var differs = draftDiffers();
+    st.className = 'bp-state'+(frozenBase ? ' ok' : '');
+    st.textContent = frozenBase ? 'Base frozen ✓ · '+frozenBase.label+(frozenBase.edited ? ' (edited)' : '') : 'No Base frozen yet';
+    fz.disabled = !!draftErr || (!!frozenBase && !differs);
+    fz.textContent = frozenBase ? 'Freeze new Base' : 'Freeze Base';
+    dn.className = 'hint bp-draft'+(draftErr ? ' err' : '');
+    dn.innerHTML = draftErr ? 'The engine cannot run this draft: '+esc(draftErr)
+      : !frozenBase ? 'Draft · from <b>'+esc(draftBase.label)+'</b>'+(draftBase.edited?' (edited)':'')+'. Freeze it to make it the Base: Company, Experiment and Compare all run from the frozen Base.'
+      : differs ? 'Draft · from <b>'+esc(draftBase.label)+'</b>'+(draftBase.edited?' (edited)':'')+' — it differs from the frozen Base, which stays in force until you freeze again.'
+      : 'The draft is the frozen Base. Edit it here; the frozen Base changes only when you freeze again.';
+    var nb=document.getElementById('nav-base'); if(nb){ nb.classList.toggle('pending', !!frozenBase && differs); nb.title = frozenBase && differs ? 'The draft differs from the frozen Base' : 'Define and freeze the Base every Experiment runs against'; }
+    TEMPLATES.concat(EXAMPLE_TEMPLATES()).forEach(function(T){ var b=document.getElementById('tpl-'+T.id); if(b) b.classList.toggle('on', draftBase.src===T.id && !draftBase.edited); });
+    var T0 = tplOf(draftBase.src); document.getElementById('tpl-note').textContent = T0 && T0.note ? T0.note : '';
+    var S0 = draftBase.start, mon = !!draftBase.a.monetization, cu = draftBase.a.logoRetentionAnnual!==null && draftBase.a.logoRetentionAnnual!==undefined;
+    START_FORCES.forEach(function(F){
+      var el=document.getElementById('bs-s-'+F.k), v=document.getElementById('bs-sv-'+F.k), b=document.getElementById('bs-sb-'+F.k);
+      el.value = S0[F.k]; v.textContent = F.f==='n' ? Math.round(S0[F.k]).toLocaleString('en') : eur(S0[F.k]);
+      var inert = (F.k==='openingARR' && (mon || (S0.openingCohorts && S0.openingCohorts.length))) || (F.k==='openingCustomers' && !cu);
+      el.disabled = inert; el.style.opacity = inert ? 0.35 : 1;
+      if(F.k==='openingARR' && mon && draftRes) v.textContent = 'derived '+eur(draftRes.months[0].openingARR);
+      var fv = frozenBase ? frozenBase.start[F.k] : null;
+      b.textContent = frozenBase && fv!==S0[F.k] ? 'frozen '+(F.f==='n' ? Math.round(fv).toLocaleString('en') : eur(fv)) : '';
+    });
+    var ro=[];
+    if(S0.openingCohorts && S0.openingCohorts.length) ro.push('Opening book · '+S0.openingCohorts.map(function(c){ return eur(c.arr)+' at age '+c.age+' months'; }).join(' + ')+' (from the example)');
+    if(draftBase.a.bands) ro.push('Laws by cohort age · '+draftBase.a.bands.map(function(b2){ return b2.name+' '+pct(b2.persistenceAnnual,0)+' / '+pct(b2.expansionCoefficientAnnual,0); }).join(' · ')+' — these replace persistence and expansion (from the example)');
+    document.getElementById('bs-ro').innerHTML = ro.map(esc).join('<br>');
+    syncForces(DRAFT_T);
+  }
+  /* ---- the header: ⋯ is a small menu; opening it never redraws the page ---- */
   function menuOpen(id, on){
     var m=document.getElementById(id+'-menu'), b=document.getElementById(id+'-btn'); if(!m) return;
     m.hidden = !on; b.setAttribute('aria-expanded', on ? 'true' : 'false'); b.classList.toggle('on', on);
-    if(!on && id==='world') worldConfirm(null);
   }
-  function menusClose(){ menuOpen('world', false); menuOpen('more', false); }
-  ['world','more'].forEach(function(id){
+  function menusClose(){ menuOpen('more', false); }
+  ['more'].forEach(function(id){
     document.getElementById(id+'-btn').addEventListener('click', function(e){
       e.stopPropagation(); var open = document.getElementById(id+'-menu').hidden; menusClose(); menuOpen(id, open); });
     document.getElementById(id+'-menu').addEventListener('click', function(e){ e.stopPropagation(); });
@@ -1320,38 +1482,17 @@ details.pl .cascade{margin-top:8px}
   document.addEventListener('click', menusClose);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') menusClose(); });
 
-  /* Changing the world while an Experiment exists replaces the Base and clears the
-     Experiment — the old changes are never carried onto a different company. So it asks. */
-  function experimentState(){
-    var n = (baseRes && expRes) ? E.compare(baseRes, expRes).changed.length : 0;
-    return { n:n, scen:activeScenario, pair:pairMode, any: n>0 || !!activeScenario || pairMode };
-  }
-  function worldConfirm(id){
-    var box=document.getElementById('world-confirm'); if(!box) return;
-    if(!id){ box.hidden = true; box.innerHTML=''; return; }
-    var P = PACKS.filter(function(p){ return p.id===id; })[0], X = experimentState();
-    var what = X.scen ? 'the loaded preset “'+esc(X.scen.name)+'”' : X.pair ? 'the paired worlds' : X.n+' change'+(X.n>1?'s':'');
-    box.innerHTML = '<div class="wq">Switch to <b>'+esc(P.name)+'</b>?</div><div class="hint">This replaces the Base world and clears the Experiment ('+what+').</div>'+
-      '<div class="btn-row"><button class="btn primary" id="world-yes">Switch world</button><button class="btn" id="world-no">Cancel</button></div>';
-    box.hidden = false;
-    document.getElementById('world-yes').addEventListener('click', function(){ worldConfirm(null); menusClose(); applyPack(id); });
-    document.getElementById('world-no').addEventListener('click', function(){ worldConfirm(null); });
-  }
-  function chooseWorld(id){
-    if(experimentState().any){ menuOpen('world', true); worldConfirm(id); return; }
-    menusClose(); applyPack(id);
-  }
   /* the Experiment chip is the one place the header says what differs from Base */
   function syncHeaderState(changed){
-    var b=document.getElementById('rail-toggle'), n=changed.length;
-    var label = activeScenario ? activeScenario.name : pairMode ? 'paired worlds' : n ? n+' change'+(n>1?'s':'') : '';
+    var b=document.getElementById('rail-toggle'), n=changed.length + (expStart!==baseStart ? 1 : 0);
+    var label = activeScenario ? activeScenario.name : n ? n+' change'+(n>1?'s':'') : '';
     /* one text for every width: phones drop the words, never duplicate them */
-    var preset = !!(activeScenario || pairMode);
+    var preset = !!activeScenario;
     b.innerHTML = 'Experiment'+(!label ? '' : preset ? ' · <span class="xw">'+esc(label)+'</span>' : ' · '+n+'<span class="xw"> change'+(n>1?'s':'')+'</span>');
     b.classList.toggle('pre', preset);
-    b.title = activeScenario || pairMode ? 'A preset sets both Base and Experiment — open to change the laws' : n ? 'The Experiment differs from Base in '+n+' assumption'+(n>1?'s':'')+' — open to change the laws' : 'Change the laws: the Experiment runs against the unchanged Base';
+    b.title = preset ? 'Preset “'+activeScenario.name+'” applied to the frozen Base — open to change the laws' : n ? 'The Experiment differs from the frozen Base in '+n+' assumption'+(n>1?'s':'')+' — open to change the laws' : 'Change the laws: the Experiment runs against the frozen Base';
+    b.dataset.t0 = b.title;
     b.classList.toggle('live', !!label);
-    syncPackButtons();
   }
   /* ---- the viewing control: one markup, in each page's context line (Company headline, System
      map, Model Ledger bar), shown only while an Experiment exists. Choosing a world re-reads the
@@ -1461,7 +1602,7 @@ details.pl .cascade{margin-top:8px}
        resolved into the law in force month by month with its own cost line. */
     { kind:'Hypothesis', layer:'interventions', note:'A management hypothesis, not a law: "from month s, after a lag, law L moves by this factor for this long, and it costs this much". The engine runs the base laws with the hypothesis applied only while it is in force, and books its cost on its own P&L line. Off = no hypotheses.',
       forces:[ {k:'interventions', label:'Hypothesis', sub:'off = the base laws every month · on = one costed programme against a law', f:'hyp', nullable:true, toggleOnly:true, onValue:hypDefault, offValue:[]},
-               {k:'interventions[0].target', label:'Targets', sub:'which law the programme moves · only laws that are on can be targeted', f:'target', toggleOnly:true, cycleFn:function(){ return HYP_TARGETS.filter(function(t){ return t.when(expA); }).map(function(t){ return t.k; }); }, needs:'hyp'},
+               {k:'interventions[0].target', label:'Targets', sub:'which law the programme moves · only laws that are on can be targeted', f:'target', toggleOnly:true, cycleFn:function(A){ return HYP_TARGETS.filter(function(t){ return t.when(A); }).map(function(t){ return t.k; }); }, needs:'hyp'},
                {k:'interventions[0].value', label:'Effect', sub:'multiplier on the targeted law while in force', min:0.5, max:1.5, step:0.01, f:'x', needs:'hyp'},
                {k:'interventions[0].startMonth', label:'Decided in month', sub:'the cost starts here', min:1, max:48, step:1, f:'mo', needs:'hyp'},
                {k:'interventions[0].lagMonths', label:'Lag to effect', sub:'months between the decision and the law moving', min:0, max:12, step:1, f:'mo', needs:'hyp'},
@@ -1486,10 +1627,10 @@ details.pl .cascade{margin-top:8px}
   var LAYER_ORDER = ['arr','customers','monetization','cash','interventions'];
   var LAYER_META = {
     arr:           { name:'ARR physics', tag:'always on', on:function(){ return true; }, note:'Cohort ARR physics: acquisition, persistence, expansion, economics. Always on.' },
-    customers:     { name:'Customer physics', tag:'beneath ARR', on:function(){ return !!expRes && expRes.mechanisms.customerPhysics; }, note:'Customers beneath the ARR. Persistence becomes derived.' },
-    monetization:  { name:'Monetization physics', tag:'beneath customers', on:function(){ return !!expRes && expRes.mechanisms.monetization; }, note:'Revenue from per-customer components. Expansion becomes price + usage + adoption.' },
-    cash:          { name:'Cash physics', tag:'beneath P&L', on:function(){ return !!expRes && expRes.mechanisms.cashPhysics; }, note:'Billings, deferred revenue, receivables. FCF stops being EBITA.' },
-    interventions: { name:'Hypotheses', tag:'from outside', on:function(){ return !!expRes && expRes.mechanisms.interventions; }, note:'Costed, lagged, temporary moves of one law. Never coefficients.' }
+    customers:     { name:'Customer physics', tag:'beneath ARR', on:function(R){ return !!R && R.mechanisms.customerPhysics; }, note:'Customers beneath the ARR. Persistence becomes derived.' },
+    monetization:  { name:'Monetization physics', tag:'beneath customers', on:function(R){ return !!R && R.mechanisms.monetization; }, note:'Revenue from per-customer components. Expansion becomes price + usage + adoption.' },
+    cash:          { name:'Cash physics', tag:'beneath P&L', on:function(R){ return !!R && R.mechanisms.cashPhysics; }, note:'Billings, deferred revenue, receivables. FCF stops being EBITA.' },
+    interventions: { name:'Hypotheses', tag:'from outside', on:function(R){ return !!R && R.mechanisms.interventions; }, note:'Costed, lagged, temporary moves of one law. Never coefficients.' }
   };
   FORCE_GROUPS = LAYER_ORDER.reduce(function(acc, l){ return acc.concat(FORCE_GROUPS.filter(function(g){ return (g.layer||'arr')===l; })); }, []);
   var FORCES = FORCE_GROUPS.reduce(function(a2,g){ return a2.concat(g.forces); }, []).concat(FIXED_COSTS);
@@ -1531,43 +1672,43 @@ details.pl .cascade{margin-top:8px}
   /* §6 — "underlying law -> measured KPI." kpi.js's own labels for each. */
   var MEASURED_LABEL = { grr:'measured GRR', expansionRate:'measured Expansion', nrr:'measured NRR',
                          logoRetentionR12M:'measured logo retention', contractionShare:'of measured leakage is contraction' };
-  function forceRow(F){
+  /* One row per force, for either target: the Experiment drawer (T = EXP_T, ids f-/t-/v-/b-) or
+     Base Settings' draft (T = DRAFT_T, the same ids prefixed bs-). A row writes only its target. */
+  function forceRow(F, T){
+    var P = T.pre;
     var d=document.createElement('div'); d.className='force';
     d.title = (FORCE_UNIT[F.k] ? FORCE_UNIT[F.k]+' · ' : '')+F.sub+(FORCE_DIR[F.k] ? ' · '+FORCE_DIR[F.k] : '');
-    d.innerHTML='<div class="force-top">'+kindGlyph(F)+'<label for="f-'+F.k+'">'+esc(F.label)+'</label>'+
-      (F.nullable ? '<button class="btn nulltog" id="t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
-      ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="t-'+F.k+'" title="Switch between the settings">'+esc(String(getK(expA,F.k)))+'</button>' : '')+
-      '<span class="force-val" id="v-'+F.k+'"></span><span class="force-base" id="b-'+F.k+'"></span></div>'+
+    d.innerHTML='<div class="force-top">'+kindGlyph(F)+'<label for="'+P+'f-'+F.k+'">'+esc(F.label)+'</label>'+
+      (F.nullable ? '<button class="btn nulltog" id="'+P+'t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
+      ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="'+P+'t-'+F.k+'" title="Switch between the settings">'+esc(T.a() ? String(getK(T.a(),F.k)) : '')+'</button>' : '')+
+      '<span class="force-val" id="'+P+'v-'+F.k+'"></span><span class="force-base" id="'+P+'b-'+F.k+'"></span></div>'+
       '<div class="force-sub">'+(FORCE_UNIT[F.k] && !F.toggleOnly ? '<span class="force-u">'+esc(FORCE_UNIT[F.k])+'</span> &middot; ' : '')+esc(F.sub)+(FORCE_DIR[F.k] ? ' &middot; <span class="force-dir">'+esc(FORCE_DIR[F.k])+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
-      (F.toggleOnly ? '' : '<input type="range" id="f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
+      (F.toggleOnly ? '' : '<input type="range" id="'+P+'f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
-      d.querySelector('[id="t-'+F.k+'"]').addEventListener('click', function(){
-        var prev = Object.assign({}, expA);
-        clearScenario();
-        var cur = getK(expA, F.k);
+      d.querySelector('[id="'+P+'t-'+F.k+'"]').addEventListener('click', function(){
+        var prev = T.begin(), A = T.a();
+        var cur = getK(A, F.k);
         var isOff = cur===null || cur===undefined || (typeof cur==='number' && !isFinite(cur)) || (Array.isArray(cur) && !cur.length);
-        var onVal = typeof F.onValue==='function' ? F.onValue() : parseFloat(document.getElementById('f-'+F.k).value);
-        expA = setK(expA, F.k, isOff ? onVal : (F.offValue!==undefined ? F.offValue : null));
+        var onVal = typeof F.onValue==='function' ? F.onValue(A) : parseFloat(document.getElementById(P+'f-'+F.k).value);
+        A = setK(A, F.k, isOff ? onVal : (F.offValue!==undefined ? F.offValue : null));
         /* v2 Gate B: Monetization requires the customer layer — switching it on
            switches Customer Physics on too, rather than throwing at the boundary */
-        if(F.k==='monetization' && isOff && (expA.logoRetentionAnnual===null || expA.logoRetentionAnnual===undefined))
-          expA = setK(expA, 'logoRetentionAnnual', 0.92);
+        if(F.k==='monetization' && isOff && (A.logoRetentionAnnual===null || A.logoRetentionAnnual===undefined))
+          A = setK(A, 'logoRetentionAnnual', 0.92);
         /* v2 Gate C: a collection delay needs a billing term — switching the term
            off resets the delay rather than throwing at the boundary */
-        if(F.k==='billingTermMonths' && !isOff) expA = setK(expA, 'collectionDelayMonths', 0);
-        recompute(prev);
+        if(F.k==='billingTermMonths' && !isOff) A = setK(A, 'collectionDelayMonths', 0);
+        T.set(A); T.done(prev);
       });
     }
     if(F.cycle || F.cycleFn){
-      d.querySelector('[id="t-'+F.k+'"]').addEventListener('click', function(){
-        var prev = Object.assign({}, expA);
-        clearScenario();
-        var list = F.cycle || F.cycleFn(), cur = getK(expA, F.k), i = list.indexOf(cur);
-        expA = setK(expA, F.k, list[(i+1) % list.length]);
-        recompute(prev);
+      d.querySelector('[id="'+P+'t-'+F.k+'"]').addEventListener('click', function(){
+        var prev = T.begin(), A = T.a();
+        var list = F.cycle || F.cycleFn(A), cur = getK(A, F.k), i = list.indexOf(cur);
+        T.set(setK(A, F.k, list[(i+1) % list.length])); T.done(prev);
       });
     }
-    if(F.measures){
+    if(F.measures && T.measures){
       var mrow=document.createElement('div'); mrow.className='measured-kpi';
       mrow.innerHTML = F.measures.map(function(mk){
         return '\u2192 <span class="mk-label">'+esc(MEASURED_LABEL[mk])+'</span><span class="basis">R12M</span> <b id="mk-'+F.k+'-'+mk+'"></b>';
@@ -1575,10 +1716,9 @@ details.pl .cascade{margin-top:8px}
       d.appendChild(mrow);
     }
     if(!F.toggleOnly) d.querySelector('input').addEventListener('input', function(e){
-      var prev = Object.assign({}, expA);
-      clearScenario();
-      expA = setK(expA, F.k, parseFloat(e.target.value));   // moving a nullable slider switches it on
-      recompute(prev);
+      var prev = T.begin();
+      T.set(setK(T.a(), F.k, parseFloat(e.target.value)));   // moving a nullable slider switches it on
+      T.done(prev);
     });
     return d;
   }
@@ -1622,51 +1762,55 @@ details.pl .cascade{margin-top:8px}
       !!(kpi && baseKpi && changedKeys.indexOf('persistenceAnnual')>=0 && changedKeys.indexOf('expansionCoefficientAnnual')<0 && Math.abs(kpi.expansionRate-baseKpi.expansionRate)>GAP),
       'Why did measured Expansion move? Expansion is unchanged, but Persistence changes the balance expansion subsequently accrues on within the R12M measurement window — the same within-period interaction, from the other side.');
   }
-  function buildForces(){
-    var host = document.getElementById('forces'); host.innerHTML='';
+  function buildForces(T){
+    var host = document.getElementById(T.host); host.innerHTML='';
     var lastLayer = null;
     function fixedCostsGroup(){
       var fx=document.createElement('div'); fx.className='fgrp';
       fx.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">Financial levers</span></div>'+
         '<div class="fgrp-note">Affect EBITA, FCF and cash directly. The model gives them no effect on retention, expansion or acquisition.</div>';
-      FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F)); });
+      FIXED_COSTS.forEach(function(F){ fx.appendChild(forceRow(F, T)); });
       return fx;
     }
     FORCE_GROUPS.forEach(function(G){
       var L = G.layer||'arr';
       if(L!==lastLayer){
         if(lastLayer==='arr') host.appendChild(fixedCostsGroup());
-        var hd=document.createElement('div'); hd.className='layerhead'; hd.id='layer-'+L;
+        var hd=document.createElement('div'); hd.className='layerhead'; hd.id=T.pre+'layer-'+L;
         hd.innerHTML='<span class="lh-name"></span> <small>'+esc(LAYER_META[L].note)+'</small>';
         host.appendChild(hd); lastLayer = L;
       }
       var g=document.createElement('div'); g.className='fgrp'; g.dataset.layer = L;
       g.innerHTML='<div class="fgrp-head"><span class="fgrp-kind">'+esc(G.kind)+'</span></div>'+
                   '<div class="fgrp-note">'+esc(G.note)+'</div>';
-      G.forces.forEach(function(F){ g.appendChild(forceRow(F)); });
+      G.forces.forEach(function(F){ g.appendChild(forceRow(F, T)); });
       host.appendChild(g);
     });
     if(lastLayer==='arr') host.appendChild(fixedCostsGroup());
-    document.getElementById('fixedcosts').innerHTML='';
+    if(T===EXP_T) document.getElementById('fixedcosts').innerHTML='';
   }
-  function syncLayerHeads(){
+  function syncLayerHeads(T){
     LAYER_ORDER.forEach(function(L){
-      var hd=document.getElementById('layer-'+L); if(!hd) return;
-      var on = LAYER_META[L].on();
+      var hd=document.getElementById(T.pre+'layer-'+L); if(!hd) return;
+      var on = LAYER_META[L].on(T.res());
       hd.querySelector('.lh-name').innerHTML = 'Layer · <b>'+esc(LAYER_META[L].name)+'</b> · '+esc(LAYER_META[L].tag)+(L==='arr' ? '' : ' · <span class="'+(on?'':'off')+'">'+(on?'on':'off')+'</span>');
     });
   }
-  function syncForces(){
-    syncLayerHeads(); syncPackButtons(); syncSysViews();
+  /* syncs one target's rows. The drawer reads its values against the frozen Base ("base …");
+     Base Settings reads the draft against the frozen Base ("frozen …"), or against nothing yet. */
+  function syncForces(T){
+    var P = T.pre, expA = T.a(), expRes = T.res(), R0 = T.ref(), baseA = R0 ? R0.a : expA, baseRes = R0 ? R0.res : expRes, BL = T.refLabel;
+    if(!expRes) return;
+    syncLayerHeads(T); if(T===EXP_T) syncSysViews();
     var monOn = expRes.mechanisms.monetization, monOnB = baseRes.mechanisms.monetization;
     FORCES.forEach(function(F){
-      var el=document.getElementById('f-'+F.k); if(!el && !F.toggleOnly) return;
+      var el=document.getElementById(P+'f-'+F.k); if(!el && !F.toggleOnly) return;
       var xv = getK(expA, F.k), bv = getK(baseA, F.k);
       if(el) el.value = sliderValueFor(F, xv);
-      var v=document.getElementById('v-'+F.k); v.textContent = fmtF(F.f, xv);
+      var v=document.getElementById(P+'v-'+F.k); v.textContent = fmtF(F.f, xv);
       v.className = 'force-val' + (xv===bv ? ' same' : '');
-      document.getElementById('b-'+F.k).textContent = 'base ' + fmtF(F.f, bv);
-      var b2=document.querySelector('.force-base2[data-for="'+F.k+'"]'); if(b2) b2.textContent = 'base ' + fmtF(F.f, bv);
+      document.getElementById(P+'b-'+F.k).textContent = BL+' ' + fmtF(F.f, bv);
+      var b2=T===EXP_T && document.querySelector('.force-base2[data-for="'+F.k+'"]'); if(b2) b2.textContent = BL+' ' + fmtF(F.f, bv);
       /* v2 Gate A — with Customer Physics on, persistence is a READOUT: the
          slider is disabled and shows the derived value and its formula.
          v2 Gate B — under Monetization it is EMERGENT (mix-dependent), and the
@@ -1676,8 +1820,8 @@ details.pl .cascade{margin-top:8px}
         el.disabled = cuOn; el.style.opacity = cuOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'emergent — set by the revenue mix'; v.className='force-val'; }
         else if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
-        if(monOnB) document.getElementById('b-'+F.k).textContent = 'base emergent';
-        else if(cuOnB) document.getElementById('b-'+F.k).textContent = 'base derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+        if(monOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' emergent';
+        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
       }
       if(F.k==='expansionCoefficientAnnual'){
         el.disabled = monOn; el.style.opacity = monOn ? 0.35 : 1;
@@ -1686,36 +1830,46 @@ details.pl .cascade{margin-top:8px}
       if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(expRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
       if(F.needs){
         var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? expRes.mechanisms.cashPhysics : F.needs==='hyp' ? expRes.mechanisms.interventions : true;
-        var rowEl = (el || document.getElementById('t-'+F.k)); rowEl = rowEl && rowEl.closest ? rowEl.closest('.force') : null;
+        var rowEl = (el || document.getElementById(P+'t-'+F.k)); rowEl = rowEl && rowEl.closest ? rowEl.closest('.force') : null;
         if(rowEl) rowEl.style.display = layerOn ? '' : 'none';         /* restrained: a layer that is off shows only its switch */
       }
       if(F.needs==='monetization'){
         el.disabled = !monOn; el.style.opacity = monOn ? 1 : 0.35;
-        if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = monOnB ? 'base '+fmtF(F.f, bv) : 'monetization off'; }
+        if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = monOnB ? BL+' '+fmtF(F.f, bv) : 'monetization off'; }
       }
       if(F.needs==='hyp'){
         var hypOn = expRes.mechanisms.interventions;
         if(el){ el.disabled = !hypOn; el.style.opacity = hypOn ? 1 : 0.35; }
-        if(F.cycleFn){ var hb=document.getElementById('t-'+F.k); hb.textContent = hypOn ? hypTargetLabel(xv) : '—'; hb.disabled = !hypOn; hb.style.opacity = hypOn ? 1 : 0.35; }
-        if(!hypOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = 'no hypothesis';
-                    if(F.nullable){ var ht=document.getElementById('t-'+F.k); ht.disabled = true; ht.style.opacity = 0.35; } }
-        else if(F.nullable){ var ht2=document.getElementById('t-'+F.k); ht2.disabled = false; ht2.style.opacity = 1; }
+        if(F.cycleFn){ var hb=document.getElementById(P+'t-'+F.k); hb.textContent = hypOn ? hypTargetLabel(xv) : '—'; hb.disabled = !hypOn; hb.style.opacity = hypOn ? 1 : 0.35; }
+        if(!hypOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = 'no hypothesis';
+                    if(F.nullable){ var ht=document.getElementById(P+'t-'+F.k); ht.disabled = true; ht.style.opacity = 0.35; } }
+        else if(F.nullable){ var ht2=document.getElementById(P+'t-'+F.k); ht2.disabled = false; ht2.style.opacity = 1; }
       }
       if(F.needs==='cash'){
         var cashOn = expRes.mechanisms.cashPhysics;
         if(el){ el.disabled = !cashOn; el.style.opacity = cashOn ? 1 : 0.35; }
-        if(F.cycle){ var cb=document.getElementById('t-'+F.k); cb.textContent = xv; cb.disabled = !cashOn; cb.style.opacity = cashOn ? 1 : 0.35; }
-        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById('b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? 'base '+fmtF(F.f, bv) : 'cash physics off'; }
+        if(F.cycle){ var cb=document.getElementById(P+'t-'+F.k); cb.textContent = xv; cb.disabled = !cashOn; cb.style.opacity = cashOn ? 1 : 0.35; }
+        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
       }
       if(F.nullable){
         var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv)) || (Array.isArray(xv) && !xv.length);
-        var tg=document.getElementById('t-'+F.k); tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off);
+        var tg=document.getElementById(P+'t-'+F.k); tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off);
         if(off && v.textContent==='off') v.textContent = F.k==='interventions[0].durationMonths' ? 'permanent' : '';   /* the switch already says off — never twice; a permanent programme says so */
         if(el && F.k!=='newLogoARPA') el.style.opacity = off ? 0.35 : 1;
         else if(el) el.style.opacity = (off || monOn) ? 0.35 : 1;
       }
     });
   }
+
+  /* the two control targets: the Experiment (the drawer) and Base Settings' draft */
+  var EXP_T = { pre:'', host:'forces', measures:true, refLabel:'base',
+    a:function(){ return expA; }, set:function(A){ expA = A; }, res:function(){ return expRes; },
+    ref:function(){ return frozenBase ? { a:baseA, res:baseRes } : null; },
+    begin:function(){ var p = Object.assign({}, expA); clearScenario(); return p; }, done:function(prev){ recompute(prev); } };
+  DRAFT_T = { pre:'bs-', host:'bs-forces', measures:false, refLabel:'frozen',
+    a:function(){ return draftBase ? draftBase.a : null; }, set:function(A){ draftBase.a = A; draftBase.edited = true; }, res:function(){ return draftRes; },
+    ref:function(){ return frozenBase ? { a:frozenBase.a, res:frozenRes } : null; },
+    begin:function(){ return null; }, done:function(){ draftChanged(); } };
 
   /* ------------------------------------------------------------------ *
    * §7 — the nine canonical scenarios.
@@ -1950,53 +2104,89 @@ details.pl .cascade{margin-top:8px}
     if(pinned===null && capitalMode){ capitalMode = false; resize(); }
     syncScenButtons();
   }
+  /* ---- PRESETS on the frozen Base ----
+     A RECIPE is a set of law changes applied to whatever Base is frozen; it is offered only where
+     it means what its lesson says (the law it sets is in force, and it moves it). An EXAMPLE is a
+     matched comparison that needs a Base of its own: its Base is a Base Settings template, and its
+     comparison is offered here only while exactly that Base is frozen. Neither ever writes the Base. */
+  var EXAMPLE_IDS = ['pair','history','expcost','customers','monetization','mix'];
+  function isExample(sc){ return EXAMPLE_IDS.indexOf(sc.id)>=0; }
+  function exampleSides(sc){
+    var b, x;
+    if(typeof sc.pair === 'function'){ var pr = sc.pair(); b = { a: pr.baseA }; x = { a: pr.expA }; }
+    else if(sc.pair){
+      /* the calibrated pair: both routes reach the same New ARR — Base buys it with efficiency, the Experiment with spend */
+      b = { a: Object.assign({}, BASE_A, { cacPerARR: BASE_A.sm / TARGET_NEW }) };
+      x = { a: Object.assign({}, BASE_A, { sm: TARGET_NEW * BASE_A.cacPerARR }) };
+    } else {
+      /* ONE law set (the same SCEN6_BANDS object), two opening states: a mature book and a young one.
+         Acquisition is off in both so the installed base is isolated. */
+      var L = Object.assign({}, BASE_A, { bands: SCEN6_BANDS, sm: 0 });
+      b = { a: L, start: { openingARR:20000000, openingCash:10000000, openingCohorts:[{arr:20000000, age:24}] } };
+      x = { a: L, start: { openingARR:20000000, openingCash:10000000, openingCohorts:[{arr:20000000, age:0}] } };
+    }
+    return { base: normBase(b.a, b.start), exp: normBase(x.a, x.start) };
+  }
+  function EXAMPLE_TEMPLATES(){
+    return SCENARIOS.filter(isExample).map(function(sc){
+      return { id:'ex-'+sc.id, group:'example', sc:sc, name:sc.n+' · '+sc.name, note:(sc.note || sc.teach),
+               a:function(){ return exampleSides(sc).base.a; }, start:function(){ return exampleSides(sc).base.start; } };
+    });
+  }
+  var RECIPE_NEEDS = {
+    retention:  function(a){ return a.logoRetentionAnnual!==null && a.logoRetentionAnnual!==undefined ? 'Your Base derives persistence from its customer laws; this recipe sets the persistence law itself.' : null; },
+    expansion:  function(a){ return a.monetization ? 'Your Base prices expansion as components; this recipe sets the expansion coefficient.' : null; },
+    efficiency: function(a){ return a.cacPerARR <= 0.80 ? 'Your Base’s CAC floor is already 0.80× or lower.' : null; },
+    bounded:    function(a){ return a.maxMonthlyNewARR!==null && a.maxMonthlyNewARR!==undefined ? 'Your Base already bounds acquisition.' : null; },
+    lag:        function(a){ return (a.acquisitionLagMonths||0) >= 6 ? 'Your Base’s acquisition lag is already 6 months or more.' : null; },
+    hypothesis: function(a){ return a.logoRetentionAnnual!==null && a.logoRetentionAnnual!==undefined ? 'Your Base derives persistence from its customer laws; this programme moves the persistence law.'
+                                  : (a.interventions && a.interventions.length) ? 'Your Base already carries a hypothesis; this recipe would replace it.' : null; }
+  };
+  /* the Experiment a preset makes from the frozen Base, or why it cannot */
+  function presetPlan(sc){
+    if(!frozenBase) return { why:'Freeze a Base first.' };
+    var FA = frozenBase.a;
+    if(isExample(sc)){
+      var sd = exampleSides(sc);
+      if(!sameState(sd.base, frozenBase)) return { why:'Needs its own Base — load “'+sc.n+' · '+sc.name+'” under Base Settings → Examples and freeze it.', hide:true };
+      return { a: sd.exp.a, start: canon(sd.exp.start)===canon(frozenBase.start) ? frozenBase.start : sd.exp.start };
+    }
+    if(FA.bands) return { why:'Your Base runs age-banded laws (an example); recipes need flat laws.' };
+    var need = RECIPE_NEEDS[sc.id] && RECIPE_NEEDS[sc.id](FA); if(need) return { why:need };
+    var a = pipeFit(Object.assign(cloneState(FA), cloneState(sc.ch)));
+    if(canon(a)===canon(FA)) return { why:'Your Base already has these settings.' };
+    try { E.run(a, frozenBase.start); } catch(err){ return { why:'The engine rejects this recipe on your Base.' }; }
+    return { a: a, start: frozenBase.start };
+  }
   function applyScenario(sc){
-    exitPair();
+    var plan = presetPlan(sc); if(plan.why) return false;
     var prev = Object.assign({}, expA);
     activeScenario = sc; lastMsg = null; pinned = null;
-    baseA = BASE_A; baseStart = undefined; expStart = undefined;   /* canonical scenarios run from the v1.3 Base */
-    /* §9 — the capital-recovery track expands automatically for the two
-       scenarios that are actually about acquisition/payback, without
-       requiring a cohort click; it stays collapsed (compact payback summary
-       only, in the side panel) for every other scenario. */
+    /* §9 — the capital-recovery track expands automatically for the two presets that are about
+       acquisition/payback; it stays collapsed for every other one. */
     anatomy = false; capitalMode = (sc.id==='efficiency' || sc.id==='pair');
     resize();
-
-    if(typeof sc.pair === 'function'){
-      /* Scenario 7 — a declared pair: both sides set by the scenario itself. */
-      var pr = sc.pair(); baseA = pr.baseA; expA = pr.expA;
-      pairMode = true;
-    } else if(sc.pair){
-      /* Scenario 5 — the calibrated pair. Both routes reach the same New ARR:
-         Base buys it with efficiency, Experiment buys it with spend. */
-      baseA = Object.assign({}, BASE_A, { cacPerARR: BASE_A.sm / TARGET_NEW });
-      expA  = Object.assign({}, BASE_A, { sm: TARGET_NEW * BASE_A.cacPerARR });
-      pairMode = true;
-    } else if(sc.world === 'state-dependent'){
-      /* Scenario 6 — ONE law set, two states. Both sides receive the SAME
-         SCEN6_BANDS array object, so per-portfolio calibration is impossible.
-         Acquisition is switched off in both so the installed base is isolated. */
-      baseA = Object.assign({}, BASE_A, { bands: SCEN6_BANDS, sm: 0 });
-      expA  = Object.assign({}, BASE_A, { bands: SCEN6_BANDS, sm: 0 });
-      baseStart = { openingARR:20000000, openingCash:10000000, openingCohorts:[{arr:20000000, age:24}] };  // mature
-      expStart  = { openingARR:20000000, openingCash:10000000, openingCohorts:[{arr:20000000, age:0}] };   // young
-    } else {
-      expA = Object.assign({}, BASE_A, sc.ch);
-    }
+    expA = plan.a; expStart = plan.start;                 /* the Experiment only — the frozen Base is untouched */
     syncScenButtons();
     recompute(prev);
+    return true;
   }
   function syncScenButtons(){
     [].forEach.call(document.querySelectorAll('#preset-list .prow'), function(b2){
+      var sc = SCENARIOS.filter(function(x){ return x.id===b2.dataset.id; })[0], plan = presetPlan(sc);
       b2.classList.toggle('on', !!activeScenario && b2.dataset.id===activeScenario.id);
+      b2.disabled = !!plan.why; b2.hidden = !!plan.hide;
+      var w = b2.querySelector('.pwhy'); w.textContent = plan.why || ''; w.hidden = !plan.why;
     });
+    var ex = document.getElementById('pgroup-ex');
+    if(ex) ex.hidden = ![].some.call(document.querySelectorAll('#preset-list .prow.ex'), function(b2){ return !b2.hidden; });
   }
   /* The preset browser: a list inside the Experiment drawer. It helps someone CHOOSE — name, idea,
      lesson, what it sets — and loads through applyScenario; the analysis and each preset's own proof
      are read on Compare. */
   function presetChanges(sc){
-    if(sc.world==='state-dependent') return 'Opening state · base age 24 → 0 months · one law set';
-    if(sc.pair) return 'Sets Base and Experiment · '+(sc.pairLabel || 'efficiency vs spend');
+    if(sc.world==='state-dependent') return 'Opening book age 24 → 0 months · one law set';
+    if(sc.pair) return 'Example comparison · '+(sc.pairLabel || 'efficiency vs spend');
     return Object.keys(sc.ch).map(function(k){
       if(k==='interventions') return 'Hypothesis · '+sc.ch[k].map(function(h){ return h.name; }).join(', ');
       var Fk = forceOf(k)||{};
@@ -2007,17 +2197,21 @@ details.pl .cascade{margin-top:8px}
   function showPresets(on){
     var l=document.getElementById('preset-list'), b=document.getElementById('nav-scen');
     l.hidden = !on; b.setAttribute('aria-expanded', on ? 'true' : 'false');
-    b.textContent = on ? 'Hide presets ‹' : 'Browse presets · 14 ›';
+    b.textContent = on ? 'Hide presets ‹' : 'Browse presets ›';
+    if(on) syncScenButtons();
   }
   function buildScenarios(){
     var host=document.getElementById('preset-list'); host.innerHTML='';
-    SCENARIOS.forEach(function(sc){
-      var b2=document.createElement('button'); b2.className='prow'; b2.dataset.id=sc.id;
+    function group(id, t){ var g=document.createElement('div'); g.className='pgroup'; g.id=id; g.textContent=t; host.appendChild(g); }
+    group('pgroup-rec', 'Recipes · applied to your frozen Base');
+    SCENARIOS.filter(function(sc){ return !isExample(sc); }).concat([null], SCENARIOS.filter(isExample)).forEach(function(sc){
+      if(sc===null){ group('pgroup-ex', 'The comparison your example Base was built for'); return; }
+      var b2=document.createElement('button'); b2.className='prow'+(isExample(sc)?' ex':''); b2.dataset.id=sc.id;
       b2.innerHTML = '<span class="pn">'+sc.n+'</span><span class="pname">'+esc(sc.name)+'</span>'+
         '<span class="ptitle">'+esc(sc.title)+'</span><span class="plesson">'+esc(presetLesson(sc))+'</span>'+
-        '<span class="pchg">'+esc(presetChanges(sc))+'</span>';
+        '<span class="pchg">'+esc(presetChanges(sc))+'</span><span class="pwhy" hidden></span>';
       b2.addEventListener('click', function(){
-        if(activeScenario && activeScenario.id===sc.id) resetAll(); else applyScenario(sc);
+        if(activeScenario && activeScenario.id===sc.id) resetAll(); else if(!applyScenario(sc)) return;
         /* loaded: leave the browser and the drawer — the product now runs the Experiment */
         showPresets(false);
         document.querySelector('.app').classList.remove('rail-open'); lawRingOff();
@@ -2078,7 +2272,7 @@ details.pl .cascade{margin-top:8px}
     };
   }
 
-  function render(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
+  function render(){ if(!frozenBase || layer==='base') return; var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     if(!geo) resize();
     if(layer==='flow'){ drawSystem(); return; }        /* SYSTEM — the causal map */
     var S = scales(), t = tau, mi = Math.floor(t);
@@ -2197,9 +2391,9 @@ details.pl .cascade{margin-top:8px}
     /* --- the experiment's entry, and its accumulated consequence at the selected month
        (docs/LENS-VISUAL-GRAMMAR.md · CHANGE MARKER, DELTA): one tick, one bracket --- */
     var chg = E.compare(baseRes, expRes).changed;
-    if(!V_.single && (chg.length || pairMode)){
+    if(!V_.single && (chg.length || expStart!==baseStart)){
       var ef = effectFrom(), mSel0 = selectedMonth();
-      var lbl = chg.length===1 ? chLabel(chg[0])+' '+chText(chg[0]) : (!chg.length ? 'declared pair' : chg.length+' assumptions changed');
+      var lbl = chg.length===1 ? chLabel(chg[0])+' '+chText(chg[0]) : (!chg.length ? 'opening state changed' : chg.length+' assumptions changed');
       ctx.font='9.5px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='rgba(139,141,240,.95)';
       ctx.fillText((lbl+(ef.arr ? ' · effect from M'+ef.arr : ' · '+basis+' on Base')).toUpperCase(), W-geo.R-4, geo.massTop+11);
       if(ef.arr!==null){
@@ -4592,7 +4786,7 @@ details.pl .cascade{margin-top:8px}
     var Mt = 'M'+m, w = trailing12(m);
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
-    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || (pairMode && !V_.single);
+    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || (expStart!==baseStart && !V_.single);
     var sx = E.summarise(expRes);
     var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Financials']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
     var S12 = function(f){ return sumM(expRes, w.from, w.to, f); };
@@ -4975,7 +5169,7 @@ details.pl .cascade{margin-top:8px}
     L.band = root.querySelector('g[data-fg="band"]'); L.dyn = root.querySelector('g[data-fg="dyn"]');
   }
   /* what, besides the month, the Financials markup depends on — any change forces a full build */
-  function finKey(){ return [expRes, baseRes, finView, basis, pairMode, activeLens, layer, pinned, anatomy, viewingBase()]; }
+  function finKey(){ return [expRes, baseRes, finView, basis, expStart, activeLens, layer, pinned, anatomy, viewingBase()]; }
   function finKeySame(a, b){ if(!a || !b || a.length!==b.length) return false; for(var i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; }
   /* the month tick: the clock moved and nothing else did. Re-print the Company headline and the
      Financials figures that depend on the month, in place — no lens is rebuilt, the chart's
@@ -5395,7 +5589,7 @@ details.pl .cascade{margin-top:8px}
 
   function renderLedger(force){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var host = document.getElementById('ledgerscroll'); if(!host) return;
-    var stamp = ledgerView+'|'+basis+'|'+activePack+'|'+expRes.horizon;
+    var stamp = ledgerView+'|'+basis+'|'+(frozenBase ? frozenBase.n : 0)+'|'+expRes.horizon;
     if(!force && ledgerRes===expRes && ledgerStamp===stamp) { ledgerMark(); return; }
     ledgerRes = expRes; ledgerStamp = stamp; ledgerBad = 0; ledgerBuilds++;
     var rows = ledgerRowsOf(expRes, expA);
@@ -5539,7 +5733,7 @@ details.pl .cascade{margin-top:8px}
     renderCohortLife();
     setTimeout(function(){ resize(); render(); }, 0);
   }
-  function renderSide(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
+  function renderSide(){ if(!frozenBase || layer==='base') return; var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     if(pressHold && !leverDown){ sideStale = true; return; }   /* not under an open press */
     /* Financials showing and only the clock moved: re-print its month-dependent figures in place
        rather than rebuilding every lens (the four hidden ones included) once a month */
@@ -6255,6 +6449,12 @@ details.pl .cascade{margin-top:8px}
     return ev ? '<div class="sgrp exp" id="preset-evidence"><div class="eyebrow">Preset evidence</div>'+ev+'</div>' : '';
   }
 
+  /* the Experiment's opening state, where a preset set its own (the frozen Base's is otherwise shared) */
+  function startChange(){
+    if(expStart===baseStart) return [];
+    function age(st){ return st && st.openingCohorts && st.openingCohorts.length ? st.openingCohorts.map(function(c){ return c.age+' months'; }).join(' + ') : 'new'; }
+    return [{ key:'bands', label:'Opening base · age at M0', from:age(baseStart), to:age(expStart) }];
+  }
   /* ---------- causal feedback, from real simulation outputs ---------- */
   function renderCausal(prevExp, reuse){
     var slot=document.getElementById(layer==='cmp' ? 'compare-panel' : 'causal-slot'); if(!slot) return;
@@ -6262,20 +6462,20 @@ details.pl .cascade{margin-top:8px}
     if(layer!=='cmp'){
       slot.innerHTML=''; return;   /* Company is one world (Step 1D): Base against Experiment is read on Compare */
     }
-    /* A canonical preset keeps its identity here. Preset 6 differs in opening state, not in laws:
-       the law diff is empty, so its change is named as the state it is. */
-    var sc = activeScenario, chg = c.changed;
-    if(sc && sc.world==='state-dependent') chg = [{ key:'bands', label:'Opening base · age at M0', from:'24 months (mature)', to:'0 months (young)' }];
-    if(!chg.length && !pairMode){
+    /* Compare is always the frozen Base against the Experiment. A preset keeps its identity here.
+       An Experiment can differ in opening state as well as in laws (example 6): that change is
+       named as the state it is. */
+    var sc = activeScenario, chg = c.changed.concat(startChange());
+    if(!chg.length){
       slot.innerHTML='<div class="causal idle"><h4>Experiment equals Base</h4>'+
         '<div class="msg">Nothing has been changed, so there is nothing to compare. Open <b>Experiment</b>, move one law, and this surface shows what you changed, what the system did and what company emerged.</div>'+
         '<button class="btn" id="cmp-open-change" style="margin-top:8px">Open Experiment</button></div>';
       document.getElementById('cmp-open-change').addEventListener('click', function(){ document.querySelector('.app').classList.add('rail-open'); });
       return;
     }
-    var title = sc ? 'Preset '+sc.n+' · '+sc.name : pairMode ? 'Efficiency versus Spend'
+    var title = sc ? 'Preset '+sc.n+' · '+sc.name
       : (lastMsg ? lastMsg.name : c.changed.map(function(u){ return LABEL[u.key]||u.key; }).join(', ') + ' changed');
-    var msg = sc ? sc.teach : pairMode ? 'Two routes to the same ARR. Watch the mass — then watch the keel.'
+    var msg = sc ? sc.teach
       : (lastMsg ? lastMsg.teach : 'The whole future recalculated.');
     var qb = baseRes.derived.acquisition, qx = expRes.derived.acquisition;
     var satAny = E.saturationEnabled(baseA) || E.saturationEnabled(expA);
@@ -6375,19 +6575,10 @@ details.pl .cascade{margin-top:8px}
     var host=document.getElementById('experiment-summary');
     var changed = E.compare(baseRes, expRes).changed;      // [{key, from, to}], real engine diff
     syncHeaderState(changed);
-    document.getElementById('nav-compare').classList.toggle('live', pairMode || !!activeScenario || changed.length>0);
-    if(pairMode){
+    document.getElementById('nav-compare').classList.toggle('live', expStart!==baseStart || changed.length>0);
+    if(!changed.length && expStart!==baseStart){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
-        (activeScenario && activeScenario.pairLabel
-          ? '<div class="hint" style="line-height:1.65">Declared pair — '+esc(activeScenario.pairLabel)+'. Both sides are set by Preset '+activeScenario.n+
-            '; Compare shows the assumptions that differ between them.</div>'
-          : '<div class="hint" style="line-height:1.65">Efficiency vs Spend pair — Base buys New ARR with acquisition efficiency, '+
-            'Experiment buys the same New ARR with S&amp;M. Compare shows the calibrated values.</div>');
-      return;
-    }
-    if(!changed.length && activeScenario && activeScenario.world==='state-dependent'){
-      host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
-        '<div class="hint" style="line-height:1.65">Preset '+activeScenario.n+' — one law set, two opening states: Base\u2019s opening base is 24 months old, the Experiment\u2019s is new. Compare shows what follows.</div>';
+        '<div class="hint" style="line-height:1.65">One law set, two opening states: Base\u2019s opening base is 24 months old, the Experiment\u2019s is new. Compare shows what follows.</div>';
       return;
     }
     if(!changed.length){
@@ -6409,22 +6600,8 @@ details.pl .cascade{margin-top:8px}
       '<div class="exp-summary">'+rows+'</div>';
   }
 
-  /* ------------------------------------------------------------------ *
-   * Paired mode — §14's signature comparison
-   * ------------------------------------------------------------------ */
+  /* example 5's calibration: the New ARR both routes reach */
   var TARGET_NEW = 1125000;
-  function enterPair(){
-    pairMode = true;
-    baseA = Object.assign({}, BASE_A, { cacPerARR: BASE_A.sm/TARGET_NEW });     // efficiency route
-    expA  = Object.assign({}, BASE_A, { sm: TARGET_NEW*BASE_A.cacPerARR });     // spend route
-    lastMsg = null; recompute();
-  }
-  function exitPair(){
-    if(!pairMode) return;
-    pairMode=false; baseA=packA;
-    var pn=document.getElementById('paired-note'); if(pn) pn.hidden = true;
-  }
-
   /* ------------------------------------------------------------------ *
    * Transport
    * ------------------------------------------------------------------ */
@@ -6447,6 +6624,7 @@ details.pl .cascade{margin-top:8px}
   function syncTime(){
     var m=Math.round(tau); syncedMonth = m;
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
+    if(!frozenBase) return;
     syncMeasuredKPI(); sideMonthTick = true; sideTicked = false; try { renderSide(); } finally { sideMonthTick = false; }
     /* the P&L cascade has no place on Financials: while the month tick serves it, the cascade waits for the next full build */
     if(sideTicked) cascadeStale = true; else renderCascade();
@@ -6454,6 +6632,20 @@ details.pl .cascade{margin-top:8px}
   }
 
   function setLayer(l){
+    if(!frozenBase) l = 'base';                  /* nothing to read until a Base is frozen */
+    var appB = document.querySelector('.app');
+    appB.classList.toggle('base', l==='base');
+    document.getElementById('basepage').hidden = l!=='base';
+    document.getElementById('nav-base').classList.toggle('on', l==='base');
+    if(l==='base'){
+      layer = 'base'; menusClose();                 /* the clock only runs on a company page; it resumes on return */
+      ['nav-company','nav-compare','nav-system'].forEach(function(id){ document.getElementById(id).classList.remove('on'); });
+      appB.classList.remove('flow'); appB.classList.remove('notes'); appB.classList.remove('rail-open');
+      document.getElementById('pulsebar').hidden = true;
+      syncLedgerChrome(); if(frozenBase) syncLedger();
+      syncBaseSettings(); document.querySelector('.stage').scrollTop = 0;
+      return;
+    }
     layer=l;
     syncViewingCtl(); syncLedgerChrome();
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
@@ -6484,6 +6676,7 @@ details.pl .cascade{margin-top:8px}
     setTimeout(function(){ resize(); positionLawChips(); render(); }, 220);
     syncPulse(); renderSide();
   }
+  document.getElementById('nav-base').addEventListener('click', function(){ setLayer('base'); });
   document.getElementById('nav-company').addEventListener('click', function(){ setLayer('stock'); });
   document.getElementById('nav-compare').addEventListener('click', function(){ setLayer('cmp'); });
   document.getElementById('notes-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('notes'); });
@@ -6514,16 +6707,10 @@ details.pl .cascade{margin-top:8px}
     el.addEventListener('scroll', function(){ scrollCue(el); }, { passive:true });
   });
   window.addEventListener('resize', function(){ scrollCue(document.getElementById('welcome')); });
-  function resetAll(){
-    exitPair(); clearScenario();
-    baseA = packA; expA = Object.assign({}, packA);          /* v2: back to the active pack's world */
-    baseStart = packStart; expStart = packStart;
-    lastMsg = null; pinned = null; capitalMode = anatomy = false;
-    resize(); recompute(); render();
-  }
+  function resetAll(){ if(frozenBase) resetExperiment(); }   /* Reset: Experiment = the frozen Base, exactly */
   document.getElementById('reset').addEventListener('click', resetAll);
   /* narrow screens: the Change rail is a drawer over the stage */
-  document.getElementById('rail-toggle').addEventListener('click', function(){ if(!document.querySelector('.app').classList.toggle('rail-open')) lawRingOff(); });
+  document.getElementById('rail-toggle').addEventListener('click', function(){ if(layer==='base') setLayer('stock'); if(!document.querySelector('.app').classList.toggle('rail-open')) lawRingOff(); });
   function lawRingOff(){ if(openChip!==null){ openChip = null; if(layer==='flow') render(); } }
   document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); showPresets(false); lawRingOff(); });
   document.getElementById('rail-detail').addEventListener('click', function(){ document.querySelector('.rail').classList.toggle('detail'); });
@@ -6536,7 +6723,7 @@ details.pl .cascade{margin-top:8px}
     var tr = e.target && e.target.closest ? e.target.closest('tr[data-t]') : null; if(!tr) return;
     stopClock(); tau = +tr.dataset.t; document.getElementById('scrub').value = tau; syncTime(); render();
   });
-  buildPacks(); buildSysViews(); syncPackButtons(); syncSysViews();
+  buildSysViews(); syncSysViews();
   window.addEventListener('resize', function(){ resize(); });
 
   /* ---------- loop ---------- */
@@ -6558,8 +6745,11 @@ details.pl .cascade{margin-top:8px}
     requestAnimationFrame(frame);
   }
 
-  buildForces(); buildScenarios(); buildLawChips(); playIcon(); resize();
-  applyPack('wA');   /* the default world: Enterprise SaaS with Customer, Monetization and Cash physics on; the ARR-only pack stays available under World */
+  buildForces(EXP_T); buildScenarios(); buildLawChips(); playIcon();
+  /* No Base exists until one is frozen: the page opens on Base Settings with a draft from the
+     Enterprise template, and nothing runs until Freeze Base. */
+  buildBaseSettings(); loadTemplate('wA');
+  syncNavAvailability(); setLayer('base');
   syncTime();
   requestAnimationFrame(frame);
 
@@ -6581,7 +6771,7 @@ details.pl .cascade{margin-top:8px}
     /* the tour: six stops, each one region of the portal, in the order a first reading takes */
     var STEPS = [
       { sel:'.head .nav', t:'See · change · compare · understand', x:'<b>Company</b> reads one company. <b>Experiment</b> changes its laws. <b>Compare</b> reads why the Experiment differs from Base. <b>System</b> draws the machine that made the difference. Under <b>⋯</b>: the Model Ledger that proves it, MRR or ARR, this guide.' },
-      { sel:'#world-wrap', t:'World', x:'The Base company: one of three illustrative shapes, or the base model built up layer by layer \u2014 ARR physics alone, then customers, monetization, cash, a hypothesis. Changing it clears the Experiment, so it asks first.' },
+      { sel:'#nav-base', t:'Base Settings', x:'The Base every Experiment runs against. Start from a template or set any law and the opening state yourself, then <b>Freeze Base</b>. The frozen Base changes only when you freeze again \u2014 editing the draft never moves it.' },
       { sel:'#rail-change', t:'Experiment', x:'A drawer over the company; start from a preset or change the laws yourself. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
       { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. Click a stratum to inspect that cohort.' },
       { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Financials \u2014 each a question and its readouts with their time basis.'},
@@ -6602,7 +6792,8 @@ details.pl .cascade{margin-top:8px}
       document.getElementById('tour-next').textContent = i === STEPS.length-1 ? 'Done' : 'Next';
       card.classList.add('on');
     }
-    document.getElementById('welcome-tour').addEventListener('click', function(){ hideWelcome(); if(layer !== 'stock') setLayer('stock'); showStep(0); });
+    startTour = function(){ if(layer !== 'stock') setLayer('stock'); showStep(0); };
+    document.getElementById('welcome-tour').addEventListener('click', function(){ hideWelcome(); if(!frozenBase){ pendingTour = true; setLayer('base'); return; } startTour(); });
     document.getElementById('tour-next').addEventListener('click', function(){ if(step >= STEPS.length-1) endTour(); else showStep(step+1); });
     document.getElementById('tour-back').addEventListener('click', function(){ if(step > 0) showStep(step-1); });
     document.getElementById('tour-skip').addEventListener('click', endTour);
@@ -6616,8 +6807,15 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get valveHits(){ return valveHits; }, get lawHits(){ return lawHits; }, get openChip(){ return openChip; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, rebaseToExperiment: function(){ /* test hook: the Experiment's company as the only world */ baseA = Object.assign({}, expA); baseStart = expStart; recompute(); render(); renderSide(); }, finRebuild: function(){ finLive = null; renderSide(); },
-    get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
+    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get valveHits(){ return valveHits; }, get lawHits(){ return lawHits; }, get openChip(){ return openChip; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, rebaseToExperiment: function(){ /* test hook: the Experiment's company as the only world — through the draft and Freeze Base, like any Base */ var t0 = tau, p0 = playing; draftBase = { a: cloneState(expA), start: cloneState(expStart), src:'test', label:'the Experiment', edited:true }; draftChanged(); freezeBase();
+      tau = t0; document.getElementById('scrub').value = t0; playing = p0; document.getElementById('play').classList.toggle('play', p0); playIcon(); syncTime(); render(); }   /* the same moment as the page it is compared with */, finRebuild: function(){ finLive = null; renderSide(); },
+    get frozenBase(){ return frozenBase; }, get baseSource(){ return frozenBase ? frozenBase.src : null; },
+    /* test-only: drives Base Settings' own controls — a template into the draft, then Freeze Base
+       (confirming the re-freeze); a draft identical to the frozen Base cannot be re-frozen, so the
+       equivalent act is Reset Experiment. Nothing here bypasses the UI's rules. */
+    useBase: function(id){ setLayer('base'); document.getElementById('tpl-'+id).click(); var f=document.getElementById('base-freeze');
+      if(f.disabled){ document.getElementById('reset').click(); setLayer('stock'); return; }
+      f.click(); var y=document.getElementById('freeze-yes'); if(y) y.click(); }, get draftBase(){ return draftBase; }, get expStart(){ return expStart; }, get baseStart(){ return baseStart; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,
       unrecovered:cohortLife.unrecovered, paybackMonth:cohortLife.paybackMonth, paybackAge:cohortLife.paybackAge, arr:cohortLife.arr, cum:cohortLife.cum,

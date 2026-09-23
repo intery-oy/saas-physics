@@ -31,11 +31,11 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const open = async (w, h) => {
     const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     pg.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message));
-    await pg.goto(URL); await pg.waitForTimeout(500);
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
     return pg;
   };
   const enter = async pg => { await pg.evaluate(() => document.getElementById('welcome-enter').click()); await pg.waitForTimeout(300); };
-  const pack = async (pg, p) => { await pg.evaluate(x => document.getElementById('pack-' + x).click(), p); await pg.waitForTimeout(350); };
+  const pack = async (pg, p) => { await pg.evaluate(x => window.__SP_DEBUG.useBase(x), p); await pg.waitForTimeout(350); };
   const nav = async (pg, t) => { await pg.evaluate(x => { const b = [...document.querySelectorAll('button')].find(q => q.textContent.trim() === x); if (b) b.click(); }, t); await pg.waitForTimeout(300); };
   const sys = async (pg, v) => { await pg.evaluate(x => { const b = document.getElementById('sysview-' + x); if (b && !b.disabled) b.click(); }, v); await pg.waitForTimeout(400); };
   const month = async (pg, m) => { await pg.evaluate(mm => { const p = document.getElementById('play'); if (p && p.classList.contains('play')) p.click(); const s = document.getElementById('scrub'); s.value = mm; s.dispatchEvent(new Event('input', { bubbles: true })); }, m); await pg.waitForTimeout(350); };
@@ -205,7 +205,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
         JSON.stringify({ top, bottom }));
     /* tall viewport: nothing overflows, so nothing is claimed */
     const tall = await br.newPage({ viewport: { width: 1440, height: 1400 } });
-    await tall.goto(URL); await tall.waitForTimeout(600);
+    await tall.goto(URL); await tall.evaluate(() => window.__SP_DEBUG.useBase('wA')); await tall.waitForTimeout(600);
     const noOverflow = await tall.evaluate(() => { const w = document.getElementById('welcome'); return { overflows: w.scrollHeight - w.clientHeight > 6, cls: w.classList.contains('scrolls') }; });
     rec('CUE · honest: on a viewport tall enough to hold the whole pane the cue is not shown, so it means "there is more" rather than "this is a pane"',
         !noOverflow.overflows && !noOverflow.cls, JSON.stringify(noOverflow));

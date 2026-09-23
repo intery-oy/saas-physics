@@ -68,13 +68,13 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     const pg = await b.newPage({ viewport: { width: w, height: h } });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
     pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push(w + ': console: ' + msg.text()); });
-    await pg.goto(file); await pg.waitForTimeout(800);
+    await pg.goto(file); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
     if(!keepWelcome) await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
-    if(!keepWelcome) await pg.evaluate(() => { document.getElementById('pack-arr').click(); });   /* these checks pick their worlds explicitly, starting from ARR physics; the portal itself opens on the Enterprise world */
+    if(!keepWelcome) await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks pick their worlds explicitly, starting from ARR physics; the portal itself opens on the Enterprise world */
     return pg;
   }
   const setScrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
-  const pack = async (pg, id) => { await pg.evaluate(id => document.getElementById('pack-' + id).click(), id); await pg.waitForTimeout(400); };
+  const pack = async (pg, id) => { await pg.evaluate(id => window.__SP_DEBUG.useBase(id), id); await pg.waitForTimeout(400); };
   const sideText = pg => pg.evaluate(() => document.getElementById('side').innerText);
   const clickModel = async (pg, mx, my) => { await pg.evaluate(([mx, my]) => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
       const s = Math.min(r.width / 1260, r.height / 770), ox = (r.width - 1260 * s) / 2, oy = (r.height - 770 * s) / 2;
@@ -84,7 +84,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const w0 = await open(1440, 900, true);
   const wl = await pg0(w0);
   async function pg0(q){ return q.evaluate(() => { const W = document.getElementById('welcome'); const t = W.innerText;
-    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Company','World','Experiment','Compare','System','Inspect'].every(k => new RegExp(k + ' ·').test(t)),
+    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Base Settings','Company','Experiment','Compare','System','Inspect'].every(k => new RegExp(k + ' ·').test(t)),
       marks: /⋈/.test(t) && /⌈⌉/.test(t) && /→/.test(t) && /↯/.test(t), time: /M36 · month/i.test(t) && /R12M/.test(t), start: /Three ways to start/i.test(t), noreal: /no real company/i.test(t) && /illustrative/i.test(t),
       appHidden: document.elementFromPoint(720, 450) && !!document.elementFromPoint(720, 450).closest('#welcome') }; }); }
   rec('OPENING PAGE: a first visit lands on the opening page — what this is and is not, the six parts of the portal, the marks, the time basis, three ways to start, and a statement that the data is illustrative — covering the app beneath',
@@ -97,11 +97,14 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const reopened = await w0.evaluate(() => getComputedStyle(document.getElementById('welcome')).display !== 'none');
   rec('OPENING PAGE: Enter hides it and remembers the visit; a reload goes straight to the portal; Guide in the header brings it back', entered.hidden && entered.flag === '1' && again && reopened, JSON.stringify({ entered, again, reopened }));
   await w0.evaluate(() => document.getElementById('welcome-tour').click()); await w0.waitForTimeout(400);
+  /* a reload has no frozen Base: the tour reads a company, so it waits on Base Settings for the first freeze */
+  const pending = await w0.evaluate(() => ({ layer: window.__SP_DEBUG.layer, card: document.getElementById('tourcard').classList.contains('on') }));
+  await w0.evaluate(() => document.getElementById('base-freeze').click()); await w0.waitForTimeout(400);
   const tour = [];
   for (let i = 0; i < 6; i++) { tour.push(await w0.evaluate(() => ({ step: document.getElementById('tour-step').textContent, hl: (document.querySelector('.tour-on') || {}).id || (document.querySelector('.tour-on') || {}).className || null, on: document.getElementById('tourcard').classList.contains('on') }))); await w0.evaluate(() => document.getElementById('tour-next').click()); await w0.waitForTimeout(250); }
   const tourEnd = await w0.evaluate(() => ({ card: document.getElementById('tourcard').classList.contains('on'), hl: !!document.querySelector('.tour-on'), welcome: getComputedStyle(document.getElementById('welcome')).display === 'none' }));
-  rec('OPENING PAGE: the tour walks six stops — surfaces, World, Change, the figure, the lenses, time — highlighting each region, and leaves nothing behind when done',
-      tour.length === 6 && tour.every((s, i) => s.on && s.step.startsWith('Tour · ' + (i + 1) + ' of 6')) && tour[3].hl === 'scene' && tour[4].hl === 'side' && !tourEnd.card && !tourEnd.hl && tourEnd.welcome, JSON.stringify({ tour, tourEnd }));
+  rec('OPENING PAGE: with no Base frozen the tour waits on Base Settings and starts at the first freeze; it walks six stops — surfaces, Base Settings, Change, the figure, the lenses, time — highlighting each region, and leaves nothing behind when done',
+      pending.layer === 'base' && !pending.card && tour.length === 6 && tour.every((s, i) => s.on && s.step.startsWith('Tour · ' + (i + 1) + ' of 6')) && tour[3].hl === 'scene' && tour[4].hl === 'side' && !tourEnd.card && !tourEnd.hl && tourEnd.welcome, JSON.stringify({ pending, tour, tourEnd }));
   await w0.close();
 
   const pg = await open(1440, 900);
@@ -156,7 +159,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await setScrub(pg, 24);
 
   /* ---- HIERARCHY (Compare) ---- */
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);   /* a preset loads from the drawer; Compare analyses it */
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);   /* a preset loads from the drawer; Compare analyses it */
   const spine = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); if (!s) return null;
     const causes = [...s.querySelectorAll('.cause')].map(c => ({ lvl: [...c.classList].filter(x => /^l\d$/.test(x))[0], head: (c.querySelector('.eyebrow, h5, .ch') || c).innerText.split('\n')[0] }));
     const layers = [...s.querySelectorAll('.cause.l1 .exp-layer, .cause.l1 .mh, .cause.l1 .eyebrow')].map(e => e.textContent);
@@ -218,10 +221,10 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     await pack(pg, id); await setScrub(pg, 24);
     const w = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.expRes.months[23], mo = D.expRes.derived.monetization;
       const lens = [...document.querySelectorAll('#side .lens')].map(l => l.innerText);
-      return { pack: D.activePack, mech: D.expRes.mechanisms, cust: m.customers.closing, arr: m.closingARR, term: D.expRes.derived.cash.billingTermMonths, timing: D.expRes.derived.cash.billingTiming, lag: D.expRes.derived.acquisitionLagMonths,
+      return { pack: D.baseSource, mech: D.expRes.mechanisms, cust: m.customers.closing, arr: m.closingARR, term: D.expRes.derived.cash.billingTermMonths, timing: D.expRes.derived.cash.billingTiming, lag: D.expRes.derived.acquisitionLagMonths,
         varShare: m.monetization.variableARR / (m.monetization.fixedARR + m.monetization.variableARR), lensN: lens.length, bad: lens.some(t => /NaN|undefined|\[object/.test(t)), hero: document.querySelector('#lens-company .hero .hv').textContent,
-        summary: document.getElementById('experiment-summary').innerText, note: document.getElementById('packnote').textContent }; });
-    rec('WORLD ' + name + ': applies as Base = Experiment with customer, monetization and cash layers on; ' + want.term + '-month billing in ' + want.timing + (want.lag ? ', ' + want.lag + '-month lag' : '') + '; the lenses render real numbers; the pack note says it is illustrative',
+        summary: document.getElementById('experiment-summary').innerText, note: document.getElementById('tpl-note').textContent }; });
+    rec('WORLD ' + name + ': applies as Base = Experiment with customer, monetization and cash layers on; ' + want.term + '-month billing in ' + want.timing + (want.lag ? ', ' + want.lag + '-month lag' : '') + '; the lenses render real numbers; the template note says it is illustrative',
         w.pack === id && w.mech.customerPhysics && w.mech.monetization && w.mech.cashPhysics && w.cust > want.custLo && w.cust < want.custHi && w.term === want.term && w.timing === want.timing && w.lag === want.lag && w.lensN === 5 && !w.bad && /^€/.test(w.hero) && /0 assumptions changed/.test(w.summary) && /Illustrative, not a benchmark/.test(w.note),
         JSON.stringify({ cust: Math.round(w.cust), arr: Math.round(w.arr), term: w.term, timing: w.timing, lag: w.lag, varShare: +w.varShare.toFixed(2) }));
     if (id === 'wB') rec('WORLD B: variable (usage) revenue is the material part of the mix (> 50% of ARR at M24)', w.varShare > 0.5, 'variable share ' + w.varShare.toFixed(2));

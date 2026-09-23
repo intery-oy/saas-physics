@@ -27,7 +27,7 @@ const PHONES = [[360, 740, 'small android'], [390, 844, 'iPhone 14'], [430, 932,
   const errs = [];
   const phone = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
-    await pg.goto(URL); await pg.waitForTimeout(700); return pg; };
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700); return pg; };
 
   /* ---- VIEWPORT: the root cause, guarded ---- */
   const pg = await phone(390, 844);

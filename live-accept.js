@@ -45,7 +45,7 @@ async function run(pg, want) { const is = await running(pg);
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1440, height: 900 } });
   pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto(URL); await pg.waitForTimeout(700);
+  await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700);
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
   await pg.waitForTimeout(400);
   await run(pg, true);

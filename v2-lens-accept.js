@@ -31,10 +31,10 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const errs = [];
   const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await pg.goto(URL); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
   const click = async (pg, sel) => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(350); };
   const scrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
-  const world = async (pg) => { await click(pg, '#rail-toggle'); await click(pg, '#pack-wA'); await click(pg, '#rail-close'); await scrub(pg, 36); };
+  const world = async (pg) => { await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(pg, 36); };
   const D = (pg, f, a) => pg.evaluate(f, a);
   /* what is actually on the page for one lens: the visible lens body, its charts, and anything beneath it */
   const page = (pg, id) => D(pg, id => { const l = document.getElementById('lens-' + id); const svgs = [...l.querySelectorAll('svg.ch')];
@@ -58,19 +58,19 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
   /* ---- DEFAULT WORLD: a fresh page load, no world chosen ---- */
   const fresh = await open(1440, 900); await scrub(fresh, 36);
-  const boot = await D(fresh, () => ({ pack: window.__SP_DEBUG.activePack, mech: window.__SP_DEBUG.expRes.mechanisms, on: (document.querySelector('#worldlist .mi.on') || {}).textContent, model: (document.querySelector('#lens-company .model') || {}).textContent }));
+  const boot = await D(fresh, () => ({ pack: window.__SP_DEBUG.baseSource, mech: window.__SP_DEBUG.expRes.mechanisms, on: (window.__SP_DEBUG.frozenBase || {}).label, model: (document.querySelector('#lens-company .model') || {}).textContent }));
   await click(fresh, '.lensnav .btn[data-lens="customers"]');
   const bootCu = await page(fresh, 'customers');
-  rec('DEFAULT WORLD: a fresh page load opens on A · Enterprise with Customer, Monetization and Cash physics ON — the model chip reads MODEL · ARR · CUSTOMERS · MONETIZATION · CASH', boot.pack === 'wA' && boot.mech.customerPhysics && boot.mech.monetization && boot.mech.cashPhysics && /A · Enterprise/.test(boot.on) && /MODEL · ARR · Customers · Monetization · Cash/i.test(boot.model), JSON.stringify(boot));
-  rec('DEFAULT WORLD: opening Customers on a fresh load shows the full lens — five headline items, chart 1 customer base development, chart 2 where ARR growth came from, no fallback note', bootCu.hl.join('|') === 'customers|MRR per customer|MRR|logo retention · R12M|net dollar retention · R12M' && bootCu.charts === 2 && bootCu.titles.join('|') === 'Customer base development|Where did MRR growth come from? · cumulative since M0' && sameGeo(bootCu.rects) && !/physics off/i.test(bootCu.txt), JSON.stringify({ hl: bootCu.hl, titles: bootCu.titles, charts: bootCu.charts }));
+  rec('DEFAULT BASE: a fresh load drafts A · Enterprise and its first freeze runs it, with Customer, Monetization and Cash physics ON — the model chip reads MODEL · ARR · CUSTOMERS · MONETIZATION · CASH', boot.pack === 'wA' && boot.mech.customerPhysics && boot.mech.monetization && boot.mech.cashPhysics && /A · Enterprise/.test(boot.on) && /MODEL · ARR · Customers · Monetization · Cash/i.test(boot.model), JSON.stringify(boot));
+  rec('DEFAULT BASE: opening Customers on a fresh load shows the full lens — five headline items, chart 1 customer base development, chart 2 where ARR growth came from, no fallback note', bootCu.hl.join('|') === 'customers|MRR per customer|MRR|logo retention · R12M|net dollar retention · R12M' && bootCu.charts === 2 && bootCu.titles.join('|') === 'Customer base development|Where did MRR growth come from? · cumulative since M0' && sameGeo(bootCu.rects) && !/physics off/i.test(bootCu.txt), JSON.stringify({ hl: bootCu.hl, titles: bootCu.titles, charts: bootCu.charts }));
   await click(fresh, '.lensnav .btn[data-lens="monetization"]');
   const bootMo = await page(fresh, 'monetization');
-  rec('DEFAULT WORLD: opening Monetization on a fresh load shows ARR, ARR/customer, fixed %, variable %, the three controls and the stacked FIXED/VARIABLE composition chart', bootMo.hl.join('|') === 'MRR|MRR per customer|fixed revenue|variable revenue' && bootMo.levers.length === 3 && bootMo.charts === 1 && bootMo.titles[0] === 'MRR composition over time' && /fixed · \d+%/.test(bootMo.rl.join('|')) && /variable · \d+%/.test(bootMo.rl.join('|')) && !/physics off/i.test(bootMo.txt), JSON.stringify({ hl: bootMo.hl, levers: bootMo.levers, rl: bootMo.rl }));
+  rec('DEFAULT BASE: opening Monetization on a fresh load shows ARR, ARR/customer, fixed %, variable %, the three controls and the stacked FIXED/VARIABLE composition chart', bootMo.hl.join('|') === 'MRR|MRR per customer|fixed revenue|variable revenue' && bootMo.levers.length === 3 && bootMo.charts === 1 && bootMo.titles[0] === 'MRR composition over time' && /fixed · \d+%/.test(bootMo.rl.join('|')) && /variable · \d+%/.test(bootMo.rl.join('|')) && !/physics off/i.test(bootMo.txt), JSON.stringify({ hl: bootMo.hl, levers: bootMo.levers, rl: bootMo.rl }));
   await click(fresh, '.lensnav .btn[data-lens="cash"]');
   const bootCa = await page(fresh, 'cash');
   const bootCash = await D(fresh, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), em = W.expRes.months[m - 1]; return { cashOn: !!em.cash, term: W.expRes.derived.cash.billingTermMonths, delay: W.expRes.derived.cash.collectionDelayMonths, fcfNeEbita: Math.abs(em.fcf - em.ebita) > 1 }; });
   const bootFin = await D(fresh, () => ({ caps: [...document.querySelectorAll('#lens-cash table.fs caption')].map(c => c.firstChild.textContent.trim()), absent: !!document.querySelector('#lens-cash tr.absent'), nwc: !!document.querySelector('#lens-cash tr.nwc') }));
-  rec('DEFAULT WORLD: opening Financials on a fresh load shows the statement of operations, working capital and cash flow with Cash physics active (billed 12 months in advance, collected two months later, FCF ≠ EBITA) and one conversion figure', bootFin.caps.join('|') === 'Statement of operations|Working capital|Cash flow' && !bootFin.absent && bootFin.nwc && bootCa.charts === 1 && bootCash.cashOn && bootCash.term === 12 && bootCash.delay === 2 && bootCash.fcfNeEbita && !/physics off/i.test(bootCa.txt), JSON.stringify({ bootFin, bootCash }));
+  rec('DEFAULT BASE: opening Financials on a fresh load shows the statement of operations, working capital and cash flow with Cash physics active (billed 12 months in advance, collected two months later, FCF ≠ EBITA) and one conversion figure', bootFin.caps.join('|') === 'Statement of operations|Working capital|Cash flow' && !bootFin.absent && bootFin.nwc && bootCa.charts === 1 && bootCash.cashOn && bootCash.term === 12 && bootCash.delay === 2 && bootCash.fcfNeEbita && !/physics off/i.test(bootCa.txt), JSON.stringify({ bootFin, bootCash }));
   await fresh.close();
 
   const pg = await open(1440, 900);
@@ -254,7 +254,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   }
 
   /* ---- OFF (fallback only) ---- */
-  const o = await open(1440, 900); await click(o, '#rail-toggle'); await click(o, '#pack-arr'); await click(o, '#rail-close'); await scrub(o, 36);
+  const o = await open(1440, 900); await o.evaluate(() => window.__SP_DEBUG.useBase('arr')); await o.waitForTimeout(400); await scrub(o, 36);
   const off = await D(o, () => ({ cu: document.getElementById('lens-customers').innerText, mo: document.getElementById('lens-monetization').innerText, cuCharts: document.querySelectorAll('#lens-customers svg.ch').length, moCharts: document.querySelectorAll('#lens-monetization svg.ch').length, moLevers: document.querySelectorAll('#lens-monetization .lever').length, notes: [...document.querySelectorAll('#side .offnote')].map(e => e.innerText.length) }));
   rec('OFF · with the layers off each lens still renders (one short line says what is not modelled; charts reduce to what exists); this is a fallback, not the acceptance state', /Customer physics off/i.test(off.cu) && off.cuCharts === 1 && /Monetization physics off/i.test(off.mo) && off.moCharts === 1 && off.moLevers === 0 && off.notes.every(n => n < 160), JSON.stringify({ cuCharts: off.cuCharts, moCharts: off.moCharts, notes: off.notes }));
   await o.close();

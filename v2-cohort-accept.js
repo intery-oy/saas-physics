@@ -40,14 +40,14 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1440, height: 1000 } });
   pg.on('pageerror', e => errs.push(String(e)));
-  await pg.goto(URL); await pg.waitForTimeout(800);
+  await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
   await pg.waitForTimeout(200);
   const D = (f, a) => pg.evaluate(f, a);
   const scrub = async v => { await D(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(300); };
   const click = async sel => { await D(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(400); };
 
-  await click('#rail-toggle'); await click('#pack-wA'); await click('#rail-close'); await scrub(36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(36);
 
   /* ---------- the formation, before any cohort is chosen ---------- */
   const before = await D(() => ({ canvasH: document.querySelector('.figbox').getBoundingClientRect().height,
@@ -257,7 +257,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
 
   /* ---------- the ARR-only world: one combined flow, and it says so ---------- */
   await click('#inspect-back');
-  await click('#rail-toggle'); await click('#pack-arr'); await click('#rail-close'); await scrub(36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(400); await scrub(36);
   const pinArr = await D(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
     const x = 64 + (20 / 60) * (r.width - 64 - 78);
     for (let y = 26; y < r.height * 0.85; y += 3) {
@@ -273,14 +273,14 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
       /Leakage −/.test(fArr.rows[0]) && /− leakage, cumulative/.test(fArr.dossier) && !/churn/i.test(fArr.dossier) && eArr.identityWorst < 1e-6,
       JSON.stringify({ areas: fArr.areas[0], labels: fArr.pairs[0], row: fArr.rows[0], worst: eArr.identityWorst }));
   await click('#inspect-back');
-  await click('#rail-toggle'); await click('#pack-wA'); await click('#rail-close'); await scrub(36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(36);
 
   /* ---------- LABELS: the cohort figure stays legible at desktop, tablet and phone ---------- */
   const widths = {};
   for (const w of [1440, 1024, 768, 390]) {
     const p2 = await br.newPage({ viewport: { width: w, height: 900 } });
     p2.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await p2.goto(URL); await p2.waitForTimeout(700);
+    await p2.goto(URL); await p2.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p2.waitForTimeout(700);
     await p2.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p2.waitForTimeout(200);
     await p2.evaluate(() => { const s = document.getElementById('scrub'); s.value = 40; s.dispatchEvent(new Event('input')); }); await p2.waitForTimeout(300);
     const k = await p2.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 142);
@@ -310,7 +310,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
    * they never set, blanking whatever those layers draw in the box. */
   const p3 = await br.newPage({ viewport: { width: 1440, height: 900 } });
   p3.on('pageerror', e => errs.push('scope: ' + e.message));
-  await p3.goto(URL); await p3.waitForTimeout(700);
+  await p3.goto(URL); await p3.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p3.waitForTimeout(700);
   await p3.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p3.waitForTimeout(500);
   await p3.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.7; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));

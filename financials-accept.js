@@ -25,9 +25,9 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const errs = [];
   const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await pg.goto(URL); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
   const D = (pg, f, a) => pg.evaluate(f, a);
-  const pack = async (pg, id) => { await D(pg, id => document.getElementById('pack-' + id).click(), id); await pg.waitForTimeout(400); };
+  const pack = async (pg, id) => { await D(pg, id => window.__SP_DEBUG.useBase(id), id); await pg.waitForTimeout(400); };
   const lens = async (pg, id) => { await D(pg, id => document.querySelector('.lensnav .btn[data-lens="' + id + '"]').click(), id); await pg.waitForTimeout(250); };
   const experiment = async pg => { await D(pg, () => { const i = document.querySelector('input[data-k="sm"], #f-sm'); i.value = +i.value * 1.4; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(400); };
   /* Base / Experiment is the page-level viewing control (Step 1B); Company, Financials included, shows one world (Step 1D) */
@@ -48,6 +48,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   for (const [pk, v] of cases) {
     const pg = await open(1440, 900); await pack(pg, pk); if (v) await experiment(pg); await lens(pg, 'cash'); if (v) await view(pg, v);
     const bad = [], notTick = [];
+    await scrub(pg, 6);   /* leave wherever the clock stood, so the first counted scrub is a real month change */
     for (const m of MONTHS) {
       const r = await scrub(pg, m); if (!r.tick) notTick.push(m);
       const a = await visible(pg); await D(pg, () => window.__SP_DEBUG.finRebuild()); const f = await visible(pg);

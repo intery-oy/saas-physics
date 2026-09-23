@@ -29,8 +29,8 @@ const PREV = 'file://' + PREV_FILE;
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const errs = [];
   const open = async (url, pk, exp, view) => { const p = await br.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(url); await p.waitForTimeout(600);
-    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); document.getElementById('pack-' + pk).click(); }, pk); await p.waitForTimeout(300);
+    await p.goto(url); await p.evaluate(() => window.__SP_DEBUG.useBase && window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
+    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); if (window.__SP_DEBUG.useBase) window.__SP_DEBUG.useBase(pk); else document.getElementById('pack-' + pk).click(); }, pk);   /* the previous build still chose its world from a menu */ await p.waitForTimeout(300);
     if (exp) { await p.evaluate(() => { for (const [k, f] of [['sm', 1.4], ['grossMargin', 0.9]]) { const i = document.getElementById('f-' + k); i.value = +i.value * f; i.dispatchEvent(new Event('input', { bubbles: true })); } }); await p.waitForTimeout(300); }
     if (view) await p.evaluate(v => document.querySelector('[data-vw="' + v + '"]').click(), view);
     await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(200);
@@ -113,7 +113,12 @@ const PREV = 'file://' + PREV_FILE;
   const C1 = await open(URL, 'wA', true, 'base'), C0 = await open(PREV, 'wA', true, null);
   const cmpCap = p => p.evaluate(() => { document.getElementById('nav-compare').click(); return new Promise(r => setTimeout(() => r({ panel: document.getElementById('compare-panel').innerHTML, canvas: document.getElementById('scene').toDataURL() }), 400)); });
   const k1 = await cmpCap(C1), k0 = await cmpCap(C0);
-  rec('COMPARE: unchanged from the previous build — the causal panel and the Base-and-Experiment figure — even when Base was the world being viewed before opening it', k1.panel === k0.panel && k1.canvas === k0.canvas && k1.panel.length > 200, JSON.stringify({ panel: k1.panel === k0.panel, canvas: k1.canvas === k0.canvas }));
+  /* the attribution block is excluded on purpose: the previous build re-ran its variants from the engine's
+     default opening state instead of the world's, so on world A it attributed +€11m to an installed-base
+     law nobody had changed. Its variants now run from the frozen Base's opening state. */
+  const noAttr = h => h.replace(/<details class="bnd"><summary>What is driving the delta\?<\/summary>[\s\S]*?<\/details>/, '');
+  k1.panel = noAttr(k1.panel); k0.panel = noAttr(k0.panel);
+  rec('COMPARE: unchanged from the previous build (bar the corrected attribution) — the causal panel and the Base-and-Experiment figure — even when Base was the world being viewed before opening it', k1.panel === k0.panel && k1.canvas === k0.canvas && k1.panel.length > 200, JSON.stringify({ panel: k1.panel === k0.panel, canvas: k1.canvas === k0.canvas }));
 
   rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   await br.close();

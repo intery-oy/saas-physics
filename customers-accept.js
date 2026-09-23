@@ -35,10 +35,10 @@ const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
   const open = async (w, h, pack) => {
     const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     pg.on('pageerror', e => errs.push(w + 'x' + h + '/' + pack + ': ' + e.message));
-    await pg.goto(URL); await pg.waitForTimeout(500);
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
     await pg.evaluate(() => document.getElementById('welcome-enter').click());
     await pg.waitForTimeout(300);
-    await pg.evaluate(p => document.getElementById('pack-' + p).click(), pack);
+    await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack);
     await pg.waitForTimeout(300);
     await pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'System'); if (b) b.click(); });
     await pg.waitForTimeout(200);

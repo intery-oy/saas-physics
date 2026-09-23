@@ -22,8 +22,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const errs = [];
   const open = async (pk, w, h) => { const p = await br.newPage({ viewport: { width: w || 1440, height: h || 900 } }); p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(URL); await p.waitForTimeout(600);
-    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); document.getElementById('pack-' + pk).click(); }, pk); await p.waitForTimeout(300);
+    await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
+    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.waitForTimeout(300);
     await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(200);
     return p; };
   const worlds = p => p.evaluate(() => { const D = window.__SP_DEBUG; return JSON.stringify([D.expA, D.baseA]); });
@@ -87,12 +87,16 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
   /* ---- ONE PATH (source) ---- */
   const tpl = fs.readFileSync(path.resolve(__dirname, 'v1.template.html'), 'utf8').split('\n');
-  let fn = '(top)'; const writers = new Set();
-  tpl.forEach(l => { const m = l.match(/^  function ([A-Za-z0-9_]+)\(/); if (m) fn = m[1];
-    if (/\bexpA\s*(\[[^\]]*\])?\s*=[^=]/.test(l) && !/var V_ = VW\(\)/.test(l)) writers.add(fn); });
-  const allowed = ['(top)', 'recompute', 'applyPack', 'forceRow', 'applyScenario', 'enterPair', 'resetAll'];
-  rec('ONE PATH (source): the Experiment\'s laws are assigned only by the drawer (forceRow), the world and preset loaders, reset and recompute — nothing on Company or System writes a law',
+  let fn = '(top)'; const writers = new Set(), baseWriters = new Set();
+  const shadow = l => /var V_ = VW\(\)/.test(l) || /var P = T\.pre, expA = T\.a\(\)/.test(l);   /* local read-only copies, not the state */
+  tpl.forEach(l => { const m = l.match(/^  function ([A-Za-z0-9_]+)\(/); if (m) fn = m[1]; else if (/^  var /.test(l)) fn = '(top)';
+    if (/\bexpA\s*(\[[^\]]*\])?\s*=[^=]/.test(l) && !shadow(l)) writers.add(fn);
+    if (/\b(baseA|baseStart)\s*(\[[^\]]*\])?\s*=[^=]/.test(l) && !shadow(l)) baseWriters.add(fn); });
+  const allowed = ['(top)', 'recompute', 'resetExperiment', 'applyScenario'];
+  rec('ONE PATH (source): the Experiment\'s laws are assigned only by the drawer (its control target), the preset loader, Reset and recompute — nothing on Company or System writes a law',
       [...writers].every(f => allowed.includes(f)), JSON.stringify([...writers]));
+  rec('FROZEN BASE (source): the Base is assigned only where it is declared and in adoptFrozenBase — Freeze Base is the one way it changes',
+      [...baseWriters].every(f => ['(top)', 'adoptFrozenBase'].includes(f)) && baseWriters.has('adoptFrozenBase'), JSON.stringify([...baseWriters]));
 
   rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   await br.close();
