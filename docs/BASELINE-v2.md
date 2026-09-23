@@ -96,6 +96,32 @@ output. Restated here so the table is not silently wrong:
 `engine.js` above: `kpi.js`, `integrity.js`, `capital.js`, `systemstate.js`, `basis.js`,
 `customers.js`, `monetization.js`, `cash.js`, `interventions.js` all keep their table checksums.
 
+## Amendment — the System mechanism build (Monetization, Cash)
+
+The System · Monetization and System · Cash views were rebuilt, a Growth Engine view was
+considered and declined (FINDINGS #44), and both rebuilt views had a subtraction pass
+(`20a70de`, `c2c9fe6`, `5b348de`, `211e666`, plus this close-out). **Presentation only.** Across
+those commits the only files changed are `v1.template.html`, the page built from it, and
+`docs/FINDINGS.md`. All ten engine-layer files keep the checksums above, `engine.js` included at
+its amended `93927195…`, and `build.js` is unchanged at `0039a1b7…`.
+
+| File | was | now |
+|---|---|---|
+| `v1.template.html` | `3f2e18c7…` | `b9b9bfff3b60ada63d9fcd6125b215d4c62c1ab33ec648c82bf34e98dbd1529f` |
+| `saas-physics-v1.html` | `fffd2c76…` | `3caa65726f43197f2ddb9b8e04b12cd1f8b230c77af7a898fa445e2ddf0c94d5` |
+
+The built page carries its build commit's short hash (see `build.js` above), so the Pages artifact
+built by CI at the pushed commit differs from the committed page in that marker alone.
+
+Close-out verification: Node suites 370 / 370 (`npm run all`); browser suites 306 / 306 (all
+fourteen in `npm run accept`); `audit-independent.js` 27 / 27 reconciliations; dist
+byte-identical to the built page; every System view across five packs and four months with no
+page errors; Monetization and Cash at desktop 1440×900 and iPad 1024×768 / 768×1024 in
+their representative states: positive and negative price, early and mature billing cycle, and a
+one-month term. On screen with no horizontal scroll, the Monetization bridge closes, price signs
+agree with their labels, the cycle is part-filled at M6 and full at M36, both cash identities
+hold, and vintage selection works at every size.
+
 ## The null rule, proven
 
 With `logoRetentionAnnual: null`, `monetization: null`, `billingTermMonths: null`,

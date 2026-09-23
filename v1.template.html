@@ -2716,15 +2716,15 @@ details.pl .cascade{margin-top:8px}
         ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle = kOK ? IN : OUT;
         ctx.fillText(kOK ? '✓' : '✗ '+kRes.toFixed(2), CX+compW+8, compY+23);
         /* measurements, beneath the object they observe: the name recedes, the value reads */
-        var mo12 = m>=12 ? K.monetizationMeasures(expRes, m) : null;
-        [ ['price',       mo12 && mo12.priceEffectR12M], ['usage',  mo12 && mo12.usageEffectR12M], ['adoption', mo12 && mo12.adoptionEffectR12M],
-          ['expansion',   mo12 && mo12.expansionR12M],   ['contraction', mo12 && mo12.contractionR12M], ['NRR', mo12 && mo12.nrrR12M]
+        var monetizationR12 = m>=12 ? K.monetizationMeasures(expRes, m) : null;
+        [ ['price',       monetizationR12 && monetizationR12.priceEffectR12M], ['usage',  monetizationR12 && monetizationR12.usageEffectR12M], ['adoption', monetizationR12 && monetizationR12.adoptionEffectR12M],
+          ['expansion',   monetizationR12 && monetizationR12.expansionR12M],   ['contraction', monetizationR12 && monetizationR12.contractionR12M], ['NRR', monetizationR12 && monetizationR12.nrrR12M]
         ].forEach(function(q2, i){
           var qx2 = CX + (i%3)*176, qy2 = compY + 66 + Math.floor(i/3)*16;
           ctx.textAlign='left'; ctx.font='9px "JetBrains Mono",monospace'; ctx.fillStyle='#66708a';
           var lab = '→ '+q2[0]+' ';
           ctx.fillText(lab, qx2, qy2);
-          ctx.fillStyle='#c8cedd'; ctx.fillText(mo12 ? pct(q2[1],1) : '—', qx2 + ctx.measureText(lab).width, qy2);
+          ctx.fillStyle='#c8cedd'; ctx.fillText(monetizationR12 ? pct(q2[1],1) : '—', qx2 + ctx.measureText(lab).width, qy2);
         });
         ctx.font='8.5px "Archivo",sans-serif'; ctx.fillStyle='#4f586e';
         ctx.fillText('trailing twelve months', CX, compY + 66 + 2*16 + 2);
