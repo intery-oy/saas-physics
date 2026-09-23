@@ -30,7 +30,13 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const pack = async (pg, id) => { await D(pg, id => document.getElementById('pack-' + id).click(), id); await pg.waitForTimeout(400); };
   const lens = async (pg, id) => { await D(pg, id => document.querySelector('.lensnav .btn[data-lens="' + id + '"]').click(), id); await pg.waitForTimeout(250); };
   const experiment = async pg => { await D(pg, () => { const i = document.querySelector('input[data-k="sm"], #f-sm'); i.value = +i.value * 1.4; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(400); };
-  const view = async (pg, v) => { await D(pg, v => document.querySelector('[data-finv="' + v + '"]').click(), v); await pg.waitForTimeout(200); };
+  /* Base / Experiment is the page-level viewing control (Step 1B); Financials keeps only its Δ vs Base toggle */
+  const view = async (pg, v) => { await D(pg, v => { const q = s => document.querySelector(s);
+    if (v === 'base') { q('[data-vw="base"]').click(); return; }
+    q('[data-vw="exp"]').click();
+    const on = q('[data-finv="exp"]');                     /* present only while Δ is on */
+    if (v === 'delta' && !on) q('[data-finv="delta"]').click();
+    if (v === 'exp' && on) on.click(); }, v); await pg.waitForTimeout(200); };
   /* scrub the way the transport does, then report whether the month was a tick */
   const scrub = (pg, m) => D(pg, m => { const s = window.__SP_DEBUG.finStats, b = s.builds, t = s.ticks, sc = document.getElementById('scrub');
     sc.value = String(m); sc.dispatchEvent(new Event('input', { bubbles: true })); return { tick: s.ticks === t + 1 && s.builds === b }; }, m);
@@ -101,10 +107,10 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     return { months: Math.round(+sc.value) - 10, builds: s.builds - b, ticks: s.ticks - t, hidden: document.body.contains(hid), cell: document.body.contains(cell), path: document.body.contains(path) }; });
   rec('COST: while the clock plays on Financials every month change is a tick and none is a build; the hidden lenses, the statement cells and the chart\'s paths are the same nodes throughout',
       cost.months >= 2 && cost.builds === 0 && cost.ticks >= cost.months && cost.hidden && cost.cell && cost.path, JSON.stringify(cost));
-  const struct = await D(pg, () => { const s = window.__SP_DEBUG.finStats, b = s.builds; document.querySelector('[data-finv="base"]').click(); const v1 = s.builds - b;
+  const struct = await D(pg, () => { const s = window.__SP_DEBUG.finStats, b = s.builds; document.querySelector('[data-finv="delta"]').click(); const v1 = s.builds - b;
     document.querySelector('[data-finv="exp"]').click(); document.querySelector('.lensnav .btn[data-lens="growth"]').click(); document.querySelector('.lensnav .btn[data-lens="cash"]').click();
     const sc = document.getElementById('scrub'), t = s.ticks; sc.value = '33'; sc.dispatchEvent(new Event('input', { bubbles: true })); return { view: v1, afterLens: s.ticks - t }; });
-  rec('STRUCTURE: a structural change (the Base / Experiment / Δ view, a lens change) forces a full build, after which month changes are ticks again', struct.view === 1 && struct.afterLens === 1, JSON.stringify(struct));
+  rec('STRUCTURE: a structural change (the Δ vs Base toggle, a lens change) forces a full build, after which month changes are ticks again', struct.view === 1 && struct.afterLens === 1, JSON.stringify(struct));
   await pg.close();
 
   /* ---- MOBILE ---- */

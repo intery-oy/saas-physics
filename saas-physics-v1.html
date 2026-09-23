@@ -116,6 +116,13 @@ button,input{font:inherit;color:inherit}
 .xchip{border-style:dashed;color:var(--ink-3);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xchip.live{border-style:solid;border-color:var(--exp);color:var(--exp)}
 .menu{max-height:calc(100vh - 80px);overflow-y:auto}
+.viewing{display:inline-flex;align-items:center;gap:0;margin-right:12px;font:10px var(--ui);letter-spacing:.04em;color:var(--ink-4);text-transform:none;vertical-align:middle}
+.viewing .vl{margin-right:6px}
+.viewing .vw{background:none;border:1px solid var(--line-soft);color:var(--ink-3);font:10.5px var(--ui);padding:2px 8px;cursor:pointer}
+.viewing .vw:first-of-type{border-radius:3px 0 0 3px}.viewing .vw:last-of-type{border-radius:0 3px 3px 0;border-left:0}
+.viewing .vw.on{color:var(--ink);border-color:var(--line);background:var(--raised)}
+.viewing-float{position:absolute;top:10px;right:18px;z-index:5}
+.viewing-float .viewing{margin:0;padding:3px 6px;background:rgba(10,13,21,.85);border-radius:4px}
 .menu-wrap{position:relative}
 .menu{position:absolute;top:calc(100% + 8px);left:0;z-index:70;min-width:300px;max-width:min(380px,calc(100vw - 24px));background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
 .menu.right{left:auto;right:0;min-width:280px}
@@ -810,7 +817,7 @@ details.pl .cascade{margin-top:8px}
         <button class="mi" id="guidebtn">Guide <span>what this is, and the six-step tour</span></button>
         <button class="mi" id="keybtn">Method <span>findings, conventions, versions</span></button>
         <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-        <div class="mabout">About · build <span class="chip build" id="build-chip" title="The commit this page was built from">d813baa</span><br>An illustrative, deterministic model. No real company data; nothing you set leaves the page.</div>
+        <div class="mabout">About · build <span class="chip build" id="build-chip" title="The commit this page was built from">b9365f6</span><br>An illustrative, deterministic model. No real company data; nothing you set leaves the page.</div>
       </div>
     </div>
   </header>
@@ -848,6 +855,7 @@ details.pl .cascade{margin-top:8px}
       <div class="figbox">
         <canvas id="scene"></canvas>
         <div id="lawhost" style="position:absolute;inset:0;pointer-events:none"></div>
+        <div class="viewing-float" id="viewing-sys" hidden></div>
         <!-- System · Model Ledger: one row per model month, projected from canonical engine state -->
         <div class="ledger" id="ledger" hidden>
           <div class="ledgerbar">
@@ -855,6 +863,7 @@ details.pl .cascade{margin-top:8px}
             <div class="btn-row"><button class="btn on" id="ldg-core">Core</button><button class="btn" id="ldg-full">Full</button></div>
             <span class="lawnote" id="ldg-note"></span>
             <span class="spacer"></span>
+            <span id="viewing-ldg"></span>
             <span class="ldgstat" id="ldg-status">—</span>
           </div>
           <div class="ledgerscroll" id="ledgerscroll"></div>
@@ -3860,6 +3869,21 @@ details.pl .cascade{margin-top:8px}
   var baseStart = undefined, expStart = undefined;
   var activeScenario = null;
   var baseRes, expRes, baseS, expS;
+  /* ---- Step 1B · the viewed world ----------------------------------------------------------
+     Company, System and the Model Ledger show ONE world at a time. `viewedWorld` says which; VW()
+     is the only way those pages reach a world. It hands back the viewed world as `res/S/A/start`
+     and the world it is read against as `oRes/oS/oA/oStart`: viewing the Experiment, that is Base
+     (the "vs Base" marks Compare will later absorb); viewing Base, it is Base again, so nothing on
+     a Base page can come from the Experiment. Compare and Scenarios always read both worlds, and
+     anything that WRITES a law writes the real Experiment and returns the view to it. */
+  var viewedWorld = 'exp';          /* 'exp' | 'base' — never changes either world */
+  var worldsDiffer = false;         /* set by recompute: whether an Experiment exists to be viewed apart from Base */
+  function viewingBase(){ return viewedWorld==='base' && worldsDiffer && (layer==='stock' || layer==='flow'); }
+  function VW(){
+    return viewingBase()
+      ? { res:baseRes, S:baseS, A:baseA, start:baseStart, oRes:baseRes, oS:baseS, oA:baseA, oStart:baseStart, base:true }
+      : { res:expRes,  S:expS,  A:expA,  start:expStart,  oRes:baseRes, oS:baseS, oA:baseA, oStart:baseStart, base:false };
+  }
   var tau = 0, playing = true, speed = 1, anatomy = false, pinned = null, hover = null;
   var capitalMode = false, capAgg = null;
   var leakShadow = false;          /* §4 — default OFF; subdued outline only when on */
@@ -4045,6 +4069,8 @@ details.pl .cascade{margin-top:8px}
     expA = pipeFit(expA); baseA = pipeFit(baseA);
     baseRes = E.run(baseA, baseStart); expRes = E.run(expA, expStart);
     baseS = stacksOf(baseRes); expS = stacksOf(expRes);
+    worldsDiffer = pairMode || !!activeScenario || E.compare(baseRes, expRes).changed.length > 0;
+    viewedWorld = 'exp';   /* a law was edited, or the worlds were replaced: look at the Experiment */
     capAgg = aggCapital(expRes);
     if(attributionValid()){
       /* v1.2/v1.3: capacity and lag are acquisition levers — they move N and
@@ -4249,6 +4275,31 @@ details.pl .cascade{margin-top:8px}
     b.classList.toggle('live', !!label);
     syncPackButtons();
   }
+  /* ---- the viewing control: one markup, in each page's context line (Company headline, System
+     map, Model Ledger bar), shown only while an Experiment exists. Choosing a world re-reads the
+     page; it never changes either world. ---- */
+  function viewingCtl(){
+    if(!worldsDiffer) return '';
+    var b = viewedWorld==='base';
+    return '<span class="viewing" role="group" aria-label="World on this page"><span class="vl">Viewing</span>'+
+      '<button class="vw'+(b?'':' on')+'" data-vw="exp" aria-pressed="'+(!b)+'">Experiment</button>'+
+      '<button class="vw'+(b?' on':'')+'" data-vw="base" aria-pressed="'+b+'">Base</button></span>';
+  }
+  function syncViewingCtl(){
+    var sys = document.getElementById('viewing-sys'), ldg = document.getElementById('viewing-ldg'), h = viewingCtl();
+    if(sys){ var on = !!h && layer==='flow' && sysView!=='ledger'; sys.hidden = !on; if(on && sys.innerHTML!==h) sys.innerHTML = h; }
+    if(ldg && ldg.innerHTML!==h) ldg.innerHTML = h;
+  }
+  function setViewed(w){
+    if((w!=='exp' && w!=='base') || w===viewedWorld) return;
+    viewedWorld = w;
+    /* what was held open was picked in the other world: a cohort, a vintage row, a law chip */
+    if(pinned!==null){ pinned = null; capitalMode = anatomy = false; }
+    hover = null; monVintage = 0; openChip = null; finLive = null;
+    syncSysViews(); syncViewingCtl(); resize(); render(); renderSide(); syncLedger();
+  }
+  document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('[data-vw]'); if(b){ e.stopPropagation(); setViewed(b.dataset.vw); } }, true);
+
   function openSystemView(v){ menusClose(); setLayer('flow'); sysView = v; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
   document.getElementById('menu-ledger').addEventListener('click', function(){ openSystemView('ledger'); });
 
@@ -4878,7 +4929,7 @@ details.pl .cascade{margin-top:8px}
   function X(m){ return geo.L + (m/H)*geo.w; }
   function invX(px){ return Math.max(0, Math.min(H, ((px-geo.L)/geo.w)*H)); }
 
-  function scales(){
+  function scales(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var arrMax = Math.max.apply(null, baseS.arr.concat(expS.arr)) * 1.06;
     var leakMax = Math.max(1, Math.max(baseS.leak[H], expS.leak[H])) * 1.08;
     var all = baseS.cash.concat(expS.cash);
@@ -4892,7 +4943,7 @@ details.pl .cascade{margin-top:8px}
     };
   }
 
-  function render(){
+  function render(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     if(!geo) resize();
     if(layer==='flow'){ drawSystem(); return; }        /* SYSTEM — the causal map */
     var S = scales(), t = tau, mi = Math.floor(t);
@@ -5009,7 +5060,7 @@ details.pl .cascade{margin-top:8px}
     /* --- the experiment's entry, and its accumulated consequence at the selected month
        (docs/LENS-VISUAL-GRAMMAR.md · CHANGE MARKER, DELTA): one tick, one bracket --- */
     var chg = E.compare(baseRes, expRes).changed;
-    if(chg.length || pairMode){
+    if(!V_.base && (chg.length || pairMode)){
       var ef = effectFrom(), mSel0 = selectedMonth();
       var lbl = chg.length===1 ? chLabel(chg[0])+' '+chText(chg[0]) : (!chg.length ? 'declared pair' : chg.length+' assumptions changed');
       ctx.font='9.5px "JetBrains Mono",monospace'; ctx.textAlign='right'; ctx.fillStyle='rgba(139,141,240,.95)';
@@ -5204,7 +5255,7 @@ details.pl .cascade{margin-top:8px}
       if(expA[keys[i]] !== baseA[keys[i]]) return false; }
     return JSON.stringify(baseRes.bands) === JSON.stringify(expRes.bands);
   }
-  function drawSystem(){
+  function drawSystem(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     /* the Model Ledger is a table, not a drawing: it covers the canvas and the
        canvas is not asked to draw anything underneath it */
     if(sysView==='ledger'){ syncLedger(); return; }
@@ -6634,7 +6685,7 @@ details.pl .cascade{margin-top:8px}
   }
   function endFit(){ ctx.restore(); }
   function toScreen(x,y){ return { x:x*fitT.s+fitT.ox, y:y*fitT.s+fitT.oy }; }
-  function pulseData(){
+  function pulseData(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var m = selectedMonth();
     return compare==='delta' ? SS.deltaStateAt(baseRes, expRes, m) : SS.stateAt(expRes, m);
   }
@@ -6649,12 +6700,12 @@ details.pl .cascade{margin-top:8px}
    * from the drop to the crossing IS the payback time.
    * An economic attribution, not a claim that euros literally flow back.
    * ------------------------------------------------------------------ */
-  function capSubject(){
+  function capSubject(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var k = (pinned!==null ? pinned : (hover!==null ? hover : null));
     if(k===null || !expRes.cohorts[k] || expRes.cohorts[k].acquisitionCost===null) return null;
     return CAP.cohortCapital(expRes, k);
   }
-  function drawCapital(S, t, mi){
+  function drawCapital(S, t, mi){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var subj = capSubject(), lo, hi, label, col;
     if(subj){
       lo = -subj.acquisitionCost;
@@ -6820,7 +6871,7 @@ details.pl .cascade{margin-top:8px}
       }
     });
   }
-  function positionLawChips(){
+  function positionLawChips(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     LAWCHIPS.forEach(function(Lc){
       var el=document.getElementById('chip-'+Lc.k); if(!el) return;
       var a=lawAnchors[Lc.k];
@@ -6845,10 +6896,10 @@ details.pl .cascade{margin-top:8px}
   var SYS_VIEWS = [
     { id:'ontology', name:'Ontology', on:function(){ return true; } },
     { id:'company', name:'Flows', on:function(){ return true; } },
-    { id:'customers', name:'Customers', on:function(){ return !!expRes && expRes.mechanisms.customerPhysics; } },
-    { id:'monetization', name:'Monetization', on:function(){ return !!expRes && expRes.mechanisms.monetization; } },
-    { id:'cash', name:'Cash', on:function(){ return !!expRes && expRes.mechanisms.cashPhysics; } },
-    { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && expRes.mechanisms.interventions; } },
+    { id:'customers', name:'Customers', on:function(){ return !!expRes && VW().res.mechanisms.customerPhysics; } },
+    { id:'monetization', name:'Monetization', on:function(){ return !!expRes && VW().res.mechanisms.monetization; } },
+    { id:'cash', name:'Cash', on:function(){ return !!expRes && VW().res.mechanisms.cashPhysics; } },
+    { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && VW().res.mechanisms.interventions; } },
     /* not a drawing: the ledger is the same months as a table, for reading a
        figure back to the state it came from */
     { id:'ledger', name:'Model Ledger', on:function(){ return true; } }
@@ -6867,10 +6918,11 @@ details.pl .cascade{margin-top:8px}
        it lit up and nothing moved; it is offered only where it acts, and a view that cannot
        draw a difference is never left in delta mode behind a hidden switch. */
     var cm = document.getElementById('cmpmode');
-    if(cm){ cm.hidden = sysView!=='company';
-      if(sysView!=='company' && compare==='delta'){ compare='absolute';
+    if(cm){ cm.hidden = sysView!=='company' || viewingBase();
+      if((sysView!=='company' || viewingBase()) && compare==='delta'){ compare='absolute';
         document.getElementById('cmp-abs').classList.add('on'); document.getElementById('cmp-delta').classList.remove('on'); } }
     SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='ontology'; });
+    syncViewingCtl();
   }
   function syncPulse(){
     document.getElementById('pulse-law').innerHTML =
@@ -6898,9 +6950,9 @@ details.pl .cascade{margin-top:8px}
     }
     if(my>=geo.massTop && my<=geo.massBot && mx>=geo.L && mx<=W-geo.R){
       var m = Math.round(invX(mx)); if(m>tau) m = Math.floor(tau);
-      var S2 = scales();
-      for(var k=0;k<expS.C;k++){
-        var hi = S2.yA(expS.stack[m][k]), lo = S2.yA(k?expS.stack[m][k-1]:0);
+      var S2 = scales(), vS = VW().S;
+      for(var k=0;k<vS.C;k++){
+        var hi = S2.yA(vS.stack[m][k]), lo = S2.yA(k?vS.stack[m][k-1]:0);
         if(my>=hi && my<=lo && lo-hi>0.4){ hover=k; break; }
       }
     }
@@ -7283,7 +7335,7 @@ details.pl .cascade{margin-top:8px}
     }
     return { expansion:expansion, contraction:contraction, logoChurn:logoChurn, leakage:leakage, customerSplit:customerSplit };
   }
-  function cohortLifeOf(k){
+  function cohortLifeOf(k){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var c = expRes.cohorts[k]; if(!c) return null;
     var cc = CAP.cohortCapital(expRes, k);
     var arr=[], orig=[], cum=[], cost=[], i;
@@ -7321,7 +7373,7 @@ details.pl .cascade{margin-top:8px}
              paybackMonth: cc.paybackMonth, paybackAge: cc.paybackAge,
              color: rgba(rampAt(birth/H), 1) };
   }
-  function renderCohortLife(){
+  function renderCohortLife(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var negFmt = function(v){ return reurS(-v); };   /* a loss layer prints the magnitude it removed */
     var host = document.getElementById('cohort-life'); if(!host) return;
     var on = layer==='stock' && pinned!==null && pinned<expS.C;
@@ -7417,7 +7469,7 @@ details.pl .cascade{margin-top:8px}
   function chText(c){ var Fk=forceOf(c.key)||{}, f=(LABEL_FMT||{})[c.key]||Fk.f||'eur'; if(c.key==='interventions') return '↯ hypothesis'; if(typeof c.from==='string') return c.from+' → '+c.to; if((c.from!==null&&typeof c.from==='object')||(c.to!==null&&typeof c.to==='object')) return 'components changed'; if(c.from===null||c.to===null) return (c.from===null?'off':'on')+' → '+(c.to===null?'off':'on'); return fmtF(f,c.from)+' → '+fmtF(f,c.to); }
   function chMark(c){ var body = (typeof c.from==='string') ? esc(c.from)+' → <b>'+esc(c.to)+'</b>' : fmtChange(c); return '<div class="mark"><span class="mk-l">'+esc(chLabel(c))+'</span><span class="mk-v">'+body+'</span></div>'; }
   function marksFor(CH, roots){ var mk = CH.filter(function(c){ return roots.indexOf(rootKey(c.key))>=0; }); return mk.length ? '<div class="marks">'+mk.map(chMark).join('')+'</div>' : ''; }
-  function effectFrom(){ var a=null, c=null; for(var i=0;i<H;i++){ var xm=expRes.months[i], bm=baseRes.months[i]; if(a===null && Math.abs(xm.closingARR-bm.closingARR)>1) a=i+1; if(c===null && Math.abs(xm.cashClosing-bm.cashClosing)>1) c=i+1; if(a!==null && c!==null) break; } return { arr:a, cash:c }; }
+  function effectFrom(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */ var a=null, c=null; for(var i=0;i<H;i++){ var xm=expRes.months[i], bm=baseRes.months[i]; if(a===null && Math.abs(xm.closingARR-bm.closingARR)>1) a=i+1; if(c===null && Math.abs(xm.cashClosing-bm.cashClosing)>1) c=i+1; if(a!==null && c!==null) break; } return { arr:a, cash:c }; }
 
   /* ---- levers: the rail's own controls, mirrored on the lens that they shape.
      The nodes are built once and re-attached across renders, so a drag is never interrupted. ---- */
@@ -7444,7 +7496,8 @@ details.pl .cascade{margin-top:8px}
     Object.keys(LEVERS).forEach(function(id){ var bar=LEVERS[id]; [].forEach.call(bar.querySelectorAll('.lever'), function(row){
       var k=row.dataset.k, F=forceOf(k), r=document.getElementById('f-'+k), inp=row.querySelector('input'), val=row.querySelector('.lv'), tg=row.querySelector('[data-tog]');
       if(!F || !r) return;
-      var v = getK(expA, k), off = F.nullable && (v===null || v===undefined || !isFinite(v));
+      /* a boolean, always: classList.toggle(c, undefined) flips the class on every sync */
+      var v = getK(VW().A, k), off = !!(F.nullable && (v===null || v===undefined || !isFinite(v)));
       if(document.activeElement!==inp){ inp.value = off ? r.value : v; }
       inp.disabled = r.disabled || off; val.textContent = off ? 'off' : fmtF(F.f, v); val.classList.toggle('off', off);
       if(tg){ tg.textContent = off ? 'off' : 'on'; tg.classList.toggle('on', !off); }
@@ -7452,12 +7505,12 @@ details.pl .cascade{margin-top:8px}
   }
   function placeLevers(){ [].forEach.call(document.querySelectorAll('#side .lever-slot'), function(slot){ var bar=LEVERS[slot.dataset.lens]; if(bar){ slot.appendChild(bar); } }); syncLevers(); }
 
-  function renderLenses(m, em, bm, heroOnly){
+  function renderLenses(m, em, bm, heroOnly){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var cuOn = !!em.customers, moOn = !!em.monetization, caOn = !!em.cash, ivOn = !!em.interventions;
     var Mt = 'M'+m, w = trailing12(m);
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
     var cm = cuOn && m>=12 ? K.customerMeasures(expRes, m) : null;
-    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || pairMode;
+    var CH = E.compare(baseRes, expRes).changed, differs = CH.length>0 || (pairMode && !V_.base);
     var sx = E.summarise(expRes);
     var nav = '<div class="lensnav">'+[['company','Company'],['customers','Customers'],['growth','Growth engine'],['monetization','Monetization'],['cash','Financials']].map(function(x){ return '<button class="btn'+(activeLens===x[0]?' on':'')+'" data-lens="'+x[0]+'">'+x[1]+'</button>'; }).join('')+'</div>';
     var S12 = function(f){ return sumM(expRes, w.from, w.to, f); };
@@ -7468,10 +7521,10 @@ details.pl .cascade{margin-top:8px}
     /* ================= 1. COMPANY ================= */
     var dARR = em.closingARR-bm.closingARR;
     var revR12 = S12(function(x){ return x.revenue; }), ebR12 = S12(function(x){ return x.ebita; });
-    h += lensHead('1', 'What kind of company did these assumptions create?', Mt, 'company') +
+    h += lensHead('1', 'What kind of company did these assumptions create?', Mt, 'company').replace('<span class="basis">', viewingCtl()+'<span class="basis">') +
       '<div class="hero"><span class="hv">'+reur(em.closingARR)+'</span><span class="hs">'+basis+'</span>'+
         '<span class="hs">'+(em.arrGrowthYoY===null ? 'growth needs 12 months' : (em.arrGrowthYoY>=0?'+':'−')+pct(Math.abs(em.arrGrowthYoY),1)+' y/y')+'</span>'+
-        (Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
+        (V_.base ? '' : Math.abs(dARR)>=1 ? '<span class="hd '+cls(dARR)+'">'+reurS(dARR)+' vs Base</span>' : '<span class="hd flat">on Base</span>')+'</div>'+
       '<div class="hl desc">'+
         dv(kpi ? '→ '+pct(kpi.nrr,1) : '→ needs 12 mo', 'net dollar retention · R12M', 'meas')+
         dv('⋈ '+pct(lawNow('grossMargin'),0), 'gross margin · law', 'law')+
@@ -7682,7 +7735,7 @@ details.pl .cascade{margin-top:8px}
     return o;
   }
   /* both worlds are cut at the same month, so Base, Experiment and Δ always share one time boundary */
-  function finState(m){
+  function finState(m){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     return { m:m, selY:Math.min(5, Math.max(1, Math.ceil(Math.max(1, m)/12))),
       FE:FIN_YRS.map(function(y){ return finYear(expRes, y, m); }), FBs:FIN_YRS.map(function(y){ return finYear(baseRes, y, m); }) };
   }
@@ -7720,7 +7773,7 @@ details.pl .cascade{margin-top:8px}
   }
   function finLaw(m){ return pct(lawNow('grossMargin'),0)+' in force at M'+m; }
 
-  function finLens(m, caOn, differs){
+  function finLens(m, caOn, differs){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var Mt = 'M'+m, D = finState(m);
     if(!differs) finView = 'exp';
     var dMode = finView === 'delta', vRes = finView === 'base' ? baseRes : expRes;
@@ -7749,7 +7802,7 @@ details.pl .cascade{margin-top:8px}
     h += '<div class="fin">';
     h += '<div class="fin-top">'+
       '<span class="fin-period"><span data-fp>'+finPeriod(m)+'</span>'+(viewName ? ' <span class="fin-view">· '+viewName+'</span>' : '')+'</span>'+
-      (differs ? '<div class="btn-row fin-per"><button class="btn'+(finView==='exp'?' on':'')+'" data-finv="exp">Experiment</button><button class="btn'+(finView==='base'?' on':'')+'" data-finv="base">Base</button><button class="btn'+(dMode?' on':'')+'" data-finv="delta">Δ vs Base</button></div>' : '')+
+      (differs ? '<div class="btn-row fin-per"><button class="btn'+(dMode?' on':'')+'" data-finv="'+(dMode?'exp':'delta')+'">Δ vs Base</button></div>' : '')+
       '<span class="fin-links"><button class="fin-go" data-go="cash">Mechanism · System → Cash ›</button><button class="fin-go" data-go="ledger">Proof · Model Ledger ›</button></span>'+
       '</div>'+
       '<div class="fin-units">€ thousands · years of twelve model months, the year in progress to date · money, not run-rate — the '+basis+' switch does not apply</div>';
@@ -7840,12 +7893,12 @@ details.pl .cascade{margin-top:8px}
     L.band = root.querySelector('g[data-fg="band"]'); L.dyn = root.querySelector('g[data-fg="dyn"]');
   }
   /* what, besides the month, the Financials markup depends on — any change forces a full build */
-  function finKey(){ return [expRes, baseRes, finView, basis, pairMode, activeLens, layer, pinned, anatomy]; }
+  function finKey(){ return [expRes, baseRes, finView, basis, pairMode, activeLens, layer, pinned, anatomy, viewingBase()]; }
   function finKeySame(a, b){ if(!a || !b || a.length!==b.length) return false; for(var i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; }
   /* the month tick: the clock moved and nothing else did. Re-print the Company headline and the
      Financials figures that depend on the month, in place — no lens is rebuilt, the chart's
      paths are left alone, and the four hidden lenses are not touched. */
-  function finTick(m){
+  function finTick(m){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var L = finLive, D = finState(m), set = function(el, s){ if(el && el.innerHTML !== s) el.innerHTML = s; };
     finStats.ticks++;
     var tmp = document.createElement('div'); tmp.innerHTML = renderLenses(m, expRes.months[m-1], baseRes.months[m-1], true);
@@ -7947,9 +8000,9 @@ details.pl .cascade{margin-top:8px}
       '<div class="fin-leg">'+legend+'</div></div>';
   }
   /* the law in force this month for a flat or nested key (a hypothesis may have moved it) */
-  function lawNow(key){ var m=selectedMonth(), iv=expRes.months[m-1].interventions; var ch = iv && iv.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; var v = ch ? ch.to : getK(expA, key); return v; }
+  function lawNow(key){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */ var m=selectedMonth(), iv=expRes.months[m-1].interventions; var ch = iv && iv.changes.filter(function(c){ return c.target===key; }).slice(-1)[0]; var v = ch ? ch.to : getK(expA, key); return v; }
   /* the acquisition response: N(S&M) with the bound, this run's position marked */
-  function responseCurve(q){
+  function responseCurve(q){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var W=286, Hh=74, L=34, B=16, cap=lawNow('maxMonthlyNewARR'), smax=Math.max(expA.sm*3, 1), pts=[];
     for(var i=0;i<=40;i++){ var sm=smax*i/40, n=E.acquisitionResponse(Object.assign({}, expA, {sm:sm, maxMonthlyNewARR:cap})).newARR; pts.push([L+(W-L-6)*i/40, Hh-B-(n/cap)*(Hh-B-8)]); }
     var here = E.acquisitionResponse(Object.assign({}, expA, {maxMonthlyNewARR:cap}));
@@ -8258,7 +8311,7 @@ details.pl .cascade{margin-top:8px}
     return out;
   }
 
-  function renderLedger(force){
+  function renderLedger(force){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var host = document.getElementById('ledgerscroll'); if(!host) return;
     var stamp = ledgerView+'|'+basis+'|'+activePack+'|'+expRes.horizon;
     if(!force && ledgerRes===expRes && ledgerStamp===stamp) { ledgerMark(); return; }
@@ -8383,7 +8436,7 @@ details.pl .cascade{margin-top:8px}
     syncFigure();
   }
   /* the figure is context: open and tall on Company, open on Customers, a strip elsewhere — unless the reader chose otherwise */
-  function syncFigure(){
+  function syncFigure(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     var fw=document.getElementById('figwrap'), key=layer+':'+(layer==='stock'?activeLens:'');
     var scol=document.querySelector('.stagecol'); if(layer==='stock' && pinned===null) scol.dataset.lens=activeLens; else delete scol.dataset.lens;
     if(layer==='flow'){ fw.open=true; fw.classList.remove('tall'); return; }
@@ -8404,7 +8457,7 @@ details.pl .cascade{margin-top:8px}
     renderCohortLife();
     setTimeout(function(){ resize(); render(); }, 0);
   }
-  function renderSide(){
+  function renderSide(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     if(pressHold && !leverDown){ sideStale = true; return; }   /* not under an open press */
     /* Financials showing and only the clock moved: re-print its month-dependent figures in place
        rather than rebuilding every lens (the four hidden ones included) once a month */
@@ -8596,7 +8649,7 @@ details.pl .cascade{margin-top:8px}
   }
   /* Notes for the ledger: what each block reconciles, and why a check is worth
      reading. The table itself carries no prose — an auditor's table should not. */
-  function renderLedgerSide(){
+  function renderLedgerSide(){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     function blk(h, body){ return '<div class="sgrp"><div class="eyebrow">'+esc(h)+'</div><div class="hint" style="line-height:1.7;margin-top:6px">'+body+'</div></div>'; }
     document.getElementById('side').innerHTML =
       '<div class="lens herolens" style="padding-bottom:6px"><div class="lens-head exphead"><span class="lens-n">Model Ledger</span>'+
@@ -8624,7 +8677,7 @@ details.pl .cascade{margin-top:8px}
       blk('Using it', 'Core shows the economically important columns; Full exposes everything the engine publishes for that month. Click a row to move the whole portal to that month. The table scrolls horizontally; the month column and both header rows stay put.');
   }
 
-  function renderSystemSide(d, isD){
+  function renderSystemSide(d, isD){ var V_ = VW(), expRes = V_.res, expS = V_.S, expA = V_.A, expStart = V_.start, baseRes = V_.oRes, baseS = V_.oS, baseA = V_.oA, baseStart = V_.oStart;   /* the viewed world */
     parkCascade();
     var m = d.t, abs = isD ? d.experiment : d;
     var noExp = isD && sameAsBase();
@@ -9267,7 +9320,7 @@ details.pl .cascade{margin-top:8px}
     var c=E.compare(baseRes, expRes), b=c.base, x=c.experiment, d=c.delta;
     if(layer!=='cmp'){
       /* Company keeps one line: that a comparison exists, and where it lives */
-      if(layer!=='stock' || (!c.changed.length && !pairMode)){ slot.innerHTML=''; return; }
+      if(layer!=='stock' || viewingBase() || (!c.changed.length && !pairMode)){ slot.innerHTML=''; return; }
       var sb=E.summarise(baseRes), sx=E.summarise(expRes), dM=sx.finalARR-sb.finalARR, nC=c.changed.length;
       slot.innerHTML='<div class="cmpstrip"><span>'+(pairMode ? 'A declared pair: two worlds, one comparison' : 'Experiment differs from Base · <b>'+nC+' assumption'+(nC>1?'s':'')+'</b>')+
         ' · '+basis+' M60 <b>'+(Math.abs(dM)<1?'=':reurS(dM))+'</b> · ending cash <b>'+(Math.abs(sx.endingCash-sb.endingCash)<1?'=':eurS(sx.endingCash-sb.endingCash))+'</b></span>'+
@@ -9456,6 +9509,7 @@ details.pl .cascade{margin-top:8px}
 
   function setLayer(l){
     layer=l;
+    syncViewingCtl();
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
     document.getElementById('nav-compare').classList.toggle('on', l==='cmp');
     document.getElementById('nav-system').classList.toggle('on', l==='flow');
@@ -9620,7 +9674,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
-    get finStats(){ return finStats; }, finRebuild: function(){ finLive = null; renderSide(); },
+    get finStats(){ return finStats; }, get viewedWorld(){ return viewedWorld; }, get hover(){ return hover; }, get worldsDiffer(){ return worldsDiffer; }, setViewed: function(w){ setViewed(w); }, finRebuild: function(){ finLive = null; renderSide(); },
     get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,

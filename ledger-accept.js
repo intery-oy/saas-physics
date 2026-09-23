@@ -311,7 +311,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       Object.values(leak).every(l => l.hidden && l.display === 'none' && l.area === 0) &&
       back.view === 'ledger' && back.shown && back.table &&
       nest.ledgerParent === 'figbox' && nest.lifeParent === 'figwrap' && !nest.lifeInFigbox &&
-      nest.figboxChildren.join('|') === 'scene|lawhost|ledger',
+      nest.figboxChildren.join('|') === 'scene|lawhost|viewing-sys|ledger',   /* viewing-sys: the System map's Base / Experiment control (Step 1B) */
       JSON.stringify({ leak, back, nest }));
 
   /* ---- VISIBLE: the table has to be on screen, not merely built ---- */
