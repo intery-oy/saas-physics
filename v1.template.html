@@ -6181,8 +6181,9 @@ details.pl .cascade{margin-top:8px}
       [].forEach.call(document.getElementById('speeds').children,function(x){ x.classList.toggle('on', x.textContent===s+'×'); }); });
     document.getElementById('speeds').appendChild(b);
   });
+  var syncedMonth = -1;   /* the month the time-bound DOM was last rebuilt for */
   function syncTime(){
-    var m=Math.round(tau);
+    var m=Math.round(tau); syncedMonth = m;
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
     syncMeasuredKPI(); renderSide(); renderCascade(); ledgerMark();
   }
@@ -6284,7 +6285,12 @@ details.pl .cascade{margin-top:8px}
       tau += dt/1000 * 2.2 * speed;                 // ~2.2 simulated months per second at 1×
       if(tau>=H){ tau=H; playing=false; playBtn.classList.remove('play'); playIcon(); }
       scrub.value=tau;
-      acc+=dt; if(acc>90){ acc=0; syncTime(); }
+      /* Everything syncTime rebuilds is a function of the WHOLE month. Rebuilding it on
+         every 90 ms tick regenerated identical markup — the Company lenses and their
+         sixty-month charts — four times per month at 1x, and on a 2x display that alone
+         held the main thread for over half of every second, so a click on another page
+         waited behind it. Rebuild when the month changes, still at most every 90 ms. */
+      acc+=dt; if(acc>90 && Math.round(tau)!==syncedMonth){ acc=0; syncTime(); }
     }
     render();
     requestAnimationFrame(frame);
