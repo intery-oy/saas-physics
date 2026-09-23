@@ -68,20 +68,21 @@ async function run(pg, want) { const is = await running(pg);
   rec('NAV: with the clock running, Compare, System, Scenarios and Company each take the layer on one press',
       navs.every(Boolean) && await running(pg), JSON.stringify(navs));
 
-  /* ---- DISCLOSE ---- */
+  /* ---- FINANCIALS ---- */
+  /* with the clock running, Financials forms in place: the month tick re-prints the figures that
+     depend on the month and nothing is rebuilt; a press on its link still lands */
   await run(pg, true);
   await press(pg, '.lensnav .btn[data-lens="cash"]');
-  await pg.evaluate(() => { const d = document.getElementById('pl-details'); if (d) d.open = false; });
-  const opened = await press(pg, '#pl-details > summary');
-  const justOpen = await pg.evaluate(() => { const d = document.getElementById('pl-details'); return d ? d.open : null; });
-  const m0 = await pg.evaluate(() => Math.round(+document.getElementById('scrub').value));
-  await pg.waitForTimeout(1200);
-  const after = await pg.evaluate(() => { const d = document.getElementById('pl-details');
-    return { open: d ? d.open : null, m: Math.round(+document.getElementById('scrub').value),
-      cascade: !!document.querySelector('#pl-slot .cascade') && document.querySelector('#pl-slot .cascade').getBoundingClientRect().height > 10 }; });
-  rec('DISCLOSE: the monthly P&L waterfall opens on a press under a running clock and is still open months later, its cascade in place — a disclosure is the reader\'s state, not the clock\'s',
-      opened && justOpen === true && after.open === true && after.cascade && after.m > m0,
-      JSON.stringify({ justOpen, after, m0 }));
+  const f0 = await pg.evaluate(() => ({ st: Object.assign({}, window.__SP_DEBUG.finStats), m: Math.round(+document.getElementById('scrub').value), cell: document.querySelector('#lens-cash td[data-fr]'), period: document.querySelector('#lens-cash [data-fp]').textContent }));
+  await pg.evaluate(() => { window.__finCell = document.querySelector('#lens-cash td[data-fr]'); window.__finPath = document.querySelector('#lens-cash svg path.ln'); });
+  await pg.waitForTimeout(1500);
+  const f1 = await pg.evaluate(() => ({ st: Object.assign({}, window.__SP_DEBUG.finStats), m: Math.round(+document.getElementById('scrub').value), kept: document.body.contains(window.__finCell) && document.body.contains(window.__finPath), period: document.querySelector('#lens-cash [data-fp]').textContent }));
+  const went = await press(pg, '.fin-go[data-go="cash"]');
+  const landed = await pg.evaluate(() => ({ sys: document.getElementById('nav-system').classList.contains('on'), view: window.__SP_DEBUG.sysView }));
+  rec('FINANCIALS: under a running clock the statements form in place — months pass, the period reads the new month, no rebuild, cells and chart paths are the same nodes — and a press on "Mechanism · System → Cash" lands there',
+      f1.m > f0.m && f1.st.ticks > f0.st.ticks && f1.st.builds === f0.st.builds && f1.kept && f1.period !== f0.period && went && landed.sys && landed.view === 'cash',
+      JSON.stringify({ f0: { st: f0.st, m: f0.m, period: f0.period }, f1, landed }));
+  await press(pg, '#nav-company');
 
   /* ---- SCRUB ---- */
   await press(pg, '.lensnav .btn[data-lens="customers"]'); await run(pg, true);

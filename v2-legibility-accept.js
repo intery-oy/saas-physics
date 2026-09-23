@@ -31,7 +31,7 @@ const E = require('./engine.js');
 
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
-const BASIS = /^(M\d+( · month)?|R12M|CUM · M1–M\d+|M60|age \d+)$/;
+const BASIS = /^(M\d+( · month)?|R12M|CUM · M1–M\d+|M60|age \d+|Y1–Y5)$/;   /* Y1–Y5: Financials reads the five model years */
 
 /* everything inside `root` must sit inside root's box, and siblings in the
    named containers must not intersect. Returns the offenders. */
@@ -111,15 +111,15 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const lenses = await pg.evaluate(() => [...document.querySelectorAll('#side .lens')].map(l => ({
     id: l.id, n: (l.querySelector('.lens-n') || {}).textContent, q: (l.querySelector('.lens-q') || {}).textContent, basis: (l.querySelector('.lens-head .basis') || {}).textContent,
     hero: (l.querySelector('.hero .hv') || {}).textContent || null, ladders: l.querySelectorAll('.lrow').length, txt: l.innerText })));
-  rec('LENSES: five lenses in the order Company → Customers → Growth engine → Monetization → Economics & cash, each numbered, with a question and a basis tag',
+  rec('LENSES: five lenses in the order Company → Customers → Growth engine → Monetization → Financials, each numbered, with a question and a basis tag',
       lenses.length === 5 && lenses.map(l => l.id).join(',') === 'lens-company,lens-customers,lens-growth,lens-monetization,lens-cash' && lenses.every((l, i) => l.n === String(i + 1) && /\?$/.test(l.q) && BASIS.test(l.basis)),
       JSON.stringify(lenses.map(l => [l.id, l.n, l.basis])));
   const chartsPer = await pg.evaluate(() => [...document.querySelectorAll('#side .lens')].map(l => l.querySelectorAll('svg.ch').length));
-  rec('LENSES: Company leads with one hero number and the formation figure; Customers, Growth engine and Economics & cash each carry two 60-month charts, Monetization one; no lens prints NaN, undefined, null or [object',
-      lenses[0].hero && /^€[\d.]+[km]?$/.test(lenses[0].hero) && chartsPer.join(',') === '0,2,2,1,2' && lenses.every(l => !/NaN|undefined|\[object|(^|\s)null(\s|$)/.test(l.txt)),
+  rec('LENSES: Company leads with one hero number and the formation figure; Customers and Growth engine each carry two 60-month charts, Monetization and Financials one; no lens prints NaN, undefined, null or [object',
+      lenses[0].hero && /^€[\d.]+[km]?$/.test(lenses[0].hero) && chartsPer.join(',') === '0,2,2,1,1' && lenses.every(l => !/NaN|undefined|\[object|(^|\s)null(\s|$)/.test(l.txt)),
       JSON.stringify([lenses[0].hero, chartsPer]));
   const nav = await pg.evaluate(() => [...document.querySelectorAll('#side .lensnav .btn')].map(b => b.textContent));
-  rec('LENSES: the lens navigation names the five lenses in CFO words (no engine jargon)', nav.join('|') === 'Company|Customers|Growth engine|Monetization|Economics & cash', nav.join('|'));
+  rec('LENSES: the lens navigation names the five lenses in CFO words (no engine jargon)', nav.join('|') === 'Company|Customers|Growth engine|Monetization|Financials', nav.join('|'));
 
   /* ---- GRAMMAR ---- */
   const grammar = await pg.evaluate(() => {
@@ -129,8 +129,8 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     const ros = [...document.querySelectorAll('#side .readouts b, #side .mrow b, #side .desc .dv.meas, #side .desc .dv.law, #side .desc .dv.derived')].map(e => e.textContent);   /* every glyph-carrying value: readout rows, measurement rows, descriptors */
     return { tags, laws, meas, ros };
   });
-  rec('GRAMMAR: every basis tag on the Observe surface is one of the grammar\'s forms (M24 · M24 · month · R12M · CUM · M1–Mn · M60 · age n)',
-      grammar.tags.length >= 12 && grammar.tags.every(t => BASIS.test(t)), JSON.stringify(grammar.tags.filter(t => !BASIS.test(t)).slice(0, 5)));
+  rec('GRAMMAR: every basis tag on the Observe surface is one of the grammar\'s forms (M24 · M24 · month · R12M · CUM · M1–Mn · M60 · age n · Y1–Y5)',
+      grammar.tags.length >= 8 && grammar.tags.every(t => BASIS.test(t)), JSON.stringify({ n: grammar.tags.length, bad: grammar.tags.filter(t => !BASIS.test(t)).slice(0, 5) }));
   rec('GRAMMAR: every law value carries ⋈, every measurement →; readouts carry one of → ⋈ ⌈⌉ ↯ or state a movement a → b',
       grammar.laws.length >= 1 && grammar.laws.every(t => /^⋈ /.test(t)) && grammar.meas.length >= 2 && grammar.meas.every(t => /^→ /.test(t)) && grammar.ros.length >= 6 && grammar.ros.every(t => /^(→|⋈|⌈⌉|↯) /.test(t) || / → /.test(t)),
       JSON.stringify({ laws: grammar.laws.slice(0, 3), meas: grammar.meas.slice(0, 2), ros: grammar.ros.filter(t => !(/^(→|⋈|⌈⌉|↯) /.test(t) || / → /.test(t))).slice(0, 3) }));
@@ -147,11 +147,11 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   /* ---- TIME ---- */
   const t24 = await pg.evaluate(() => ({ tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), label: document.getElementById('tlabel').textContent }));
   await setScrub(pg, 36);
-  const t36 = await pg.evaluate(() => ({ tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), label: document.getElementById('tlabel').textContent, r12: [...document.querySelectorAll('#side .basis')].map(e => e.textContent).filter(t => /R12M/.test(t)).length }));
+  const t36 = await pg.evaluate(() => ({ tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), label: document.getElementById('tlabel').textContent, r12: [...document.querySelectorAll('#side .dl')].map(e => e.textContent).filter(t => /EBITA margin · R12M$/.test(t)).length }));
   await setScrub(pg, 8);
-  const t8 = await pg.evaluate(() => ({ tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), cum: [...document.querySelectorAll('#side .basis')].map(e => e.textContent).filter(t => /CUM/.test(t)), r12: [...document.querySelectorAll('#side .basis')].map(e => e.textContent).filter(t => /R12M/.test(t)).length }));
-  rec('TIME: moving the playhead moves every lens\'s basis tag and the transport label together (lenses 1–4 at the month, Economics & cash on the trailing window); before month 12 the trailing-window tags read CUM · M1–M8 instead of R12M',
-      t24.tags.slice(0, 4).every(t => t === 'M24') && t24.tags[4] === 'R12M' && t36.tags.slice(0, 4).every(t => t === 'M36') && t36.tags[4] === 'R12M' && /24/.test(t24.label) && /36/.test(t36.label) && t36.r12 >= 1 && t8.tags.slice(0, 4).every(t => t === 'M8') && t8.tags[4] === 'CUM · M1–M8' && t8.cum.length >= 1 && t8.cum.every(t => t === 'CUM · M1–M8') && t8.r12 === 0,
+  const t8 = await pg.evaluate(() => ({ tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), cum: [...document.querySelectorAll('#side .basis, #side .dl')].map(e => e.textContent).filter(t => /CUM/.test(t)), r12: [...document.querySelectorAll('#side .basis')].map(e => e.textContent).filter(t => /R12M/.test(t)).length }));
+  rec('TIME: moving the playhead moves every lens\'s basis tag and the transport label together (lenses 1–4 at the month, Financials on its five model years); before month 12 the trailing-window tags read CUM · M1–M8 instead of R12M',
+      t24.tags.slice(0, 4).every(t => t === 'M24') && t24.tags[4] === 'Y1–Y5' && t36.tags.slice(0, 4).every(t => t === 'M36') && t36.tags[4] === 'Y1–Y5' && /24/.test(t24.label) && /36/.test(t36.label) && t36.r12 >= 1 && t8.tags.slice(0, 4).every(t => t === 'M8') && t8.tags[4] === 'Y1–Y5' && t8.cum.length >= 1 && t8.cum.every(t => /(^|· )CUM · M1–M8$/.test(t))   /* since Financials: the trailing window is the Company descriptor's */ && t8.r12 === 0,
       JSON.stringify([t24.tags, t36.tags, t8.cum, t8.r12]));
   await setScrub(pg, 24);
 

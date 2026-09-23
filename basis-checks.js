@@ -200,8 +200,8 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /n\(d\.grossProfit\)/,
     /n\(d\.otherOpex\)/,
     /n\(d\.fcf\)/,
-    /var sE = function\(v\)\{ return v<0 \? '−'\+eur\(-v\) : eur\(v\); \}/,   // Financials · figure (EBITA, FCF, NWC in plain euros)
-    /'">'\+fk\(v\)\+'<\/td>'/,                                        // Financials · statements (plain € thousands)
+    /var finSE = function\(v\)\{ return v<0 \? '−'\+eur\(-v\) : eur\(v\); \}/,   // Financials · figure (EBITA, FCF, NWC in plain euros)
+    /return \{ t:finFk\(v\), c:/,                                          // Financials · statements (plain € thousands), full build and month tick alike
     /eur\(em\.cashClosing\)/,
     /yFmt:eur, aria:'cumulative gross profit against the acquisition cost of one cohort'/,   // Inspect · cohort life · capital-recovery chart
     /eur\(gap\)\+' beyond acquisition cost'/,                       // Inspect · cohort life · the recovery gap at the selected month

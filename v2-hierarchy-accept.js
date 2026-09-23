@@ -6,7 +6,7 @@
  *   CHANGE      the rail is a drawer: closed by default, opened from the header, closed by
  *               Close, the scrim or Escape; Details discloses the definitions
  *   LENSES      the five lenses are navigation: one lens on screen, hero above it, figure beneath
- *   P&L         the monthly P&L waterfall lives inside Economics & cash, nowhere else
+ *   P&L         the P&L is Financials' statement of operations; the monthly waterfall is on no lens
  *   SYSTEM      the machine takes the stage; Notes is a drawer; drill-down and back work
  *   SCENARIOS   an experiment reads what changed · what stayed the same · what emerged ·
  *               why it matters; the full mechanism and the boundaries are behind disclosure
@@ -66,7 +66,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
   /* ---- LENSES: navigation ---- */
   const lens0 = await pg.evaluate(() => ({ active: document.getElementById('side').dataset.active, tabsVisible: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').length, hero: !!document.querySelector('#lens-company .hero'), nav: [...document.querySelectorAll('.lensnav .btn')].map(b => b.textContent) }));
-  rec('LENSES: Company opens on the hero lens with no tab lens open, and five lenses as navigation', lens0.active === 'company' && lens0.tabsVisible === 0 && lens0.hero && lens0.nav.length === 5 && lens0.nav[4] === 'Economics & cash', JSON.stringify(lens0));
+  rec('LENSES: Company opens on the hero lens with no tab lens open, and five lenses as navigation', lens0.active === 'company' && lens0.tabsVisible === 0 && lens0.hero && lens0.nav.length === 5 && lens0.nav[4] === 'Financials', JSON.stringify(lens0));
   await click(pg, '.lensnav .btn[data-lens="customers"]');
   const lens1 = await pg.evaluate(() => ({ active: document.getElementById('side').dataset.active, shown: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id), on: document.querySelector('.lensnav .btn.on').dataset.lens }));
   rec('LENSES: choosing Customers shows that one lens and marks it in the navigation', lens1.active === 'customers' && lens1.shown.length === 1 && lens1.shown[0] === 'lens-customers' && lens1.on === 'customers', JSON.stringify(lens1));
@@ -79,12 +79,12 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const lensKept = await pg.evaluate(() => document.getElementById('side').dataset.active);
   rec('LENSES: the active lens survives a re-render (moving the month keeps Growth engine open)', lensKept === 'growth', lensKept);
 
-  /* ---- P&L through Economics & cash ---- */
+  /* ---- P&L through Financials ---- */
   const plOff = await pg.evaluate(() => { const c = document.querySelector('.cascade'); return c ? getComputedStyle(c).display !== 'none' && c.getBoundingClientRect().height > 0 : null; });
   await click(pg, '.lensnav .btn[data-lens="cash"]');
-  await pg.evaluate(() => { document.getElementById('pl-details').open = true; });   /* the waterfall is secondary inspection: one disclosure inside Economics & cash */
-  const plOn = await pg.evaluate(() => { const c = document.querySelector('.cascade'); const inSlot = !!c && c.parentElement && c.parentElement.id === 'pl-slot' && c.closest('#lens-cash') !== null; return { inSlot, visible: !!c && c.getBoundingClientRect().height > 0, steps: c ? c.querySelectorAll('#cascade .crow, #cascade > *').length : 0 }; });
-  rec('P&L: the monthly waterfall is not on Growth engine and is inside Economics & cash behind one disclosure, with its steps', plOff === false && plOn.inSlot && plOn.visible && plOn.steps > 3, JSON.stringify({ plOff, plOn }));
+  const plFin = await pg.evaluate(() => { const c = document.querySelector('.cascade'), cap = [...document.querySelectorAll('#lens-cash table.fs caption')].map(x => x.firstChild.textContent.trim());
+    return { cascade: !!c && c.getBoundingClientRect().height > 0, first: cap[0], lines: document.querySelectorAll('#lens-cash table.fs')[0].querySelectorAll('tbody tr').length }; });
+  rec('P&L: the monthly waterfall is on no lens; the profit and loss is read in Financials as the statement of operations, first of its three statements, line by line', plOff === false && !plFin.cascade && plFin.first === 'Statement of operations' && plFin.lines >= 9, JSON.stringify({ plOff, plFin }));
 
   /* ---- SYSTEM ---- */
   await click(pg, '#nav-system');

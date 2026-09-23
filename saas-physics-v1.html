@@ -353,6 +353,9 @@ table.fs.yr tr.sub-h th{font:9px var(--mono);letter-spacing:0;text-transform:non
 table.fs.yr thead tr:first-child th{border-bottom:0;padding-bottom:1px}
 table.fs.yr th.sel{color:var(--ink)}
 table.fs.yr th.sel{color:var(--ink);font-weight:600}
+table.fs.yr th.fut{color:var(--ink-4)}
+table.fs.yr th .ytd{display:none}
+.fin-fig .fin-fut{fill:var(--panel);opacity:.72}
 table.fs.yr tr.gap td{padding:5px 0;border:0}
 table.fs.yr tr.mv td.l{color:var(--ink-3)}
 table.fs.yr tr.mv td.n{color:var(--ink-2)}
@@ -363,7 +366,7 @@ table.fs.yr td.ok{text-align:right;color:var(--in,#4fa37d)}
 table.fs.yr td.neg{color:var(--law)}
 .fin-view{font:italic 13px var(--display);color:var(--ink-2)}
 .fin-fig-c{font-size:11px;color:var(--ink-3);line-height:1.55;max-width:820px;margin:0 0 8px}
-@media (max-width:760px){table.fs.yr col.c-l{width:34%} table.fs.yr{font-size:11px} table.fs.yr tr.sub-h{display:none}}
+@media (max-width:760px){table.fs.yr col.c-l{width:34%} table.fs.yr{font-size:11px} table.fs.yr tr.sub-h{display:none} table.fs.yr th .ytd{display:inline;font-weight:400;color:var(--ink-3)}}
 
 
 .lens-head{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
@@ -760,7 +763,7 @@ details.pl .cascade{margin-top:8px}
     <button class="btn" id="keybtn">Method</button>
     <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
     <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">388f5bb</span>
+    <span class="chip build" id="build-chip" title="The commit this page was built from">dea2d5e</span>
   </header>
 
   <aside class="rail">
@@ -7353,7 +7356,7 @@ details.pl .cascade{margin-top:8px}
   }
   function placeLevers(){ [].forEach.call(document.querySelectorAll('#side .lever-slot'), function(slot){ var bar=LEVERS[slot.dataset.lens]; if(bar){ slot.appendChild(bar); } }); syncLevers(); }
 
-  function renderLenses(m, em, bm){
+  function renderLenses(m, em, bm, heroOnly){
     var cuOn = !!em.customers, moOn = !!em.monetization, caOn = !!em.cash, ivOn = !!em.interventions;
     var Mt = 'M'+m, w = trailing12(m);
     var kpi = m>=12 ? K.measureR12M(expRes, m) : null;
@@ -7384,6 +7387,7 @@ details.pl .cascade{margin-top:8px}
           ? em.interventions.changes.map(function(ch){ return '<b>hypothesis '+esc(ch.id)+'</b> in force · '+esc(hypTargetLabel(ch.target))+' '+fmtF((forceOf(ch.target)||{}).f||'x', ch.from)+' → '+fmtF((forceOf(ch.target)||{}).f||'x', ch.to); }).join('<br>')
           : '<b>hypothesis</b> not in force this month')+(em.interventionCost>0 ? ' · cost '+eur(em.interventionCost)+' this month' : '')+'</div>' : '')+
       '</div>';
+    if(heroOnly) return h;
     h += nav;
 
     /* ================= 2. CUSTOMERS ================= */
@@ -7551,62 +7555,111 @@ details.pl .cascade{margin-top:8px}
     }
     h += '</div>';
 
-    /* ================= 5. FINANCIALS =================
-       The full five-year model as annual financial statements: the same canonical
-       months, aggregated the way a CFO reads a company's formation — Y1 → Y5 across
-       the page. Flows are the sum of the year's twelve months; balances are the
-       year-end balance; a movement is year-end less prior year-end, and Y1's is
-       measured from the canonical opening state at M0, shown in its own column so
-       the convention is visible rather than footnoted. Nothing is recalculated.
-       The figure beneath keeps the monthly dynamics that annual sums hide. */
-    var YRS = [1,2,3,4,5], selY = Math.min(5, Math.max(1, Math.ceil(Math.max(1, m)/12)));
-    function yearOf(res, y){
-      var a = 12*(y-1)+1, b = 12*y, s = function(f){ return sumM(res, a, b, f); }, mS = res.months[a-1], mE = res.months[b-1];
-      var o = { rev:s(function(x){ return x.revenue; }), cogs:s(function(x){ return x.cogs; }), gp:s(function(x){ return x.grossProfit; }),
-        sm:s(function(x){ return x.sm; }), rd:s(function(x){ return x.rd; }), ga:s(function(x){ return x.ga; }),
-        xc:s(function(x){ return x.expansionCost; }), iv:s(function(x){ return x.interventionCost; }),
-        ebita:s(function(x){ return x.ebita; }), fcf:s(function(x){ return x.fcf; }),
-        cashO:mS.cashOpening, cashC:mE.cashClosing, runRate:mE.closingARR, cash:!!mE.cash };
-      if(o.cash){ o.arO=mS.cash.receivablesOpening; o.arC=mE.cash.receivablesClosing; o.dfO=mS.cash.deferredOpening; o.dfC=mE.cash.deferredClosing;
-        o.coll=s(function(x){ return x.cash.collections; }); o.costs=s(function(x){ return x.cash.cashCosts; }); }
-      return o;
+    h += finLens(m, caOn, differs);
+    return h;
+  }
+  /* ================= 5. FINANCIALS =================
+     The five-year model as financial statements that form with the clock. At month m a
+     year that has closed shows its annual statement; the year in progress shows its year
+     to date — flows summed from the year's first month through m, balances at m, and
+     movements measured from the prior year-end (Y1's from the canonical M0 opening, in
+     its own column); a year not yet begun is blank. Nothing is annualised and nothing is
+     forecast, and scrubbing back unforms the statements exactly.
+
+     Every printed figure comes from one place: finState(m) → finCell / finHead / finChk.
+     The full build prints those; the month tick (finTick) re-prints the same functions
+     into the cells it already holds. The tick therefore cannot show anything a rebuild
+     would not — and a browser check holds the two to the same markup. */
+  var FIN_YRS = [1,2,3,4,5];
+  var finLive = null, finStats = { builds:0, ticks:0 };
+  function finYear(res, y, m){
+    var a = 12*(y-1)+1; if(m < a) return null;
+    var b = Math.min(12*y, m), s = function(f){ return sumM(res, a, b, f); }, mS = res.months[a-1], mE = res.months[b-1];
+    var o = { ytd: b < 12*y, a:a, b:b,
+      rev:s(function(x){ return x.revenue; }), cogs:s(function(x){ return x.cogs; }), gp:s(function(x){ return x.grossProfit; }),
+      sm:s(function(x){ return x.sm; }), rd:s(function(x){ return x.rd; }), ga:s(function(x){ return x.ga; }),
+      xc:s(function(x){ return x.expansionCost; }), iv:s(function(x){ return x.interventionCost; }),
+      ebita:s(function(x){ return x.ebita; }), fcf:s(function(x){ return x.fcf; }),
+      cashO:mS.cashOpening, cashC:mE.cashClosing, runRate:mE.closingARR, cash:!!mE.cash };
+    if(o.cash){ o.arO=mS.cash.receivablesOpening; o.arC=mE.cash.receivablesClosing; o.dfO=mS.cash.deferredOpening; o.dfC=mE.cash.deferredClosing;
+      o.coll=s(function(x){ return x.cash.collections; }); o.costs=s(function(x){ return x.cash.cashCosts; }); }
+    return o;
+  }
+  /* both worlds are cut at the same month, so Base, Experiment and Δ always share one time boundary */
+  function finState(m){
+    return { m:m, selY:Math.min(5, Math.max(1, Math.ceil(Math.max(1, m)/12))),
+      FE:FIN_YRS.map(function(y){ return finYear(expRes, y, m); }), FBs:FIN_YRS.map(function(y){ return finYear(baseRes, y, m); }) };
+  }
+  function finFk(v){ if(v===null || v===undefined || !isFinite(v)) return ''; if(Math.abs(v) < 0.5) return '—';
+    var k = Math.round(v/1000); if(k === 0) return '0';
+    var r = Math.abs(k).toLocaleString('en-GB'); return v < 0 ? '('+r+')' : r; }
+  /* one statement cell, year i, under the chosen view: its text and its class */
+  function finCell(r, i, D){
+    var sel = (i+1)===D.selY ? ' sel' : '', dM = finView==='delta', E1 = D.FE[i], B1 = D.FBs[i], v;
+    if(!E1 || !B1) return { t:'', c:'n'+sel };
+    if(r.k==='pct'){
+      var f = function(F){ return F.rev ? r.num(F)/F.rev : null; }, e = f(E1), b = f(B1);
+      v = finView==='base' ? b : dM ? (e!==null && b!==null ? e-b : null) : e;
+      return { t: v===null ? '' : dM ? (v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+' pt' : (v<0?'−':'')+Math.abs(v*100).toFixed(1)+'%', c:'n'+sel };
     }
-    var FE = YRS.map(function(y){ return yearOf(expRes, y); }), FBs = YRS.map(function(y){ return yearOf(baseRes, y); });
+    if(r.k==='chk'){ var F = finView==='base' ? B1 : E1; return { t:finFk(F.coll-F.costs), c:'n'+sel }; }
+    var ev = r.fn(E1), bv = r.fn(B1);
+    v = finView==='base' ? bv : dM ? (ev===null || bv===null ? null : ev-bv) : ev;
+    return { t:finFk(v), c:'n'+sel+(r.cls==='tot' && !dM && v!==null && v<0 ? ' neg' : '') };
+  }
+  /* a year's column head: closed years read as a period, the year in progress as its year to date
+     (a balance statement reads "at M·"), a year not yet begun names the month it opens */
+  function finHead(i, D, bal){
+    var y = i+1, a = 12*y-11, F = D.FE[i];
+    var sub = !F ? 'opens M'+a : !F.ytd ? 'M'+a+'–M'+(12*y) : bal ? 'at M'+F.b : (a===F.b ? 'M'+a : 'M'+a+'–M'+F.b)+' YTD';
+    var tag = F && F.ytd ? (bal ? 'M'+F.b : 'YTD') : '';
+    return { top:'Y'+y+(tag ? '<span class="ytd"> '+tag+'</span>' : ''), sub:sub, c: y===D.selY ? 'sel' : !F ? 'fut' : '' };
+  }
+  function finPeriod(m){ return m >= H ? 'Five years to M'+H : 'Statements through M'+m; }
+  function finChk(D){
+    var FV = finView==='base' ? D.FBs : D.FE, open = FV.filter(function(F){ return F && F.cash; });
+    var ok = open.every(function(F){ var r = Math.abs(F.fcf-(F.coll-F.costs)) + Math.abs(F.fcf-(F.ebita-((F.arC-F.dfC)-(F.arO-F.dfO))));
+      return r <= 1e-6*Math.max(1, Math.abs(FV[0].rev)); });
+    return ok ? '✓ agrees with cash free cash flow in every '+(D.m >= H ? 'year' : 'period to date') : '✗ does not agree';
+  }
+  function finLaw(m){ return pct(lawNow('grossMargin'),0)+' in force at M'+m; }
+
+  function finLens(m, caOn, differs){
+    var Mt = 'M'+m, D = finState(m);
     if(!differs) finView = 'exp';
-    var dMode = finView === 'delta', FV = finView === 'base' ? FBs : FE;
-    /* a value for year i under the chosen view: the Experiment, the Base, or their difference */
-    function V(fn, i){ var e = fn(FE[i]), b = fn(FBs[i]);
-      if(finView==='base') return b; if(dMode) return (e===null||b===null) ? null : e-b; return e; }
-    var cashOn = FV[0].cash, CDL = caOn ? expRes.derived.cash.collectionDelayMonths : 0;
-    function fk(v){ if(v===null || v===undefined || !isFinite(v)) return ''; if(Math.abs(v) < 0.5) return '—';
-      var k = Math.round(v/1000); if(k === 0) return '0';
-      var r = Math.abs(k).toLocaleString('en-GB'); return v < 0 ? '('+r+')' : r; }
+    var dMode = finView === 'delta', vRes = finView === 'base' ? baseRes : expRes;
+    var cashOn = !!vRes.months[0].cash, CDL = caOn ? expRes.derived.cash.collectionDelayMonths : 0;
+    /* the full model, for what must not move with the clock: which rows exist, and the opening-state note */
+    var FEfull = FIN_YRS.map(function(y){ return finYear(expRes, y, H); }), FBfull = FIN_YRS.map(function(y){ return finYear(baseRes, y, H); });
+    var rows = [];
     var sup = function(n){ return '<sup>'+n+'</sup>'; };
-    /* one column geometry for every statement: label, the M0 opening column, five years */
     var COLS = '<colgroup><col class="c-l"><col class="c-o"><col><col><col><col><col></colgroup>';
-    function thead(open){ return '<thead><tr><th class="l"></th><th class="o">'+(open?'Opening':'')+'</th>'+
-      YRS.map(function(y){ return '<th'+(y===selY?' class="sel"':'')+'>Y'+y+'</th>'; }).join('')+'</tr>'+
-      '<tr class="sub-h"><th class="l"></th><th class="o">'+(open?'M0':'')+'</th>'+YRS.map(function(y){ return '<th'+(y===selY?' class="sel"':'')+'>M'+(12*y-11)+'–M'+(12*y)+'</th>'; }).join('')+'</tr></thead>'; }
-    function row(cls, label, fn, o0){ return '<tr'+(cls?' class="'+cls+'"':'')+'><td class="l">'+label+'</td><td class="n o">'+(o0===undefined?'':o0)+'</td>'+
-      YRS.map(function(y, i){ var v = V(fn, i); return '<td class="n'+(y===selY?' sel':'')+(cls==='tot' && !dMode && v<0 ? ' neg' : '')+'">'+fk(v)+'</td>'; }).join('')+'</tr>'; }
-    function pctRow(label, num){ return '<tr class="pct"><td class="l">'+label+'</td><td class="n o"></td>'+
-      YRS.map(function(y, i){ var f = function(F){ return F.rev ? num(F)/F.rev : null; }, e=f(FE[i]), b=f(FBs[i]), v = finView==='base' ? b : dMode ? (e!==null&&b!==null ? e-b : null) : e;
-        var t = v===null ? '' : dMode ? (v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+' pt' : (v<0?'−':'')+Math.abs(v*100).toFixed(1)+'%';
-        return '<td class="n'+(y===selY?' sel':'')+'">'+t+'</td>'; }).join('')+'</tr>'; }
+    function thead(open, bal){
+      var hs = FIN_YRS.map(function(y, i){ return finHead(i, D, bal); });
+      return '<thead><tr><th class="l"></th><th class="o">'+(open?'Opening':'')+'</th>'+
+        hs.map(function(hd, i){ return '<th class="'+hd.c+'" data-fh="'+i+'" data-fb="'+(bal?1:0)+'">'+hd.top+'</th>'; }).join('')+'</tr>'+
+        '<tr class="sub-h"><th class="l"></th><th class="o">'+(open?'M0':'')+'</th>'+
+        hs.map(function(hd, i){ return '<th class="'+hd.c+'" data-fs="'+i+'" data-fb="'+(bal?1:0)+'">'+hd.sub+'</th>'; }).join('')+'</tr></thead>'; }
+    function R(cls, label, r, o0){ r.cls = cls; var ri = rows.length; rows.push(r);
+      return '<tr'+(cls?' class="'+cls+'"':'')+'><td class="l">'+label+'</td><td class="n o">'+(o0===undefined?'':o0)+'</td>'+
+        FIN_YRS.map(function(y, i){ var c = finCell(r, i, D); return '<td class="'+c.c+'" data-fr="'+ri+'">'+c.t+'</td>'; }).join('')+'</tr>'; }
+    var row = function(cls, label, fn, o0){ return R(cls, label, { k:'v', fn:fn }, o0); };
+    var pctRow = function(label, num){ return R('pct', label, { k:'pct', num:num }); };
     var xcOn = expRes.mechanisms.expansionCost || baseRes.mechanisms.expansionCost, ivOn2 = expRes.mechanisms.interventions || baseRes.mechanisms.interventions;
     var viewName = finView==='base' ? 'Base' : dMode ? 'Experiment − Base' : (differs ? 'Experiment' : '');
+    var h = '';
 
     h += lensHead('5', 'How does the operating system translate into profit, working capital and cash?', 'Y1–Y5', 'cash');
     h += '<div class="fin">';
     h += '<div class="fin-top">'+
-      '<span class="fin-period">Five years to M60'+(viewName ? ' <span class="fin-view">· '+viewName+'</span>' : '')+'</span>'+
+      '<span class="fin-period"><span data-fp>'+finPeriod(m)+'</span>'+(viewName ? ' <span class="fin-view">· '+viewName+'</span>' : '')+'</span>'+
       (differs ? '<div class="btn-row fin-per"><button class="btn'+(finView==='exp'?' on':'')+'" data-finv="exp">Experiment</button><button class="btn'+(finView==='base'?' on':'')+'" data-finv="base">Base</button><button class="btn'+(dMode?' on':'')+'" data-finv="delta">Δ vs Base</button></div>' : '')+
       '<span class="fin-links"><button class="fin-go" data-go="cash">Mechanism · System → Cash ›</button><button class="fin-go" data-go="ledger">Proof · Model Ledger ›</button></span>'+
       '</div>'+
-      '<div class="fin-units">€ thousands · years of twelve model months · money, not run-rate — the '+basis+' switch does not apply</div>';
+      '<div class="fin-units">€ thousands · years of twelve model months, the year in progress to date · money, not run-rate — the '+basis+' switch does not apply</div>';
 
     /* ---- statement of operations ---- */
-    h += '<table class="fs yr">'+COLS+'<caption>Statement of operations</caption>'+thead(false)+'<tbody>'+
+    h += '<table class="fs yr">'+COLS+'<caption>Statement of operations</caption>'+thead(false, false)+'<tbody>'+
       row('', 'Revenue <span class="q">recognised</span>', function(F){ return F.rev; })+
       row('in', 'Cost of revenue'+sup(1), function(F){ return -F.cogs; })+
       row('sub', 'Gross profit', function(F){ return F.gp; })+
@@ -7618,92 +7671,152 @@ details.pl .cascade{margin-top:8px}
       (ivOn2 ? row('in', 'Hypothesis programme cost', function(F){ return -F.iv; }) : '')+
       row('sub', 'EBITA'+sup(2), function(F){ return F.ebita; })+
       pctRow('EBITA margin', function(F){ return F.ebita; })+
-      row('memo', 'Memo · closing '+basis+' <span class="q">year-end run-rate, not revenue</span>', function(F){ return rc(F.runRate); })+
+      row('memo', 'Memo · closing '+basis+' <span class="q">run-rate at period end, not revenue</span>', function(F){ return rc(F.runRate); })+
       '</tbody></table>';
 
     /* ---- working capital ---- */
+    var zeroMark = '';
     if(cashOn){
-      var anyCA = FE.concat(FBs).some(function(F){ return F.cash && (F.dfO<0 || F.dfC<0); });
+      var anyCA = FEfull.concat(FBfull).some(function(F){ return F.cash && (F.dfO<0 || F.dfC<0); });
       var arF = function(F){ return F.cash ? F.arC : null; }, caF = function(F){ return F.cash ? Math.max(0,-F.dfC) : null; }, dfF = function(F){ return F.cash ? -Math.max(0,F.dfC) : null; };
       var nwF = function(F){ return F.cash ? F.arC - F.dfC : null; };
       var dAr = function(F){ return F.cash ? F.arC - F.arO : null; }, dCa = function(F){ return F.cash ? Math.max(0,-F.dfC) - Math.max(0,-F.dfO) : null; };
       var dDf = function(F){ return F.cash ? -Math.max(0,F.dfC) + Math.max(0,F.dfO) : null; }, dNw = function(F){ return F.cash ? (F.arC-F.dfC)-(F.arO-F.dfO) : null; };
-      /* the opening column: the canonical M0 state, under the chosen view */
-      var o0 = function(fn){ var e = fn(FE[0]), b = fn(FBs[0]); var v = finView==='base' ? b : dMode ? e-b : e; return fk(v); };
+      /* the opening column: the canonical M0 state, under the chosen view — it does not move with the clock */
+      var o0 = function(fn){ var e = fn(FEfull[0]), b = fn(FBfull[0]); var v = finView==='base' ? b : dMode ? e-b : e; return finFk(v); };
       var arO = function(F){ return F.arO; }, caO = function(F){ return Math.max(0,-F.dfO); }, dfO = function(F){ return -Math.max(0,F.dfO); }, nwO = function(F){ return F.arO-F.dfO; };
-      var zeroMark = CDL>0 && Math.abs(FE[0].arO) < 0.5 ? sup(6) : '';
-      h += '<table class="fs yr">'+COLS+'<caption>Working capital'+sup(4)+' <span class="cap-q">modelled operating balances only · year-end</span></caption>'+thead(true)+'<tbody>'+
-        '<tr><td class="l">Receivables</td><td class="n o">'+o0(arO)+zeroMark+'</td>'+YRS.map(function(y,i){ return '<td class="n'+(y===selY?' sel':'')+'">'+fk(V(arF,i))+'</td>'; }).join('')+'</tr>'+
-        (anyCA ? '<tr><td class="l">Contract asset <span class="q">unbilled</span></td><td class="n o">'+o0(caO)+'</td>'+YRS.map(function(y,i){ return '<td class="n'+(y===selY?' sel':'')+'">'+fk(V(caF,i))+'</td>'; }).join('')+'</tr>' : '')+
-        '<tr><td class="l">Deferred revenue</td><td class="n o">'+o0(dfO)+'</td>'+YRS.map(function(y,i){ return '<td class="n'+(y===selY?' sel':'')+'">'+fk(V(dfF,i))+'</td>'; }).join('')+'</tr>'+
-        '<tr class="sub nwc"><td class="l">Net working capital</td><td class="n o">'+o0(nwO)+'</td>'+YRS.map(function(y,i){ return '<td class="n'+(y===selY?' sel':'')+'">'+fk(V(nwF,i))+'</td>'; }).join('')+'</tr>'+
+      zeroMark = CDL>0 && Math.abs(FEfull[0].arO) < 0.5 ? sup(6) : '';
+      h += '<table class="fs yr">'+COLS+'<caption>Working capital'+sup(4)+' <span class="cap-q">modelled operating balances only · at year-end, the year in progress at its latest month</span></caption>'+thead(true, true)+'<tbody>'+
+        row('', 'Receivables', arF, o0(arO)+zeroMark)+
+        (anyCA ? row('', 'Contract asset <span class="q">unbilled</span>', caF, o0(caO)) : '')+
+        row('', 'Deferred revenue', dfF, o0(dfO))+
+        row('sub nwc', 'Net working capital', nwF, o0(nwO))+
         '<tr class="gap"><td colspan="7"></td></tr>'+
         row('mv', 'Change in receivables'+(zeroMark ? ' <span class="q">Y1 from zero</span>' : ''), dAr)+
         (anyCA ? row('mv', 'Change in contract asset', dCa) : '')+
         row('mv', 'Change in deferred revenue', dDf)+
         row('sub nwc', 'Change in net working capital', dNw)+
         '</tbody></table>'+
-        '<div class="fin-note">Balances are year-end; deferred revenue is shown as the deduction it is, and each change carries the sign of the balance above it. A rise in net working capital uses cash.</div>';
+        '<div class="fin-note">Each change runs from the prior year-end — for the year in progress, to the latest month. Deferred revenue is shown as the deduction it is, and each change carries the sign of the balance above it. A rise in net working capital uses cash.</div>';
     } else {
       h += '<table class="fs yr">'+COLS+'<caption>Working capital'+sup(4)+'</caption><tbody><tr class="absent"><td class="l" colspan="7">'+
         'Cash Physics is off. No billing term, deferred revenue or receivables are modelled — this is an absence, not a zero balance, and cash moves with EBITA.</td></tr></tbody></table>';
     }
 
     /* ---- cash flow ---- */
-    var chk = cashOn ? YRS.map(function(y,i){ var F=FV[i]; return F.cash ? Math.abs(F.fcf-(F.coll-F.costs)) + Math.abs(F.fcf-(F.ebita-((F.arC-F.dfC)-(F.arO-F.dfO)))) : 0; }) : [];
-    var chkOK = chk.every(function(r){ return r <= 1e-6*Math.max(1, Math.abs(FV[0].rev)); });
-    h += '<table class="fs yr">'+COLS+'<caption>Cash flow <span class="cap-q">indirect</span></caption>'+thead(false)+'<tbody>'+
+    h += '<table class="fs yr">'+COLS+'<caption>Cash flow <span class="cap-q">indirect</span></caption>'+thead(false, false)+'<tbody>'+
       row('', 'EBITA', function(F){ return F.ebita; })+
       (cashOn ? row('nwc', '(Increase) / decrease in working capital', function(F){ return F.cash ? -((F.arC-F.dfC)-(F.arO-F.dfO)) : null; })
               : '<tr class="absent"><td class="l">Working-capital movement</td><td class="n o"></td><td class="n" colspan="5">not modelled — cash free cash flow equals EBITA</td></tr>')+
       row('sub', 'Cash free cash flow'+sup(3), function(F){ return F.fcf; })+
       '<tr class="gap"><td colspan="7"></td></tr>'+
-      row('', 'Cash at beginning of year', function(F){ return F.cashO; })+
+      row('', 'Cash at beginning of period', function(F){ return F.cashO; })+
       row('', 'Cash free cash flow', function(F){ return F.fcf; })+
-      row('tot', 'Cash at end of year'+sup(5), function(F){ return F.cashC; })+
-      (cashOn && !dMode ? '<tr class="chk"><td class="l">Check · collections less cash costs <span class="q">· direct method</span></td><td class="n o"></td>'+
-        YRS.map(function(y,i){ var F=FV[i]; return '<td class="n'+(y===selY?' sel':'')+'">'+fk(F.coll-F.costs)+'</td>'; }).join('')+'</tr>'+
-        '<tr class="chk"><td class="l"></td><td class="n o"></td><td class="n ok" colspan="5">'+(chkOK ? '✓ agrees with cash free cash flow in every year' : '✗ does not agree')+'</td></tr>' : '')+
+      row('tot', 'Cash at end of period'+sup(5), function(F){ return F.cashC; })+
+      (cashOn && !dMode ? R('chk', 'Check · collections less cash costs <span class="q">· direct method</span>', { k:'chk' })+
+        '<tr class="chk"><td class="l"></td><td class="n o"></td><td class="n ok" colspan="5" data-fc>'+finChk(D)+'</td></tr>' : '')+
       '</tbody></table>';
 
-    var figRes = finView==='base' ? baseRes : expRes;
-    h += finFigure(figRes, selY, m, differs ? (finView==='base' ? 'Base' : 'Experiment') : '');
+    h += finFigure(vRes, D.selY, m, differs ? (finView==='base' ? 'Base' : 'Experiment') : '');
 
-    var gmLaw = lawNow('grossMargin');
-    var y1 = FE[0];
+    var y1 = FEfull[0];
     h += '<div class="fin-notes">'+
-      '<p>'+sup(1)+' Cost of revenue derives from the gross-margin law ('+pct(gmLaw,0)+' in force at '+Mt+'); it is not a build-up of costs.</p>'+
+      '<p>'+sup(1)+' Cost of revenue derives from the gross-margin law (<span data-fl>'+finLaw(m)+'</span>); it is not a build-up of costs.</p>'+
       '<p>'+sup(2)+' EBITA — no depreciation is modelled, so EBITA, EBITDA and EBIT coincide.</p>'+
       '<p>'+sup(3)+' Free cash flow is pre-tax, with no capex, financing, payables or bad debt; costs are paid when incurred.</p>'+
       '<p>'+sup(4)+' Working capital: modelled operating balances only — the model carries receivables and deferred revenue, not a balance sheet.</p>'+
       '<p>'+sup(5)+' A negative cash balance is unfunded: no financing is modelled.</p>'+
       (zeroMark && y1.cash ? '<p class="conv">'+sup(6)+' Opening-state convention: the model seeds the opening deferred-revenue book at M0 but starts receivables at zero. Y1 therefore builds its receivables book from nothing — '+
-        eur(y1.arC)+' by M12, of which '+eur(expRes.months[CDL-1].cash.receivablesClosing)+' in months 1–'+CDL+' — against '+(function(){ var d=FE.slice(1).map(function(F){ return F.cash ? F.arC-F.arO : 0; }); return eur(Math.min.apply(null,d))+'–'+eur(Math.max.apply(null,d)); })()+' a year in Y2–Y5. That build is a Y1 draw on cash reflecting the opening state, not an event of the year.</p>' : '')+
+        eur(y1.arC)+' by M12, of which '+eur(expRes.months[CDL-1].cash.receivablesClosing)+' in months 1–'+CDL+' — against '+(function(){ var d=FEfull.slice(1).map(function(F){ return F.cash ? F.arC-F.arO : 0; }); return eur(Math.min.apply(null,d))+'–'+eur(Math.max.apply(null,d)); })()+' a year in Y2–Y5. That build is a Y1 draw on cash reflecting the opening state, not an event of the year.</p>' : '')+
       '</div></div></div>';
+    finStats.builds++;
+    finLive = { pending:true, rows:rows, vRes:vRes };
     return h;
+  }
+  /* after a full build has been written: hold the cells the tick re-prints */
+  function finBind(key){
+    var root = document.getElementById('lens-cash'); if(!finLive || !finLive.pending || !root){ finLive = null; return; }
+    var L = finLive; L.pending = false; L.key = key; L.root = root; L.hero = document.getElementById('lens-company');
+    L.tds = L.rows.map(function(){ return []; });
+    [].forEach.call(root.querySelectorAll('td[data-fr]'), function(td){ L.tds[+td.dataset.fr].push(td); });
+    L.th = [].slice.call(root.querySelectorAll('th[data-fh]')); L.ts = [].slice.call(root.querySelectorAll('th[data-fs]'));
+    L.fp = root.querySelector('[data-fp]'); L.fc = root.querySelector('[data-fc]'); L.fl = root.querySelector('[data-fl]');
+    L.band = root.querySelector('g[data-fg="band"]'); L.dyn = root.querySelector('g[data-fg="dyn"]');
+  }
+  /* what, besides the month, the Financials markup depends on — any change forces a full build */
+  function finKey(){ return [expRes, baseRes, finView, basis, pairMode, activeLens, layer, pinned, anatomy]; }
+  function finKeySame(a, b){ if(!a || !b || a.length!==b.length) return false; for(var i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; }
+  /* the month tick: the clock moved and nothing else did. Re-print the Company headline and the
+     Financials figures that depend on the month, in place — no lens is rebuilt, the chart's
+     paths are left alone, and the four hidden lenses are not touched. */
+  function finTick(m){
+    var L = finLive, D = finState(m), set = function(el, s){ if(el && el.innerHTML !== s) el.innerHTML = s; };
+    finStats.ticks++;
+    var tmp = document.createElement('div'); tmp.innerHTML = renderLenses(m, expRes.months[m-1], baseRes.months[m-1], true);
+    var nh = tmp.querySelector('#lens-company'); if(nh && L.hero) set(L.hero, nh.innerHTML);
+    for(var ri=0; ri<L.rows.length; ri++){ var tds = L.tds[ri];
+      for(var i=0; i<tds.length; i++){ var c = finCell(L.rows[ri], i, D), td = tds[i];
+        if(td.textContent !== c.t) td.textContent = c.t; if(td.className !== c.c) td.className = c.c; } }
+    function heads(list, part){ list.forEach(function(th){ var hd = finHead(+th.dataset[part==='top'?'fh':'fs'], D, th.dataset.fb==='1');
+      set(th, part==='top' ? hd.top : hd.sub); if(th.className !== hd.c) th.className = hd.c; }); }
+    heads(L.th, 'top'); heads(L.ts, 'sub');
+    set(L.fp, finPeriod(m)); if(L.fc) set(L.fc, finChk(D)); set(L.fl, finLaw(m));
+    var fd = finFigDyn(L.vRes, D.selY, m); set(L.band, fd.band); set(L.dyn, fd.dyn);
   }
   /* The conversion figure (Financials). Its own drawing rather than chart(): the
      band between two series is the subject, and a second pane carries the stock
      that band accumulates into. It keeps the lens-chart geometry (640 wide, the
      same margins, Y1–Y5), so a click moves the month exactly as it does on every
-     other lens chart. */
-  function finFigure(res, selY, m, worldTag){
+     other lens chart. The paths are drawn once per build; what moves with the
+     clock — the year band, the months not yet reached, the cursor and the values
+     at the right edge — is finFigDyn, which the month tick re-prints alone. */
+  var finGeoCache = new WeakMap();
+  function finGeo(res){
+    var G = finGeoCache.get(res); if(G) return G;
     var caOn = !!res.months[0].cash, CDL = caOn ? res.derived.cash.collectionDelayMonths : 0;
-    var W=CHG.W, L=CHG.L, R=CHG.R, pw=W-L-R, T1=18, H1=118, GAP=34, H2=caOn?74:0, Hh=T1+H1+(caOn?GAP+H2:0)+22;
-    var x = function(t){ return L + (t/H)*pw; };
-    var sE = function(v){ return v<0 ? '−'+eur(-v) : eur(v); };
+    var W=CHG.W, L=CHG.L, R=CHG.R, pw=W-L-R, T1=18, H1=118, GAP=34, H2=caOn?74:0, Hh=T1+H1+(caOn?GAP+H2:0)+22, T2=T1+H1+GAP;
     var eb=[], fc=[], nw=[], t;
     for(t=1;t<=H;t++){ var q=res.months[t-1]; eb[t]=q.ebita; fc[t]=q.fcf; nw[t]=q.cash ? q.cash.receivablesClosing-q.cash.deferredClosing : null; }
     var lo=0, hi=0; for(t=1;t<=H;t++){ lo=Math.min(lo,eb[t],fc[t]); hi=Math.max(hi,eb[t],fc[t]); }
     var sp=(hi-lo)||1; lo-=sp*0.06; hi+=sp*0.06;
-    var y1 = function(v){ return T1 + H1 - (v-lo)/(hi-lo)*H1; };
-    var g = '';
-    /* period band and year grid */
-    g += '<rect x="'+x(12*(selY-1)).toFixed(1)+'" y="'+(T1-6)+'" width="'+(x(12*selY)-x(12*(selY-1))).toFixed(1)+'" height="'+(Hh-T1-12)+'" fill="rgba(139,141,240,.06)"/>';
+    var nlo=0, nhi=0; if(caOn){ for(t=1;t<=H;t++){ nlo=Math.min(nlo,nw[t]); nhi=Math.max(nhi,nw[t]); } var ns=(nhi-nlo)||1; nlo-=ns*0.08; nhi+=ns*0.08; }
+    G = { caOn:caOn, CDL:CDL, W:W, L:L, R:R, T1:T1, H1:H1, H2:H2, Hh:Hh, T2:T2, eb:eb, fc:fc, nw:nw, lo:lo, hi:hi, nlo:nlo, nhi:nhi,
+      x:function(t){ return L + (t/H)*pw; },
+      y1:function(v){ return T1 + H1 - (v-lo)/(hi-lo)*H1; },
+      y2:function(v){ return T2 + H2 - (v-nlo)/(nhi-nlo)*H2; } };
+    finGeoCache.set(res, G); return G;
+  }
+  var finSE = function(v){ return v<0 ? '−'+eur(-v) : eur(v); };
+  function finFigDyn(res, selY, m){
+    var G = finGeo(res), x = G.x, y1 = G.y1, y2 = G.y2, W = G.W, R = G.R, T1 = G.T1, Hh = G.Hh, fc = G.fc, eb = G.eb, nw = G.nw;
+    var band = '<rect x="'+x(12*(selY-1)).toFixed(1)+'" y="'+(T1-6)+'" width="'+(x(12*selY)-x(12*(selY-1))).toFixed(1)+'" height="'+(Hh-T1-12)+'" fill="rgba(139,141,240,.06)"/>';
+    var xm = x(m).toFixed(1), d = '';
+    /* months the clock has not reached: the statements leave them blank, the figure dims them */
+    if(m < H){ var vw = (x(H)-x(m)+1).toFixed(1);
+      d += '<rect class="fin-fut" x="'+xm+'" y="'+(T1-2)+'" width="'+vw+'" height="'+(G.H1+4)+'"/>';
+      if(G.caOn) d += '<rect class="fin-fut" x="'+xm+'" y="'+(G.T2-2)+'" width="'+vw+'" height="'+(G.H2+4)+'"/>'; }
+    d += '<line class="cur" x1="'+xm+'" x2="'+xm+'" y1="'+(T1-6)+'" y2="'+(T1+G.H1+(G.caOn?8:0))+'"/>';
+    /* the month's values at the right edge: two labelled values need 24 units between them */
+    if(!G.caOn){
+      d += '<text class="rv" x="'+(W-R+6)+'" y="'+(y1(fc[m])+3.5).toFixed(1)+'" fill="var(--ink)">'+esc(finSE(fc[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(y1(fc[m])+13).toFixed(1)+'">EBITA = FCF</text>';
+    } else {
+      var ry1=y1(fc[m]), ry2=y1(eb[m]), mid=(ry1+ry2)/2;
+      if(Math.abs(ry1-ry2)<24){ if(ry1<=ry2){ ry1=mid-12; ry2=mid+12; } else { ry1=mid+12; ry2=mid-12; } }
+      d += '<text class="rv" x="'+(W-R+6)+'" y="'+(ry1+3.5).toFixed(1)+'" fill="var(--ink)">'+esc(finSE(fc[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(ry1+12).toFixed(1)+'">cash FCF</text>';
+      d += '<text class="rv" x="'+(W-R+6)+'" y="'+(ry2+3.5).toFixed(1)+'" fill="var(--ink-3)">'+esc(finSE(eb[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(ry2+12).toFixed(1)+'">EBITA</text>';
+      d += '<line class="cur" x1="'+xm+'" x2="'+xm+'" y1="'+G.T2+'" y2="'+(G.T2+G.H2)+'"/>';
+      d += '<text class="rv" x="'+(W-R+6)+'" y="'+(y2(nw[m])+3.5).toFixed(1)+'" fill="var(--exp)">'+esc(finSE(nw[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(y2(nw[m])+13).toFixed(1)+'">NWC</text>';
+    }
+    return { band:band, dyn:d };
+  }
+  function finFigure(res, selY, m, worldTag){
+    var G = finGeo(res), x = G.x, y1 = G.y1, y2 = G.y2, W = G.W, L = G.L, R = G.R, T1 = G.T1, H1 = G.H1, Hh = G.Hh, eb = G.eb, fc = G.fc, nw = G.nw, caOn = G.caOn, CDL = G.CDL, t;
+    var fd = finFigDyn(res, selY, m), g = '';
+    /* the year the clock is in, then the year grid */
+    g += '<g data-fg="band">'+fd.band+'</g>';
     for(var yr=1;yr<=5;yr++){ var gx=x(yr*12).toFixed(1); g+='<line class="gy" x1="'+gx+'" x2="'+gx+'" y1="'+(T1-6)+'" y2="'+(Hh-18)+'"/><text class="ax" x="'+gx+'" y="'+(Hh-4)+'" text-anchor="middle">Y'+yr+'</text>'; }
     g += '<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y1(0).toFixed(1)+'" y2="'+y1(0).toFixed(1)+'"/>';
-    g += '<text class="ax" x="'+(L-6)+'" y="'+(y1(hi)+8).toFixed(1)+'" text-anchor="end">'+esc(sE(hi))+'</text><text class="ax" x="'+(L-6)+'" y="'+(y1(0)+3).toFixed(1)+'" text-anchor="end">0</text>';
-    g += '<text class="fl" x="'+L+'" y="'+(T1-8)+'">EBITA and cash free cash flow · each month</text>';
+    g += '<text class="ax" x="'+(L-6)+'" y="'+(y1(G.hi)+8).toFixed(1)+'" text-anchor="end">'+esc(finSE(G.hi))+'</text><text class="ax" x="'+(L-6)+'" y="'+(y1(0)+3).toFixed(1)+'" text-anchor="end">0</text>';
     /* the band: one trapezoid per month, green where cash beat profit, red where working capital absorbed it */
     if(caOn){
       for(t=1;t<H;t++){
@@ -7715,36 +7828,23 @@ details.pl .cascade{margin-top:8px}
     function line(arr, yf, cls, st){ var d=''; for(var k=1;k<=H;k++){ if(arr[k]===null) continue; d+=(d?'L':'M')+x(k).toFixed(1)+' '+yf(arr[k]).toFixed(1); } return '<path class="ln '+cls+'" d="'+d+'" style="'+st+'"/>'; }
     g += line(eb, y1, 'eb', 'stroke:var(--ink-3);stroke-width:1.2;stroke-dasharray:3 2');
     g += line(fc, y1, 'fc', 'stroke:var(--ink);stroke-width:1.5');
-    var xm=x(m).toFixed(1);
-    g += '<line class="cur" x1="'+xm+'" x2="'+xm+'" y1="'+(T1-6)+'" y2="'+(Hh-18)+'"/>';
-    /* the month's two values at the right edge */
-    /* the month's values at the right edge: two labelled values need 24 units between them */
-    if(!caOn){
-      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(y1(fc[m])+3.5).toFixed(1)+'" fill="var(--ink)">'+esc(sE(fc[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(y1(fc[m])+13).toFixed(1)+'">EBITA = FCF</text>';
-    } else {
-      var ry1=y1(fc[m]), ry2=y1(eb[m]), mid=(ry1+ry2)/2;
-      if(Math.abs(ry1-ry2)<24){ if(ry1<=ry2){ ry1=mid-12; ry2=mid+12; } else { ry1=mid+12; ry2=mid-12; } }
-      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(ry1+3.5).toFixed(1)+'" fill="var(--ink)">'+esc(sE(fc[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(ry1+12).toFixed(1)+'">cash FCF</text>';
-      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(ry2+3.5).toFixed(1)+'" fill="var(--ink-3)">'+esc(sE(eb[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(ry2+12).toFixed(1)+'">EBITA</text>';
-    }
     if(caOn){
-      var T2=T1+H1+GAP, nlo=0, nhi=0; for(t=1;t<=H;t++){ nlo=Math.min(nlo,nw[t]); nhi=Math.max(nhi,nw[t]); }
-      var ns=(nhi-nlo)||1; nlo-=ns*0.08; nhi+=ns*0.08;
-      var y2 = function(v){ return T2 + H2 - (v-nlo)/(nhi-nlo)*H2; };
-      g += '<text class="fl" x="'+L+'" y="'+(T2-8)+'">Net working capital · month end — the running total of the band above</text>';
+      var T2=G.T2;
       var d2='M'+x(1).toFixed(1)+' '+y2(0).toFixed(1); for(t=1;t<=H;t++) d2+='L'+x(t).toFixed(1)+' '+y2(nw[t]).toFixed(1); d2+='L'+x(H).toFixed(1)+' '+y2(0).toFixed(1)+'Z';
       g += '<path d="'+d2+'" fill="rgba(139,141,240,.20)" stroke="rgba(139,141,240,.75)" stroke-width="1"/>';
       g += '<line class="zero" x1="'+L+'" x2="'+(W-R)+'" y1="'+y2(0).toFixed(1)+'" y2="'+y2(0).toFixed(1)+'"/>';
-      g += '<text class="ax" x="'+(L-6)+'" y="'+(y2(0)+3).toFixed(1)+'" text-anchor="end">0</text><text class="ax" x="'+(L-6)+'" y="'+(y2(nlo)+0).toFixed(1)+'" text-anchor="end">'+esc(sE(nlo))+'</text>';
-      g += '<line class="cur" x1="'+xm+'" x2="'+xm+'" y1="'+T2+'" y2="'+(T2+H2)+'"/>';
-      g += '<text class="rv" x="'+(W-R+6)+'" y="'+(y2(nw[m])+3.5).toFixed(1)+'" fill="var(--exp)">'+esc(sE(nw[m]))+'</text><text class="rl" x="'+(W-R+6)+'" y="'+(y2(nw[m])+13).toFixed(1)+'">NWC</text>';
-      if(CDL>0){ g += '<text class="ax" x="'+(x(CDL)+4).toFixed(1)+'" y="'+(T1+H1-2)+'" fill="var(--law)">⁶ opening state</text>'; }
+      g += '<text class="ax" x="'+(L-6)+'" y="'+(y2(0)+3).toFixed(1)+'" text-anchor="end">0</text><text class="ax" x="'+(L-6)+'" y="'+(y2(G.nlo)+0).toFixed(1)+'" text-anchor="end">'+esc(finSE(G.nlo))+'</text>';
     }
+    g += '<g data-fg="dyn">'+fd.dyn+'</g>';
+    /* the labels sit above the dimmed months */
+    g += '<text class="fl" x="'+L+'" y="'+(T1-8)+'">EBITA and cash free cash flow · each month</text>';
+    if(caOn){ g += '<text class="fl" x="'+L+'" y="'+(G.T2-8)+'">Net working capital · month end — the running total of the band above</text>';
+      if(CDL>0) g += '<text class="ax" x="'+(x(CDL)+4).toFixed(1)+'" y="'+(T1+H1-2)+'" fill="var(--law)">⁶ opening state</text>'; }
     var legend = caOn
       ? '<span><i style="background:var(--ink)"></i>cash FCF</span><span><i class="dash"></i>EBITA</span><span><i style="background:rgba(79,163,125,.6)"></i>working capital released cash</span><span><i style="background:rgba(194,96,106,.6)"></i>working capital absorbed cash</span><span><i style="background:rgba(139,141,240,.45)"></i>net working capital</span>'
       : '<span><i style="background:var(--ink)"></i>cash FCF = EBITA · Cash Physics off</span>';
     var T12 = caOn ? res.derived.cash.billingTermMonths : 1;
-    var cap = 'The monthly dynamics the annual columns sum away. The shaded year is the one the clock is in; a click moves the month.'+
+    var cap = 'The monthly dynamics the annual columns sum away. The shaded year is the one the clock is in; months it has not reached are dimmed; a click moves the month.'+
       (caOn && T12 > 1 ? ' Cash steps up once a year: contracts invoiced a year ahead renew, so from month '+(T12+1)+' every month invoices one more renewing vintage, and the step reaches cash '+CDL+' month'+(CDL===1?'':'s')+' later — inside the next year’s column, not on its boundary.' : '');
     return '<div class="fin-fig"><div class="fin-fig-t">Conversion over sixty months'+(worldTag ? ' <span class="fin-view">· '+worldTag+'</span>' : '')+'</div><div class="fin-fig-c">'+cap+'</div>'+
       '<svg class="ch" data-l="'+L+'" data-r="'+R+'" viewBox="0 0 '+W+' '+Hh+'" width="100%" role="img" aria-label="EBITA and cash free cash flow per month with the working-capital band between them, and net working capital beneath">'+g+'</svg>'+
@@ -8142,6 +8242,7 @@ details.pl .cascade{margin-top:8px}
   var activeLens = 'company', figPref = {};
   var finView = 'exp';   /* Financials: which figures fill the five years — Experiment, Base, or the difference */
   var leverDown = false, sideStale = false, figLegend = '';
+  var sideMonthTick = false, sideTicked = false, cascadeStale = false;   /* renderSide was called by the clock alone (syncTime) */
   /* A finger or a cursor is pressed on the stage. While time is running the clock rebuilds the
      stage's markup about eleven times a second, and a rebuild between press and release destroys
      the very node being pressed: the browser then dispatches no click at all. That is why, with
@@ -8209,6 +8310,11 @@ details.pl .cascade{margin-top:8px}
   }
   function renderSide(){
     if(pressHold && !leverDown){ sideStale = true; return; }   /* not under an open press */
+    /* Financials showing and only the clock moved: re-print its month-dependent figures in place
+       rather than rebuilding every lens (the four hidden ones included) once a month */
+    if(sideMonthTick && finLive && !finLive.pending && !leverDown && finKeySame(finLive.key, finKey()) && document.body.contains(finLive.root)){
+      finTick(selectedMonth()); sideTicked = true; return;
+    }
     parkCascade();
     if(layer==='flow'){ return renderFlowSide(); }
     if(layer==='cmp'){
@@ -8274,6 +8380,8 @@ details.pl .cascade{margin-top:8px}
     sideEl.innerHTML=h; sideStale=false;
     [].forEach.call(sideEl.querySelectorAll('details'), function(d){ var k=dkey(d); if(k && wasOpen[k]!==undefined) d.open=wasOpen[k]; });
     sideEl.dataset.active = (pinned!==null && pinned<expS.C) ? 'inspect' : activeLens;
+    if(sideEl.dataset.active==='cash') finBind(finKey()); else finLive = null;
+    if(cascadeStale){ cascadeStale = false; renderCascade(); }
     placeCascade(); placeLevers();
     renderCausal(null, true);
     [].forEach.call(document.querySelectorAll('.lensnav .btn'), function(b){ b.addEventListener('click', function(){ setLens(b.dataset.lens); }); });
@@ -9248,7 +9356,10 @@ details.pl .cascade{margin-top:8px}
   function syncTime(){
     var m=Math.round(tau); syncedMonth = m;
     tl.innerHTML='Month '+String(m).padStart(2,'0')+' <small>· year '+Math.max(1,Math.ceil(Math.max(1,m)/12))+'</small>';
-    syncMeasuredKPI(); renderSide(); renderCascade(); ledgerMark();
+    syncMeasuredKPI(); sideMonthTick = true; sideTicked = false; try { renderSide(); } finally { sideMonthTick = false; }
+    /* the P&L cascade has no place on Financials: while the month tick serves it, the cascade waits for the next full build */
+    if(sideTicked) cascadeStale = true; else renderCascade();
+    ledgerMark();
   }
 
   function setLayer(l){
@@ -9416,6 +9527,7 @@ details.pl .cascade{margin-top:8px}
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,
     attributionValid: attributionValid,
+    get finStats(){ return finStats; }, finRebuild: function(){ finLive = null; renderSide(); },
     get activePack(){ return activePack; }, get sysView(){ return sysView; }, get ledgerView(){ return ledgerView; }, get ledgerBuilds(){ return ledgerBuilds; }, renderLedger: renderLedger, PACKS: PACKS, boundText: boundText, get geo(){ return geo; }, get figLegend(){ return figLegend; }, get pinned(){ return pinned; }, get acqCurve(){ return acqCurveModel; }, get customersView(){ return customersModel; }, get monetizationView(){ return monModel; }, get monVintage(){ return monVintage; }, get monVintHits(){ return vintHits; }, get sysFit(){ return fitT; },
     get cohortLife(){ return cohortLife && { k:cohortLife.k, acquisitionMonth:cohortLife.acquisitionMonth, m:cohortLife.m, age:cohortLife.age, born:cohortLife.born,
       initialARR:cohortLife.initialARR, currentARR:cohortLife.currentARR, acquisitionCost:cohortLife.acquisitionCost, cumGP:cohortLife.cumGP,

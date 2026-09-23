@@ -7,7 +7,8 @@
  *
  *   STRUCTURE   per lens: question · headline row · [controls] · the specified charts, nothing
  *               else — no formation canvas or Compare strip beneath the other four lenses
- *   COUNTS      Company 1 canvas · Customers 2 · Growth engine 2 · Monetization 1 · Economics 2
+ *   COUNTS      Company 1 canvas · Customers 2 · Growth engine 2 · Monetization 1 · Financials 1
+ *               (Financials: three statements over Y1–Y5 and one conversion figure)
  *   RESPONSE    Growth engine chart 1 is not a time series: x is S&M per month, y is New ARR per
  *               month, and it must BE the engine's acquisition function — the operating points,
  *               the ceiling and the average/marginal slopes all read off that one curve
@@ -68,7 +69,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   await click(fresh, '.lensnav .btn[data-lens="cash"]');
   const bootCa = await page(fresh, 'cash');
   const bootCash = await D(fresh, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), em = W.expRes.months[m - 1]; return { cashOn: !!em.cash, term: W.expRes.derived.cash.billingTermMonths, delay: W.expRes.derived.cash.collectionDelayMonths, fcfNeEbita: Math.abs(em.fcf - em.ebita) > 1 }; });
-  rec('DEFAULT WORLD: opening Economics & cash on a fresh load shows revenue, EBITA, margin, cash, trough, the economics chart and the cash chart with Cash physics active (billed 12 months in advance, collected two months later, FCF ≠ EBITA)', bootCa.hl.length === 5 && bootCa.charts === 2 && bootCa.titles.join('|') === 'Economics over time · monthly|Cash over time' && bootCash.cashOn && bootCash.term === 12 && bootCash.delay === 2 && bootCash.fcfNeEbita && !/physics off/i.test(bootCa.txt), JSON.stringify({ hl: bootCa.hl, bootCash }));
+  const bootFin = await D(fresh, () => ({ caps: [...document.querySelectorAll('#lens-cash table.fs caption')].map(c => c.firstChild.textContent.trim()), absent: !!document.querySelector('#lens-cash tr.absent'), nwc: !!document.querySelector('#lens-cash tr.nwc') }));
+  rec('DEFAULT WORLD: opening Financials on a fresh load shows the statement of operations, working capital and cash flow with Cash physics active (billed 12 months in advance, collected two months later, FCF ≠ EBITA) and one conversion figure', bootFin.caps.join('|') === 'Statement of operations|Working capital|Cash flow' && !bootFin.absent && bootFin.nwc && bootCa.charts === 1 && bootCash.cashOn && bootCash.term === 12 && bootCash.delay === 2 && bootCash.fcfNeEbita && !/physics off/i.test(bootCa.txt), JSON.stringify({ bootFin, bootCash }));
   await fresh.close();
 
   const pg = await open(1440, 900);
@@ -193,24 +195,33 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('MONETIZATION · the usage-growth lever reshapes the composition (variable share rises) and the Base total appears as a quiet dashed reference', v2.share > vShare + 0.005 && mo2.baseLines[0] === 1 && /Base total/.test(mo2.legend.join('|')), JSON.stringify({ v2, vShare, baseLines: mo2.baseLines }));
   await click(pg, '#rail-toggle'); await click(pg, '#reset'); await click(pg, '#rail-close'); await scrub(pg, 36);
 
-  /* ---- ECONOMICS & CASH ---- */
+  /* ---- FINANCIALS ---- */
   await click(pg, '.lensnav .btn[data-lens="cash"]');
   const ca = await page(pg, 'cash');
-  const cashBits = await D(pg, () => ({ zero: document.querySelectorAll('#lens-cash svg.ch .zero').length, marks: [...document.querySelectorAll('#lens-cash svg.ch .mk')].map(e => e.textContent), plClosed: !document.getElementById('pl-details').open, cascadeIn: !!document.querySelector('#pl-slot .cascade') }));
-  rec('ECONOMICS & CASH · structure: question · headline (revenue, EBITA, EBITA margin, cash, cash trough) · chart 1 · chart 2 · the waterfall behind one disclosure · nothing else', /How does MRR turn into profit and cash\?/.test(ca.q) && ca.hl.join('|') === 'revenue · R12M|EBITA · R12M|EBITA margin · R12M|cash · M36|cash trough · M' + eng.troughM && ca.blocks.join(',') === 'lens-head,hl,chb,chb,bnd' && ca.charts === 2 && !ca.figVisible && !ca.stripVisible && ca.prose === 0 && cashBits.plClosed && cashBits.cascadeIn, JSON.stringify(ca.blocks));
-  rec('ECONOMICS & CASH · chart 1 economics over time (revenue, gross profit, EBITA per month) and chart 2 cash over time (balance, zero line, trough marker with month), identical geometry; right-edge values are the month\'s', ca.titles.join('|') === 'Economics over time · monthly|Cash over time' && sameGeo(ca.rects) && ca.rv.indexOf(eurF(eng.rev)) >= 0 && ca.rv.indexOf(eurF(eng.gp)) >= 0 && ca.rv.indexOf(eurF(eng.ebita)) >= 0 && ca.rv.indexOf(eurF(eng.cash)) >= 0 && cashBits.zero >= 1 && cashBits.marks.some(t => t === 'trough ' + eurF(eng.trough) + ' · M' + eng.troughM), JSON.stringify({ titles: ca.titles, rv: ca.rv, marks: cashBits.marks }));
-  rec('ECONOMICS & CASH · no flow diagrams, no primary waterfall', !/PATH 1|PATH 2|billings · invoiced/.test(ca.txt) && cashBits.plClosed, '');
+  /* at M36 three years have closed: Y1–Y3 are annual statements, Y4 and Y5 have not begun */
+  const fin = await D(pg, () => { const t = [...document.querySelectorAll('#lens-cash table.fs')];
+    const rowOf = (tab, re) => { const r = [...tab.querySelectorAll('tbody tr')].find(tr => re.test((tr.querySelector('td.l') || {}).textContent || '')); return r ? [...r.querySelectorAll('td[data-fr]')].map(td => td.textContent) : null; };
+    return { caps: t.map(x => x.querySelector('caption').firstChild.textContent.trim()), heads: [...t[0].querySelectorAll('th[data-fs]')].map(th => th.textContent),
+      rev: rowOf(t[0], /^Revenue/), ebita: rowOf(t[2], /^EBITA$/), fcf: rowOf(t[2], /^Cash free cash flow/), cashEnd: rowOf(t[2], /^Cash at end of period/), wcHeads: [...t[1].querySelectorAll('th[data-fs]')].map(th => th.textContent),
+      ok: (document.querySelector('#lens-cash [data-fc]') || {}).textContent, pl: !!document.getElementById('pl-details'), cascadeInLens: !!document.querySelector('#lens-cash .cascade') }; });
+  const fk = v => { if (Math.abs(v) < 0.5) return '—'; const k = Math.round(v / 1000); if (k === 0) return '0'; const r = Math.abs(k).toLocaleString('en-GB'); return v < 0 ? '(' + r + ')' : r; };
+  const yrSum = await D(pg, () => { const s = window.__SP_DEBUG.expRes.months, out = []; for (let y = 1; y <= 3; y++) { let r = 0, e = 0, f = 0; for (let t = 12 * y - 11; t <= 12 * y; t++) { r += s[t - 1].revenue; e += s[t - 1].ebita; f += s[t - 1].fcf; } out.push({ r, e, f, c: s[12 * y - 1].cashClosing }); } return out; });
+  rec('FINANCIALS · structure: question · three statements (operations, working capital, cash flow) over Y1–Y5 · one conversion figure · no formation canvas, no Compare strip, no waterfall disclosure', /translate into profit, working capital and cash\?/.test(ca.q) && fin.caps.join('|') === 'Statement of operations|Working capital|Cash flow' && ca.charts === 1 && !ca.figVisible && !ca.stripVisible && !fin.pl && !fin.cascadeInLens, JSON.stringify({ caps: fin.caps, charts: ca.charts }));
+  rec('FINANCIALS · at M36 Y1–Y3 are closed annual statements and Y4–Y5 have not begun: their columns are blank and their heads name the month they open', fin.heads.join('|') === 'M1–M12|M13–M24|M25–M36|opens M37|opens M49' && fin.wcHeads.join('|') === fin.heads.join('|') && fin.rev.slice(3).every(v => v === '') && fin.cashEnd.slice(3).every(v => v === ''), JSON.stringify({ heads: fin.heads, rev: fin.rev }));
+  rec('FINANCIALS · values: each closed year\'s revenue, EBITA and cash free cash flow are the sums of its twelve engine months, closing cash the engine\'s M12/M24/M36 balance, and the direct-method check agrees', [0, 1, 2].every(i => fin.rev[i] === fk(yrSum[i].r) && fin.ebita[i] === fk(yrSum[i].e) && fin.fcf[i] === fk(yrSum[i].f) && fin.cashEnd[i] === fk(yrSum[i].c)) && /^✓ agrees/.test(fin.ok) && fin.cashEnd[2] === fk(eng.cash), JSON.stringify({ rev: fin.rev, ebita: fin.ebita, cashEnd: fin.cashEnd }));
 
   /* ---- ONE INSTRUMENT ---- */
-  const all = await D(pg, () => { const every = [...document.querySelectorAll('#side svg.ch')], t = every.filter(s => !s.dataset.x), sp = every.filter(s => s.dataset.x === 'spend');
+  const all = await D(pg, () => { const every = [...document.querySelectorAll('#side svg.ch')].filter(s => !s.closest('#lens-cash')), t = every.filter(s => !s.dataset.x), sp = every.filter(s => s.dataset.x === 'spend');
+    const fs = document.querySelector('#lens-cash svg.ch');   /* the Financials figure: its own height and two panes, the same frame and clock */
     return { n: every.length, time: t.length, spend: sp.length, margins: every.map(s => s.dataset.l + '/' + s.dataset.r), vb: every.map(s => s.getAttribute('viewBox')),
       y1: t.map(s => [...s.querySelectorAll('.ax')].filter(x => x.textContent === 'Y1')[0].getAttribute('x')),
       curX: t.map(s => s.querySelector('.cur').getAttribute('x1')), cursors: t.map(s => s.querySelectorAll('.cur').length),
-      spendClock: sp.map(s => s.querySelectorAll('.cur').length) }; });
-  rec('INSTRUMENT · every chart shares one viewBox height and the same margins; the six time charts share the Y1–Y5 x positions and one cursor at the same x; the response curve keeps the frame but carries no clock, because its x-axis is money', all.n === 7 && all.time === 6 && all.spend === 1 && all.margins.every(x => x === all.margins[0]) && all.y1.every(x => x === all.y1[0]) && all.vb.every(v => v === all.vb[0]) && all.cursors.every(c => c === 1) && all.curX.every(x => x === all.curX[0]) && all.spendClock.every(c => c === 0), JSON.stringify(all));
+      spendClock: sp.map(s => s.querySelectorAll('.cur').length),
+      fin: { m: fs.dataset.l + '/' + fs.dataset.r, y1: [...fs.querySelectorAll('.ax')].filter(x => x.textContent === 'Y1')[0].getAttribute('x'), cur: [...fs.querySelectorAll('.cur')].map(c => c.getAttribute('x1')) } }; });
+  rec('INSTRUMENT · every chart shares one viewBox height and the same margins; the four lens time charts share the Y1–Y5 x positions and one cursor at the same x; the response curve keeps the frame but carries no clock, because its x-axis is money; the Financials figure keeps the same margins, Y1–Y5 positions and cursor x in each of its panes', all.n === 5 && all.time === 4 && all.fin.m === all.margins[0] && all.fin.y1 === all.y1[0] && all.fin.cur.length >= 1 && all.fin.cur.every(x => x === all.curX[0]) && all.spend === 1 && all.margins.every(x => x === all.margins[0]) && all.y1.every(x => x === all.y1[0]) && all.vb.every(v => v === all.vb[0]) && all.cursors.every(c => c === 1) && all.curX.every(x => x === all.curX[0]) && all.spendClock.every(c => c === 0), JSON.stringify(all));
   await scrub(pg, 48);
   const moved = await D(pg, () => ({ curX: [...document.querySelectorAll('#side svg.ch:not([data-x]) .cur')].map(c => c.getAttribute('x1')), tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), legend: window.__SP_DEBUG.figLegend }));
-  rec('TIME · moving the global month moves every chart\'s cursor together, every lens\'s basis tag and the formation legend', moved.curX.every(x => x === moved.curX[0]) && moved.curX[0] !== all.curX[0] && moved.tags.join('|') === 'M48|M48|M48|M48|R12M', JSON.stringify(moved));
+  rec('TIME · moving the global month moves every chart\'s cursor together, every lens\'s basis tag and the formation legend', moved.curX.every(x => x === moved.curX[0]) && moved.curX[0] !== all.curX[0] && moved.tags.join('|') === 'M48|M48|M48|M48|Y1–Y5', JSON.stringify(moved));
   await D(pg, () => { const s = document.querySelector('#lens-cash svg.ch'); const r = s.getBoundingClientRect(); s.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * 0.5, clientY: r.top + r.height * 0.5 })); }); await pg.waitForTimeout(300);
   const clicked = await D(pg, () => window.__SP_DEBUG.selectedMonth());
   rec('TIME · clicking a chart moves the global month there', clicked > 20 && clicked < 40, String(clicked));
