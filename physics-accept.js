@@ -160,7 +160,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await jsClick('#nav-company'); await pg.waitForTimeout(400);   /* the Forces rail (and Reset) is hidden on the System layer */
   await jsClick('#reset'); await pg.waitForTimeout(300);
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="expcost"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="expcost"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s7 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     dARR: Math.max(...window.__SP_DEBUG.expRes.months.map((m, i) => Math.abs(m.closingARR - window.__SP_DEBUG.baseRes.months[i].closingARR))),
     dCash: window.__SP_DEBUG.expRes.months[59].cashClosing - window.__SP_DEBUG.baseRes.months[59].cashClosing }));
@@ -169,12 +169,12 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       'max ΔARR ' + s7.dARR.toExponential(1) + ', ΔCash M60 ' + s7.dCash.toFixed(0));
   rec('SCENARIO 7: the panel proves the match on screen (GRR 96/90, NRR equal, max |ΔMRR| shown) and lists the cost consequence',
       s7.txt.includes('The two worlds agree on ARR and NRR') && s7.txt.includes('expansion realisation cost') && /R12M NRR at M12105\.6000% · 105\.6000%/.test(s7.txt) && s7.txt.includes('Same ARR, different system'), s7.txt.slice(0, 160).replace(/\n/g, ' | '));
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="bounded"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="bounded"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s8 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, cap: window.__SP_DEBUG.expA.maxMonthlyNewARR, q: window.__SP_DEBUG.expRes.derived.acquisition }));
   rec('SCENARIO 8: the bound is on at €2.0m, the panel shows average vs marginal CAC and the response-curve table, and no optimum is declared',
       s8.cap === 2000000 && s8.txt.includes('Average CAC') && s8.txt.includes('Marginal CAC') && s8.txt.includes('Floor payback') && s8.txt.includes('Average payback') && s8.txt.includes('Marginal payback') && s8.txt.includes('Acquisition response in the Experiment') &&
       s8.txt.includes(s8.q.marginalCAC.toFixed(2) + '×') && !/optimal|should stop|should invest/i.test(s8.txt), s8.txt.slice(0, 100).replace(/\n/g, ' | '));
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="lag"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="lag"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s9 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), lag: window.__SP_DEBUG.expA.acquisitionLagMonths, pend: window.__SP_DEBUG.expRes.pendingAtHorizon.newARR }));
   rec('SCENARIO 9: lag 6 is on; the spine shows the first cohort M1 → M7 (+6 mo), the pending stock at M60 and the cash-trough shift',
       s9.lag === 6 && /first cohort\nM1 → M7\n\+6 mo/.test(s9.txt) && /pending at M60\n€0 → €375k/.test(s9.txt) && /cash trough\n€6\.10m M13 → €[\d.]+m M\d+/.test(s9.txt) && Math.abs(s9.pend - 6 * 750000) < 1e-6, s9.txt.slice(s9.txt.indexOf('ACQUISITION'), s9.txt.indexOf('ACQUISITION') + 160).replace(/\n/g, ' | '));

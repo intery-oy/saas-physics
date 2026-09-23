@@ -89,7 +89,7 @@ async function look(pg, buf) {
     ['ledger-core', async () => { await pg.evaluate(() => document.getElementById('menu-ledger').click()); }, '#ledger'],
     ['ledger-full', async () => { await pg.evaluate(() => document.getElementById('ldg-full').click()); }, '#ledger'],
     ['compare',   async () => { await pg.evaluate(() => document.getElementById('nav-compare').click()); }, '.stage'],
-    ['scenarios', async () => { await pg.evaluate(() => document.getElementById('nav-scen').click()); }, '.stage'],
+    ['presets',   async () => { await pg.evaluate(() => { document.getElementById('rail-toggle').click(); document.getElementById('nav-scen').click(); }); }, '.rail'],
   ];
 
   const seen = {};
@@ -102,7 +102,7 @@ async function look(pg, buf) {
 
   /* INK — thresholds are per surface because a stock-and-flow diagram is sparser than a table */
   const FLOOR = { company: 0.010, customers: 0.010, growth: 0.010, monetization: 0.008, cash: 0.010,
-                  system: 0.004, 'ledger-core': 0.020, 'ledger-full': 0.020, compare: 0.006, scenarios: 0.006 };
+                  system: 0.004, 'ledger-core': 0.020, 'ledger-full': 0.020, compare: 0.006, presets: 0.006 };
   const thin = Object.keys(seen).filter(k => seen[k].inkFraction < FLOOR[k]);
   rec('INK: every surface actually draws something — each rendered image carries marks well above an empty rectangle, at its own floor for how dense that surface should be',
       thin.length === 0, JSON.stringify(Object.keys(seen).map(k => k + ' ' + (seen[k].inkFraction * 100).toFixed(2) + '% (floor ' + (FLOOR[k] * 100).toFixed(1) + '%)')));
@@ -111,7 +111,7 @@ async function look(pg, buf) {
      pushed off screen keeps its header band and its first column and loses everything else, so
      the question is not how much ink there is but whether any of it is away from the edges. */
   const INTERIOR = { company: 0.35, customers: 0.35, growth: 0.30, monetization: 0.30, cash: 0.35,
-                     system: 0.20, 'ledger-core': 0.85, 'ledger-full': 0.85, compare: 0.20, scenarios: 0.20 };
+                     system: 0.20, 'ledger-core': 0.85, 'ledger-full': 0.85, compare: 0.20, presets: 0.20 };
   const hollow = Object.keys(seen).filter(k => seen[k].interiorFilled < INTERIOR[k]);
   rec('INTERIOR: ink reaches the inside of each surface, not just its header band and its first column — the shape a table takes when its data has been pushed off screen',
       hollow.length === 0, JSON.stringify(Object.keys(seen).map(k => k + ' interior=' + (seen[k].interiorFilled * 100).toFixed(0) + '% (floor ' + (INTERIOR[k] * 100) + '%)')));

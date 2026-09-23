@@ -102,7 +102,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
      state differs), and the page renders without error ---- */
   await jsClick('#reset'); await pg.waitForTimeout(300);
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="history"]').click());
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="history"]').click(), document.getElementById('nav-compare').click()));
   await pg.waitForTimeout(400);
   await jsClick('#nav-company'); await pg.waitForTimeout(400);
   const scen6 = await pg.evaluate(() => ({

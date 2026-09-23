@@ -214,10 +214,6 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /eur\(capAgg\[mi\]\.out\)/,
     /eur\(g\.total\)/,
     /eur\(p\.outstanding\)/,
-    /row\('Acquisition capital deployed', x\.cumSM - b\.cumSM, -\(x\.cumSM - b\.cumSM\)\)/,
-    /row\('Cumulative gross profit', x\.cumGrossProfit - b\.cumGrossProfit\)/,
-    /row\('Cumulative FCF', x\.cumEbita - b\.cumEbita\)/,
-    /row\('Ending cash', x\.endingCash - b\.endingCash\)/,
     /eur\(b\.cumGrossProfit\)\+' → '\+eur\(x\.cumGrossProfit\)/,
     /eur\(b\.finalYearFCF\)\+' → '\+eur\(x\.finalYearFCF\)/,
     /eur\(b\.cumSM\)\+' → '\+eur\(x\.cumSM\)/,
@@ -244,7 +240,6 @@ function ok(id, name, pass, detail) { out.push({ id: id, name: name, pass: !!pas
     /reur\(snap\.cumLeakage\)/,
     /yFmt:reur, aria:'one cohort, from acquisition through its recurring-revenue life'/,   // Inspect · cohort life · ARR chart
     /reur\(Math\.abs\(d1\)\)/,          // Inspect · cohort life · distance from the original balance
-    /rd\(v\)/,                            // consequence-panel row formatter
     /return rc\(F\.runRate\)/              // Financials · year-end run-rate memo
   ];
   var missingR = recurringPatterns.filter(function (re) { return !re.test(tpl); });

@@ -67,7 +67,8 @@ async function run(pg, want) { const is = await running(pg);
   }
   /* presets live in the Experiment drawer: the chip, then Browse presets */
   await press(pg, '#rail-toggle'); await press(pg, '#nav-scen');
-  navs.push(await pg.evaluate(() => document.getElementById('nav-scen').classList.contains('on') && !document.querySelector('.app').classList.contains('rail-open')));
+  navs.push(await pg.evaluate(() => !document.getElementById('preset-list').hidden && document.querySelectorAll('#preset-list .prow').length === 14 && document.querySelector('.app').classList.contains('rail-open')));
+  await press(pg, '#rail-close');
   await press(pg, '#nav-company');
   rec('NAV: with the clock running, Compare, System and Company each take the layer on one press, and the presets open from the Experiment drawer',
       navs.every(Boolean) && await running(pg), JSON.stringify(navs));

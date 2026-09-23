@@ -156,9 +156,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   await setScrub(pg, 24);
 
   /* ---- HIERARCHY (Compare) ---- */
-  await pg.evaluate(() => document.getElementById('nav-scen').click()); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="customers"]').click()); await pg.waitForTimeout(500);
-  await pg.evaluate(() => document.getElementById('nav-compare').click()); await pg.waitForTimeout(400);   /* Compare is its own surface; Scenarios keeps the spine behind disclosure */
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);   /* a preset loads from the drawer; Compare analyses it */
   const spine = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); if (!s) return null;
     const causes = [...s.querySelectorAll('.cause')].map(c => ({ lvl: [...c.classList].filter(x => /^l\d$/.test(x))[0], head: (c.querySelector('.eyebrow, h5, .ch') || c).innerText.split('\n')[0] }));
     const layers = [...s.querySelectorAll('.cause.l1 .exp-layer, .cause.l1 .mh, .cause.l1 .eyebrow')].map(e => e.textContent);
@@ -169,7 +167,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const cmpTxt = await sideText(pg);
   rec('HIERARCHY: the changed assumptions are grouped under their causal layer and the emerged company states ARR M60, customers M60, cash trough and ending cash',
       /CUSTOMERS/.test(cmpTxt) && /Logo retention/.test(cmpTxt) && /ARR M60|MRR M60/.test(cmpTxt) && /customers M60/.test(cmpTxt) && /cash trough/.test(cmpTxt) && /ending cash/.test(cmpTxt), cmpTxt.slice(0, 200).replace(/\n/g, ' | '));
-  await pg.evaluate(() => document.getElementById('scen-clear').click()); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
 
   /* ---- DRILL-DOWN (System) ---- */

@@ -306,7 +306,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   /* ---------- SCOPE ---------- *
    * Inspect commandeers the figure box — it hides the formation canvas to put the cohort's own
    * figure in its place. That hold belongs to Company. Nothing released it on the way out, so a
-   * cohort left pinned followed the reader to System, Compare and Scenarios as a display:none
+   * cohort left pinned followed the reader to System and Compare as a display:none
    * they never set, blanking whatever those layers draw in the box. */
   const p3 = await br.newPage({ viewport: { width: 1440, height: 900 } });
   p3.on('pageerror', e => errs.push('scope: ' + e.message));
@@ -319,16 +319,16 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   const look = () => p3.evaluate(() => { const cv = document.getElementById('scene').getBoundingClientRect(), cl = document.getElementById('cohort-life');
     return { pinned: window.__SP_DEBUG.pinned, canvas: Math.round(cv.width * cv.height), cohortFigure: !cl.hidden, dossier: !!document.querySelector('.dossier') }; });
   const scope = { pinned: await look() };
-  for (const nav of ['nav-system', 'nav-compare', 'nav-scen']) {
+  for (const nav of ['nav-system', 'nav-compare']) {
     await p3.evaluate(n => document.getElementById(n).click(), nav); await p3.waitForTimeout(600);
     scope[nav] = await look();
   }
   await p3.evaluate(() => document.getElementById('nav-company').click()); await p3.waitForTimeout(700);
   scope.back = await look();
   await p3.close();
-  rec('SCOPE: a cohort left pinned does not follow the reader out of Company — System, Compare and Scenarios each get their own figure back, the cohort figure steps aside, and returning to Company restores Inspect exactly as it was',
+  rec('SCOPE: a cohort left pinned does not follow the reader out of Company — System and Compare each get their own figure back, the cohort figure steps aside, and returning to Company restores Inspect exactly as it was',
       scope.pinned.canvas === 0 && scope.pinned.cohortFigure && scope.pinned.dossier &&
-      ['nav-system', 'nav-compare', 'nav-scen'].every(n => scope[n].canvas > 10000 && !scope[n].cohortFigure && scope[n].pinned === scope.pinned.pinned) &&
+      ['nav-system', 'nav-compare'].every(n => scope[n].canvas > 10000 && !scope[n].cohortFigure && scope[n].pinned === scope.pinned.pinned) &&
       scope.back.canvas === 0 && scope.back.cohortFigure && scope.back.dossier && scope.back.pinned === scope.pinned.pinned,
       JSON.stringify(scope));
 

@@ -34,7 +34,7 @@
   --display:"Spectral",Georgia,"Times New Roman",serif;
 }
 *{box-sizing:border-box}
-[hidden]{display:none!important}   /* .pulsebar/.scenbar set display:flex and would otherwise outrank it */
+[hidden]{display:none!important}   /* .pulsebar sets display:flex and would otherwise outrank it */
 /* The visible height, not the tall one. iOS reports 100vh (and a 100% html) as the viewport
    WITHOUT its browser toolbars, so a layout pinned to it hangs its last row below the fold:
    on an iPad the time transport sat exactly one toolbar under the bottom of the screen and
@@ -57,8 +57,6 @@ button,input{font:inherit;color:inherit}
 .lawchip input[type=range]{width:118px;margin-top:5px;display:block}
 .lawchip.open{border-color:var(--exp)}
 .nav .btn{padding:6px 13px}
-.scenbar{display:flex;align-items:center;gap:8px;padding:12px 0 10px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
-.scenbar .btn{font-size:10.5px;padding:4px 8px}
 .fgrp{padding:12px 18px;border-bottom:1px solid var(--line-soft)}
 .fgrp-head{display:flex;align-items:baseline;gap:7px;margin-bottom:3px}
 .fgrp-kind{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--exp)}
@@ -83,12 +81,18 @@ button,input{font:inherit;color:inherit}
 .regime b{font-family:var(--ui);font-style:normal;color:var(--ink);font-weight:600}
 .illus{background:rgba(210,164,92,.12);border:1px solid var(--warn);border-radius:3px;padding:9px 11px;margin-top:9px;font-size:10.5px;color:var(--ink-2);line-height:1.55}
 .illus b{color:var(--warn);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
-.scenidx{display:grid;margin-top:12px;border-top:1px solid var(--line-soft)}
-@media (max-width:760px){.exphead{flex-wrap:wrap}.exphead .lens-n{flex-basis:100%}.scenrow{grid-template-columns:24px minmax(0,1fr)}.scenrow .stitle{grid-column:2}}
-.scenrow{display:grid;grid-template-columns:24px minmax(130px,200px) minmax(0,1fr);gap:6px 12px;align-items:baseline;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
-.scenrow:hover{background:var(--sunk)}
-.scenrow .sn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
-.scenrow .stitle{font-family:var(--display);font-style:italic;color:var(--ink-2)}
+@media (max-width:760px){.exphead{flex-wrap:wrap}.exphead .lens-n{flex-basis:100%}}
+/* the preset browser: a list inside the Experiment drawer — discover and load, never analyse */
+.plist{display:grid;margin-top:9px;border-top:1px solid var(--line-soft)}
+.prow{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 8px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line-soft);padding:8px 4px;color:var(--ink);cursor:pointer;font:inherit;font-size:12px}
+.prow:hover{background:var(--sunk)}
+.prow.on{background:rgba(139,141,240,.10);box-shadow:inset 2px 0 0 var(--exp)}
+.prow .pn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);grid-row:span 4}
+.prow .pname{font-weight:600}
+.prow .ptitle{font-family:var(--display);font-style:italic;color:var(--ink-2)}
+.prow .plesson{font-size:11px;color:var(--ink-3);line-height:1.5}
+.prow .pchg{font-family:var(--mono);font-size:10px;color:var(--exp);line-height:1.5}
+.causal .ptitle{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:-2px 0 4px}
 .sgrp.exp{padding-left:2px;padding-right:2px;max-width:640px}
 .sgrp.exp .eyebrow{margin-bottom:7px}
 .sgrp.exp .teach{font-family:var(--display);font-style:italic;font-size:12.5px;color:var(--ink-2);line-height:1.6}
@@ -837,8 +841,9 @@ details.pl .cascade{margin-top:8px}
     <div class="grp" id="experiment-summary"></div>
     <div class="grp" id="presets">
       <div class="eyebrow" style="margin-bottom:6px">Start from a preset</div>
-      <button class="btn btn-wide" id="nav-scen">Browse presets · 14 scenarios ›</button>
-      <div class="hint rail-doc" style="margin-top:7px">Each preset is a declared experiment: what changed, what stayed the same, what emerged. Loading one replaces the changes below. The Base world is chosen under <b>World</b> in the header.</div>
+      <button class="btn btn-wide" id="nav-scen" aria-expanded="false" aria-controls="preset-list">Browse presets · 14 ›</button>
+      <div class="hint rail-doc" style="margin-top:7px">Each preset is a canonical Experiment on its own reference world. Loading one replaces the World choice and the changes below; Compare then analyses it.</div>
+      <div class="plist" id="preset-list" hidden></div>
     </div>
     <div class="grp" id="rail-change">
       <div class="hint">Each layer below is a set of objects the engine obeys. They are not equivalent: a law is not an input, a constraint is not a benefit, a hypothesis is not a law. Measurements are read beneath the law they observe and are never set.</div>
@@ -854,11 +859,6 @@ details.pl .cascade{margin-top:8px}
 
   <main class="stage">
    <div class="stagecol">
-    <div class="scenbar" id="scenbar" hidden>
-      <span class="eyebrow">Experiments</span>
-      <div class="btn-row" id="scenlist"></div>
-      <button class="btn" id="scen-clear">Clear</button>
-    </div>
     <aside class="side" id="side"></aside>
     <details class="figwrap" id="figwrap" open>
       <summary><span id="fig-title">Formation · 60 months</span><span class="hint" id="fig-hint">opening base + successive cohorts as strata · YoY growth as a line · click a stratum to inspect that cohort</span></summary>
@@ -944,7 +944,7 @@ details.pl .cascade{margin-top:8px}
      is the only way those pages reach a world. It hands back the viewed world as `res/S/A/start`
      and the world it is read against as `oRes/oS/oA/oStart`: viewing the Experiment, that is Base
      (the "vs Base" marks Compare will later absorb); viewing Base, it is Base again, so nothing on
-     a Base page can come from the Experiment. Compare and Scenarios always read both worlds, and
+     a Base page can come from the Experiment. Compare always reads both worlds, and
      anything that WRITES a law writes the real Experiment and returns the view to it. */
   var viewedWorld = 'exp';          /* 'exp' | 'base' — never changes either world */
   var worldsDiffer = false;         /* set by recompute: whether an Experiment exists to be viewed apart from Base */
@@ -953,7 +953,7 @@ details.pl .cascade{margin-top:8px}
      never how the two worlds differ (Compare owns that). So on Company the world read against is
      the viewed world itself, exactly as on a Base page: every comparison has nothing to compare.
      `single` says so. System still reads the Experiment against Base (its Flows delta is Compare's
-     job to absorb later); Compare and Scenarios read both worlds directly, not through VW(). */
+     job to absorb later); Compare reads both worlds directly, not through VW(). */
   function VW(){
     var b = viewingBase(), single = b || layer==='stock';
     var R = b ? { res:baseRes, S:baseS, A:baseA, start:baseStart } : { res:expRes, S:expS, A:expA, start:expStart };
@@ -1388,6 +1388,7 @@ details.pl .cascade{margin-top:8px}
   function openLaw(key){
     var row = lawRowEl(key); if(!row) return false;
     menusClose();
+    showPresets(false);                /* a law is the focus: the preset list steps aside */
     var app = document.querySelector('.app'); app.classList.add('rail-open');
     [].forEach.call(document.querySelectorAll('.force.law-focus'), function(r){ r.classList.remove('law-focus'); });
     row.classList.add('law-focus');
@@ -1986,21 +1987,44 @@ details.pl .cascade{margin-top:8px}
     recompute(prev);
   }
   function syncScenButtons(){
-    [].forEach.call(document.querySelectorAll('#scenlist .btn'), function(b2){
-      b2.classList.toggle('on', activeScenario && b2.dataset.id===activeScenario.id);
+    [].forEach.call(document.querySelectorAll('#preset-list .prow'), function(b2){
+      b2.classList.toggle('on', !!activeScenario && b2.dataset.id===activeScenario.id);
     });
   }
+  /* The preset browser: a list inside the Experiment drawer. It helps someone CHOOSE — name, idea,
+     lesson, what it sets — and loads through applyScenario; the analysis and each preset's own proof
+     are read on Compare. */
+  function presetChanges(sc){
+    if(sc.world==='state-dependent') return 'Opening state · base age 24 → 0 months · one law set';
+    if(sc.pair) return 'Sets Base and Experiment · '+(sc.pairLabel || 'efficiency vs spend');
+    return Object.keys(sc.ch).map(function(k){
+      if(k==='interventions') return 'Hypothesis · '+sc.ch[k].map(function(h){ return h.name; }).join(', ');
+      var Fk = forceOf(k)||{};
+      return (LABEL[k]||Fk.label||k)+' → '+fmtF(LABEL_FMT[k]||Fk.f||'eur', sc.ch[k]);
+    }).join(' · ');
+  }
+  function presetLesson(sc){ var m = sc.teach.match(/^.*?[.:](\s|$)/); return m ? m[0].trim() : sc.teach; }
+  function showPresets(on){
+    var l=document.getElementById('preset-list'), b=document.getElementById('nav-scen');
+    l.hidden = !on; b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    b.textContent = on ? 'Hide presets ‹' : 'Browse presets · 14 ›';
+  }
   function buildScenarios(){
-    var host=document.getElementById('scenlist'); host.innerHTML='';
+    var host=document.getElementById('preset-list'); host.innerHTML='';
     SCENARIOS.forEach(function(sc){
-      var b2=document.createElement('button'); b2.className='btn'; b2.dataset.id=sc.id;
-      b2.textContent = sc.n + ' · ' + sc.name;
+      var b2=document.createElement('button'); b2.className='prow'; b2.dataset.id=sc.id;
+      b2.innerHTML = '<span class="pn">'+sc.n+'</span><span class="pname">'+esc(sc.name)+'</span>'+
+        '<span class="ptitle">'+esc(sc.title)+'</span><span class="plesson">'+esc(presetLesson(sc))+'</span>'+
+        '<span class="pchg">'+esc(presetChanges(sc))+'</span>';
       b2.addEventListener('click', function(){
-        if(activeScenario && activeScenario.id===sc.id){ resetAll(); return; }
-        applyScenario(sc);
+        if(activeScenario && activeScenario.id===sc.id) resetAll(); else applyScenario(sc);
+        /* loaded: leave the browser and the drawer — the product now runs the Experiment */
+        showPresets(false);
+        document.querySelector('.app').classList.remove('rail-open'); lawRingOff();
       });
       host.appendChild(b2);
     });
+    syncScenButtons();
   }
 
   /* ------------------------------------------------------------------ *
@@ -5503,7 +5527,7 @@ details.pl .cascade{margin-top:8px}
     if(layer==='stock' && !inspect && activeLens!=='company') want = true;   /* hidden by CSS off Company; stays open so Company returns to its chart */
     fw.classList.toggle('tall', layer==='stock' && activeLens==='company' && !inspect);
     var cvint = inspect && expRes.cohorts[pinned] ? (expRes.cohorts[pinned].acquisitionMonth===0 ? 'opening base' : 'vintage M'+expRes.cohorts[pinned].acquisitionMonth) : '';
-    document.getElementById('fig-title').textContent = inspect ? 'Cohort life · '+cvint : layer==='scen' ? 'Base and Experiment · 60 months' : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Company formation · 60 months';
+    document.getElementById('fig-title').textContent = inspect ? 'Cohort life · '+cvint : layer==='cmp' ? 'Base and Experiment · 60 months' : 'Company formation · 60 months';
     document.getElementById('fig-hint').textContent = inspect
       ? 'this cohort alone · its recurring-revenue life and the recovery of the capital that bought it · the month control still moves'
       : 'opening base + successive cohorts as strata · YoY growth as a line · click a stratum to inspect that cohort';
@@ -5530,18 +5554,6 @@ details.pl .cascade{margin-top:8px}
       hostC.innerHTML = '<div class="lens herolens" style="padding-bottom:6px"><div class="lens-head exphead"><span class="lens-n">Compare</span><span class="lens-q">Why does the Experiment differ from Base?</span><span class="basis">Base → Experiment</span></div></div>'+
         '<div class="sgrp" id="compare-panel" style="padding-left:2px;padding-right:2px;max-width:640px"></div>';
       renderCausal(null, true);
-      return;
-    }
-    if(layer==='scen'){
-      var host=document.getElementById('side');
-      if(!activeScenario){
-        host.innerHTML='<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head exphead"><span class="lens-n">Experiments</span><span class="lens-q">What does one declared change do to the company?</span><span class="basis">14 canonical</span></div></div>'+
-          '<div class="sgrp exp"><div class="hint" style="line-height:1.7">Each experiment changes one declared assumption against the frozen Base and reads what changed, what stayed the same, what emerged and why it matters. The full mechanism stays one step away.</div>'+
-          '<div class="scenidx">'+SCENARIOS.map(function(sc){ return '<button class="scenrow" data-id="'+sc.id+'"><span class="sn">'+sc.n+'</span><span class="sname">'+esc(sc.name)+'</span><span class="stitle">'+esc(sc.title)+'</span></button>'; }).join('')+'</div></div>';
-        [].forEach.call(host.querySelectorAll('.scenrow'), function(b2){ b2.addEventListener('click', function(){ var sc2 = SCENARIOS.filter(function(x){ return x.id===b2.dataset.id; })[0]; if(sc2) applyScenario(sc2); }); });
-        return;
-      }
-      host.innerHTML = consequencePanel(activeScenario);
       return;
     }
     var t=tau, m=selectedMonth();
@@ -5946,27 +5958,6 @@ details.pl .cascade{margin-top:8px}
   }
 
   /* ------------------------------------------------------------------ *
-   * §8/§9/§10 — THE CONSEQUENCE PANEL
-   *
-   * Deterministic engine output only. Every sentence is pre-written, versioned
-   * and tied to a named mechanism; none of it is generated. Only the rows the
-   * scenario declares relevant are shown, and every panel discloses the model
-   * boundaries that bear on it.
-   * ------------------------------------------------------------------ */
-  var REGIME = {           /* pre-written, versioned, tied to g = (1−ℓ)(1+e) */
-    shrink: 'net-shrinking', hold: 'self-sustaining', grow: 'self-growing'
-  };
-  function regimeOf(res){
-    /* reads the run's own derived monthly rates — persistence may be derived
-       (Customer Physics) rather than input, and the regime must follow what is in force */
-    var gm2 = res.derived.monthlyPersistence;
-    var em2 = res.derived.monthlyExpansion;
-    /* v2 Gate B — under Monetization neither is a law; the run reports the
-       opening base's emergent first-month multiplier instead */
-    var g2 = (gm2===null || em2===null) ? res.derived.emergentMonthlyMultiplier : gm2 * (1 + em2);
-    return { g:g2, band: g2 < 1 - 1e-12 ? 'shrink' : (g2 > 1 + 1e-12 ? 'grow' : 'hold') };
-  }
-  /* ------------------------------------------------------------------ *
    * COMPARE — the causal comparison (docs/VISUAL-GRAMMAR.md §8):
    *   what you changed  →  what the system did  →  what company emerged.
    * Layer 1 lists only the assumptions that differ, grouped by causal layer.
@@ -6136,85 +6127,16 @@ details.pl .cascade{margin-top:8px}
       if(bothMo && Math.abs(x.finalVariableShare-b.finalVariableShare)>0.005) diffs.push('variable share '+pct(b.finalVariableShare,0)+' → '+pct(x.finalVariableShare,0));
       if(diffs.length) SAME = '<div class="same-sys"><h5>Same ARR, different system</h5><div class="hint">M60 ARR agrees within 0.5%. The systems that produced it do not: '+esc(diffs.join(' · '))+'. The headline is not a sufficient statistic.</div></div>';
     }
-    if(opts.parts) return { l1:L1, l2:L2, l3:L3, l1body:L1body, l2body:L2body, l3body:L3body, same:SAME, unmoved:unmoved, nSecondary:nMoved+nSame };
     return '<div class="spine">'+L1+L2+L3+'</div>'+SAME;
   }
 
-  function consequencePanel(sc){
+  /* A canonical preset's own evidence on Compare — only where its metadata (`shows`) declares a
+     specific proof: the matched-world premises (6, 7, 10, 12, 13), the response curve (8) and the
+     illustrative disclosure (6). Nothing is computed here that the preset did not already declare. */
+  function presetEvidence(sc){
     var b = E.summarise(baseRes), x = E.summarise(expRes);
-    var last = H - 1;
-    var bm2 = baseRes.months[last], xm2 = expRes.months[last];
-    function d(v){ return (v>=0?'+':'−') + eur(Math.abs(v)); }
-    function rd(v){ return (v>=0?'+':'−') + eur(Math.abs(rc(v))); }
-    function cls2(v){ return v>1?'up':(v<-1?'down':'flat'); }
-    /* recurring=true routes the value through the MRR/ARR basis switch first —
-       only for recurring-revenue rows (M60 ARR, New ARR, cumulative Expansion/
-       Leakage). Financial-flow and capital rows below never set it. */
-    function row(k, v, sign, recurring){ return '<span>'+esc(k)+'</span><b class="'+cls2(sign===undefined?v:sign)+'">'+
-      (typeof v==='string'?v:(recurring?rd(v):d(v)))+'</b>'; }
-
-    var rows = [], has = function(t){ return sc.shows.indexOf(t)>=0; };
-    var qb = baseRes.derived.acquisition, qx = expRes.derived.acquisition;
-    if(has('arr'))     rows.push(row('M60 '+basis, x.finalARR - b.finalARR, undefined, true));
-    /* v2 Gate B — monetization rows */
-    if(has('moneffects') && x.cumPriceARR!==null){
-      var mx12 = K.monetizationMeasures(expRes, H);
-      rows.push(row('Cumulative price effect (Experiment)', reur(x.cumPriceARR), 1));
-      rows.push(row('Cumulative usage effect (Experiment)', reur(x.cumUsageARR), 1));
-      rows.push(row('Cumulative adoption effect (Experiment)', reur(x.cumAdoptionARR), 1));
-      rows.push(row('R12M expansion at M60', (b.cumPriceARR===null ? pct(K.measureR12M(baseRes,H).expansionRate,1)+' (coefficient)' : pct(K.measureR12M(baseRes,H).expansionRate,1))+' → '+pct(mx12.expansionR12M,1)+' = '+pct(mx12.priceEffectR12M,1)+' price + '+pct(mx12.usageEffectR12M,1)+' usage + '+pct(mx12.adoptionEffectR12M,1)+' adoption', mx12.expansionR12M - K.measureR12M(baseRes,H).expansionRate));
-      if(mx12.baseHeadroom && mx12.baseHeadroom[1]) rows.push(row('Opening base headroom used at M60', pct(mx12.baseHeadroom[1].units,0)+' of the usage cap · '+pct(mx12.baseHeadroom[1].penetration,0)+' of the penetration cap', 0));
-    }
-    /* v2 Gate A — customer rows, only when both worlds carry the layer */
-    if(has('customers') && b.finalCustomers!==null && x.finalCustomers!==null){
-      var cb10 = K.customerMeasures(baseRes, H), cx10 = K.customerMeasures(expRes, H);
-      rows.push(row('Customers at M60', x.finalCustomers - b.finalCustomers, undefined));
-      rows.push(row('R12M logo retention at M60', pct(cb10.logoRetentionR12M,1)+' → '+pct(cx10.logoRetentionR12M,1), cx10.logoRetentionR12M - cb10.logoRetentionR12M));
-      rows.push(row('ARPA at M60', b.finalARPA===null?'—':reur(b.finalARPA)+' → '+reur(x.finalARPA), x.finalARPA - b.finalARPA));
-      rows.push(row('Cumulative leakage from lost logos', x.cumLogoChurnARR - b.cumLogoChurnARR, -(x.cumLogoChurnARR - b.cumLogoChurnARR), true));
-      rows.push(row('Cumulative leakage from contraction', x.cumContractionARR - b.cumContractionARR, -(x.cumContractionARR - b.cumContractionARR), true));
-    }
-    if(has('new'))     rows.push(row('New '+basis+' per month of spend', qx.newARR - qb.newARR, undefined, true));
-    if(has('first'))   rows.push(row('First cohort created', 'M'+b.firstCohortMonth+' → M'+x.firstCohortMonth, -(x.firstCohortMonth - b.firstCohortMonth)));
-    if(has('pending')) rows.push(row('Pending '+basis+' at M60 (spent, not yet realised)', x.pendingNewARRAtHorizon - b.pendingNewARRAtHorizon, -(x.pendingNewARRAtHorizon - b.pendingNewARRAtHorizon), true));
-    if(has('exp'))     rows.push(row('Cumulative Expansion '+basis, x.cumExpansion - b.cumExpansion, undefined, true));
-    if(has('expcost')) rows.push(row('Cumulative expansion realisation cost', x.cumExpansionCost - b.cumExpansionCost, -(x.cumExpansionCost - b.cumExpansionCost)));
-    if(has('leak'))    rows.push(row('Cumulative Leakage '+basis, x.cumLeakage - b.cumLeakage, -(x.cumLeakage - b.cumLeakage), true));
-    if(has('sm'))      rows.push(row('Acquisition capital deployed', x.cumSM - b.cumSM, -(x.cumSM - b.cumSM)));
-    if(has('avgcac'))  rows.push(row('Average CAC', qb.averageCAC.toFixed(2)+'× → '+qx.averageCAC.toFixed(2)+'×', -(qx.averageCAC - qb.averageCAC)));
-    if(has('marginal'))rows.push(row('Marginal CAC', qb.marginalCAC.toFixed(2)+'× → '+qx.marginalCAC.toFixed(2)+'×', -(qx.marginalCAC - qb.marginalCAC)));
-    if(has('gp'))      rows.push(row('Cumulative gross profit', x.cumGrossProfit - b.cumGrossProfit));
-    if(has('fcf') && !has('cashfcf')) rows.push(row('Cumulative FCF', x.cumEbita - b.cumEbita));
-    if(has('fcf') && has('cashfcf'))  rows.push(row('Cumulative EBITA', x.cumEbita - b.cumEbita));
-    /* v2 Gate D — hypothesis rows */
-    if(has('hyp') && x.cumInterventionCost!==null){
-      var sch14 = expRes.derived.interventions[0], payback14 = null;
-      for(var t14=1; t14<=H; t14++) if(payback14===null && expRes.months[t14-1].cashClosing > baseRes.months[t14-1].cashClosing) payback14 = t14;
-      rows.push(row('Hypothesis window', 'decided M'+sch14.startMonth+' · in force M'+sch14.effectiveFrom+'–M'+sch14.effectiveTo, 0));
-      rows.push(row('Hypothesis cost (Experiment)', -x.cumInterventionCost));
-      rows.push(row('Cash overtakes Base', payback14===null ? 'not within 60 months' : 'month '+payback14, payback14===null ? -1 : 1));
-    }
-    /* v2 Gate C — cash rows */
-    if(has('cashfcf')){
-      rows.push(row('Cumulative cash FCF', xm2.cumulative.fcf - bm2.cumulative.fcf));
-      if(x.cumBillings!==null) rows.push(row('Cumulative FCF − EBITA (Experiment)', x.cumFCFMinusEbita));
-      if(x.finalDeferredRevenue!==null) rows.push(row(x.finalDeferredRevenue>=0 ? 'Deferred revenue at M60 (Experiment)' : 'Contract asset at M60 (Experiment)', Math.abs(x.finalDeferredRevenue), 0));
-      if(x.finalReceivables!==null) rows.push(row('Receivables at M60 (Experiment)', x.finalReceivables, 0));
-    }
-    if(has('trough'))  rows.push(row('Cash trough', eur(b.cashTrough)+' (M'+b.cashTroughMonth+') → '+eur(x.cashTrough)+' (M'+x.cashTroughMonth+')', x.cashTrough - b.cashTrough));
-    if(has('cash'))    rows.push(row('Ending cash', x.endingCash - b.endingCash));
-    if(has('payback')) rows.push(row('Floor payback',
-      baseRes.derived.cacPaybackMonths.toFixed(1)+' → '+expRes.derived.cacPaybackMonths.toFixed(1)+' months',
-      -(expRes.derived.cacPaybackMonths - baseRes.derived.cacPaybackMonths)));
-    if(has('payback') && (E.saturationEnabled(expA)||E.saturationEnabled(baseA))) rows.push(row('Average payback', qb.averagePaybackMonths.toFixed(1)+' → '+qx.averagePaybackMonths.toFixed(1)+' months', -(qx.averagePaybackMonths - qb.averagePaybackMonths)));
-    if(has('marginal') && E.saturationEnabled(expA)) rows.push(row('Marginal payback', qb.marginalPaybackMonths.toFixed(1)+' → '+qx.marginalPaybackMonths.toFixed(1)+' months', -(qx.marginalPaybackMonths - qb.marginalPaybackMonths)));
-
-    /* The experiment grammar: what changed · what stayed the same · what emerged ·
-       why it matters. The full mechanism spine, the response curve and the
-       boundaries stay available behind disclosure. */
-    var h = '<div class="lens herolens" style="padding-bottom:8px"><div class="lens-head exphead"><span class="lens-n">Experiment '+sc.n+' · '+esc(sc.name)+'</span><span class="lens-q">'+esc(sc.title)+'</span><span class="basis">Base → Experiment</span></div></div>';
-    var same = '';
-
+    var has = function(t){ return sc.shows.indexOf(t)>=0; };
+    var same = '', curve = '';
     if(sc.illustrative){
       same += '<div class="subblk"><div class="illus"><b>Illustrative state-dependent world</b>'+
         'This demonstrates what can occur <em>if</em> transition behaviour varies with cohort maturity. '+
@@ -6315,11 +6237,6 @@ details.pl .cascade{margin-top:8px}
         '</div><div class="hint" style="margin-top:8px">Persistence is derived as L × (1 − C) in both. Identical dollar physics; different customer physics.</div></div>';
     }
 
-    /* the causal comparison, in parts */
-    var chg = E.compare(baseRes, expRes).changed;
-    if(sc.world==='state-dependent') chg = [{ key:'bands', label:'Opening base · age at M0', from:'24 months (mature)', to:'0 months (young)' }];
-    var P = causalCompare(chg, { attribution: attributionBlock(chg), parts:true });
-    var curve = '';
     /* Scenario 8 — the response curve itself, from the engine's own law at
        several spend levels, in this Experiment's world. A curve, not a verdict. */
     if(has('curve')){
@@ -6334,42 +6251,8 @@ details.pl .cascade{margin-top:8px}
         'Where to stop is a decision the model does not make: it has no objective function.</div></div>';
     }
 
-    var regime = '';
-    /* §9 — regime statement. Explanatory text only; no new visualisation. */
-    if(!sc.world){
-      var rb2 = regimeOf(baseRes), rx2 = regimeOf(expRes);
-      var txt;
-      if(rb2.band === rx2.band){
-        txt = 'The installed base stays <b>'+REGIME[rb2.band]+'</b> under the model\'s transition laws '+
-              '(g = '+rx2.g.toFixed(6)+' per month).';
-      } else {
-        txt = 'This change moves the installed base from <b>'+REGIME[rb2.band]+'</b> to <b>'+REGIME[rx2.band]+
-              '</b> under the model\'s transition laws (g '+rb2.g.toFixed(6)+' → '+rx2.g.toFixed(6)+').';
-      }
-      regime = '<div class="regime">'+txt+
-        '<div style="font-family:var(--ui);font-style:normal;font-size:10px;color:var(--ink-4);margin-top:6px">'+
-        'g = (1−ℓ)(1+e), the monthly multiplier applied to existing ARR before new business.</div></div>';
-    }
-
-
-    /* 1 · what changed */
-    h += '<div class="sgrp exp"><div class="eyebrow">What changed</div>'+P.l1body+'</div>';
-    /* 2 · what stayed the same — the scenario's own proof where it has one, otherwise the outputs that did not move */
-    var sameHint = sc.world==='state-dependent' ? 'Every law and every input is shared: one law set, two histories.'
-                 : (sc.pair ? 'Every other law and input is shared by both worlds.' : 'Every other law and input is Base\'s.');
-    h += '<div class="sgrp exp"><div class="eyebrow">What stayed the same</div><div class="hint">'+sameHint+
-         (P.unmoved.length ? ' Unchanged at the horizon: '+esc(P.unmoved.join(' · '))+'.' : '')+'</div>'+same+'</div>';
-    /* 3 · what emerged */
-    h += '<div class="sgrp exp"><div class="eyebrow">What emerged</div>'+P.l3body+P.same+'</div>';
-    /* 4 · why it matters */
-    h += '<div class="sgrp exp"><div class="eyebrow">Why it matters</div><div class="teach">'+esc(sc.teach)+'</div>'+
-         (sc.note ? '<div class="hint" style="margin-top:8px">'+esc(sc.note)+'</div>' : '')+regime+'</div>';
-    /* the full mechanism, the curve and the boundaries — available, not first */
-    h += '<div class="sgrp"><details class="bnd"><summary>What the system did · full mechanism</summary><div class="spine" style="margin-top:8px">'+P.l2+'</div>'+curve+'</details>';
-    h += '<details class="bnd"><summary>Model boundaries</summary><ul>' +
-      (sc.bounds||[]).map(function(k2){ return '<li>'+esc(boundText(k2))+'</li>'; }).join('') +
-      '</ul></details></div>';
-    return h;
+    var ev = same + curve;
+    return ev ? '<div class="sgrp exp" id="preset-evidence"><div class="eyebrow">Preset evidence</div>'+ev+'</div>' : '';
   }
 
   /* ---------- causal feedback, from real simulation outputs ---------- */
@@ -6379,23 +6262,28 @@ details.pl .cascade{margin-top:8px}
     if(layer!=='cmp'){
       slot.innerHTML=''; return;   /* Company is one world (Step 1D): Base against Experiment is read on Compare */
     }
-    if(!c.changed.length && !pairMode){
+    /* A canonical preset keeps its identity here. Preset 6 differs in opening state, not in laws:
+       the law diff is empty, so its change is named as the state it is. */
+    var sc = activeScenario, chg = c.changed;
+    if(sc && sc.world==='state-dependent') chg = [{ key:'bands', label:'Opening base · age at M0', from:'24 months (mature)', to:'0 months (young)' }];
+    if(!chg.length && !pairMode){
       slot.innerHTML='<div class="causal idle"><h4>Experiment equals Base</h4>'+
         '<div class="msg">Nothing has been changed, so there is nothing to compare. Open <b>Experiment</b>, move one law, and this surface shows what you changed, what the system did and what company emerged.</div>'+
         '<button class="btn" id="cmp-open-change" style="margin-top:8px">Open Experiment</button></div>';
       document.getElementById('cmp-open-change').addEventListener('click', function(){ document.querySelector('.app').classList.add('rail-open'); });
       return;
     }
-    var title = pairMode ? (activeScenario && activeScenario.pairLabel ? activeScenario.name : 'Efficiency versus Spend')
+    var title = sc ? 'Preset '+sc.n+' · '+sc.name : pairMode ? 'Efficiency versus Spend'
       : (lastMsg ? lastMsg.name : c.changed.map(function(u){ return LABEL[u.key]||u.key; }).join(', ') + ' changed');
-    var msg = pairMode ? (activeScenario && activeScenario.pairLabel ? activeScenario.teach : 'Two routes to the same ARR. Watch the mass — then watch the keel.')
+    var msg = sc ? sc.teach : pairMode ? 'Two routes to the same ARR. Watch the mass — then watch the keel.'
       : (lastMsg ? lastMsg.teach : 'The whole future recalculated.');
     var qb = baseRes.derived.acquisition, qx = expRes.derived.acquisition;
     var satAny = E.saturationEnabled(baseA) || E.saturationEnabled(expA);
     var costAny = b.cumExpansionCost>0 || x.cumExpansionCost>0;
     var lagAny = baseRes.derived.acquisitionLagMonths>0 || expRes.derived.acquisitionLagMonths>0;
-    slot.innerHTML='<div class="causal"><h4>'+esc(title)+'</h4><div class="msg">'+esc(msg)+'</div>'+
-      causalCompare(c.changed, { attribution: attributionBlock(c.changed) })+'</div>' + boundaryDisclosure(c.changed);
+    slot.innerHTML='<div class="causal'+(sc?' preset':'')+'"><h4>'+esc(title)+'</h4>'+(sc ? '<div class="ptitle">'+esc(sc.title)+'</div>' : '')+'<div class="msg">'+esc(msg)+'</div>'+
+      (sc && sc.note ? '<details class="bnd"><summary>How this preset is set up</summary><div class="hint" style="margin-top:6px;line-height:1.6">'+esc(sc.note)+'</div></details>' : '')+
+      causalCompare(chg, { attribution: attributionBlock(chg) })+'</div>' + (sc ? presetEvidence(sc) : '') + boundaryDisclosure(chg, sc);
     return;
     slot.innerHTML='<div class="causal"><h4>'+esc(title)+'</h4><div class="msg">'+esc(msg)+'</div>'+
       '<div class="cz">'+
@@ -6415,10 +6303,12 @@ details.pl .cascade{margin-top:8px}
     function cz(k,v,sign){ return '<span>'+esc(k)+'</span><b class="'+cls(sign)+'">'+v+'</b>'; }
   }
 
-  /* §6 — lever-specific model boundaries for the active free-form Experiment
-     (Scenarios already disclose their own via sc.bounds). Only the bounds
-     that bear on what actually changed, never the whole list. */
-  function boundaryDisclosure(changed){
+  /* §6 — lever-specific model boundaries: a canonical preset discloses its own declared
+     sc.bounds; a free-form Experiment only the bounds that bear on what actually changed,
+     never the whole list. */
+  function boundaryDisclosure(changed, sc){
+    if(sc && sc.bounds) return '<div class="sgrp" style="padding-top:0"><details class="bnd"><summary>Model boundaries</summary><ul>'+
+      sc.bounds.map(function(k2){ return '<li>'+esc(boundText(k2))+'</li>'; }).join('') + '</ul></details></div>';
     var keys = changed.map(function(u){ return u.key; });
     var bounds = [];
     if(keys.indexOf('sm')>=0 || keys.indexOf('cacPerARR')>=0 || keys.indexOf('maxMonthlyNewARR')>=0) bounds.push('acq');
@@ -6485,14 +6375,19 @@ details.pl .cascade{margin-top:8px}
     var host=document.getElementById('experiment-summary');
     var changed = E.compare(baseRes, expRes).changed;      // [{key, from, to}], real engine diff
     syncHeaderState(changed);
-    document.getElementById('nav-compare').classList.toggle('live', pairMode || changed.length>0);
+    document.getElementById('nav-compare').classList.toggle('live', pairMode || !!activeScenario || changed.length>0);
     if(pairMode){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         (activeScenario && activeScenario.pairLabel
-          ? '<div class="hint" style="line-height:1.65">Declared pair — '+esc(activeScenario.pairLabel)+'. Both sides are set by Scenario '+activeScenario.n+
-            '; the assumptions that differ between them are shown on the preset’s page (Browse presets).</div>'
+          ? '<div class="hint" style="line-height:1.65">Declared pair — '+esc(activeScenario.pairLabel)+'. Both sides are set by Preset '+activeScenario.n+
+            '; Compare shows the assumptions that differ between them.</div>'
           : '<div class="hint" style="line-height:1.65">Efficiency vs Spend pair — Base buys New ARR with acquisition efficiency, '+
-            'Experiment buys the same New ARR with S&amp;M. The preset’s page (Browse presets) shows the calibrated values.</div>');
+            'Experiment buys the same New ARR with S&amp;M. Compare shows the calibrated values.</div>');
+      return;
+    }
+    if(!changed.length && activeScenario && activeScenario.world==='state-dependent'){
+      host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
+        '<div class="hint" style="line-height:1.65">Preset '+activeScenario.n+' — one law set, two opening states: Base\u2019s opening base is 24 months old, the Experiment\u2019s is new. Compare shows what follows.</div>';
       return;
     }
     if(!changed.length){
@@ -6564,8 +6459,6 @@ details.pl .cascade{margin-top:8px}
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
     document.getElementById('nav-compare').classList.toggle('on', l==='cmp');
     document.getElementById('nav-system').classList.toggle('on', l==='flow' && sysView!=='ledger');
-    document.getElementById('nav-scen').classList.toggle('on', l==='scen');
-    document.getElementById('rail-toggle').classList.toggle('on', l==='scen');
     var appEl=document.querySelector('.app');
     appEl.classList.toggle('flow', l==='flow');
     if(l!=='flow') appEl.classList.remove('notes');
@@ -6574,14 +6467,13 @@ details.pl .cascade{margin-top:8px}
     /* Inspect commandeers the figure box: it hides the formation canvas and puts the cohort's own
        figure in its place. That hold belongs to the Company layer alone, and nothing released it
        on the way out — renderSide returns early for every other layer, so syncFigure never ran.
-       A cohort left pinned therefore followed the reader to System, Compare and Scenarios as a
+       A cohort left pinned therefore followed the reader to System and Compare as a
        display:none they never set, blanking whatever those layers draw in the box: the machine,
        and now the Model Ledger. Leaving Company releases it; returning re-applies it. */
     var fbx0=document.querySelector('.figbox'), fct0=document.querySelector('.figctl'), cl0=document.getElementById('cohort-life');
     if(l!=='stock'){ if(fbx0) fbx0.style.display=''; if(fct0) fct0.style.display='';
                      if(cl0 && !cl0.hidden){ cl0.hidden=true; cl0.innerHTML=''; cohortLifeStamp=null; cohortLife=null; } }
     syncLedger();                      /* the Model Ledger belongs to System; leaving System puts it away */
-    document.getElementById('scenbar').hidden = l!=='scen';
     document.getElementById('leak-toggle').style.display = (l==='stock'||l==='cmp') ? '' : 'none';
     document.querySelector('.cascade').hidden = l!=='stock';
     if(l!=='stock'){ var cs0=document.getElementById('causal-slot'); if(cs0) cs0.innerHTML=''; }   /* the one-line strip belongs to Company only */
@@ -6597,8 +6489,7 @@ details.pl .cascade{margin-top:8px}
   document.getElementById('notes-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('notes'); });
   document.getElementById('figwrap').addEventListener('toggle', function(){ var fw=this; if(fw.dataset.silent) return; figPref[layer+':'+(layer==='stock'?activeLens:'')] = fw.open; setTimeout(function(){ resize(); render(); }, 0); });
   document.getElementById('nav-system').addEventListener('click', function(){ if(sysView==='ledger') sysView = sysViewBack || 'ontology'; setLayer('flow'); syncSysViews(); });
-  document.getElementById('nav-scen').addEventListener('click', function(){ setLayer('scen'); });
-  document.getElementById('scen-clear').addEventListener('click', function(){ resetAll(); });
+  document.getElementById('nav-scen').addEventListener('click', function(){ showPresets(document.getElementById('preset-list').hidden); });
   ['abs','delta'].forEach(function(c){
     document.getElementById('cmp-'+c).addEventListener('click', function(){
       compare = c==='abs'?'absolute':'delta';
@@ -6634,7 +6525,7 @@ details.pl .cascade{margin-top:8px}
   /* narrow screens: the Change rail is a drawer over the stage */
   document.getElementById('rail-toggle').addEventListener('click', function(){ if(!document.querySelector('.app').classList.toggle('rail-open')) lawRingOff(); });
   function lawRingOff(){ if(openChip!==null){ openChip = null; if(layer==='flow') render(); } }
-  document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); lawRingOff(); });
+  document.getElementById('rail-close').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); showPresets(false); lawRingOff(); });
   document.getElementById('rail-detail').addEventListener('click', function(){ document.querySelector('.rail').classList.toggle('detail'); });
   document.getElementById('scrim').addEventListener('click', function(){ document.querySelector('.app').classList.remove('rail-open'); lawRingOff(); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ document.querySelector('.app').classList.remove('rail-open'); document.querySelector('.app').classList.remove('notes'); } });
@@ -6720,6 +6611,7 @@ details.pl .cascade{margin-top:8px}
   window.__SP_DEBUG = {
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
+    get activeScenario(){ return activeScenario; }, get layer(){ return layer; },
     selectedMonth: selectedMonth,
     recurringAttribution: recurringAttribution,
     cashAttribution: cashAttribution,

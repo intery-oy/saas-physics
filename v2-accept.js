@@ -106,13 +106,13 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- A · SCENARIO 10 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="customers"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="customers"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s10 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     b: window.__SP_DEBUG.baseRes.months[59].closingARR, x: window.__SP_DEBUG.expRes.months[59].closingARR,
     cb: window.__SP_DEBUG.baseRes.months[59].customers.closing, cx: window.__SP_DEBUG.expRes.months[59].customers.closing }));
-  rec('A · SCENARIO 10: both worlds carry the layer (L 87.4%/C 0 vs L 92%/C 5%), M60 ARR identical, customers differ, and the panel shows the match block and the customer consequence rows',
+  rec('A · SCENARIO 10: both worlds carry the layer (L 87.4%/C 0 vs L 92%/C 5%), M60 ARR identical, customers differ, and Compare names the preset, runs its causal comparison and shows the match block as preset evidence',
       s10.bA.logoRetentionAnnual === 0.874 && s10.xA.logoRetentionAnnual === 0.92 && Math.abs(s10.b - s10.x) < 1e-6 && Math.abs(s10.cb - s10.cx) > 50 &&
-      s10.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ARR CAN SHOW') && /max \|ΔMRR\| over 60 months\n€0/.test(s10.txt) && /WHAT CHANGED[\s\S]*WHAT STAYED THE SAME[\s\S]*WHAT EMERGED[\s\S]*WHY IT MATTERS[\s\S]*WHAT THE SYSTEM DID/.test(s10.txt) && /customers M60\n2157 → 2505\n\+349/.test(s10.txt) && /logo retention R12M\n87\.4% → 92\.0%\n\+4\.6 pp/.test(s10.txt) && /contraction CUM\n€0 → €[\d.]+[km]/.test(s10.txt) && s10.txt.includes('Same ARR, different system'),
+      s10.txt.includes('THE TWO WORLDS AGREE ON EVERYTHING ARR CAN SHOW') && /max \|ΔMRR\| over 60 months\n€0/.test(s10.txt) && /PRESET 10 · CUSTOMERS BEHIND THE ARR[\s\S]*WHAT YOU CHANGED[\s\S]*WHAT THE SYSTEM DID[\s\S]*WHAT COMPANY EMERGED[\s\S]*PRESET EVIDENCE/i.test(s10.txt) && /customers M60\n2157 → 2505\n\+349/.test(s10.txt) && /logo retention R12M\n87\.4% → 92\.0%\n\+4\.6 pp/.test(s10.txt) && /contraction CUM\n€0 → €[\d.]+[km]/.test(s10.txt) && s10.txt.includes('Same ARR, different system'),
       s10.txt.slice(0, 200).replace(/\n/g, ' | '));
   rec('A · SCENARIO 10: the boundary discloses the customer layer\'s limits (continuous count, no heterogeneity, flat laws)',
       (await pg.evaluate(() => document.getElementById('side').textContent)).includes('continuous cohort count with one ARPA per cohort'), '');
@@ -175,12 +175,12 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- B · SCENARIOS 11, 12 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="monetization"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="monetization"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s11 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
   rec('B · SCENARIO 11: Base is the customer world with a coefficient, Experiment the same customers priced as components (same €20m opening); the panel shows cumulative price/usage/adoption effects, the R12M decomposition and the headroom used',
       !s11.bm.monetization && s11.xm.monetization && s11.b0 === 20000000 && s11.x0 === 20000000 && /MONETIZATION\nMonetization · off → on/.test(s11.txt) && /price effect CUM\n— → €[\d.]+[km]\nnew/.test(s11.txt) && /usage effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /adoption effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /variable share M60\n— → [\d.]+%/.test(s11.txt) && /expansion CUM\n€[\d.]+[km] → €[\d.]+[km]/.test(s11.txt),
       s11.txt.slice(s11.txt.indexOf('CONSEQUENCE'), s11.txt.indexOf('CONSEQUENCE') + 200).replace(/\n/g, ' | '));
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="mix"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="mix"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s12 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
   const gb12 = await pg.evaluate(() => { const D = window.__SP_DEBUG; return { gb: D.K.measureR12M(D.baseRes, 12).grr, gx: D.K.measureR12M(D.expRes, 12).grr, cb: D.baseRes.months[0].monetization.contractionARR, cx: D.expRes.months[0].monetization.contractionARR, ob: D.baseRes.months[0].openingARR, ox: D.expRes.months[0].openingARR }; });
   rec('B · SCENARIO 12: same opening ARR, customers and laws; contraction €0 in the all-platform Base and > 0 in the mixed Experiment; GRR differs; the match block is on screen',
@@ -257,7 +257,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- C · SCENARIO 13 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="billing"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="billing"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s13 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let wE = 0; for (let t = 0; t < 60; t++) wE = Math.max(wE, Math.abs(D.expRes.months[t].ebita - D.baseRes.months[t].ebita));
     return { txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), wE, xm: D.expRes.mechanisms, bm: D.baseRes.mechanisms, bc: D.baseRes.months[59].cashClosing, xc: D.expRes.months[59].cashClosing }; });
   rec('C · SCENARIO 13: Base FCF = EBITA, Experiment billed annually in advance and collected a month later; EBITA identical every month, ending cash differs; the match block and the cash rows are on screen',
@@ -329,7 +329,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- D · SCENARIO 14 ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="hypothesis"]').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
   const s14 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let same = true; for (let t = 0; t < 8; t++) if (D.expRes.months[t].closingARR !== D.baseRes.months[t].closingARR) same = false;
     return { txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), same, bm: D.baseRes.mechanisms, xm: D.expRes.mechanisms, cost: D.K.interventionMeasures(D.expRes, 60).cumulativeCost }; });
   rec('D · SCENARIO 14: Base has no hypothesis, Experiment the retention programme; months 1–8 identical; the panel shows the window, the cost (€1.55m), the month cash overtakes Base and the boundary',

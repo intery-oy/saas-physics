@@ -55,7 +55,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
   /* ---- DELTA-CASH: the displayed ΔCash equals Experiment − Base, exactly ---- */
   await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.querySelector('#scenlist .btn[data-id="retention"]').click());
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="retention"]').click(), document.getElementById('nav-compare').click()));
   await pg.waitForTimeout(400);
   await jsClick('#nav-company'); await pg.waitForTimeout(400);
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 45; s.dispatchEvent(new Event('input')); });

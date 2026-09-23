@@ -293,7 +293,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
   const chrome = await pg.evaluate(() => ({ sysLit: document.getElementById('nav-system').classList.contains('on'), moreLit: document.getElementById('more-btn').classList.contains('here'),
     tab: !!document.getElementById('sysview-ledger'), viewsShown: getComputedStyle(document.getElementById('sysviews')).display !== 'none', title: (document.querySelector('.ledgerbar .eyebrow') || {}).textContent }));
   const leak = {};
-  for (const nav of ['nav-company', 'nav-compare', 'nav-scen']) {
+  for (const nav of ['nav-company', 'nav-compare']) {
     await pg.evaluate(n => document.getElementById(n).click(), nav); await pg.waitForTimeout(400);
     leak[nav] = await pg.evaluate(() => { const e = document.getElementById('ledger'), r = e.getBoundingClientRect();
       return { hidden: e.hidden, display: getComputedStyle(e).display, area: Math.round(r.width * r.height) }; });

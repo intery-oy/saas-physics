@@ -107,17 +107,24 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const back = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   rec('SYSTEM: drill-down into Cash and back to the Ontology through the view list', drill.view === 'cash' && drill.on === 'Cash' && back === 'ontology', JSON.stringify({ drill, back }));
 
-  /* ---- SCENARIOS: an experiment ---- */
-  await click(pg, '#nav-scen');
-  const idx = await pg.evaluate(() => ({ rows: document.querySelectorAll('#side .scenrow').length, cards: document.querySelectorAll('#side .scencard').length, teach: /teach/.test(document.getElementById('side').innerHTML) }));
-  rec('SCENARIOS: with no experiment chosen the surface is a fourteen-row index (number · name · title), not fourteen explanation cards', idx.rows === 14 && idx.cards === 0, JSON.stringify(idx));
-  await pg.evaluate(() => document.querySelector('#side .scenrow[data-id="hypothesis"]').click()); await pg.waitForTimeout(500);
-  const sc = await pg.evaluate(() => { const t = document.getElementById('side').innerText, all = document.getElementById('side').textContent; const eb = [...document.querySelectorAll('#side .sgrp.exp .eyebrow')].map(e => e.textContent);
-    const det = [...document.querySelectorAll('#side details.bnd:not(.sec)')].map(d => ({ s: d.querySelector('summary').textContent, open: d.open })); const l2 = document.querySelector('#side .cause.l2 .mech'); return { eb, det, visSpine: !!l2 && !l2.closest('details:not([open])'), allSpine: !!l2 && /What the system did/.test(all), rows: (t.match(/\n/g) || []).length, active: window.__SP_DEBUG.activePack, id: document.querySelector('#scenlist .btn.on') && document.querySelector('#scenlist .btn.on').dataset.id }; });
-  rec('SCENARIOS: an experiment reads What changed → What stayed the same → What emerged → Why it matters, in that order', sc.eb.join('|') === 'What changed|What stayed the same|What emerged|Why it matters' && sc.id === 'hypothesis', JSON.stringify(sc.eb));
-  rec('SCENARIOS: the full mechanism spine and the model boundaries are present but behind closed disclosure', sc.det.length === 2 && /What the system did/.test(sc.det[0].s) && /Model boundaries/.test(sc.det[1].s) && !sc.det[0].open && !sc.det[1].open && !sc.visSpine && sc.allSpine, JSON.stringify(sc.det));
-  const cascadeScen = await pg.evaluate(() => { const c = document.querySelector('.cascade'); return c ? c.getBoundingClientRect().height : 0; });
-  rec('SCENARIOS: the P&L waterfall does not compete with the experiment', cascadeScen === 0, String(cascadeScen));
+  /* ---- PRESETS: a browser inside the Experiment drawer; Compare analyses the loaded preset ---- */
+  await click(pg, '#rail-toggle'); await click(pg, '#nav-scen');
+  const idx = await pg.evaluate(() => { const l = document.getElementById('preset-list'), rows = [...l.querySelectorAll('.prow')];
+    return { inRail: !!l.closest('.rail'), shown: !l.hidden, rows: rows.length, ids: rows.map(r => r.dataset.id).join(','), full: rows.every(r => r.querySelector('.pname').textContent && r.querySelector('.ptitle').textContent && r.querySelector('.plesson').textContent && r.querySelector('.pchg').textContent),
+      analysis: l.querySelectorAll('.cause, .recon, details, table, svg, canvas').length, layers: window.__SP_DEBUG.layer }; });
+  rec('PRESETS: Browse presets opens a fourteen-row list inside the Experiment drawer (name · title · lesson · what changes) with no analysis in it', idx.inRail && idx.shown && idx.rows === 14 && idx.full && idx.analysis === 0 &&
+      idx.ids === 'retention,expansion,efficiency,margin,pair,history,expcost,bounded,lag,customers,monetization,mix,billing,hypothesis', JSON.stringify(idx));
+  const layer0 = await pg.evaluate(() => window.__SP_DEBUG.layer);
+  await pg.evaluate(() => document.querySelector('#preset-list .prow[data-id="hypothesis"]').click()); await pg.waitForTimeout(400);
+  const ld = await pg.evaluate(() => ({ id: window.__SP_DEBUG.activeScenario && window.__SP_DEBUG.activeScenario.id, listHidden: document.getElementById('preset-list').hidden, railOpen: document.querySelector('.app').classList.contains('rail-open'),
+    chip: document.getElementById('rail-toggle').textContent, layer: window.__SP_DEBUG.layer, viewed: window.__SP_DEBUG.viewedWorld }));
+  rec('PRESETS: choosing one loads it, closes the list and the drawer, keeps the page and views the Experiment; the chip names the preset', ld.id === 'hypothesis' && ld.listHidden && !ld.railOpen && /A retention programme/.test(ld.chip) && ld.layer === layer0 && ld.viewed === 'exp', JSON.stringify(ld));
+  await click(pg, '#nav-compare');
+  const sc = await pg.evaluate(() => { const c = document.querySelector('#compare-panel .causal'); const det = [...document.querySelectorAll('#side details.bnd:not(.sec)')].map(d => d.querySelector('summary').textContent);
+    return { h: c.querySelector('h4').textContent, t: c.querySelector('.ptitle').textContent, msg: c.querySelector('.msg').textContent, order: [...c.querySelectorAll('.cause')].map(e => e.className).join('|'), det, bnd: document.getElementById('side').textContent.includes('cannot switch a layer on or off') }; });
+  rec('PRESETS: Compare keeps the preset\'s identity — name, title and lesson — above the causal comparison, and discloses the preset\'s own boundaries', sc.h === 'Preset 14 · A retention programme' && /hypothesis, not a law/.test(sc.t) && /^Moving a law is a decision/.test(sc.msg) && sc.order === 'cause l1|cause l2|cause l3' && sc.det.indexOf('How this preset is set up') >= 0 && sc.det.indexOf('Model boundaries') >= 0 && sc.bnd, JSON.stringify(sc));
+  const route = await pg.evaluate(() => ({ bar: !!document.getElementById('scenbar'), clear: !!document.getElementById('scen-clear'), rows: document.querySelectorAll('.scenrow').length, html: /setLayer\('scen'\)|layer==='scen'/.test(document.documentElement.innerHTML) }));
+  rec('PRESETS: no standalone Scenarios route remains (no page, bar, index or Clear)', !route.bar && !route.clear && !route.rows && !route.html, JSON.stringify(route));
 
   /* ---- COMPARE: primary first, secondary disclosed ---- */
   await click(pg, '#nav-compare');
@@ -130,7 +137,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const secMoved = cmp ? cmp.secRows.filter(d => d !== '=').length : -1, secSame = cmp ? cmp.secRows.filter(d => d === '=').length : -1;
   rec('COMPARE: the spine keeps its three levels; primary rows are the moved rows of the layers the hypothesis entered (installed base, hypothesis), none of them "="', cmp && cmp.order.join('|') === 'cause l1|cause l2|cause l3' && cmp.prim.length >= 3 && cmp.prim.every(d => d !== '=') && cmp.heads.join('|') === 'installed base|hypothesis', JSON.stringify(cmp && { prim: cmp.prim, heads: cmp.heads }));
   rec('COMPARE: secondary effects are collapsed under one summary whose counts equal the rows inside; nothing is dropped', cmp && cmp.secOpen === false && /^Secondary effects · /.test(cmp.sum) && (n ? +n[1] : 0) === secMoved && (u ? +u[1] : 0) === secSame && cmp.secRows.length > 0, JSON.stringify({ sum: cmp && cmp.sum, secMoved, secSame }));
-  await click(pg, '#scen-clear'); await click(pg, '#nav-company');
+  await click(pg, '#reset'); await click(pg, '#nav-company');
   /* a change that enters at acquisition: acquisition rows primary, everything else secondary */
   await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 900000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close'); await click(pg, '#nav-compare');
   const cmp2 = await pg.evaluate(() => { const l2 = document.querySelector('#compare-panel .cause.l2'); return { heads: [...l2.querySelectorAll(':scope > .mech .mh')].map(e => e.textContent), sec: [...l2.querySelectorAll('details.bnd.sec .mech .mh')].map(e => e.textContent), sum: l2.querySelector('details.bnd.sec summary').textContent }; });
@@ -171,11 +178,12 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect();
       return { nav, order: h.top < n.top && n.top < f.top, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, stageScroll: document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1, open: document.querySelector('.app').classList.contains('rail-open') }; });
     rec('RESPONSIVE ' + w + ': the four surfaces and Change are reachable; the drawer opens ' + (w <= 760 ? 'full width' : 'as a 460px drawer') + ' and closes; hero → lenses → figure; no horizontal scroll', st.nav.every(Boolean) && (w <= 760 ? Math.abs(rr.w - w) <= 1 : rr.w >= 400 && rr.w < w) && !st.open && st.order && !st.hscroll && !st.stageScroll, JSON.stringify({ rail: rr.w, st }));
-    await click(q, '#nav-scen'); await q.evaluate(() => document.querySelector('#scenlist .btn[data-id="hypothesis"]').click()); await q.waitForTimeout(500);
-    const sx = await q.evaluate(() => ({ eb: [...document.querySelectorAll('#side .sgrp.exp .eyebrow')].map(e => e.textContent).join('|'), hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }));
+    await click(q, '#rail-toggle'); await click(q, '#nav-scen'); const pl = await q.evaluate(() => { const r = document.querySelector('#preset-list .prow').getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth + 1; });
+    await q.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await q.waitForTimeout(500);
+    const sx = await q.evaluate(() => ({ pl: 0, eb: document.querySelector('#compare-panel h4').textContent, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }));
     await click(q, '#nav-system');
     const sy = await q.evaluate(() => { const fb = document.querySelector('.figbox').getBoundingClientRect(); return { fh: fb.height, notes: document.querySelector('.app').classList.contains('notes'), hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }; });
-    rec('RESPONSIVE ' + w + ': the experiment grammar and the machine render at this width without page-level horizontal scroll', sx.eb === 'What changed|What stayed the same|What emerged|Why it matters' && !sx.hscroll && sy.fh >= 240 && !sy.notes && !sy.hscroll, JSON.stringify({ sx, sy }));
+    rec('RESPONSIVE ' + w + ': the preset list, the preset on Compare and the machine render at this width without page-level horizontal scroll', pl && sx.eb === 'Preset 14 · A retention programme' && !sx.hscroll && sy.fh >= 240 && !sy.notes && !sy.hscroll, JSON.stringify({ sx, sy }));
     await q.close();
   }
   rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
