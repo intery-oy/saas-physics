@@ -33,7 +33,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
-  await pg.evaluate(() => { document.getElementById('pack-arr').click(); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
+  await pg.evaluate(() => { (document.getElementById('pack-arr').click(), (document.getElementById('world-yes') || { click() {} }).click())   /* a world change over an Experiment asks first */ });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
@@ -188,7 +188,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   await jsClick('#nav-company');   /* the earlier sections left the portal on another layer */
   await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(200);
   await jsClick('#reset'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.getElementById('pack-wA').click()); await pg.waitForTimeout(600);
+  await pg.evaluate(() => (document.getElementById('pack-wA').click(), (document.getElementById('world-yes') || { click() {} }).click())   /* a world change over an Experiment asks first */); await pg.waitForTimeout(600);
   const warm = await pg.evaluate(() => { const D = window.__SP_DEBUG, M = D.expRes.months;
     return { pipe: D.expRes.derived.openingPipelineMonths, lag: D.expRes.derived.acquisitionLagMonths, mech: D.expRes.mechanisms.warmStart,
       inFlight: D.expRes.derived.openingPipelineARR, priorSM: D.expRes.derived.openingPipelinePriorSM,
@@ -218,7 +218,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       clamped.lag === 0 && (clamped.pipe === null || clamped.pipe === 0) && errs.length === 0, JSON.stringify(clamped));
 
   /* a cohort bought out of the opening pipeline says so, and has no cost inside the window to recover */
-  await pg.evaluate(() => document.getElementById('pack-wA').click()); await pg.waitForTimeout(600);
+  await pg.evaluate(() => (document.getElementById('pack-wA').click(), (document.getElementById('world-yes') || { click() {} }).click())   /* a world change over an Experiment asks first */); await pg.waitForTimeout(600);
   await setScrub(36);
   /* the newest stratum at month 2 IS a pipeline cohort: scan down from the top of the mass */
   const pre = await pg.evaluate(() => { const D = window.__SP_DEBUG, cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
@@ -239,7 +239,7 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
       /bought out of the opening pipeline/.test(preTxt) && !/predates the simulation/.test(preTxt),
       JSON.stringify(pre) + ' | ' + preTxt.slice(preTxt.indexOf('Spend incurred'), preTxt.indexOf('Spend incurred') + 160).replace(/\n/g, ' | '));
   await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(300);
-  await pg.evaluate(() => { document.getElementById('pack-arr').click(); }); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { (document.getElementById('pack-arr').click(), (document.getElementById('world-yes') || { click() {} }).click())   /* a world change over an Experiment asks first */ }); await pg.waitForTimeout(500);
 
   /* ---- NULL-ON-SCREEN ---- */
   await jsClick('#reset'); await pg.waitForTimeout(300);

@@ -58,7 +58,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
   /* ---- DEFAULT WORLD: a fresh page load, no world chosen ---- */
   const fresh = await open(1440, 900); await scrub(fresh, 36);
-  const boot = await D(fresh, () => ({ pack: window.__SP_DEBUG.activePack, mech: window.__SP_DEBUG.expRes.mechanisms, on: (document.querySelector('#worldlist .btn.on') || {}).textContent, model: (document.querySelector('#lens-company .model') || {}).textContent }));
+  const boot = await D(fresh, () => ({ pack: window.__SP_DEBUG.activePack, mech: window.__SP_DEBUG.expRes.mechanisms, on: (document.querySelector('#worldlist .mi.on') || {}).textContent, model: (document.querySelector('#lens-company .model') || {}).textContent }));
   await click(fresh, '.lensnav .btn[data-lens="customers"]');
   const bootCu = await page(fresh, 'customers');
   rec('DEFAULT WORLD: a fresh page load opens on A · Enterprise with Customer, Monetization and Cash physics ON — the model chip reads MODEL · ARR · CUSTOMERS · MONETIZATION · CASH', boot.pack === 'wA' && boot.mech.customerPhysics && boot.mech.monetization && boot.mech.cashPhysics && /A · Enterprise/.test(boot.on) && /MODEL · ARR · Customers · Monetization · Cash/i.test(boot.model), JSON.stringify(boot));

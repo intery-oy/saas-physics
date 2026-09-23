@@ -218,14 +218,15 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   /* ---- C · OBSERVE + WATERFALL ---- */
   await setScrub(36);
   const co = await pg.evaluate(() => { const D = window.__SP_DEBUG, m = D.selectedMonth(); return { m, c: D.expRes.months[m - 1].cash, fcf: D.expRes.months[m - 1].fcf, ebita: D.expRes.months[m - 1].ebita, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText),
+    fin: document.getElementById('lens-cash').textContent,   /* the lens may be hidden: read its text, not what is on screen */
     wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), wfv: [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent) }; });
   const indepC = E.run(Object.assign({}, E.DEFAULT_ASSUMPTIONS, { billingTermMonths: 12, collectionDelayMonths: 1 }));
   const icC = indepC.months[co.m - 1].cash;
   const fmtC = v => Math.abs(v) >= 1e6 ? '€' + (v / 1e6).toFixed(2) + 'm' : '€' + Math.round(v / 1e3) + 'k';
-  rec('C · OBSERVE: the Economics & cash lens shows the economics chart (revenue, gross profit, EBITA) above the cash chart with the trough marked; billings, deferred revenue and cash FCF tie to an independent Node run and the waterfall continues below EBITA',
-      /How does MRR turn into profit and cash\?/.test(co.txt) && co.txt.includes('ECONOMICS OVER TIME · MONTHLY') && /CASH OVER TIME/.test(co.txt) && /trough €-?[\d.]+[km]? · M\d+/.test(co.txt) && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
+  rec('C · OBSERVE: Financials carries the three statements with working capital modelled (receivables, deferred revenue, the change in net working capital) and no Cash-off absence; billings, deferred revenue and cash FCF tie to an independent Node run and the waterfall continues below EBITA',
+      /translate into profit, working capital and cash\?/.test(co.fin) && /Statement of operations/.test(co.fin) && /Working capital/.test(co.fin) && /Change in net working capital/.test(co.fin) && /Cash flow/.test(co.fin) && !/Cash Physics is off/.test(co.fin) && Math.abs(co.c.billings - icC.billings) < 1e-6 && Math.abs(co.c.deferredClosing - icC.deferredClosing) < 1e-6 && Math.abs(co.fcf - (icC.collections - icC.cashCosts)) < 1e-6 &&
       co.wf.some(t => /Δ deferred/.test(t)) && co.wf.some(t => /Δ receivables/.test(t)) && !co.txt.includes('cash physics off'),
-      co.txt.slice(co.txt.indexOf('CASH'), co.txt.indexOf('CASH') + 220).replace(/\n/g, ' | '));
+      co.fin.slice(0, 220));
   rec('C · WATERFALL: the P&L waterfall continues below EBITA — "= EBITA", "± Δ deferred revenue", "± Δ receivables", "= Cash FCF" (10 steps) — and the printed cash FCF equals the engine\'s fcf',
       co.wf.length === 10 && co.wf[6] === '= EBITA' && /Δ deferred revenue$/.test(co.wf[7]) && /Δ receivables$/.test(co.wf[8]) && co.wf[9] === '= Cash FCF' && co.wfv[9] === fmtC(co.fcf) && Math.abs(co.fcf - co.ebita) > 1000, JSON.stringify(co.wf) + ' ' + co.wfv[9]);
 

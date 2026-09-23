@@ -108,7 +108,33 @@ button,input{font:inherit;color:inherit}
 .recon{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:11px;margin-top:5px}
 .recon span{color:var(--ink-3)} .recon b{font-family:var(--mono);font-weight:500}
 .recon .tot{color:var(--ink);border-top:1px solid var(--line);padding-top:3px}
-.head{display:flex;align-items:baseline;gap:16px;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.head{display:flex;align-items:center;gap:14px;padding:11px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:relative;z-index:30}
+.head .nav{display:flex;gap:6px;align-items:center}
+.hbtn .caret{margin-left:7px;font-size:9px;color:var(--ink-3)}
+#world-btn{font-family:var(--display);font-size:14px;padding:5px 12px}
+#more-btn{font-size:15px;letter-spacing:.1em;padding:4px 12px}
+.xchip{border-style:dashed;color:var(--ink-3);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xchip.live{border-style:solid;border-color:var(--exp);color:var(--exp)}
+.menu{max-height:calc(100vh - 80px);overflow-y:auto}
+.menu-wrap{position:relative}
+.menu{position:absolute;top:calc(100% + 8px);left:0;z-index:70;min-width:300px;max-width:min(380px,calc(100vw - 24px));background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.menu.right{left:auto;right:0;min-width:280px}
+.menu .mh{font:10px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:8px 8px 4px}
+.menu .mh span{display:block;text-transform:none;letter-spacing:0;color:var(--ink-4);font-size:10.5px;margin-top:2px}
+.menu .mlist{display:flex;flex-direction:column}
+.menu .mi{display:block;width:100%;text-align:left;background:none;border:0;border-radius:3px;padding:7px 8px;font:13px var(--ui);color:var(--ink);cursor:pointer}
+.menu button.mi:hover{background:var(--panel)}
+.menu .mi.on{color:var(--exp)}
+.menu .mi.on::after{content:" ✓";color:var(--exp)}
+.menu .mi span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:1px}
+.menu .mrow{display:flex;align-items:center;justify-content:space-between;cursor:default}
+.menu .mrow .ml{display:inline;font-size:13px;color:var(--ink);margin:0}
+.menu .mrow .btn{padding:3px 10px;font-size:11px}
+.menu .mabout{border-top:1px solid var(--line-soft);margin-top:6px;padding:9px 8px 3px;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+.menu #packnote{padding:4px 8px 2px;font-size:10.5px}
+.wconfirm{margin:8px 4px 2px;padding:10px;border:1px solid var(--exp);border-radius:3px;background:var(--panel)}
+.wconfirm .wq{font-size:13px;color:var(--ink);margin-bottom:4px}
+.wconfirm .btn-row{margin-top:9px;gap:8px}
 .head h1{margin:0;font-family:var(--display);font-weight:400;font-size:20px;letter-spacing:.005em}
 .head .sub{font-size:11.5px;color:var(--ink-3);font-style:italic;font-family:var(--display)}
 .spacer{flex-grow:1}
@@ -545,7 +571,11 @@ details.pl .cascade{margin-top:8px}
   .herolens .hero .hv{font-size:34px}
   .head{padding:10px 16px;gap:10px}
   .head h1{font-size:17px}
-  .head .chip{display:none}
+  .head .nav{order:3;flex-basis:100%;gap:5px}
+  .head .nav .btn{padding:6px 9px;font-size:12.5px}
+  .xchip .xw{display:none} .xchip.pre::after{content:"preset"}
+  .head .spacer{display:none}
+  #more-wrap{margin-left:auto}
   .lens{padding:14px 16px 15px}
   .cascade{padding:9px 16px 10px}
   .crow{grid-template-columns:96px minmax(0,1fr) 80px}
@@ -707,18 +737,18 @@ details.pl .cascade{margin-top:8px}
     <div class="wcta">
       <button class="btn primary" id="welcome-enter">Enter</button>
       <button class="btn" id="welcome-tour">Take the six-step tour</button>
-      <span class="hint">Reopen this page any time with <b>Guide</b> in the header.</span>
+      <span class="hint">Reopen this page any time: <b>Guide</b> under <b>⋯</b> in the header.</span>
     </div>
     <div class="wgrid">
       <div>
         <h5>The portal</h5>
         <ol>
           <li><b>Company</b> &middot; one company at a time: a hero line, then five lenses &mdash; Company, Customers, Growth engine, Monetization, Financials &mdash; with the sixty-month figure beneath as context.</li>
-          <li><b>Change</b> &middot; the button in the header opens the model-building drawer: pick a world, then set laws, constraints, inputs and one hypothesis. Close it to read the company.</li>
+          <li><b>World</b> &middot; the menu beside the title picks the Base company: three illustrative worlds, or the base model built up layer by layer.</li>
+          <li><b>Experiment</b> &middot; the chip in the header opens the drawer where you change the laws &mdash; or start from one of fourteen presets. It names what differs from Base; close it to read the company.</li>
           <li><b>Compare</b> &middot; when the Experiment differs from Base, one line beneath the lens says so; Compare reads what you changed &rarr; what the system did &rarr; what company emerged.</li>
           <li><b>System</b> &middot; the company as an economic machine. Click a node to open its layer; Notes reads the map.</li>
-          <li><b>Scenarios</b> &middot; fourteen experiments, each answering what changed, what stayed the same, what emerged and why it matters.</li>
-          <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR down to the cash it recovered; &lsaquo; Company returns.</li>
+                    <li><b>Inspect</b> &middot; click any cohort in the figure to trace one euro of ARR down to the cash it recovered; &lsaquo; Company returns.</li>
         </ol>
       </div>
       <div>
@@ -733,13 +763,13 @@ details.pl .cascade{margin-top:8px}
         <h5 style="margin-top:18px">Time</h5>
         <p class="wsmall">Every figure names its basis: <span class="basis">M36</span> a month&rsquo;s closing state, <span class="basis">M36 &middot; month</span> that month&rsquo;s flows, <span class="basis">R12M</span> the trailing twelve months, <span class="basis">CUM</span> since the start, <span class="basis">M60</span> the horizon. The transport at the bottom is the only clock.</p>
         <h5 style="margin-top:18px">Basis</h5>
-        <p class="wsmall">Recurring revenue shows as MRR by default; the header switches to ARR. Nothing else changes.</p>
+        <p class="wsmall">Recurring revenue shows as MRR by default; switch to ARR under <b>⋯</b> in the header. Nothing else changes.</p>
       </div>
     </div>
     <h5>Three ways to start</h5>
     <div class="wstart">
-      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>The portal opens on <b>A &middot; Enterprise</b> with every layer on. Press play and stop around month 36; the other worlds are under World in <b>Change</b>.</div>
-      <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>In <b>Change</b>, move <b>S&amp;M investment</b> or <b>Logo retention</b>, close the drawer and open <b>Compare</b>.</div>
+      <div class="ws"><b class="t"><span class="n">1</span>Watch a company form</b>The portal opens on <b>A &middot; Enterprise</b> with every layer on. Press play and stop around month 36; the other worlds are under <b>World</b> in the header.</div>
+      <div class="ws"><b class="t"><span class="n">2</span>Change one law</b>Open <b>Experiment</b>, move <b>S&amp;M investment</b> or <b>Logo retention</b>, close the drawer and open <b>Compare</b>.</div>
       <div class="ws"><b class="t"><span class="n">3</span>See the machine</b>Open <b>System</b>, click CASH or CUSTOMERS to drill into that layer, and &lsaquo; Ontology to come back.</div>
     </div>
     <p class="wnote">Illustrative model, deterministic, no randomness; the same engine runs the browser and the command-line checks. Nothing you set is sent anywhere. The page keeps only your MRR/ARR preference and whether you have seen this screen, in this browser.</p>
@@ -753,29 +783,45 @@ details.pl .cascade{margin-top:8px}
 <div class="app">
   <header class="head">
     <h1>SaaS Physics</h1>
-    <span class="sub">an economic system, observed</span>
+    <!-- SEE → CHANGE → COMPARE → UNDERSTAND: the world, then the four moves in reading order -->
+    <div class="menu-wrap" id="world-wrap">
+      <button class="btn hbtn" id="world-btn" aria-haspopup="true" aria-expanded="false" title="The Base world: which company, and which layers it carries"><span id="world-name">World</span><span class="caret">▾</span></button>
+      <div class="menu" id="world-menu" hidden>
+        <div class="wconfirm" id="world-confirm" hidden></div>
+        <div class="mh">Worlds <span>three company shapes built from the same laws · illustrative, not benchmarks</span></div>
+        <div class="mlist" id="worldlist"></div>
+        <div class="mh">Build up the base model <span>which layers the Base world carries</span></div>
+        <div class="mlist" id="packlist"></div>
+        <div class="hint" id="packnote"></div>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Surfaces">
+      <button class="btn on" id="nav-company">Company</button>
+      <button class="btn xchip" id="rail-toggle" aria-label="Open or close the Experiment" title="Change the laws: the Experiment runs against the unchanged Base">Experiment</button>
+      <button class="btn" id="nav-compare">Compare</button>
+      <button class="btn" id="nav-system">System</button>
+    </nav>
     <span class="spacer"></span>
-    <span class="chip" id="mode-chip">base vs experiment</span>
-    <div class="btn-row nav"><button class="btn on" id="nav-company">Company</button><button class="btn" id="nav-compare">Compare</button><button class="btn" id="nav-system">System</button><button class="btn" id="nav-scen">Scenarios</button></div>
-    <button class="btn" id="rail-toggle" aria-label="Open or close Change" title="Build or modify the economic world">Change</button>
-    <span class="eyebrow">Basis</span>
-    <div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div>
-    <button class="btn" id="keybtn">Method</button>
-    <button class="btn" id="guidebtn" title="The opening page: what this is and how to use it">Guide</button>
-    <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-    <span class="chip build" id="build-chip" title="The commit this page was built from">__BUILD__</span>
+    <div class="menu-wrap" id="more-wrap">
+      <button class="btn hbtn" id="more-btn" aria-haspopup="true" aria-expanded="false" aria-label="More">⋯</button>
+      <div class="menu right" id="more-menu" hidden>
+        <button class="mi" id="menu-ledger">Model Ledger <span>prove it · every month as the engine published it</span></button>
+        <div class="mi mrow"><span class="ml">Recurring revenue</span><div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div></div>
+        <button class="mi" id="guidebtn">Guide <span>what this is, and the six-step tour</span></button>
+        <button class="mi" id="keybtn">Method <span>findings, conventions, versions</span></button>
+        <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
+        <div class="mabout">About · build <span class="chip build" id="build-chip" title="The commit this page was built from">__BUILD__</span><br>An illustrative, deterministic model. No real company data; nothing you set leaves the page.</div>
+      </div>
+    </div>
   </header>
 
   <aside class="rail">
-    <div class="railbar"><button class="btn" id="rail-close" aria-label="Close Change">‹ Close</button><span class="eyebrow">Change · build the model</span><button class="btn" id="rail-detail" title="Show what every object means, its unit and direction">Details</button></div>
+    <div class="railbar"><button class="btn" id="rail-close" aria-label="Close the Experiment">‹ Close</button><span class="eyebrow">Experiment · change the laws</span><button class="btn" id="rail-detail" title="Show what every object means, its unit and direction">Details</button></div>
     <div class="grp" id="experiment-summary"></div>
-    <div class="grp" id="packs">
-      <div class="eyebrow" style="margin-bottom:4px">World</div>
-      <div class="hint rail-doc">Assumption packs: which layers the Base world carries. Assumptions only — no scenario logic. Reset returns to the pack.</div>
-      <div class="btn-row" id="packlist" style="margin-top:7px"></div>
-      <div class="hint rail-doc" style="margin-top:9px">Acceptance worlds &middot; three company shapes built from the same laws. Illustrative, not benchmarks.</div>
-      <div class="btn-row" id="worldlist" style="margin-top:6px"></div>
-      <div class="hint" id="packnote" style="margin-top:6px"></div>
+    <div class="grp" id="presets">
+      <div class="eyebrow" style="margin-bottom:6px">Start from a preset</div>
+      <button class="btn btn-wide" id="nav-scen">Browse presets · 14 scenarios ›</button>
+      <div class="hint rail-doc" style="margin-top:7px">Each preset is a declared experiment: what changed, what stayed the same, what emerged. Loading one replaces the changes below. The Base world is chosen under <b>World</b> in the header.</div>
     </div>
     <div class="grp" id="rail-change">
       <div class="hint">Each layer below is a set of objects the engine obeys. They are not equivalent: a law is not an input, a constraint is not a benefit, a hypothesis is not a law. Measurements are read beneath the law they observe and are never set.</div>
@@ -1347,16 +1393,70 @@ details.pl .cascade{margin-top:8px}
   function buildPacks(){
     var host=document.getElementById('packlist'); host.innerHTML='';
     PACKS.forEach(function(P){
-      var b=document.createElement('button'); b.className='btn'; b.id='pack-'+P.id; b.textContent=P.name; b.title=P.note;
-      b.addEventListener('click', function(){ applyPack(P.id); });
+      var b=document.createElement('button'); b.className='mi'; b.id='pack-'+P.id; b.textContent=P.name; b.title=P.note;
+      b.addEventListener('click', function(){ chooseWorld(P.id); });
       (P.world ? document.getElementById('worldlist') : host).appendChild(b);
     });
   }
   function syncPackButtons(){
-    PACKS.forEach(function(P){ var b=document.getElementById('pack-'+P.id); if(b) b.classList.toggle('on', activePack===P.id); });
+    /* a preset carries its own Base, so while one is loaded no world is the Base */
+    PACKS.forEach(function(P){ var b=document.getElementById('pack-'+P.id); if(b) b.classList.toggle('on', !activeScenario && activePack===P.id); });
     var P = PACKS.filter(function(p){ return p.id===activePack; })[0];
-    var n=document.getElementById('packnote'); if(n && P) n.textContent = P.note;
+    var n=document.getElementById('packnote');
+    if(n) n.textContent = activeScenario ? 'A preset is loaded: it sets the Base world itself. Choosing a world here clears it.' : P ? P.note : '';
+    var w=document.getElementById('world-name'); if(w) w.textContent = activeScenario ? 'Preset world' : P ? P.name : 'World';
   }
+
+  /* ---- the header: World ▾ and ⋯ are small menus; opening one never redraws the page ---- */
+  function menuOpen(id, on){
+    var m=document.getElementById(id+'-menu'), b=document.getElementById(id+'-btn'); if(!m) return;
+    m.hidden = !on; b.setAttribute('aria-expanded', on ? 'true' : 'false'); b.classList.toggle('on', on);
+    if(!on && id==='world') worldConfirm(null);
+  }
+  function menusClose(){ menuOpen('world', false); menuOpen('more', false); }
+  ['world','more'].forEach(function(id){
+    document.getElementById(id+'-btn').addEventListener('click', function(e){
+      e.stopPropagation(); var open = document.getElementById(id+'-menu').hidden; menusClose(); menuOpen(id, open); });
+    document.getElementById(id+'-menu').addEventListener('click', function(e){ e.stopPropagation(); });
+  });
+  document.addEventListener('click', menusClose);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') menusClose(); });
+
+  /* Changing the world while an Experiment exists replaces the Base and clears the
+     Experiment — the old changes are never carried onto a different company. So it asks. */
+  function experimentState(){
+    var n = (baseRes && expRes) ? E.compare(baseRes, expRes).changed.length : 0;
+    return { n:n, scen:activeScenario, pair:pairMode, any: n>0 || !!activeScenario || pairMode };
+  }
+  function worldConfirm(id){
+    var box=document.getElementById('world-confirm'); if(!box) return;
+    if(!id){ box.hidden = true; box.innerHTML=''; return; }
+    var P = PACKS.filter(function(p){ return p.id===id; })[0], X = experimentState();
+    var what = X.scen ? 'the loaded preset “'+esc(X.scen.name)+'”' : X.pair ? 'the paired worlds' : X.n+' change'+(X.n>1?'s':'');
+    box.innerHTML = '<div class="wq">Switch to <b>'+esc(P.name)+'</b>?</div><div class="hint">This replaces the Base world and clears the Experiment ('+what+').</div>'+
+      '<div class="btn-row"><button class="btn primary" id="world-yes">Switch world</button><button class="btn" id="world-no">Cancel</button></div>';
+    box.hidden = false;
+    document.getElementById('world-yes').addEventListener('click', function(){ worldConfirm(null); menusClose(); applyPack(id); });
+    document.getElementById('world-no').addEventListener('click', function(){ worldConfirm(null); });
+  }
+  function chooseWorld(id){
+    if(experimentState().any){ menuOpen('world', true); worldConfirm(id); return; }
+    menusClose(); applyPack(id);
+  }
+  /* the Experiment chip is the one place the header says what differs from Base */
+  function syncHeaderState(changed){
+    var b=document.getElementById('rail-toggle'), n=changed.length;
+    var label = activeScenario ? activeScenario.name : pairMode ? 'paired worlds' : n ? n+' change'+(n>1?'s':'') : '';
+    /* one text for every width: phones drop the words, never duplicate them */
+    var preset = !!(activeScenario || pairMode);
+    b.innerHTML = 'Experiment'+(!label ? '' : preset ? ' · <span class="xw">'+esc(label)+'</span>' : ' · '+n+'<span class="xw"> change'+(n>1?'s':'')+'</span>');
+    b.classList.toggle('pre', preset);
+    b.title = activeScenario || pairMode ? 'A preset sets both Base and Experiment — open to change the laws' : n ? 'The Experiment differs from Base in '+n+' assumption'+(n>1?'s':'')+' — open to change the laws' : 'Change the laws: the Experiment runs against the unchanged Base';
+    b.classList.toggle('live', !!label);
+    syncPackButtons();
+  }
+  function openSystemView(v){ menusClose(); setLayer('flow'); sysView = v; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
+  document.getElementById('menu-ledger').addEventListener('click', function(){ openSystemView('ledger'); });
 
   var FORCE_GROUPS = [
     { kind:'Management input', layer:'arr', note:'Set externally. Nothing in the engine constrains it.',
@@ -1888,8 +1988,6 @@ details.pl .cascade{margin-top:8px}
   function clearScenario(){
     if(!activeScenario) return;
     activeScenario = null;
-    document.getElementById('mode-chip').textContent='base vs experiment';
-    document.getElementById('mode-chip').classList.remove('on');
     /* §9 — a scenario-driven capital track (Efficiency / Pair) reverts once
        the scenario itself is cleared, unless a cohort is pinned separately. */
     if(pinned===null && capitalMode){ capitalMode = false; resize(); }
@@ -1928,8 +2026,6 @@ details.pl .cascade{margin-top:8px}
     } else {
       expA = Object.assign({}, BASE_A, sc.ch);
     }
-    document.getElementById('mode-chip').textContent = sc.name.toLowerCase();
-    document.getElementById('mode-chip').classList.add('on');
     syncScenButtons();
     recompute(prev);
   }
@@ -5483,7 +5579,7 @@ details.pl .cascade{margin-top:8px}
   document.getElementById('side').addEventListener('click', function(e){
     var t = e.target && e.target.closest ? e.target : null; if(!t) return;
     var fv = t.closest('[data-finv]'); if(fv){ finView = fv.dataset.finv; renderSide(); return; }
-    var go = t.closest('[data-go]'); if(go){ setLayer('flow'); sysView = go.dataset.go; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
+    var go = t.closest('[data-go]'); if(go){ openSystemView(go.dataset.go); }
   });
   document.getElementById('cohort-life').addEventListener('click', chartScrub);
   function setLens(id){
@@ -6387,8 +6483,8 @@ details.pl .cascade{margin-top:8px}
     }
     if(!c.changed.length && !pairMode){
       slot.innerHTML='<div class="causal idle"><h4>Experiment equals Base</h4>'+
-        '<div class="msg">Nothing has been changed, so there is nothing to compare. Open <b>Change</b>, move one law, and this surface shows what you changed, what the system did and what company emerged.</div>'+
-        '<button class="btn" id="cmp-open-change" style="margin-top:8px">Change</button></div>';
+        '<div class="msg">Nothing has been changed, so there is nothing to compare. Open <b>Experiment</b>, move one law, and this surface shows what you changed, what the system did and what company emerged.</div>'+
+        '<button class="btn" id="cmp-open-change" style="margin-top:8px">Open Experiment</button></div>';
       document.getElementById('cmp-open-change').addEventListener('click', function(){ document.querySelector('.app').classList.add('rail-open'); });
       return;
     }
@@ -6490,15 +6586,15 @@ details.pl .cascade{margin-top:8px}
   function renderExperimentSummary(){
     var host=document.getElementById('experiment-summary');
     var changed = E.compare(baseRes, expRes).changed;      // [{key, from, to}], real engine diff
-    document.getElementById('rail-toggle').textContent = pairMode ? 'Change · pair' : changed.length ? 'Experiment · '+changed.length+' change'+(changed.length>1?'s':'') : 'Change';
+    syncHeaderState(changed);
     document.getElementById('nav-compare').classList.toggle('live', pairMode || changed.length>0);
     if(pairMode){
       host.innerHTML = '<div class="eyebrow" style="margin-bottom:6px">Experiment</div>'+
         (activeScenario && activeScenario.pairLabel
           ? '<div class="hint" style="line-height:1.65">Declared pair — '+esc(activeScenario.pairLabel)+'. Both sides are set by Scenario '+activeScenario.n+
-            '; the assumptions that differ between them are shown in the Scenarios panel.</div>'
+            '; the assumptions that differ between them are shown on the preset’s page (Browse presets).</div>'
           : '<div class="hint" style="line-height:1.65">Efficiency vs Spend pair — Base buys New ARR with acquisition efficiency, '+
-            'Experiment buys the same New ARR with S&amp;M. See the Scenarios panel for the calibrated values.</div>');
+            'Experiment buys the same New ARR with S&amp;M. The preset’s page (Browse presets) shows the calibrated values.</div>');
       return;
     }
     if(!changed.length){
@@ -6528,15 +6624,11 @@ details.pl .cascade{margin-top:8px}
     pairMode = true;
     baseA = Object.assign({}, BASE_A, { cacPerARR: BASE_A.sm/TARGET_NEW });     // efficiency route
     expA  = Object.assign({}, BASE_A, { sm: TARGET_NEW*BASE_A.cacPerARR });     // spend route
-    document.getElementById('mode-chip').textContent='efficiency vs spend';
-    document.getElementById('mode-chip').classList.add('on');
     lastMsg = null; recompute();
   }
   function exitPair(){
     if(!pairMode) return;
     pairMode=false; baseA=packA;
-    document.getElementById('mode-chip').textContent='base vs experiment';
-    document.getElementById('mode-chip').classList.remove('on');
     var pn=document.getElementById('paired-note'); if(pn) pn.hidden = true;
   }
 
@@ -6574,6 +6666,7 @@ details.pl .cascade{margin-top:8px}
     document.getElementById('nav-compare').classList.toggle('on', l==='cmp');
     document.getElementById('nav-system').classList.toggle('on', l==='flow');
     document.getElementById('nav-scen').classList.toggle('on', l==='scen');
+    document.getElementById('rail-toggle').classList.toggle('on', l==='scen');
     var appEl=document.querySelector('.app');
     appEl.classList.toggle('flow', l==='flow');
     if(l!=='flow') appEl.classList.remove('notes');
@@ -6615,7 +6708,7 @@ details.pl .cascade{margin-top:8px}
       render(); renderSide();
     });
   });
-  document.getElementById('keybtn').addEventListener('click', function(){ var k=document.getElementById('key'); k.classList.add('on'); k.scrollTop=0; scrollCue(k); });
+  document.getElementById('keybtn').addEventListener('click', function(){ menusClose(); var k=document.getElementById('key'); k.classList.add('on'); k.scrollTop=0; scrollCue(k); });
 
   /* ---- the scroll cue ------------------------------------------------
      Welcome and Method are full-screen panes that scroll. Without a cue a
@@ -6695,12 +6788,12 @@ details.pl .cascade{margin-top:8px}
     function hideWelcome(){ W.classList.remove('on'); try { localStorage.setItem(KEY, '1'); } catch(e){} }
     if(!seen && location.hash !== '#app') showWelcome();
     document.getElementById('welcome-enter').addEventListener('click', hideWelcome);
-    document.getElementById('guidebtn').addEventListener('click', function(){ endTour(); showWelcome(); });
+    document.getElementById('guidebtn').addEventListener('click', function(){ menusClose(); endTour(); showWelcome(); });
     /* the tour: six stops, each one region of the portal, in the order a first reading takes */
     var STEPS = [
-      { sel:'.head .nav', t:'Four surfaces', x:'<b>Company</b> reads one company. <b>Compare</b> reads why the Experiment differs from Base. <b>System</b> draws the economic machine. <b>Scenarios</b> are canonical experiments. Basis changes how the same run is read, not the run.' },
-      { sel:'#packs', t:'World', x:'Which layers the Base world carries: ARR physics alone, customers beneath it, monetization, cash, a hypothesis \u2014 or one of three illustrative company shapes. Reset returns to the chosen world.', rail:true },
-      { sel:'#rail-change', t:'Change', x:'A drawer over the company. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
+      { sel:'.head .nav', t:'See · change · compare · understand', x:'<b>Company</b> reads one company. <b>Experiment</b> changes its laws. <b>Compare</b> reads why the Experiment differs from Base. <b>System</b> draws the machine that made the difference. Under <b>⋯</b>: the Model Ledger that proves it, MRR or ARR, this guide.' },
+      { sel:'#world-wrap', t:'World', x:'The Base company: one of three illustrative shapes, or the base model built up layer by layer \u2014 ARR physics alone, then customers, monetization, cash, a hypothesis. Changing it clears the Experiment, so it asks first.' },
+      { sel:'#rail-change', t:'Experiment', x:'A drawer over the company; start from a preset or change the laws yourself. Every control is one kind of object \u2014 \u25ad input, \u22c8 law, \u2308\u2309 constraint, \u23fb switch, \u21af hypothesis. Move one and the whole future recalculates against the unchanged Base; Details shows each definition.', rail:true },
       { sel:'#scene', fig:true, t:'The figure', x:'Recurring revenue as cohort strata over sixty months, cash beneath it on its own scale. The dashed line is the Base; the solid mass is your experiment. Click a stratum to inspect that cohort.' },
       { sel:'#side', t:'The five lenses', x:'One hero line, then five lenses as navigation \u2014 Company, Customers, Growth engine, Monetization, Financials \u2014 each a question and its readouts with their time basis. When Experiment differs from Base, one line beneath the lens says so and opens Compare.' },
       { sel:'.transport', t:'Time', x:'Play, or drag the scrubber. Every basis tag on every lens follows the selected month. Month 36 is a good place to read a mature company.' }

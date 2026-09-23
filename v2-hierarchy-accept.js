@@ -59,7 +59,13 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const label0 = await pg.evaluate(() => document.getElementById('rail-toggle').textContent);
   await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 900000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close');
   const label1 = await pg.evaluate(() => document.getElementById('rail-toggle').textContent);
-  rec('CHANGE: the entry point names the state — "Change" when Experiment equals Base, "Experiment · n change(s)" when it differs', /^Change$/.test(label0) && /^Experiment · 1 change$/.test(label1), label0 + ' → ' + label1);
+  rec('CHANGE: the entry point names the state — "Experiment" when it equals Base, "Experiment · n change(s)" when it differs', /^Experiment$/.test(label0) && /^Experiment · 1 change$/.test(label1), label0 + ' → ' + label1);
+  /* the header reads in the order of the journey: world, then see → change → compare → understand, then ⋯ */
+  const hdr = await pg.evaluate(() => ({ order: [...document.querySelectorAll('.head h1, #world-btn, .head .nav > .btn, #more-btn')].map(e => e.id || e.tagName),
+    more: [...document.querySelectorAll('#more-menu .mi')].map(e => (e.firstChild.textContent || '').trim()), build: !!document.querySelector('#more-menu #build-chip'),
+    gone: ['mode-chip', 'nav-scen'].map(id => { const e = document.getElementById(id); return !e || !e.closest('.head'); }), scenIn: !!document.querySelector('.rail #nav-scen') }));
+  rec('HEADER: SaaS Physics · World ▾ · Company · Experiment · Compare · System · ⋯ — the ⋯ menu holds Model Ledger, recurring-revenue basis, Guide, Method and the build; no mode chip, no Scenarios in the header, presets entered from the Experiment drawer',
+      hdr.order.join(',') === 'H1,world-btn,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide|Method' && hdr.build && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
   const strip = await pg.evaluate(() => { const s = document.querySelector('#causal-slot .cmpstrip'); return s ? s.innerText : ''; });
   rec('COMPANY: with a change, Company carries one line only — n assumptions, the M60 and cash deltas, and a Compare link; the spine is not on Company', /1 assumption/.test(strip) && /Compare/.test(strip) && !(await pg.evaluate(() => !!document.querySelector('#causal-slot .spine'))), strip.replace(/\n/g, ' | '));
   await click(pg, '#reset'); await scrub(pg, 36);

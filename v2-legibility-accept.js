@@ -84,7 +84,7 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
   const w0 = await open(1440, 900, true);
   const wl = await pg0(w0);
   async function pg0(q){ return q.evaluate(() => { const W = document.getElementById('welcome'); const t = W.innerText;
-    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Company','Change','Compare','System','Inspect','Scenarios'].every(k => new RegExp(k + ' ·').test(t)),
+    return { shown: getComputedStyle(W).display !== 'none', title: /SaaS Physics/.test(t), what: /What this is/.test(t) && /What it is not/.test(t), portal: ['Company','World','Experiment','Compare','System','Inspect'].every(k => new RegExp(k + ' ·').test(t)),
       marks: /⋈/.test(t) && /⌈⌉/.test(t) && /→/.test(t) && /↯/.test(t), time: /M36 · month/i.test(t) && /R12M/.test(t), start: /Three ways to start/i.test(t), noreal: /no real company/i.test(t) && /illustrative/i.test(t),
       appHidden: document.elementFromPoint(720, 450) && !!document.elementFromPoint(720, 450).closest('#welcome') }; }); }
   rec('OPENING PAGE: a first visit lands on the opening page — what this is and is not, the six parts of the portal, the marks, the time basis, three ways to start, and a statement that the data is illustrative — covering the app beneath',

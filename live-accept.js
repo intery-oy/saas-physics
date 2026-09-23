@@ -61,11 +61,15 @@ async function run(pg, want) { const is = await running(pg);
 
   /* ---- NAV ---- */
   const navs = [];
-  for (const id of ['nav-compare', 'nav-system', 'nav-scen', 'nav-company']) {
+  for (const id of ['nav-compare', 'nav-system', 'nav-company']) {
     await press(pg, '#' + id);
     navs.push(await pg.evaluate(i => document.getElementById(i).classList.contains('on'), id));
   }
-  rec('NAV: with the clock running, Compare, System, Scenarios and Company each take the layer on one press',
+  /* presets live in the Experiment drawer: the chip, then Browse presets */
+  await press(pg, '#rail-toggle'); await press(pg, '#nav-scen');
+  navs.push(await pg.evaluate(() => document.getElementById('nav-scen').classList.contains('on') && !document.querySelector('.app').classList.contains('rail-open')));
+  await press(pg, '#nav-company');
+  rec('NAV: with the clock running, Compare, System and Company each take the layer on one press, and the presets open from the Experiment drawer',
       navs.every(Boolean) && await running(pg), JSON.stringify(navs));
 
   /* ---- FINANCIALS ---- */
