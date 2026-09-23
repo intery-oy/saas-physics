@@ -49,7 +49,7 @@ const PREV = 'file://' + PREV_FILE;
       const bad = Object.keys(a).filter(k => a[k] !== b[k]); if (bad.length) { const k = bad[0]; let i = 0; while (i < a[k].length && a[k][i] === b[k][i]) i++; out.push(name + ' ' + k + '@' + i + ': ' + a[k].slice(Math.max(0, i - 50), i + 50)); } };
     for (const L of ['company', 'customers', 'growth', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, L => document.querySelector('.lensnav .btn[data-lens="' + L + '"]').click(), L); await cmp('Company·' + L, { canvas: L === 'company' }); }
     for (const v of ['ontology', 'company', 'customers', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, v => { document.getElementById('nav-system').click(); const b = document.getElementById('sysview-' + v); if (b && !b.disabled) b.click(); }, v); await A.waitForTimeout(350); await cmp('System·' + v, { canvas: true }); }
-    for (const p of [A, B]) await act(p, () => document.getElementById('sysview-ledger').click()); await cmp('Ledger', { ledger: true });
+    for (const p of [A, B]) await act(p, () => document.getElementById('menu-ledger').click()); await cmp('Ledger', { ledger: true });
     for (const p of [A, B]) await act(p, () => document.getElementById('nav-company').click());
     return out;
   }
@@ -98,7 +98,7 @@ const PREV = 'file://' + PREV_FILE;
   const where = async p => p.evaluate(() => { const vis = sel => [...document.querySelectorAll(sel)].filter(e => e.getBoundingClientRect().height > 0).length; const out = {};
     document.getElementById('nav-company').click(); out.company = vis('.viewing');
     document.getElementById('nav-system').click(); out.system = vis('.viewing');
-    document.getElementById('sysview-ledger').click(); out.ledger = vis('.viewing');
+    document.getElementById('menu-ledger').click(); out.ledger = vis('.viewing');
     document.getElementById('nav-compare').click(); out.compare = vis('.viewing'); document.getElementById('nav-company').click(); return out; });
   const wX = await where(X), wB = await where(B);
   rec('CONTROL: exactly one "Viewing" control on Company, System and the Ledger while an Experiment exists; none on Compare; none anywhere without an Experiment',

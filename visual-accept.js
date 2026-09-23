@@ -86,7 +86,7 @@ async function look(pg, buf) {
     ['monetization', async () => { await pg.evaluate(() => document.querySelector('.lensnav .btn[data-lens="monetization"]').click()); }, '.stage'],
     ['cash',      async () => { await pg.evaluate(() => document.querySelector('.lensnav .btn[data-lens="cash"]').click()); }, '.stage'],
     ['system',    async () => { await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.evaluate(() => document.getElementById('sysview-ontology').click()); }, '.stage'],
-    ['ledger-core', async () => { await pg.evaluate(() => document.getElementById('sysview-ledger').click()); }, '#ledger'],
+    ['ledger-core', async () => { await pg.evaluate(() => document.getElementById('menu-ledger').click()); }, '#ledger'],
     ['ledger-full', async () => { await pg.evaluate(() => document.getElementById('ldg-full').click()); }, '#ledger'],
     ['compare',   async () => { await pg.evaluate(() => document.getElementById('nav-compare').click()); }, '.stage'],
     ['scenarios', async () => { await pg.evaluate(() => document.getElementById('nav-scen').click()); }, '.stage'],

@@ -116,6 +116,8 @@ button,input{font:inherit;color:inherit}
 .xchip{border-style:dashed;color:var(--ink-3);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xchip.live{border-style:solid;border-color:var(--exp);color:var(--exp)}
 .menu{max-height:calc(100vh - 80px);overflow-y:auto}
+#more-btn.here{border-color:var(--exp);color:var(--exp)}
+.app.ledger-open #sysviews,.app.ledger-open #pulse-law,.app.ledger-open #cmpmode{display:none}
 .viewing{display:inline-flex;align-items:center;gap:0;margin-right:12px;font:10px var(--ui);letter-spacing:.04em;color:var(--ink-4);text-transform:none;vertical-align:middle}
 .viewing .vl{margin-right:6px}
 .viewing .vw{background:none;border:1px solid var(--line-soft);color:var(--ink-3);font:10.5px var(--ui);padding:2px 8px;cursor:pointer}
@@ -824,7 +826,7 @@ details.pl .cascade{margin-top:8px}
         <button class="mi" id="guidebtn">Guide <span>what this is, and the six-step tour</span></button>
         <button class="mi" id="keybtn">Method <span>findings, conventions, versions</span></button>
         <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-        <div class="mabout">About · build <span class="chip build" id="build-chip" title="The commit this page was built from">2aff6bc</span><br>An illustrative, deterministic model. No real company data; nothing you set leaves the page.</div>
+        <div class="mabout">About · build <span class="chip build" id="build-chip" title="The commit this page was built from">fb2947e</span><br>An illustrative, deterministic model. No real company data; nothing you set leaves the page.</div>
       </div>
     </div>
   </header>
@@ -4338,7 +4340,17 @@ details.pl .cascade{margin-top:8px}
   /* a lever on a lens is a way in, not a control */
   document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('.lever[data-law]'); if(b){ e.stopPropagation(); openLaw(b.dataset.law); } }, true);
 
-  function openSystemView(v){ menusClose(); setLayer('flow'); sysView = v; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
+  var sysViewBack = 'ontology';     /* the mechanism view System returns to after the Ledger */
+  function inLedger(){ return layer==='flow' && sysView==='ledger'; }
+  function openSystemView(v){ menusClose(); if(sysView!=='ledger') sysViewBack = sysView; setLayer('flow'); sysView = v; openChip = null; syncSysViews(); resize(); render(); renderSide(); }
+  /* the Ledger presents itself as the Model Ledger: System is not lit, System's view row and law
+     sentence step aside (Notes stays — it carries the Ledger's own notes), and ⋯ is marked */
+  function syncLedgerChrome(){
+    var L = inLedger(), app = document.querySelector('.app');
+    app.classList.toggle('ledger-open', L);
+    document.getElementById('nav-system').classList.toggle('on', layer==='flow' && !L);
+    document.getElementById('more-btn').classList.toggle('here', L);
+  }
   document.getElementById('menu-ledger').addEventListener('click', function(){ openSystemView('ledger'); });
 
   var FORCE_GROUPS = [
@@ -6887,9 +6899,9 @@ details.pl .cascade{margin-top:8px}
     { id:'monetization', name:'Monetization', on:function(){ return !!expRes && VW().res.mechanisms.monetization; } },
     { id:'cash', name:'Cash', on:function(){ return !!expRes && VW().res.mechanisms.cashPhysics; } },
     { id:'hypotheses', name:'Hypotheses', on:function(){ return !!expRes && VW().res.mechanisms.interventions; } },
-    /* not a drawing: the ledger is the same months as a table, for reading a
-       figure back to the state it came from */
-    { id:'ledger', name:'Model Ledger', on:function(){ return true; } }
+    /* the Model Ledger is not a System view: it is the proof layer, opened from ⋯ → Model Ledger
+       or a contextual "Proof ›" link through openSystemView('ledger') — one route, one renderer,
+       drawn in this figure box, but presented as itself (syncLedgerChrome) */
   ];
   function buildSysViews(){
     var host=document.getElementById('sysviews'); host.innerHTML='';
@@ -6909,7 +6921,7 @@ details.pl .cascade{margin-top:8px}
       if((sysView!=='company' || viewingBase()) && compare==='delta'){ compare='absolute';
         document.getElementById('cmp-abs').classList.add('on'); document.getElementById('cmp-delta').classList.remove('on'); } }
     SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='ontology'; });
-    syncViewingCtl();
+    syncViewingCtl(); syncLedgerChrome();
   }
   function syncPulse(){
     document.getElementById('pulse-law').innerHTML =
@@ -9487,10 +9499,10 @@ details.pl .cascade{margin-top:8px}
 
   function setLayer(l){
     layer=l;
-    syncViewingCtl();
+    syncViewingCtl(); syncLedgerChrome();
     document.getElementById('nav-company').classList.toggle('on', l==='stock');
     document.getElementById('nav-compare').classList.toggle('on', l==='cmp');
-    document.getElementById('nav-system').classList.toggle('on', l==='flow');
+    document.getElementById('nav-system').classList.toggle('on', l==='flow' && sysView!=='ledger');
     document.getElementById('nav-scen').classList.toggle('on', l==='scen');
     document.getElementById('rail-toggle').classList.toggle('on', l==='scen');
     var appEl=document.querySelector('.app');
@@ -9523,7 +9535,7 @@ details.pl .cascade{margin-top:8px}
   document.getElementById('nav-compare').addEventListener('click', function(){ setLayer('cmp'); });
   document.getElementById('notes-toggle').addEventListener('click', function(){ document.querySelector('.app').classList.toggle('notes'); });
   document.getElementById('figwrap').addEventListener('toggle', function(){ var fw=this; if(fw.dataset.silent) return; figPref[layer+':'+(layer==='stock'?activeLens:'')] = fw.open; setTimeout(function(){ resize(); render(); }, 0); });
-  document.getElementById('nav-system').addEventListener('click', function(){ setLayer('flow'); });
+  document.getElementById('nav-system').addEventListener('click', function(){ if(sysView==='ledger') sysView = sysViewBack || 'ontology'; setLayer('flow'); syncSysViews(); });
   document.getElementById('nav-scen').addEventListener('click', function(){ setLayer('scen'); });
   document.getElementById('scen-clear').addEventListener('click', function(){ resetAll(); });
   ['abs','delta'].forEach(function(c){

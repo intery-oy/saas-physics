@@ -6,7 +6,7 @@
  * would prove nothing about the engine. These checks hold both halves of that claim — that every
  * cell is the engine's own published state, and that the identities close on those cells.
  *
- *   REACHABLE    the ledger opens from System, as a table rather than a drawing
+ *   REACHABLE    the ledger opens from ⋯ → Model Ledger (not from System's views), as a table rather than a drawing
  *   PROJECTION   every value in the table equals the engine state the page is holding
  *   CHECKS       every check column reads 0, in five worlds × 60 months
  *   BREAKS       a deliberately corrupted figure is CAUGHT — the checks are live, not decorative
@@ -31,7 +31,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const openLedger = async (pg, pack) => {
   if (pack) { await pg.evaluate(p => { const b = document.getElementById('pack-' + p); if (b) b.click(); }, pack); await pg.waitForTimeout(500); }
   await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.getElementById('sysview-ledger').click()); await pg.waitForTimeout(400);
+  await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);
 };
 const setView = async (pg, v) => { await pg.evaluate(x => document.getElementById('ldg-' + x).click(), v); await pg.waitForTimeout(500); };
 
@@ -62,8 +62,8 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
   const opened = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, shown: !document.getElementById('ledger').hidden,
     table: !!document.querySelector('table.ldg'), coversCanvas: (() => { const l = document.getElementById('ledger').getBoundingClientRect(),
       c = document.getElementById('scene').getBoundingClientRect(); return l.width >= c.width - 1 && l.height >= c.height - 1; })() }));
-  rec('REACHABLE: the Model Ledger is a System view, and it opens as a table over the machine rather than another drawing',
-      views[views.length - 1] === 'Model Ledger' && opened.view === 'ledger' && opened.shown && opened.table && opened.coversCanvas,
+  rec('REACHABLE: the Model Ledger opens from ⋯ → Model Ledger, not from System\'s views, as a table over the machine rather than another drawing',
+      views.indexOf('Model Ledger') < 0 && opened.view === 'ledger' && opened.shown && opened.table && opened.coversCanvas,
       JSON.stringify({ views, opened }));
 
   /* ---- PROJECTION + CHECKS, across every world the product ships ---- */
@@ -288,8 +288,10 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       /layers off: Customers, Monetization, Cash/.test(await pg.evaluate(() => document.getElementById('ldg-note').textContent)),
       off.groups.map(g => g.n).join(' | '));
 
-  /* ---- LAYER: the table is a System surface and stays there ---- */
+  /* ---- LAYER: the Ledger is the proof layer, not a System view (Step 2A) ---- */
   await openLedger(pg, 'wA');
+  const chrome = await pg.evaluate(() => ({ sysLit: document.getElementById('nav-system').classList.contains('on'), moreLit: document.getElementById('more-btn').classList.contains('here'),
+    tab: !!document.getElementById('sysview-ledger'), viewsShown: getComputedStyle(document.getElementById('sysviews')).display !== 'none', title: (document.querySelector('.ledgerbar .eyebrow') || {}).textContent }));
   const leak = {};
   for (const nav of ['nav-company', 'nav-compare', 'nav-scen']) {
     await pg.evaluate(n => document.getElementById(n).click(), nav); await pg.waitForTimeout(400);
@@ -297,6 +299,8 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       return { hidden: e.hidden, display: getComputedStyle(e).display, area: Math.round(r.width * r.height) }; });
   }
   await pg.evaluate(() => document.getElementById('nav-system').click()); await pg.waitForTimeout(400);
+  const sys = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, ledger: !document.getElementById('ledger').hidden, sysLit: document.getElementById('nav-system').classList.contains('on') }));
+  await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);
   const back = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, shown: !document.getElementById('ledger').hidden,
     table: !!document.querySelector('table.ldg') }));
   /* the ledger sits INSIDE the figure box, over the canvas, and nothing else moved into it:
@@ -307,12 +311,13 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
     return { ledgerParent: led.parentElement.className, lifeParent: life.parentElement.id,
       lifeInFigbox: !!life.closest('.figbox'), figboxChildren: [...document.querySelector('.figbox').children].map(c => c.id || c.tagName.toLowerCase()) };
   });
-  rec('LAYER: the ledger is a System surface — leaving System puts it away rather than leaving a table over the company figure, and coming back restores it on the view it was left on; the table lives inside the figure box and has adopted nothing else',
+  rec('LAYER: the Model Ledger is the proof layer, not a System view — no System tab for it; while it is open System is not lit, System\'s view row steps aside and ⋯ is marked; leaving puts it away rather than leaving a table over the company figure; System returns to a mechanism view and ⋯ → Model Ledger brings the table back; the table lives inside the figure box and has adopted nothing else',
       Object.values(leak).every(l => l.hidden && l.display === 'none' && l.area === 0) &&
-      back.view === 'ledger' && back.shown && back.table &&
+      !chrome.sysLit && chrome.moreLit && !chrome.tab && !chrome.viewsShown && chrome.title === 'Model Ledger' &&
+      sys.view !== 'ledger' && !sys.ledger && sys.sysLit && back.view === 'ledger' && back.shown && back.table &&
       nest.ledgerParent === 'figbox' && nest.lifeParent === 'figwrap' && !nest.lifeInFigbox &&
       nest.figboxChildren.join('|') === 'scene|lawhost|viewing-sys|ledger',   /* viewing-sys: the System map's Base / Experiment control (Step 1B) */
-      JSON.stringify({ leak, back, nest }));
+      JSON.stringify({ chrome, sys, leak, back, nest }));
 
   /* ---- VISIBLE: the table has to be on screen, not merely built ---- */
   /* A pinned cohort used to leave display:none on the figure box, which the ledger lives inside:
@@ -329,7 +334,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
         if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
     await q.waitForTimeout(600);
     await q.evaluate(() => document.getElementById('nav-system').click()); await q.waitForTimeout(400);
-    await q.evaluate(() => document.getElementById('sysview-ledger').click()); await q.waitForTimeout(700);
+    await q.evaluate(() => document.getElementById('menu-ledger').click()); await q.waitForTimeout(700);
     vis[name] = await q.evaluate(() => {
       const led = document.getElementById('ledger'), tb = document.querySelector('table.ldg');
       const lr = led.getBoundingClientRect();
