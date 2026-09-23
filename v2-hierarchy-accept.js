@@ -62,10 +62,11 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('CHANGE: the entry point names the state — "Experiment" when it equals Base, "Experiment · n change(s)" when it differs', /^Experiment$/.test(label0) && /^Experiment · 1 change$/.test(label1), label0 + ' → ' + label1);
   /* the header reads in the order of the journey: world, then see → change → compare → understand, then ⋯ */
   const hdr = await pg.evaluate(() => ({ order: [...document.querySelectorAll('.head h1, #world-btn, .head .nav > .btn, #more-btn')].map(e => e.id || e.tagName),
-    more: [...document.querySelectorAll('#more-menu .mi')].map(e => (e.firstChild.textContent || '').trim()), build: !!document.querySelector('#more-menu #build-chip'),
+    more: [...document.querySelectorAll('#more-menu .mi')].map(e => (e.firstChild.textContent || '').trim()), build: !!document.querySelector('#more-menu #about #build-chip'),
+    about: !!document.querySelector('#more-menu details#about'), method: !!document.getElementById('keybtn') || !!document.getElementById('key'),
     gone: ['mode-chip', 'nav-scen'].map(id => { const e = document.getElementById(id); return !e || !e.closest('.head'); }), scenIn: !!document.querySelector('.rail #nav-scen') }));
-  rec('HEADER: SaaS Physics · World ▾ · Company · Experiment · Compare · System · ⋯ — the ⋯ menu holds Model Ledger, recurring-revenue basis, Guide, Method and the build; no mode chip, no Scenarios in the header, presets entered from the Experiment drawer',
-      hdr.order.join(',') === 'H1,world-btn,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide|Method' && hdr.build && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
+  rec('HEADER: SaaS Physics · World ▾ · Company · Experiment · Compare · System · ⋯ — the ⋯ menu holds Model Ledger, recurring-revenue basis, Guide and About (with the build) — no Method page; no mode chip, no Scenarios in the header, presets entered from the Experiment drawer',
+      hdr.order.join(',') === 'H1,world-btn,nav-company,rail-toggle,nav-compare,nav-system,more-btn' && hdr.more.join('|') === 'Model Ledger|Recurring revenue|Guide' && hdr.build && hdr.about && !hdr.method && hdr.gone.every(Boolean) && hdr.scenIn, JSON.stringify(hdr));
   const one = await pg.evaluate(() => ({ slot: document.getElementById('causal-slot').innerHTML.length, live: document.getElementById('nav-compare').classList.contains('live'), chip: document.getElementById('rail-toggle').textContent }));
   rec('COMPANY: with a change, Company carries no comparison of its own — no strip, no spine; the header names the Experiment ("1 change") and Compare is lit as where the difference is read', one.slot === 0 && one.live && /1 change/.test(one.chip), JSON.stringify(one));
   await click(pg, '#reset'); await scrub(pg, 36);
@@ -150,17 +151,14 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const backL = await pg.evaluate(() => ({ active: document.getElementById('side').dataset.active, tabs: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').length, chain: !!document.querySelector('.dossier') }));
   rec('INSPECT: ‹ Company returns to the Company lens with its chart', backL.active === 'company' && backL.tabs === 0 && !backL.chain, JSON.stringify(backL));
 
-  /* ---- METHOD ---- */
-  await click(pg, '#keybtn');
-  const key = await pg.evaluate(() => { const k = document.getElementById('key'); const h5 = [...k.querySelectorAll('h5')].map(e => e.textContent); const bi = [...k.querySelectorAll('h5')].filter(e => /Boundaries of the current model/.test(e.textContent))[0];
-    const items = bi ? [...bi.parentElement.querySelectorAll('li')].slice(1).map(e => e.textContent) : []; const hist = [...k.querySelectorAll('h5')].filter(e => /History/.test(e.textContent))[0];
-    return { title: document.title, txt: k.innerText, h5, items, histTxt: hist ? hist.parentElement.innerText : '' }; });
-  await click(pg, '#keyclose');
-  const cur = key.txt.replace(key.histTxt, '');
-  rec('METHOD: the browser title is "SaaS Physics"; the current-model text carries no release tags (v1.x, Gate A–D) — history has its own section', key.title === 'SaaS Physics' && !/v1\.\d|v2 Gate|Gate [A-D]\b|\bv1\b/.test(cur) && /History/.test(key.h5.join('|')) && /1\.1–1\.3/.test(key.histTxt), (cur.match(/v1\.\d|v2 Gate|Gate [A-D]\b|\bv1\b/g) || []).join(','));
-  rec('METHOD: every current boundary is conditional on a layer state — each reads "With … off/at 0/no …" and what enabling the layer changes; none states an absent layer as a fact', key.items.length >= 6 && key.items.every(t => /^(Acquisition|Expansion|Customers|Price|Cash|Fixed costs)\./.test(t)) && key.items.slice(0, 5).every(t => /With /.test(t) && /(Enabling|With a |With the lag|With a capacity|With a cost|With a billing term)/.test(t)) && !/There is no price\.|there are no customers|^FCF = EBITA\./m.test(cur), JSON.stringify(key.items.map(t => t.slice(0, 40))));
+  /* ---- ABOUT: the principles, briefly (Step 2B — there is no Method page) ---- */
+  const about = await pg.evaluate(() => { const d = document.getElementById('about'); d.open = true; const txt = d.innerText; d.open = false;
+    return { title: document.title, txt, paras: d.querySelectorAll('p').length, words: txt.split(/\s+/).length }; });
+  rec('ABOUT: the browser title is "SaaS Physics"; About states the few principles — deterministic, laws → state → outputs with KPIs measured not entered, traceable to the Model Ledger, and what it is not — briefly, without release tags or a changelog',
+      about.title === 'SaaS Physics' && /Deterministic/.test(about.txt) && /Laws → state → outputs/.test(about.txt) && /measured from the run, never entered/.test(about.txt) && /Model Ledger/.test(about.txt) && /Not a forecast/.test(about.txt) &&
+      about.paras === 4 && about.words < 180 && !/v1\.\d|v2 Gate|Gate [A-D]\b|History|FINDINGS/.test(about.txt), JSON.stringify({ paras: about.paras, words: about.words }));
   const bt = await pg.evaluate(() => { const D = window.__SP_DEBUG; return ['acq', 'exp', 'lag', 'cust', 'mon', 'fcf', 'hyp'].map(k => D.boundText ? D.boundText(k) : ''); });
-  rec('METHOD: the live boundary statements on Compare and Scenarios carry no release tags either', bt.every(t => !/v1\.\d|v2 Gate|Gate [A-D]\b/.test(t)), bt.filter(t => /v1\.\d|v2 Gate/.test(t)).join(' | '));
+  rec('BOUNDARIES: the live boundary statements on Compare and Scenarios carry no release tags', bt.every(t => !/v1\.\d|v2 Gate|Gate [A-D]\b/.test(t)), bt.filter(t => /v1\.\d|v2 Gate/.test(t)).join(' | '));
   await pg.close();
 
   /* ---- RESPONSIVE ---- */

@@ -8,7 +8,7 @@
  *   BASIS       a per-customer figure obeys the MRR/ARR switch and names its period,
  *               on the Ontology and in Inspect. The same customer never reads €15k on
  *               one surface and €180k on another
- *   OPAQUE      Method covers what is behind it
+ *   OPAQUE      the Guide pane covers what is behind it
  *   SEAM        Compare's plane-2 title and its reading are on one baseline, apart,
  *               with clearance from the recurring mass above
  *   LEDGER      the marked month is in view after a scrub, in both directions
@@ -81,20 +81,20 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     await pg.close();
   }
 
-  /* ---------------- OPAQUE: Method hides what is behind it ---------------- */
+  /* ---------------- OPAQUE: the Guide pane hides what is behind it (Method is gone, Step 2B) ---------------- */
   {
     const pg = await open(1440, 900); await enter(pg); await nav(pg, 'Scenarios'); await pg.waitForTimeout(300);
-    await pg.evaluate(() => document.getElementById('keybtn').click()); await pg.waitForTimeout(400);
+    await pg.evaluate(() => document.getElementById('guidebtn').click()); await pg.waitForTimeout(400);
     const o = await pg.evaluate(() => {
-      const k = document.getElementById('key'), cs = getComputedStyle(k);
+      const k = document.getElementById('welcome'), cs = getComputedStyle(k);
       const m = /rgba?\(([^)]+)\)/.exec(cs.backgroundColor);
       const parts = m ? m[1].split(',').map(s => parseFloat(s)) : [];
       const alpha = parts.length === 4 ? parts[3] : 1;
       /* and the pane is genuinely what the reader hits at its own centre */
       const el = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
-      return { bg: cs.backgroundColor, alpha, onTop: !!(el && (el.id === 'key' || el.closest('#key'))) };
+      return { bg: cs.backgroundColor, alpha, onTop: !!(el && (el.id === 'welcome' || el.closest('#welcome'))) };
     });
-    rec('OPAQUE: the Method overlay is fully opaque and is what the reader hits, so the surface behind it can no longer be read through the text',
+    rec('OPAQUE: the Guide pane, opened from inside the app, is fully opaque and is what the reader hits, so the surface behind it can no longer be read through the text',
         o.alpha === 1 && o.onTop, JSON.stringify(o));
     await pg.close();
   }
@@ -111,7 +111,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
   /* ---------------- LEDGER: the marked month is in view ---------------- */
   {
-    const pg = await open(1440, 900); await enter(pg); await pack(pg, 'wA'); await nav(pg, 'System'); await sys(pg, 'ledger');
+    const pg = await open(1440, 900); await enter(pg); await pack(pg, 'wA'); await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);   /* ⋯ → Model Ledger (Step 2A) */
     const at = async m => { await month(pg, m); return pg.evaluate(() => {
       const host = document.getElementById('ledgerscroll'); const tr = host.querySelector('tr.on');
       if (!tr) return { marked: false };
@@ -210,13 +210,6 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     rec('CUE · honest: on a viewport tall enough to hold the whole pane the cue is not shown, so it means "there is more" rather than "this is a pane"',
         !noOverflow.overflows && !noOverflow.cls, JSON.stringify(noOverflow));
     await tall.close();
-    /* Method, opened from inside the app */
-    await enter(pg);
-    await pg.evaluate(() => document.getElementById('keybtn').click()); await pg.waitForTimeout(400);
-    const km = await pg.evaluate(() => { const k = document.getElementById('key');
-      return { overflows: k.scrollHeight - k.clientHeight > 6, cls: k.classList.contains('scrolls'), top: k.scrollTop }; });
-    rec('CUE · Method: Method opens at the top and declares that it continues below the fold',
-        km.overflows && km.cls && km.top === 0, JSON.stringify(km));
     await pg.close();
   }
 

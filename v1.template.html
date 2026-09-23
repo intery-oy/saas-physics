@@ -139,7 +139,13 @@ button,input{font:inherit;color:inherit}
 .menu .mrow{display:flex;align-items:center;justify-content:space-between;cursor:default}
 .menu .mrow .ml{display:inline;font-size:13px;color:var(--ink);margin:0}
 .menu .mrow .btn{padding:3px 10px;font-size:11px}
-.menu .mabout{border-top:1px solid var(--line-soft);margin-top:6px;padding:9px 8px 3px;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+.menu .mabout{border-top:1px solid var(--line-soft);margin-top:6px;padding:8px 8px 2px;font-size:11px;color:var(--ink-3);line-height:1.6}
+.menu .mabout summary{cursor:pointer;font:13px var(--ui);color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px}
+.menu .mabout summary::-webkit-details-marker{display:none}
+.menu .mabout summary::after{content:"›";margin-left:auto;color:var(--ink-4);transition:transform .15s}
+.menu .mabout[open] summary::after{transform:rotate(90deg)}
+.menu .mabout p{margin:8px 0 0;max-width:340px}
+.menu .mabout b{color:var(--ink-2);font-weight:500}
 .menu #packnote{padding:4px 8px 2px;font-size:10.5px}
 .wconfirm{margin:8px 4px 2px;padding:10px;border:1px solid var(--exp);border-radius:3px;background:var(--panel)}
 .wconfirm .wq{font-size:13px;color:var(--ink);margin-bottom:4px}
@@ -691,18 +697,6 @@ details.pl .cascade{margin-top:8px}
 .tlabel{font-family:var(--mono);font-size:13px;color:var(--exp);min-width:132px;white-space:nowrap}
 .tlabel small{color:var(--ink-4);font-size:10px}
 
-/* ---------- key overlay ---------- */
-.key{position:fixed;inset:0;z-index:40;background:var(--ground);padding:26px 32px;overflow-y:auto;display:none}
-.key.on{display:block}
-.key h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0 0 4px}
-.key p.lede{font-family:var(--display);font-style:italic;color:var(--ink-2);margin:0 0 20px;font-size:13px;max-width:62ch}
-.key-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;max-width:1100px}
-.key-grid h5{margin:0 0 7px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
-.key-grid ul{margin:0;padding-left:15px;font-size:11.5px;line-height:1.75;color:var(--ink-2)}
-.key-grid li{margin-bottom:5px}
-.key-grid b{color:var(--ink);font-weight:500}
-.key .close{position:absolute;top:20px;right:26px}
-.note{font-size:10.5px;color:var(--ink-4);line-height:1.6;margin-top:12px}
 
 /* ---------- opening page and guided tour ---------- */
 .welcome{position:fixed;inset:0;z-index:60;background:var(--ground);overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
@@ -824,9 +818,16 @@ details.pl .cascade{margin-top:8px}
         <button class="mi" id="menu-ledger">Model Ledger <span>prove it · every month as the engine published it</span></button>
         <div class="mi mrow"><span class="ml">Recurring revenue</span><div class="btn-row"><button class="btn on" id="basis-mrr">MRR</button><button class="btn" id="basis-arr">ARR</button></div></div>
         <button class="mi" id="guidebtn">Guide <span>what this is, and the six-step tour</span></button>
-        <button class="mi" id="keybtn">Method <span>findings, conventions, versions</span></button>
-        <!-- which build is on screen: a cached page is otherwise indistinguishable from a live one -->
-        <div class="mabout">About · build <span class="chip build" id="build-chip" title="The commit this page was built from">__BUILD__</span><br>An illustrative, deterministic model. No real company data; nothing you set leaves the page.</div>
+        <!-- About: which build is on screen (a cached page is otherwise indistinguishable from a live
+             one), and the few principles that make the instrument trustworthy. The mechanics live where
+             they act: the Experiment drawer, System's notes, the Model Ledger, the presets. -->
+        <details class="mabout" id="about">
+          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">__BUILD__</span></summary>
+          <p><b>Deterministic.</b> A cohort simulation over sixty months — no randomness, no fitted parameters. Company ARR is only ever the sum of its cohorts.</p>
+          <p><b>Laws → state → outputs.</b> You set the laws; everything else is a consequence. Retention, NRR and payback are measured from the run, never entered — so a 90% persistence law can measure as 89.6% GRR, and that gap is real, not an error.</p>
+          <p><b>Traceable.</b> The engine decides every figure; the words only narrate it. The Model Ledger shows each month as the engine published it, with checks that reconcile.</p>
+          <p><b>What it is not.</b> Not a forecast and not a valuation. The worlds are illustrative — no real company data — and each page states the boundaries of the world it is running. Nothing you set leaves the page.</p>
+        </details>
       </div>
     </div>
   </header>
@@ -903,152 +904,6 @@ details.pl .cascade{margin-top:8px}
     </div>
     </div>
    </div>
-    <div class="key" id="key"><div class="more-below" aria-hidden="true"></div>
-      <button class="btn close" id="keyclose">Close</button>
-      <h3>Method</h3>
-      <p class="lede">What this model is, what it takes in, what it gives back — and, in the same breath, what it does not contain.</p>
-      <div class="key-grid">
-        <div>
-          <h5>What the model is</h5>
-          <ul>
-            <li>A <b>deterministic cohort simulation</b> over 60 months. No randomness, no probability, no fitted parameters.</li>
-            <li>Company ARR is only ever the <b>sum of its cohorts</b>. Aggregates are never asserted; they are summed.</li>
-            <li>The same engine runs the browser and the command-line checks — one source of truth. Every layer beneath cohort ARR is <b>nullable</b>: off, it reproduces the world beneath it exactly.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>What is input</h5>
-          <ul>
-            <li><b>Management decisions</b> — S&amp;M, and the fixed operating costs R&amp;D and G&amp;A.</li>
-            <li><b>Economic transition assumptions</b> — persistence and expansion (how the installed base evolves), CAC per €1 of New ARR (how spend becomes ARR), gross margin (how revenue becomes gross profit).</li>
-            <li><b>Three nullable mechanisms</b> — expansion realisation cost, acquisition capacity, acquisition lag. Each defaults to the setting under which it does nothing.</li>
-            <li><b>Customer physics (nullable)</b> — logo retention, contraction and ARR per new logo. When on, persistence is derived from them, never set.</li>
-            <li><b>Monetization physics (nullable)</b> — a platform fee and a usage component per customer, with price growth, usage growth and adoption to caps. When on, revenue is derived from the components; the expansion coefficient, ARR per new logo and opening ARR are not read.</li>
-            <li><b>Cash physics (nullable)</b> — billing term and timing (deferred revenue or contract asset) and a collection delay (receivables). When on, cash FCF = collections − cash costs; EBITA is untouched.</li>
-            <li><b>Hypotheses (none by default)</b> — a costed, lagged, temporary move of one law, resolved into the law in force month by month. Never a coefficient.</li>
-            <li>Nothing else. There is no plan, no target, no forecast to hit.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>What is output</h5>
-          <ul>
-            <li>ARR and its cohort composition, revenue, gross profit, EBITA, FCF, cash.</li>
-            <li>R12M GRR, expansion and NRR — <b>measured</b>, never entered.</li>
-            <li><b>Floor payback</b>, an output of the CAC floor × 12 ÷ GM — never an input. Under a capacity the product also shows <b>average</b> and <b>marginal payback</b> (the same construction on average and marginal CAC); the capital track shows each cohort's <b>realised payback</b>. Every CAC is € of S&amp;M per €1 of ARR, in either display basis.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Reporting basis — MRR ⇄ ARR</h5>
-          <ul>
-            <li>SaaS Physics stores recurring state internally in <b>ARR</b>. <b>MRR is an exact presentation transformation</b> (<span style="font-family:var(--mono);font-size:11px">ARR / 12</span>). MRR and ARR are two reporting bases for the same recurring economic state; switching basis changes no economic result.</li>
-            <li><b>MRR/ARR are recurring run-rate state measures.</b> Revenue, gross profit and FCF are period financial flows and therefore do not toggle — they stay labelled <span style="font-family:var(--mono);font-size:11px">· this month</span> in both bases.</li>
-            <li>The default is <b>MRR</b>: the engine steps monthly, and New/Expansion/Leakage are monthly state movements, so a monthly basis matches the simulation's own resolution.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Reality vs measurement</h5>
-          <ul>
-            <li>The business exists first. <b>KPIs are measurements taken from it</b> — a KPI definition must never become an economic law.</li>
-            <li>The engine\u2019s coefficients are not the KPIs of similar name. A <b>90% persistence coefficient measures as 89.56% R12M GRR</b>, and that gap is the within-period interaction of decay and expansion, not an error.</li>
-            <li>Two layers, kept apart: the economic engine, and the measurement layer that observes it.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Homogeneous Control World</h5>
-          <ul>
-            <li>The default has <b>flat transition laws</b>: age carries no differential dynamics.</li>
-            <li><b>Under homogeneous laws, cohort vintage affects provenance and capital history but does not create differential forward ARR dynamics.</b></li>
-            <li>With same-month acquisition (lag 0) it reduces exactly to <span style="font-family:var(--mono);font-size:11px">ARR(t+1) = g\u00b7ARR(t) + N</span>, verified to 4\u00d710\u207b\u00b9\u2075 against the engine. Under an acquisition lag the reduced form does not hold; under a capacity it does, with a smaller constant N.</li>
-            <li>This is a <b>control case</b>, not a claim that real retention is flat.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>State-dependent illustrative world</h5>
-          <ul>
-            <li>Used only where <b>explicitly selected</b> — Scenario 6 and nowhere else.</li>
-            <li>It assigns different persistence and expansion to three age bands. That profile is a <b>user assumption about a world</b>, never a claimed law of SaaS.</li>
-            <li>It exists to show what <em>can</em> occur if transition behaviour varies with cohort maturity. It is not evidence that it does.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Boundaries of the current model</h5>
-          <ul>
-            <li>Every boundary below is stated for the world you are running. The Compare and Scenario surfaces restate them live, reading the Experiment's own settings.</li>
-            <li><b>Acquisition.</b> With acquisition capacity off, acquisition is linear and unbounded in S&amp;M: the model can always buy growth and cannot say stop. With a capacity set, the response saturates and the model shows average and marginal CAC — and still declares no optimum, because it has no objective. With the lag at 0, spend and cohort are same-month; with a lag set, spend sits in a pending state and what matures beyond M60 stays pending.</li>
-            <li><b>Expansion.</b> With expansion realisation cost at 0, expansion carries no separately modelled cost. With a cost set, expansion ARR is priced; what the cost buys is not modelled.</li>
-            <li><b>Customers.</b> With Customer physics off, ARR is modelled without logos: leakage is one number and lost logos cannot be separated from shrinking accounts. Enabling Customer physics separates logo loss from contraction — as a continuous cohort count with one ARPA per cohort, flat laws, no customer-size heterogeneity, no concentration, no reactivation.</li>
-            <li><b>Price.</b> With Monetization physics off, there is no price: expansion is one coefficient with nothing inside it and no bound. Enabling it prices each customer as components with caps — homogeneous within a cohort, contraction reaching usage only, no price elasticity, discounts, ramps or minimum commitments.</li>
-            <li><b>Cash.</b> With no billing term set, FCF = EBITA: no working capital, deferred revenue, tax or capex. With a billing term set, cash FCF = collections − cash costs, with deferred revenue and receivables in between; still no tax, capex, payables, bad debt or financing, and one billing policy for the whole company.</li>
-            <li><b>Fixed costs.</b> R&amp;D and G&amp;A have no modelled effect on retention, expansion or acquisition in any world — which is why they are inputs here, not levers.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Three mechanisms, each nullable</h5>
-          <ul>
-            <li><b>Expansion realisation cost</b> — € per €1 of expansion ARR. A cost line between gross profit and EBITA. Touches Cash, never ARR, GRR or NRR.</li>
-            <li><b>Acquisition capacity</b> — New ARR = S&amp;M ÷ (CAC + S&amp;M ÷ capacity). A <b>bound</b> on an optimistic mechanism, not a growth benefit. Off = the linear law.</li>
-            <li><b>Acquisition lag</b> — spend at month t creates its cohort at t + lag, through a pending state the engine actually carries. Changes <b>when</b>, never <b>how much per euro</b>.</li>
-            <li>With all three at their null setting the engine reproduces the cohort-ARR world exactly (the all-null release gate).</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Customer physics (nullable)</h5>
-          <ul>
-            <li><b>Logo retention</b> — the share of customers that survive twelve months. Departing customers take the cohort's average revenue with them.</li>
-            <li><b>Contraction</b> — how much surviving customers shrink. Leakage = lost logos + contraction; persistence = L × (1 − C), <b>derived</b>, not set.</li>
-            <li><b>ARR per new logo</b> — how many customers a euro of New ARR brings. Moves customers and ARPA, never ARR.</li>
-            <li>With Logo retention off the engine reproduces the ARR-physics world exactly, every field (the all-null gate). Scenario 10 shows two worlds with identical ARR and NRR and different customers.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Monetization physics (nullable)</h5>
-          <ul>
-            <li><b>Components</b> — each customer pays a platform fee (fixed) plus usage (penetration × units × price). Revenue is customers × components, recomputed every month: one source of truth.</li>
-            <li><b>Expansion</b> — price growth, usage growth to a cap, adoption to a cap. The generic coefficient is bypassed; expansion saturates.</li>
-            <li><b>Contraction</b> — reaches usage only, so dollar persistence is emergent from the mix. Scenario 12 shows identical customers and laws with different GRR.</li>
-            <li>Off = the customer world exactly. Scenario 11 shows the same customers priced as a coefficient and as components.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Cash physics (nullable)</h5>
-          <ul>
-            <li><b>Billings</b> = revenue + Δdeferred revenue, by construction. Contracts are invoiced per billing term, in advance or in arrears; acquisition cohorts at birth, the opening book staggered.</li>
-            <li><b>Collections</b> = billings shifted by the collection delay; receivables in between. Costs are cash when incurred.</li>
-            <li><b>Cash FCF</b> = collections − cash costs = EBITA + Δdeferred − Δreceivables. EBITA never changes; only the cash path does.</li>
-            <li>Off = FCF = EBITA exactly. Scenario 13 shows the same P&amp;L billed annually in advance.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>Hypotheses (none by default)</h5>
-          <ul>
-            <li><b>An intervention is an object</b> — target, effect, value, decision month, lag, duration, one-off and monthly cost — never a coefficient. The engine reads the law in force each month from lawAt(t).</li>
-            <li><b>Its cost is its own P&amp;L line</b>, booked from the decision month; cash when incurred.</li>
-            <li><b>Provenance</b> — every month records which hypotheses were in force and what each changed; every cohort records the hypotheses in force when its spend was committed.</li>
-            <li><b>Bounds before benefits</b> — a hypothesis cannot switch a layer on or change the billing policy, and is rejected up front if any month's resolved law leaves the engine's domain. Scenario 14 shows a retention programme.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>What each visual earns its place by</h5>
-          <ul>
-            <li><b>Cohort strata</b> \u2014 the historical composition and provenance of today\u2019s recurring state.</li>
-            <li><b>Capital-recovery track</b> \u2014 the elapsed time between acquisition investment and economic recovery, so CAC payback becomes a distance rather than a number.</li>
-            <li><b>System map</b> \u2014 a model audit: the causal topology the engine contains, with \u2298 marking links it does not.</li>
-            <li>A fourth candidate, an intra-month bridge animation, established no unique percept and was rejected. It is preserved in the research archive, not shipped.</li>
-          </ul>
-        </div>
-        <div>
-          <h5>History</h5>
-          <ul>
-            <li><b>1.0</b> — cohort ARR: one persistence coefficient, one expansion coefficient, linear same-month acquisition, FCF = EBITA. The payback implied by that coefficient was an input; inverting it into an output was the most important correction this project made.</li>
-            <li><b>1.1–1.3</b> — three nullable mechanisms: expansion realisation cost (finding #14), acquisition capacity (#10), acquisition lag (#17). All three null reproduces 1.0 exactly.</li>
-            <li><b>2</b> — the Economic System: four nullable layers beneath cohort ARR — Customer physics (#18), Monetization physics (#13, #21), Cash physics (#15), Hypotheses. Each off reproduces the world beneath it exactly; the frozen Base is the ARR-physics world.</li>
-            <li><b>Legibility and hierarchy passes</b> — five lenses, the causal Compare, the ontology, provenance, the experiment grammar and the drawer changed how the same run is read. No economic quantity changed: the baseline checksums in <span style="font-family:var(--mono);font-size:11px">docs/BASELINE-v2.md</span> are unchanged.</li>
-            <li>Finding numbers refer to <span style="font-family:var(--mono);font-size:11px">docs/FINDINGS.md</span>.</li>
-          </ul>
-        </div>
-      </div>
-      <div class="note">Illustrative company throughout. No real company data is connected, and no valuation, multiple or embedded value is computed. The engine is deliberately a portable synthetic methodology: translating a real company into an opening state would be the job of a separate adapter, which does not exist and is out of scope.</div>
-    </div>
   </main>
 
   <div class="transport">
@@ -6752,10 +6607,9 @@ details.pl .cascade{margin-top:8px}
       render(); renderSide();
     });
   });
-  document.getElementById('keybtn').addEventListener('click', function(){ menusClose(); var k=document.getElementById('key'); k.classList.add('on'); k.scrollTop=0; scrollCue(k); });
 
   /* ---- the scroll cue ------------------------------------------------
-     Welcome and Method are full-screen panes that scroll. Without a cue a
+     Welcome is a full-screen pane that scrolls. Without a cue a
      first visit reads a card sliced mid-sentence as the end of the page.
      One class, recomputed on scroll and on resize, and never shown when the
      pane fits or when the reader has reached the bottom. */
@@ -6764,12 +6618,11 @@ details.pl .cascade{margin-top:8px}
     var more = el.scrollHeight - el.clientHeight - el.scrollTop > 6;
     el.classList.toggle('scrolls', more);
   }
-  ['welcome','key'].forEach(function(id){
+  ['welcome'].forEach(function(id){
     var el = document.getElementById(id); if(!el) return;
     el.addEventListener('scroll', function(){ scrollCue(el); }, { passive:true });
   });
-  window.addEventListener('resize', function(){ ['welcome','key'].forEach(function(id){ scrollCue(document.getElementById(id)); }); });
-  document.getElementById('keyclose').addEventListener('click', function(){ document.getElementById('key').classList.remove('on'); });
+  window.addEventListener('resize', function(){ scrollCue(document.getElementById('welcome')); });
   function resetAll(){
     exitPair(); clearScenario();
     baseA = packA; expA = Object.assign({}, packA);          /* v2: back to the active pack's world */
