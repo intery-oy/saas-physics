@@ -99,9 +99,10 @@ button,input{font:inherit;color:inherit}
 .scencard{border:1px solid var(--line);border-radius:3px;background:var(--sunk);padding:11px 13px;margin-bottom:9px}
 .scencard h4{margin:0 0 3px;font-size:12.5px}
 .scencard .teach{font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--ink-2);line-height:1.55;margin:0}
-.pulsebar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 14px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
+.pulsebar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px 14px;padding:8px 20px;border-top:1px solid var(--line);background:var(--sunk)}
 .pulsebar .lawnote{grid-column:1/-1;grid-row:2}
-.pulsebar #notes-toggle{grid-column:2;grid-row:1;justify-self:end}
+.pulsebar #cmpmode{grid-column:2;grid-row:1}
+.pulsebar #notes-toggle{grid-column:3;grid-row:1;justify-self:end}
 .pulsebar .stepname{font-family:var(--mono);font-size:11.5px;color:var(--exp);min-width:210px}
 .pulsebar .lawnote{font-size:10.5px;color:var(--ink-3);line-height:1.5}
 .recon{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:11px;margin-top:5px}
@@ -733,13 +734,12 @@ details.pl .cascade{margin-top:8px}
       <!-- Inspect · the selected cohort's own figure replaces the company formation -->
       <div class="cohortlife" id="cohort-life" hidden></div>
       <div class="figctl">
-        <span class="eyebrow">Compare</span>
-        <div class="btn-row"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
         <button class="btn" id="leak-toggle" title="Cumulative historical leakage — off by default">Leakage shadow: Off</button>
       </div>
     </details>
     <div class="pulsebar" id="pulsebar" hidden>
       <div class="btn-row" id="sysviews"></div>
+      <div class="btn-row" id="cmpmode"><button class="btn on" id="cmp-abs">Absolute</button><button class="btn" id="cmp-delta">Delta</button></div>
       <span class="lawnote" id="pulse-law"></span>
       <button class="btn" id="notes-toggle" title="Read the laws and mechanisms on this map">Notes</button>
     </div>
@@ -3889,6 +3889,14 @@ details.pl .cascade{margin-top:8px}
     });
   }
   function syncSysViews(){
+    /* Absolute / Delta changes only the Flows drawing (the other views say "delta compare shows
+       the company view only"). It sat under the Company chart, which never reads it, so there
+       it lit up and nothing moved; it is offered only where it acts, and a view that cannot
+       draw a difference is never left in delta mode behind a hidden switch. */
+    var cm = document.getElementById('cmpmode');
+    if(cm){ cm.hidden = sysView!=='company';
+      if(sysView!=='company' && compare==='delta'){ compare='absolute';
+        document.getElementById('cmp-abs').classList.add('on'); document.getElementById('cmp-delta').classList.remove('on'); } }
     SYS_VIEWS.forEach(function(V){ var b=document.getElementById('sysview-'+V.id); if(!b) return; var on=V.on(); b.disabled = !on; b.classList.toggle('on', sysView===V.id); if(!on && sysView===V.id) sysView='ontology'; });
   }
   function syncPulse(){
