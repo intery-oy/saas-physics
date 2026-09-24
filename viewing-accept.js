@@ -28,13 +28,22 @@ const PREV = 'file://' + PREV_FILE;
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const errs = [];
+  /* Wait for the page, not the clock. Every app handler here runs synchronously; the only deferred work
+     is setLayer's 220 ms resize-and-render when the page changes, and the canvas's next animation frame. */
+  const frames = p => p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const settle = p => p.evaluate(() => new Promise(r => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 230)));
   const open = async (url, pk, exp, view) => { const p = await br.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(url); await p.evaluate(() => window.__SP_DEBUG.useBase && window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
-    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); if (window.__SP_DEBUG.useBase) window.__SP_DEBUG.useBase(pk); else document.getElementById('pack-' + pk).click(); }, pk);   /* the previous build still chose its world from a menu */ await p.waitForTimeout(300);
-    if (exp) { await p.evaluate(() => { for (const [k, f] of [['sm', 1.4], ['grossMargin', 0.9]]) { const i = document.getElementById('f-' + k); i.value = +i.value * f; i.dispatchEvent(new Event('input', { bubbles: true })); } }); await p.waitForTimeout(300); }
+    await p.goto(url); await p.evaluate(() => document.fonts.ready);
+    await p.waitForFunction(() => window.__SP_DEBUG && document.getElementById('welcome-enter'));
+    await p.evaluate(() => window.__SP_DEBUG.useBase && window.__SP_DEBUG.useBase('wA'));
+    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); if (window.__SP_DEBUG.useBase) window.__SP_DEBUG.useBase(pk); else document.getElementById('pack-' + pk).click(); }, pk);   /* the previous build still chose its world from a menu */
+    await p.waitForFunction(() => { const D = window.__SP_DEBUG; return D.expRes && (!('layer' in D) || D.layer === 'stock'); });   /* the previous build has no layer getter */
+    if (exp) await p.evaluate(() => { for (const [k, f] of [['sm', 1.4], ['grossMargin', 0.9]]) { const i = document.getElementById('f-' + k); i.value = +i.value * f; i.dispatchEvent(new Event('input', { bubbles: true })); } });
     if (view) await p.evaluate(v => document.querySelector('[data-vw="' + v + '"]').click(), view);
-    await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(200);
+    await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); });
+    await settle(p);
     return p; };
+  const openPair = (a, b) => Promise.all([open(...a), open(...b)]);   /* the two pages are independent */
   const act = (p, f, a) => p.evaluate(f, a);
   const cap = (p, what) => p.evaluate(what => {
     const strip = h => h.replace(/<span class="viewing"[\s\S]*?<\/button><\/span>/g, '').replace('<span class="hd flat">on Base</span>', '')
@@ -43,28 +52,31 @@ const PREV = 'file://' + PREV_FILE;
     const sd = document.getElementById('side').cloneNode(true); sd.querySelectorAll('.levers').forEach(e => e.remove());
     return { side: strip(sd.innerHTML), strip: document.getElementById('causal-slot').innerHTML,
       canvas: what.canvas ? document.getElementById('scene').toDataURL() : '', ledger: what.ledger ? ((document.querySelector('#ledger table') || {}).outerHTML || '') : '' }; }, what);
-  async function surfaces(A, B) {
+  async function surfaces(A, B, ledgerOnly) {
     const out = [];
-    const cmp = async (name, what) => { await A.waitForTimeout(250); await B.waitForTimeout(250); const a = await cap(A, what), b = await cap(B, what);
+    const both = f => Promise.all([A, B].map(f));
+    const cmp = async (name, what, layerChanged) => { await both(layerChanged ? settle : frames); const [a, b] = await both(p => cap(p, what));
       const bad = Object.keys(a).filter(k => a[k] !== b[k]); if (bad.length) { const k = bad[0]; let i = 0; while (i < a[k].length && a[k][i] === b[k][i]) i++; out.push(name + ' ' + k + '@' + i + ': ' + a[k].slice(Math.max(0, i - 50), i + 50)); } };
-    for (const L of ['company', 'customers', 'growth', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, L => document.querySelector('.lensnav .btn[data-lens="' + L + '"]').click(), L); await cmp('Company·' + L, { canvas: L === 'company' }); }
-    for (const v of ['ontology', 'customers', 'monetization', 'cash']) { for (const p of [A, B]) await act(p, v => { (document.getElementById('menu-mech') || document.getElementById('nav-system')).click(); const b = document.getElementById('sysview-' + v); if (b && !b.disabled) b.click(); }, v); await A.waitForTimeout(350); await cmp('Mechanics·' + v, { canvas: true }); }
-    for (const p of [A, B]) await act(p, () => document.getElementById('menu-ledger').click()); await cmp('Ledger', { ledger: true });
-    for (const p of [A, B]) await act(p, () => document.getElementById('nav-company').click());
+    if (!ledgerOnly) {
+      for (const L of ['company', 'customers', 'growth', 'monetization', 'cash']) { await both(p => act(p, L => document.querySelector('.lensnav .btn[data-lens="' + L + '"]').click(), L)); await cmp('Company·' + L, { canvas: L === 'company' }); }
+      for (const v of ['ontology', 'customers', 'monetization', 'cash']) { await both(p => act(p, v => { (document.getElementById('menu-mech') || document.getElementById('nav-system')).click(); const b = document.getElementById('sysview-' + v); if (b && !b.disabled) b.click(); }, v)); await cmp('Mechanics·' + v, { canvas: true }, true); }
+    }
+    await both(p => act(p, () => document.getElementById('menu-ledger').click())); await cmp('Ledger', { ledger: true }, true);
+    await both(p => act(p, () => document.getElementById('nav-company').click()));
     return out;
   }
 
   /* ---- INVARIANT and UNCHANGED ---- */
   const inv = {}, unch = {};
   for (const pk of ['wA', 'wC', 'arr']) {
-    let A = await open(URL, pk, true, 'base'), B = await open(URL, pk, false, null);
+    const [A, B] = await openPair([URL, pk, true, 'base'], [URL, pk, false, null]);
     inv[pk] = await surfaces(A, B); await A.close(); await B.close();
   }
   for (const pk of ['wA', 'arr']) {
-    const A = await open(URL, pk, true, 'exp'), B = await open(PREV, pk, true, null);
+    const [A, B] = await openPair([URL, pk, true, 'exp'], [PREV, pk, true, null]);
     /* Company became one world on purpose (company-accept holds it) and System became Model Mechanics (mechanics-accept);
-       the Model Ledger stays exactly as it was */
-    unch[pk] = (await surfaces(A, B)).filter(x => !/^Company|^Mechanics/.test(x)); await A.close(); await B.close();
+       the Model Ledger stays exactly as it was, and is all this check compares */
+    unch[pk] = await surfaces(A, B, true); await A.close(); await B.close();
   }
   rec('INVARIANT: viewing Base with an Experiment present, every Company lens, Model Mechanics view and the Model Ledger is identical — markup, canvas pixels, ledger table — to the same world with no Experiment at all (worlds A, C and ARR physics)',
       Object.values(inv).every(x => x.length === 0), JSON.stringify(inv).slice(0, 600));
@@ -72,7 +84,7 @@ const PREV = 'file://' + PREV_FILE;
       Object.values(unch).every(x => x.length === 0), JSON.stringify(unch).slice(0, 600));
 
   /* ---- HIT-TESTS and INSPECT ---- */
-  const A = await open(URL, 'wC', true, 'base'), B = await open(URL, 'wC', false, null), X = await open(URL, 'wC', true, 'exp');
+  const [A, B, X] = await Promise.all([open(URL, 'wC', true, 'base'), open(URL, 'wC', false, null), open(URL, 'wC', true, 'exp')]);
   const probe = async p => { const r = await p.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(); return { x: c.left, y: c.top, w: c.width, h: c.height }; }); const out = [];
     for (let i = 0; i < 14; i++) { const x = r.x + r.w * 0.52, y = r.y + r.h * (0.2 + i * 0.05); await p.mouse.move(x, y); await p.waitForTimeout(30); out.push(await p.evaluate(() => window.__SP_DEBUG.hover)); }
     return out; };
@@ -111,7 +123,7 @@ const PREV = 'file://' + PREV_FILE;
   rec('BASE PAGE: no "vs Base" marks, no Compare strip, no Financials Δ, no Flows Absolute/Delta — nothing that reads the Experiment', !guards.vsBase && guards.strip === 0 && !guards.fin && !guards.delta, JSON.stringify(guards));
 
   /* ---- COMPARE is untouched: it always reads both worlds, whatever was being viewed ---- */
-  const C1 = await open(URL, 'wA', true, 'base'), C0 = await open(PREV, 'wA', true, null);
+  const [C1, C0] = await openPair([URL, 'wA', true, 'base'], [PREV, 'wA', true, null]);
   const cmpCap = p => p.evaluate(() => { document.getElementById('nav-compare').click(); return new Promise(r => setTimeout(() => r({ panel: document.getElementById('compare-panel').innerHTML, canvas: document.getElementById('scene').toDataURL() }), 400)); });
   const k1 = await cmpCap(C1), k0 = await cmpCap(C0);
   /* the attribution block is excluded on purpose: the previous build re-ran its variants from the engine's
