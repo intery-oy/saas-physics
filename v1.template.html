@@ -1841,7 +1841,7 @@ details.pl .cascade{margin-top:8px}
                      newLogoARPA:'€ / logo', cacPerARR:'€ per € ARR', maxMonthlyNewARR:'€ ARR / mo', acquisitionLagMonths:'months', openingPipelineMonths:'months in flight at M0', grossMargin:'% of revenue', expansionCostPerARR:'€ per € ARR',
                      'monetization.components[0].priceAnnual':'€ / customer / yr', 'monetization.components[0].priceGrowthAnnual':'% / yr', 'monetization.components[1].priceGrowthAnnual':'% / yr',
                      'monetization.components[1].usageGrowthAnnual':'% / yr', 'monetization.components[1].unitsCap':'units', 'monetization.components[1].adoptionAnnual':'% / yr', 'monetization.components[1].penetrationCap':'% of customers',
-                     billingTermMonths:'months', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
+                     billingTermMonths:'months', billingTiming:'advance / arrears', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
                      'interventions[0].durationMonths':'months', 'interventions[0].cost.oneOff':'€', 'interventions[0].cost.monthly':'€ / mo' };
   var FORCE_DIR = { sm:'↑ more new ARR, more cash out', persistenceAnnual:'↑ less leakage', expansionCoefficientAnnual:'↑ more expansion', logoRetentionAnnual:'↑ fewer logos lost', contractionAnnual:'↑ more leakage from survivors',
                     newLogoARPA:'↑ fewer, larger new logos', cacPerARR:'↑ less new ARR per € of S&M', maxMonthlyNewARR:'a ceiling, never a benefit', acquisitionLagMonths:'↑ later cohorts, same spend', openingPipelineMonths:'what the company was already selling',
@@ -1849,8 +1849,38 @@ details.pl .cascade{margin-top:8px}
                     'monetization.components[0].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].usageGrowthAnnual':'↑ more usage expansion, until the cap',
                     'monetization.components[1].unitsCap':'a ceiling on usage', 'monetization.components[1].adoptionAnnual':'↑ more adoption expansion, until the cap', 'monetization.components[1].penetrationCap':'a ceiling on adoption',
                     billingTermMonths:'↑ more invoiced per period', collectionDelayMonths:'↑ later cash, more receivables', 'interventions[0].value':'↑ stronger move of the target' };
-  function forceKind(F){ if(FORCE_KIND[F.k]) return FORCE_KIND[F.k]; if(F.k.indexOf('interventions')===0) return 'hyp'; return 'law'; }
+  /* THE CATALOGUE. A law used to be described by eight tables keyed off the same
+     assumption key — FORCE_KIND, FORCE_UNIT, FORCE_DIR, MEASURED_LABEL, LEVER_UNIT,
+     CAUSAL_LAYER, LABEL, LABEL_FMT — none of them derived from FORCES, so adding or
+     renaming one law meant finding every one of them and a typo in any was silent.
+     They are still written separately, because that is how they read; they are folded
+     into the force itself here, once, and every reader goes through forceOf(k).
+     CATALOGUE-COMPLETE (laws-accept) holds both halves: no force missing a kind or a
+     unit, and no table key that matches no force. */
+  function foldCatalogue(){
+    FORCES.forEach(function(F){
+      F.kind = FORCE_KIND[F.k] || (F.k.indexOf('interventions')===0 ? 'hyp' : 'law');
+      F.unit = FORCE_UNIT[F.k] || null;
+      F.dir  = FORCE_DIR[F.k] || null;
+    });
+  }
+  function forceKind(F){ return F.kind || (FORCE_KIND[F.k] || (F.k.indexOf('interventions')===0 ? 'hyp' : 'law')); }
+  function forceUnit(k){ var F = forceOf(k); return (F && F.unit) || FORCE_UNIT[k] || null; }
+  function forceDir(k){ var F = forceOf(k); return (F && F.dir) || FORCE_DIR[k] || null; }
+  /* every key any table mentions that no force claims — a typo, silent until now */
+  function catalogueOrphans(){
+    var keys = {}; FORCES.forEach(function(F){ keys[F.k] = 1; });
+    var bad = [];
+    [['FORCE_KIND',FORCE_KIND],['FORCE_UNIT',FORCE_UNIT],['FORCE_DIR',FORCE_DIR],
+     ['LEVER_UNIT',typeof LEVER_UNIT!=='undefined'?LEVER_UNIT:{}],
+     ['LABEL_FMT',typeof LABEL_FMT!=='undefined'?LABEL_FMT:{}]].forEach(function(pair){
+      Object.keys(pair[1]).forEach(function(k){ if(!keys[k]) bad.push(pair[0]+'.'+k); });
+    });
+    return bad;
+  }
   function kindGlyph(F){ var k=forceKind(F); return '<span class="kg '+k+'" title="'+(k==='inp'?'input — set externally':k==='cons'?'constraint — a bound':k==='sw'?'switch — a layer on or off':k==='hyp'?'hypothesis — costed, lagged, temporary':'law — an assumption the world obeys')+'">'+(k==='inp'?'▭':k==='cons'?'⌈⌉':k==='sw'?'⏻':k==='hyp'?'↯':'⋈')+'</span>'; }
+  foldCatalogue();
+
   /* the value a slider shows for a nullable force that is currently off */
   function sliderValueFor(F, v){ return (F.nullable && (v===null||v===undefined||typeof v!=='number'||!isFinite(v))) ? (typeof F.onValue==='function' ? 0 : F.onValue) : v; }
 
@@ -1862,12 +1892,12 @@ details.pl .cascade{margin-top:8px}
   function forceRow(F, T){
     var P = T.pre;
     var d=document.createElement('div'); d.className='force';
-    d.title = (FORCE_UNIT[F.k] ? FORCE_UNIT[F.k]+' · ' : '')+F.sub+(FORCE_DIR[F.k] ? ' · '+FORCE_DIR[F.k] : '');
+    d.title = (F.unit ? F.unit+' · ' : '')+F.sub+(F.dir ? ' · '+F.dir : '');
     d.innerHTML='<div class="force-top">'+kindGlyph(F)+'<label for="'+P+'f-'+F.k+'">'+esc(F.label)+'</label>'+
       (F.nullable ? '<button class="btn nulltog" id="'+P+'t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
       ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="'+P+'t-'+F.k+'" title="Switch between the settings">'+esc(T.a() ? String(getK(T.a(),F.k)) : '')+'</button>' : '')+
       '<span class="force-val" id="'+P+'v-'+F.k+'"></span><span class="force-base" id="'+P+'b-'+F.k+'"></span></div>'+
-      '<div class="force-sub">'+(FORCE_UNIT[F.k] && !F.toggleOnly ? '<span class="force-u">'+esc(FORCE_UNIT[F.k])+'</span> &middot; ' : '')+esc(F.sub)+(FORCE_DIR[F.k] ? ' &middot; <span class="force-dir">'+esc(FORCE_DIR[F.k])+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
+      '<div class="force-sub">'+(F.unit && !F.toggleOnly ? '<span class="force-u">'+esc(F.unit)+'</span> &middot; ' : '')+esc(F.sub)+(F.dir ? ' &middot; <span class="force-dir">'+esc(F.dir)+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
       (F.toggleOnly ? '' : '<input type="range" id="'+P+'f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
       d.querySelector('[id="'+P+'t-'+F.k+'"]').addEventListener('click', function(){
@@ -4553,7 +4583,7 @@ details.pl .cascade{margin-top:8px}
         var row = document.createElement('button'); row.type='button'; row.className='lever'; row.dataset.k=k; row.dataset.law=k;
         row.title = 'Change '+F.label+' in the Experiment';
         row.innerHTML = '<span class="ll">'+kindGlyph(F)+esc(F.label)+'</span>'+
-          '<span class="lvw"><span class="lv" id="lv-'+k+'"></span><span class="lu">'+esc(LEVER_UNIT[k] || FORCE_UNIT[k] || '')+'</span></span>'+
+          '<span class="lvw"><span class="lv" id="lv-'+k+'"></span><span class="lu">'+esc(LEVER_UNIT[k] || forceUnit(k) || '')+'</span></span>'+
           '<span class="lgo" aria-hidden="true">›</span>';
         bar.appendChild(row);
       });
@@ -6504,6 +6534,8 @@ details.pl .cascade{margin-top:8px}
   })();
 
   window.__SP_DEBUG = {
+    get forces(){ return FORCES.map(function(F){ return { k:F.k, kind:F.kind, unit:F.unit, dir:F.dir, label:F.label, f:F.f }; }); },
+    catalogueOrphans: catalogueOrphans,
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
     get activeScenario(){ return activeScenario; }, get layer(){ return layer; },

@@ -95,4 +95,15 @@ H.suite('laws-accept', async (t) => {
   rec('FROZEN BASE (source): the Base is assigned only where it is declared and in adoptFrozenBase — Freeze Base is the one way it changes',
       [...baseWriters].every(f => ['(top)', 'adoptFrozenBase'].includes(f)) && baseWriters.has('adoptFrozenBase'), JSON.stringify([...baseWriters]));
 
+  /* ---- CATALOGUE-COMPLETE ---- */
+  const cat = await pg.evaluate(() => ({ forces: window.__SP_DEBUG.forces, orphans: window.__SP_DEBUG.catalogueOrphans() }));
+  const noKind = cat.forces.filter(f => !f.kind).map(f => f.k);
+  /* a law a reader can act on needs a unit; switches, toggles and hypothesis
+     sub-fields legitimately have none */
+  const wantUnit = cat.forces.filter(f => f.kind === 'law' || f.kind === 'inp' || f.kind === 'cons');
+  const noUnit = wantUnit.filter(f => !f.unit).map(f => f.k);
+  rec('CATALOGUE-COMPLETE: every force carries its own kind and unit, and no lookup table names a key that no force claims — a law used to be described by eight tables keyed off the same assumption key, none derived from FORCES, so a typo in any of them was silent',
+      noKind.length === 0 && noUnit.length === 0 && cat.orphans.length === 0,
+      JSON.stringify({ forces: cat.forces.length, noKind, noUnit, orphans: cat.orphans }));
+
   });
