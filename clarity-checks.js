@@ -157,6 +157,45 @@ var tpl = fs.readFileSync('v1.template.html', 'utf8');
 })();
 
 console.log('\nSaaS Physics v1 — Clarity & Semantic Precision checks\n' + '='.repeat(90));
+
+/* ------------------------------------------------------------------ *
+ * VIEWED-WORLD — one idiom, not twenty near-copies.
+ *
+ * Twenty functions open by binding the VIEWED world (Base or Experiment,
+ * whichever the reader chose) to expRes / expS / expA / baseRes / baseS /
+ * baseA, shadowing the globals of the same names, which everywhere else mean
+ * the Experiment. That is workable only while all twenty are identical: the
+ * moment one differs, two functions that look the same read different worlds.
+ * It has already happened once -- syncForces bound the same four names to the
+ * control TARGET's world, a third meaning, and nothing said so.
+ *
+ * This does not remove the shadowing. It holds the property the shadowing
+ * depends on: every viewed-world preamble is the same preamble.
+ * ------------------------------------------------------------------ */
+(function () {
+  /* the preamble can share a line with the function header, so compare the
+     statement itself, not the line it happens to sit on */
+  var sites = tpl.split('\n').map(function (l, i) { return { n: i + 1, t: l }; })
+    .filter(function (l) { return l.t.indexOf('var V_ = VW()') >= 0; })
+    .map(function (l) { var a = l.t.indexOf('var V_ = VW()'); var b = l.t.indexOf(';', a);
+                        return { n: l.n, t: l.t.slice(a, b < 0 ? l.t.length : b).replace(/\s+/g, ' ').trim() }; });
+  var forms = {};
+  sites.forEach(function (l) { (forms[l.t] = forms[l.t] || []).push(l.n); });
+  var distinct = Object.keys(forms);
+  ok('VIEWED-WORLD', 'every viewed-world preamble is byte-identical — twenty functions rebind expRes/expA/baseRes/baseA to the VIEWED world, and they are only safe while they all agree (syncForces once bound the same four names to a third thing)',
+     sites.length >= 20 && distinct.length === 1,
+     sites.length + ' sites, ' + distinct.length + ' distinct form' + (distinct.length === 1 ? '' : 's: ' + distinct.map(function (d) { return forms[d].join(','); }).join(' | ')));
+
+  /* and the names must not be rebound to anything else anywhere */
+  var rogue = tpl.split('\n').map(function (l, i) { return { n: i + 1, t: l }; })
+    .filter(function (l) { return /\bvar\b[^;]*\b(expRes|expA|baseRes|baseA)\s*=/.test(l.t); })
+    .filter(function (l) { return l.t.indexOf('var V_ = VW()') < 0; })          /* the viewed-world preamble */
+    .filter(function (l) { return l.t.indexOf('var baseA = null') < 0 && !/^\s*var (baseRes|expA|baseA)[,;= ]/.test(l.t); })  /* the declarations themselves */
+    .map(function (l) { return l.n; });
+  ok('VIEWED-WORLD', 'no function rebinds expRes/expA/baseRes/baseA to anything but the viewed world — a third meaning for the same four names is how a reader ends up reading the wrong world without a single call site saying so',
+     rogue.length === 0, rogue.length ? 'rebound at line(s) ' + rogue.join(', ') : 'only the viewed-world preamble rebinds them');
+})();
+
 var pass = 0;
 out.forEach(function (r, i) {
   console.log('  ' + (r.pass ? 'PASS' : 'FAIL') + '  [' + r.id + ']  ' + (i + 1) + '. ' + r.name);

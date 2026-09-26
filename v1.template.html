@@ -2014,13 +2014,18 @@ details.pl .cascade{margin-top:8px}
   /* syncs one target's rows. The drawer reads its values against the frozen Base ("base …");
      Base Settings reads the draft against the frozen Base ("frozen …"), or against nothing yet. */
   function syncForces(T){
-    var P = T.pre, expA = T.a(), expRes = T.res(), R0 = T.ref(), baseA = R0 ? R0.a : expA, baseRes = R0 ? R0.res : expRes, BL = T.refLabel;
-    if(!expRes) return;
+    /* The control TARGET's world and its REFERENCE, not the Experiment and not the
+       viewed world. This used to bind them to expA/expRes/baseA/baseRes — the same
+       four names the twenty viewed-world functions bind to the VIEW, and the same
+       four names the rest of the file uses for the Experiment. Three meanings, one
+       set of names, nothing at a call site to tell them apart. */
+    var P = T.pre, tgtA = T.a(), tgtRes = T.res(), R0 = T.ref(), refA = R0 ? R0.a : tgtA, refRes = R0 ? R0.res : tgtRes, BL = T.refLabel;
+    if(!tgtRes) return;
     syncLayerHeads(T); if(T===EXP_T) syncSysViews();
-    var monOn = expRes.mechanisms.monetization, monOnB = baseRes.mechanisms.monetization;
+    var monOn = tgtRes.mechanisms.monetization, monOnB = refRes.mechanisms.monetization;
     FORCES.forEach(function(F){
       var el=document.getElementById(P+'f-'+F.k); if(!el && !F.toggleOnly) return;
-      var xv = getK(expA, F.k), bv = getK(baseA, F.k);
+      var xv = getK(tgtA, F.k), bv = getK(refA, F.k);
       if(el) el.value = sliderValueFor(F, xv);
       var v=document.getElementById(P+'v-'+F.k); v.textContent = fmtF(F.f, xv);
       v.className = 'force-val' + (xv===bv ? ' same' : '');
@@ -2031,20 +2036,20 @@ details.pl .cascade{margin-top:8px}
          v2 Gate B — under Monetization it is EMERGENT (mix-dependent), and the
          expansion coefficient and ARR per new logo are bypassed. */
       if(F.k==='persistenceAnnual'){
-        var cuOn = expRes.mechanisms.customerPhysics, cuOnB = baseRes.mechanisms.customerPhysics;
+        var cuOn = tgtRes.mechanisms.customerPhysics, cuOnB = refRes.mechanisms.customerPhysics;
         el.disabled = cuOn; el.style.opacity = cuOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'emergent — set by the revenue mix'; v.className='force-val'; }
-        else if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
+        else if(cuOn){ v.textContent = 'derived '+pct(tgtRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
         if(monOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' emergent';
-        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(refRes.derived.persistenceAnnualEffective,1);
       }
       if(F.k==='expansionCoefficientAnnual'){
         el.disabled = monOn; el.style.opacity = monOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'bypassed — price + usage + adoption'; v.className='force-val'; }
       }
-      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(expRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
+      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(tgtRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
       if(F.needs){
-        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? expRes.mechanisms.cashPhysics : F.needs==='hyp' ? expRes.mechanisms.interventions : true;
+        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? tgtRes.mechanisms.cashPhysics : F.needs==='hyp' ? tgtRes.mechanisms.interventions : true;
         var rowEl = (el || document.getElementById(P+'t-'+F.k)); rowEl = rowEl && rowEl.closest ? rowEl.closest('.force') : null;
         if(rowEl) rowEl.style.display = layerOn ? '' : 'none';         /* restrained: a layer that is off shows only its switch */
       }
@@ -2053,7 +2058,7 @@ details.pl .cascade{margin-top:8px}
         if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = monOnB ? BL+' '+fmtF(F.f, bv) : 'monetization off'; }
       }
       if(F.needs==='hyp'){
-        var hypOn = expRes.mechanisms.interventions;
+        var hypOn = tgtRes.mechanisms.interventions;
         if(el){ el.disabled = !hypOn; el.style.opacity = hypOn ? 1 : 0.35; }
         if(F.cycleFn){ var hb=document.getElementById(P+'t-'+F.k); hb.textContent = hypOn ? hypTargetLabel(xv) : '—'; hb.disabled = !hypOn; hb.style.opacity = hypOn ? 1 : 0.35; }
         if(!hypOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = 'no hypothesis';
@@ -2061,10 +2066,10 @@ details.pl .cascade{margin-top:8px}
         else if(F.nullable){ var ht2=document.getElementById(P+'t-'+F.k); ht2.disabled = false; ht2.style.opacity = 1; }
       }
       if(F.needs==='cash'){
-        var cashOn = expRes.mechanisms.cashPhysics;
+        var cashOn = tgtRes.mechanisms.cashPhysics;
         if(el){ el.disabled = !cashOn; el.style.opacity = cashOn ? 1 : 0.35; }
         if(F.cycle){ var cb=document.getElementById(P+'t-'+F.k); cb.textContent = xv; cb.disabled = !cashOn; cb.style.opacity = cashOn ? 1 : 0.35; }
-        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
+        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = refRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
       }
       if(F.nullable){
         var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv)) || (Array.isArray(xv) && !xv.length);
