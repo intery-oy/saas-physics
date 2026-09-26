@@ -27,6 +27,7 @@
      aggregates are literally the sums of the cohort movements above them. */
   function stateAt(res, t) {
     var m = res.months[t - 1];
+    var rec = E.reconcile(res, t);   /* the identity's owner is the engine */
     var cohorts = [], sumLeak = 0, sumExp = 0, sumOpen = 0, sumClose = 0;
     for (var k = 0; k < res.cohorts.length; k++) {
       var c = res.cohorts[k], r = rowAt(c, t);
@@ -50,7 +51,7 @@
       t:t, year:m.year, cohorts:cohorts,
       openingARR:m.openingARR, leakage:m.leakage, expansion:m.expansion,
       newARR:m.newARR, closingARR:m.closingARR,
-      arrResidual: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      arrResidual: rec.arr,
       cohortSumResidual: { opening: sumOpen - m.openingARR, closing: sumClose - m.closingARR,
                            leakage: sumLeak - m.leakage, expansion: sumExp - m.expansion },
       midpointARR:(m.openingARR + m.closingARR) / 2,
@@ -60,9 +61,10 @@
       acquisitionLawNewARR: m.acquisitionLawNewARR === undefined ? m.newARR : m.acquisitionLawNewARR,
       pendingNewARR: m.pendingNewARR || 0, pendingSpend: m.pendingSpend || 0, pendingCount: m.pendingCount || 0,
       ebita:m.ebita, fcf:m.fcf, cashOpening:m.cashOpening, cashClosing:m.cashClosing,
-      gpResidual: m.revenue - m.cogs - m.grossProfit,
-      fcfResidual: m.grossProfit - m.sm - otherOpex - expansionCost - m.fcf,
-      cashResidual: m.cashOpening + m.fcf - m.cashClosing,
+      gpResidual: rec.gp,
+      ebitaResidual: rec.ebita,
+      fcfResidual: rec.fcf,
+      cashResidual: rec.cash,
       newCohortRevenueThisMonth: newC ? newC.revenue : 0,
       newCohortGPThisMonth: newC ? newC.grossProfit : 0,
       sameMonthReturnOnSM: (newC && m.sm > 0) ? newC.grossProfit / m.sm : 0
@@ -78,9 +80,14 @@
                 'cashOpening','cashClosing'];
     var d = { t:t, base:b, experiment:x };
     keys.forEach(function(kk){ d[kk] = x[kk] - b[kk]; });
-    d.arrResidual = d.openingARR + d.newARR + d.expansion - d.leakage - d.closingARR;
-    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.expansionCost - d.fcf;
-    d.cashResidual = d.cashOpening + d.fcf - d.cashClosing;
+    /* The residual of a difference is the difference of the residuals — the
+       identity is linear in the month fields — so the delta reads the same
+       owner rather than re-deriving a second formula that can drift. */
+    d.arrResidual   = x.arrResidual   - b.arrResidual;
+    d.gpResidual    = x.gpResidual    - b.gpResidual;
+    d.ebitaResidual = x.ebitaResidual - b.ebitaResidual;
+    d.fcfResidual   = x.fcfResidual   - b.fcfResidual;
+    d.cashResidual  = x.cashResidual  - b.cashResidual;
     /* per-cohort deltas, so the delta stays cohort-anchored too */
     d.cohorts = x.cohorts.map(function(xc){
       var bc = b.cohorts.filter(function(y){ return y.index===xc.index; })[0];

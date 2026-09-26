@@ -25,7 +25,7 @@
  *                 lenses stack beneath the figure ≤ 760
  *   no page or console errors across the whole run
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const E = require('./engine.js');
 
@@ -61,7 +61,7 @@ const OVERFLOW_PROBE = `(function(rootSel, sibSels){
 const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.mech', '.comp-l', '.lens-head', '.fig-t', '.force-top', '.srow', '.pl', '.exp-row', '.lensnav', '.ident', '.vflow', '.mrow', '.marks', '.paths', '.engine', '.two'];
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await H.launch();
   const file = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const errs = [];
   async function open(w, h, keepWelcome){

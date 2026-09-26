@@ -906,7 +906,7 @@ details.pl .cascade{margin-top:8px}
              one), and the few principles that make the instrument trustworthy. The mechanics live where
              they act: the Experiment drawer, Model Mechanics, the Model Ledger, the presets. -->
         <details class="mabout" id="about">
-          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">3a83285</span></summary>
+          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">aacaf10</span></summary>
           <p><b>Deterministic.</b> A cohort simulation over sixty months — no randomness, no fitted parameters. Company ARR is only ever the sum of its cohorts.</p>
           <p><b>Laws → state → outputs.</b> You set the laws; everything else is a consequence. Retention, NRR and payback are measured from the run, never entered — so a 90% persistence law can measure as 89.6% GRR, and that gap is real, not an error.</p>
           <p><b>Traceable.</b> The engine decides every figure; the words only narrate it. The Model Ledger shows each month as the engine published it, with checks that reconcile.</p>
@@ -2687,6 +2687,33 @@ details.pl .cascade{margin-top:8px}
     return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
   }
 
+  /* Reconciliation — the P&L and cash identities of one month, computed from the
+     fields the month record publishes and compared with the results it publishes.
+     Not a tautology: it asserts the row is internally consistent.
+
+     This lived outside the engine, in systemstate.js, built from a subset of the
+     terms. It predated the Gate C cash path and never read the Gate D cost line,
+     so it read 0 in the null world and silently non-zero under either — wrong on
+     screen, asserted by nothing. The identity now sits with the terms that make
+     it, and RECONCILIATION in integrity.js holds it under every gate. */
+  function reconcile(res, t) {
+    var m = res.months[t - 1];
+    var expansionCost = m.expansionCost || 0;
+    var interventionCost = m.interventionCost || 0;
+    /* EBITA is untouched by Cash Physics, by construction (Gate C). */
+    var ebitaExpected = m.grossProfit - m.sm - m.rd - m.ga - expansionCost - interventionCost;
+    /* FCF is EBITA until Cash Physics, then collections less cash costs. */
+    var fcfExpected = m.cash ? m.cash.collections - m.cash.cashCosts : m.ebita;
+    return {
+      t: t,
+      arr: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      gp: m.revenue - m.cogs - m.grossProfit,
+      ebita: ebitaExpected - m.ebita,
+      fcf: fcfExpected - m.fcf,
+      cash: m.cashOpening + m.fcf - m.cashClosing
+    };
+  }
+
   function bridge(res, t) {
     var m = res.months[t - 1];
     return {
@@ -2976,6 +3003,7 @@ details.pl .cascade{margin-top:8px}
     rowIndexAt: rowIndexAt,
     rowAt: rowAt,
     bridge: bridge,
+    reconcile: reconcile,
     cohortSnapshot: cohortSnapshot,
     arrMix: arrMix,
     yearSlice: yearSlice,
@@ -3724,6 +3752,7 @@ details.pl .cascade{margin-top:8px}
      aggregates are literally the sums of the cohort movements above them. */
   function stateAt(res, t) {
     var m = res.months[t - 1];
+    var rec = E.reconcile(res, t);   /* the identity's owner is the engine */
     var cohorts = [], sumLeak = 0, sumExp = 0, sumOpen = 0, sumClose = 0;
     for (var k = 0; k < res.cohorts.length; k++) {
       var c = res.cohorts[k], r = rowAt(c, t);
@@ -3747,7 +3776,7 @@ details.pl .cascade{margin-top:8px}
       t:t, year:m.year, cohorts:cohorts,
       openingARR:m.openingARR, leakage:m.leakage, expansion:m.expansion,
       newARR:m.newARR, closingARR:m.closingARR,
-      arrResidual: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      arrResidual: rec.arr,
       cohortSumResidual: { opening: sumOpen - m.openingARR, closing: sumClose - m.closingARR,
                            leakage: sumLeak - m.leakage, expansion: sumExp - m.expansion },
       midpointARR:(m.openingARR + m.closingARR) / 2,
@@ -3757,9 +3786,10 @@ details.pl .cascade{margin-top:8px}
       acquisitionLawNewARR: m.acquisitionLawNewARR === undefined ? m.newARR : m.acquisitionLawNewARR,
       pendingNewARR: m.pendingNewARR || 0, pendingSpend: m.pendingSpend || 0, pendingCount: m.pendingCount || 0,
       ebita:m.ebita, fcf:m.fcf, cashOpening:m.cashOpening, cashClosing:m.cashClosing,
-      gpResidual: m.revenue - m.cogs - m.grossProfit,
-      fcfResidual: m.grossProfit - m.sm - otherOpex - expansionCost - m.fcf,
-      cashResidual: m.cashOpening + m.fcf - m.cashClosing,
+      gpResidual: rec.gp,
+      ebitaResidual: rec.ebita,
+      fcfResidual: rec.fcf,
+      cashResidual: rec.cash,
       newCohortRevenueThisMonth: newC ? newC.revenue : 0,
       newCohortGPThisMonth: newC ? newC.grossProfit : 0,
       sameMonthReturnOnSM: (newC && m.sm > 0) ? newC.grossProfit / m.sm : 0
@@ -3775,9 +3805,14 @@ details.pl .cascade{margin-top:8px}
                 'cashOpening','cashClosing'];
     var d = { t:t, base:b, experiment:x };
     keys.forEach(function(kk){ d[kk] = x[kk] - b[kk]; });
-    d.arrResidual = d.openingARR + d.newARR + d.expansion - d.leakage - d.closingARR;
-    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.expansionCost - d.fcf;
-    d.cashResidual = d.cashOpening + d.fcf - d.cashClosing;
+    /* The residual of a difference is the difference of the residuals — the
+       identity is linear in the month fields — so the delta reads the same
+       owner rather than re-deriving a second formula that can drift. */
+    d.arrResidual   = x.arrResidual   - b.arrResidual;
+    d.gpResidual    = x.gpResidual    - b.gpResidual;
+    d.ebitaResidual = x.ebitaResidual - b.ebitaResidual;
+    d.fcfResidual   = x.fcfResidual   - b.fcfResidual;
+    d.cashResidual  = x.cashResidual  - b.cashResidual;
     /* per-cohort deltas, so the delta stays cohort-anchored too */
     d.cohorts = x.cohorts.map(function(xc){
       var bc = b.cohorts.filter(function(y){ return y.index===xc.index; })[0];

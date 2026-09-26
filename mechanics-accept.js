@@ -12,14 +12,14 @@
  *   READ-ONLY    no input anywhere on the layer; a law valve opens the Experiment at that law
  *   NOTES        mechanism notes only — no stock or flow tables, no "Why this surface exists"
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app';
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1440, height: 900 } }); pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto(URL); await pg.waitForTimeout(500);

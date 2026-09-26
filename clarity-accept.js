@@ -8,7 +8,7 @@
  *
  * The 15/15 result reported for this pass was produced by exactly this file.
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const E = require('./engine.js');
 const K = require('./kpi.js');
 
@@ -16,7 +16,7 @@ const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await H.launch();
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + ''); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));

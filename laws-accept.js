@@ -12,14 +12,14 @@
  *                assign the Experiment's laws
  *   READOUTS     lever values follow the viewed world
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path'), fs = require('fs');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const open = async (pk, w, h) => { const p = await br.newPage({ viewport: { width: w || 1440, height: h || 900 } }); p.on('pageerror', e => errs.push(String(e)));
     await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);

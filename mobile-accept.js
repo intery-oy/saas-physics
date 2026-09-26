@@ -15,7 +15,7 @@
  *
  * Run: node mobile-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -23,7 +23,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const PHONES = [[360, 740, 'small android'], [390, 844, 'iPhone 14'], [430, 932, 'iPhone Pro Max']];
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const phone = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));

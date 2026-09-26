@@ -4,13 +4,13 @@
  * real Chromium render, so like clarity-accept.js this is NOT dependency-free:
  * requires `playwright` and a Chromium binary. Run: node attribution-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await H.launch();
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + ''); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));

@@ -18,14 +18,14 @@
  *
  * Run: node defects-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const open = async (w, h) => {
     const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });

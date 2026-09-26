@@ -11,7 +11,7 @@
  *   HOVER        hovering the formation resolves to the viewed world's cohorts
  *   INSPECT      the capital track of a pinned cohort carries no Base ghost or Base payback text
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -19,7 +19,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const LENSES = ['company', 'customers', 'growth', 'monetization', 'cash'];
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const open = async pk => { const p = await br.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
     await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);

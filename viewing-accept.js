@@ -13,7 +13,7 @@
  *   LIFECYCLE    viewing never changes either world; editing any law returns the view to the
  *                Experiment; with no Experiment there is no control; Compare has none
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -26,7 +26,7 @@ require('fs').writeFileSync(PREV_FILE, require('child_process').execSync('git sh
 const PREV = 'file://' + PREV_FILE;
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   /* Wait for the page, not the clock. Every app handler here runs synchronously; the only deferred work
      is setLayer's 220 ms resize-and-render when the page changes, and the canvas's next animation frame. */

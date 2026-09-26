@@ -1121,6 +1121,33 @@
     return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
   }
 
+  /* Reconciliation — the P&L and cash identities of one month, computed from the
+     fields the month record publishes and compared with the results it publishes.
+     Not a tautology: it asserts the row is internally consistent.
+
+     This lived outside the engine, in systemstate.js, built from a subset of the
+     terms. It predated the Gate C cash path and never read the Gate D cost line,
+     so it read 0 in the null world and silently non-zero under either — wrong on
+     screen, asserted by nothing. The identity now sits with the terms that make
+     it, and RECONCILIATION in integrity.js holds it under every gate. */
+  function reconcile(res, t) {
+    var m = res.months[t - 1];
+    var expansionCost = m.expansionCost || 0;
+    var interventionCost = m.interventionCost || 0;
+    /* EBITA is untouched by Cash Physics, by construction (Gate C). */
+    var ebitaExpected = m.grossProfit - m.sm - m.rd - m.ga - expansionCost - interventionCost;
+    /* FCF is EBITA until Cash Physics, then collections less cash costs. */
+    var fcfExpected = m.cash ? m.cash.collections - m.cash.cashCosts : m.ebita;
+    return {
+      t: t,
+      arr: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      gp: m.revenue - m.cogs - m.grossProfit,
+      ebita: ebitaExpected - m.ebita,
+      fcf: fcfExpected - m.fcf,
+      cash: m.cashOpening + m.fcf - m.cashClosing
+    };
+  }
+
   function bridge(res, t) {
     var m = res.months[t - 1];
     return {
@@ -1410,6 +1437,7 @@
     rowIndexAt: rowIndexAt,
     rowAt: rowAt,
     bridge: bridge,
+    reconcile: reconcile,
     cohortSnapshot: cohortSnapshot,
     arrMix: arrMix,
     yearSlice: yearSlice,

@@ -19,7 +19,7 @@
  *
  * Run: node visual-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const fs = require('fs');
 const P = [];
@@ -66,7 +66,7 @@ async function look(pg, buf) {
 
 (async () => {
   fs.mkdirSync(SHOTS, { recursive: true });
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1440, height: 900 } });
   pg.on('pageerror', e => errs.push(e.message));

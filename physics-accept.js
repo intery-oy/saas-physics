@@ -20,14 +20,14 @@
  *   NULL-ON-SCREEN   Reset returns every mechanism to null
  *   no page errors across the whole run
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const E = require('./engine.js');
 
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await H.launch();
   const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });

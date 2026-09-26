@@ -680,6 +680,57 @@
     ok('ROW-ACCESSOR: engine.rowAt(c, t) returns the row for month t, for every cohort and every month',
        !raBad && raChecked > 0, raBad || (raChecked + ' lookups over ' + BASE.cohorts.length + ' cohorts, ' + raNull + ' correctly outside a cohort life'));
 
+
+    /* RECONCILIATION. The P&L and cash identities of every month, under every
+       gate. This is the check that did not exist: the identity used to live in
+       systemstate.js, outside the engine, built from a subset of the terms —
+       it omitted the Gate D intervention cost and predated the Gate C cash
+       path. It read 0 in the null world (so nobody noticed) and silently
+       non-zero under Cash Physics or a hypothesis. Nothing asserted it, and
+       the one check that touched it compared two stale copies of the same
+       formula on a world where the missing terms happen to be zero.
+
+       Every gate is exercised, because that is exactly where it broke. */
+    var RC_CU = { logoRetentionAnnual: 0.92, contractionAnnual: 0.05, newLogoARPA: 20000 };
+    var RC_WORLDS = {
+      'null': {},
+      'A customers': RC_CU,
+      'B monetization': Object.assign({}, RC_CU, {
+        monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000, priceGrowthAnnual: 0.05 }] } }),
+      'C cash': { billingTermMonths: 12, billingTiming: 'advance', collectionDelayMonths: 1 },
+      'D interventions': { interventions: [{ target: 'sm', effect: 'add', value: 2e5,
+        startMonth: 6, durationMonths: 24, cost: { oneOff: 1e5, monthly: 5e4 } }] },
+      'v1.1-1.3 on': { expansionCostPerARR: 0.25, maxMonthlyNewARR: 2e6, acquisitionLagMonths: 6 },
+      'all on': Object.assign({}, RC_CU, {
+        monetization: { components: [{ kind: 'fixed', units: 1, priceAnnual: 20000, priceGrowthAnnual: 0.05 }] },
+        billingTermMonths: 12, billingTiming: 'advance', collectionDelayMonths: 1,
+        expansionCostPerARR: 0.25, acquisitionLagMonths: 3,
+        interventions: [{ target: 'sm', effect: 'add', value: 2e5, startMonth: 6, durationMonths: 24,
+                          cost: { oneOff: 1e5, monthly: 5e4 } }] })
+    };
+    var rcWorst = 0, rcWhere = '', rcTerms = 0, rcLive = { ebita: 0, fcf: 0 };
+    Object.keys(RC_WORLDS).forEach(function (wname) {
+      var rr = E.run(Object.assign({}, A, RC_WORLDS[wname]));
+      for (var rt = 1; rt <= rr.horizon; rt++) {
+        var rc = E.reconcile(rr, rt);
+        ['arr', 'gp', 'ebita', 'fcf', 'cash'].forEach(function (k) {
+          rcTerms++;
+          var v = Math.abs(rc[k]);
+          if (v > rcWorst) { rcWorst = v; rcWhere = wname + ' ' + k + ' M' + rt; }
+        });
+        /* the two terms that used to be missing must actually be exercised,
+           or this check would pass for the same reason the old one did */
+        var mm = rr.months[rt - 1];
+        if (mm.interventionCost) rcLive.ebita++;
+        if (mm.cash && Math.abs(mm.fcf - mm.ebita) > EPS) rcLive.fcf++;
+      }
+    });
+    ok('RECONCILIATION: ARR bridge, gross profit, EBITA, FCF and cash all reconcile every month, under every gate (null, A, B, C, D, v1.1-1.3, all-on)',
+       rcWorst < EPS && rcLive.ebita > 0 && rcLive.fcf > 0,
+       rcTerms + ' terms over ' + Object.keys(RC_WORLDS).length + ' worlds, max |residual| €' + rcWorst.toExponential(3) +
+       (rcWhere ? ' at ' + rcWhere : '') + '; months actually carrying an intervention cost: ' + rcLive.ebita +
+       ', months where FCF genuinely departs from EBITA: ' + rcLive.fcf);
+
     return out;
   }
 

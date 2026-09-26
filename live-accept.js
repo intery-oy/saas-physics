@@ -20,7 +20,7 @@
  *
  * Run: node live-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -41,7 +41,7 @@ async function run(pg, want) { const is = await running(pg);
   if (is !== want) { await pg.evaluate(() => document.getElementById('play').click()); await pg.waitForTimeout(250); } }
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1440, height: 900 } });
   pg.on('pageerror', e => errs.push(e.message));

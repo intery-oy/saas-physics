@@ -23,7 +23,7 @@
  *
  * Run: node v2-cohort-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -36,7 +36,7 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
 const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === name)[0]; return p ? p[1] : null; };
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1440, height: 1000 } });
   pg.on('pageerror', e => errs.push(String(e)));

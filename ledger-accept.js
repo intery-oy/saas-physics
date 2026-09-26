@@ -22,7 +22,7 @@
  *
  * Run: node ledger-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -48,7 +48,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
   const v = parseFloat(String(s).replace(/[€,×%\s]/g, '').replace('−', '-')); return isFinite(v) ? v : null; };
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const pg = await br.newPage({ viewport: { width: 1600, height: 950 } });
   pg.on('pageerror', e => errs.push(e.message));

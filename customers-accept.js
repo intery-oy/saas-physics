@@ -21,7 +21,7 @@
  *
  * Run: node customers-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
 const P = [];
 function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
@@ -30,7 +30,7 @@ const SYS = { W: 1260, H: 770 };
 const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
 
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const br = await H.launch();
   const errs = [];
   const open = async (w, h, pack) => {
     const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
