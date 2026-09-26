@@ -90,7 +90,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   });
   /* the frozen engine's own numbers for the pinned cohort, read straight off the run */
   const eng = () => D(() => { const k = window.__SP_DEBUG.pinned, W = window.__SP_DEBUG, c = W.expRes.cohorts[k], m = W.selectedMonth();
-    const idx = t => (c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth);
+    const idx = t => window.SaaSPhysics.rowIndexAt(c, t);   /* the engine's own rule, not a copy */
     const rows = {}; [12, 24, 36, 48, 60].concat([c.acquisitionMonth || 1]).forEach(t => { const r = c.rows[idx(t)]; if (r) rows[t] = { arr: r.closingARR, cum: r.cumGrossProfit, age: r.age }; });
     let pb = null, pbAge = null;
     if (c.acquisitionCost !== null) for (let i = 0; i < c.rows.length; i++) { if (c.rows[i].cumGrossProfit >= c.acquisitionCost) { pb = c.rows[i].t; pbAge = c.rows[i].age; break; } }

@@ -797,7 +797,7 @@
           /* v2 Gate C — invoice this cohort: anchored at birth (acquisition
              cohorts) or staggered from M1 (opening base); the run-rate is the
              opening MRR of the month; the revenue is what this row recognised */
-          var bl = CA.bill(c.billingUnits, BT, BTIM, c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth, openingC, revenue);
+          var bl = CA.bill(c.billingUnits, BT, BTIM, rowIndexAt(c, t), openingC, revenue);
           c.rows[c.rows.length - 1].cash = { billings: bl.billings, deferredClosing: bl.deferred };
           totBillings += bl.billings; totDeferred += bl.deferred;
         }
@@ -1107,6 +1107,20 @@
   /* ------------------------------------------------------------------ *
    * Read helpers used by both the UI and the reports
    * ------------------------------------------------------------------ */
+  /* Row lookup — THE definition. The base cohort's rows start at t=1; an
+     acquisition cohort's rows start at t = its acquisition month. Every reader
+     (kpi, capital, systemstate, pulse, the UI, the suites) resolves a cohort row
+     through these, so the indexing rule has one owner and can change in one place.
+     Held by ROW-ACCESSOR in integrity.js. */
+  function rowIndexAt(c, t) {
+    return c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+  }
+
+  function rowAt(c, t) {
+    var idx = rowIndexAt(c, t);
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
   function bridge(res, t) {
     var m = res.months[t - 1];
     return {
@@ -1125,9 +1139,7 @@
     for (var i = 0; i < res.cohorts.length; i++) {
       var c = res.cohorts[i];
       if (c.acquisitionMonth > t) continue;
-      /* base cohort rows start at t=1; acquisition cohorts start at t=acquisitionMonth */
-      var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-      var row = c.rows[idx];
+      var row = rowAt(c, t);
       if (!row) continue;
       out.push({
         id: c.id,
@@ -1395,6 +1407,8 @@
     realiseCohort: realiseCohort,
     cacPerMRR: cacPerMRR,
     run: run,
+    rowIndexAt: rowIndexAt,
+    rowAt: rowAt,
     bridge: bridge,
     cohortSnapshot: cohortSnapshot,
     arrMix: arrMix,

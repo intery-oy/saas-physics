@@ -14,19 +14,15 @@
  * where the difference is made computable rather than assumed away.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsKPI = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsKPI = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
   var WINDOW = 12;
 
-  /* Row lookup: the base cohort's rows start at t=1; an acquisition cohort's rows
-     start at t = its acquisition month. */
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * CANONICAL R12M MEASUREMENT

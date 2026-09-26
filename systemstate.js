@@ -15,15 +15,13 @@
  * SYSTEM-STATE check asserts that agreement value by value.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsSystemState = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsSystemState = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* One month, absolute. Cohort-anchored first, aggregates second — the
      aggregates are literally the sums of the cohort movements above them. */

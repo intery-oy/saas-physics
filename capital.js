@@ -24,15 +24,13 @@
  * from the cohort's creation month, not from the spend month.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsCapital = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsCapital = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * One cohort, from capital deployment through recovery.

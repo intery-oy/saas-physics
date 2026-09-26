@@ -659,6 +659,27 @@
     ok('ACQ-LAG · a cohort created after the lag ages exactly as its same-month twin would (rows identical at every age); company ARR = Σ cohorts still',
        l6 < EPS && l7 < EPS, 'max row delta €' + l6.toExponential(1) + '; max cohort-sum residual €' + l7.toExponential(1));
 
+
+    /* ROW-ACCESSOR. The cohort row-indexing rule (base cohort rows start at t=1,
+       an acquisition cohort's at t = its acquisition month) used to be copied into
+       kpi, capital, systemstate, pulse, the UI and a suite. It now has one owner,
+       engine.rowAt, and this is what holds it: for every cohort and every month,
+       the accessor returns the row FOR THAT MONTH, or null when the month lies
+       outside the cohort's life. A change to the indexing that breaks a reader
+       fails here first. */
+    var raBad = null, raChecked = 0, raNull = 0;
+    for (var ci = 0; ci < BASE.cohorts.length && !raBad; ci++) {
+      var rc = BASE.cohorts[ci];
+      for (var rt = 1; rt <= BASE.horizon; rt++) {
+        var rr = E.rowAt(rc, rt);
+        raChecked++;
+        if (rr === null) { raNull++; continue; }
+        if (rr.t !== rt) { raBad = 'cohort ' + rc.id + ' M' + rt + ' returned row.t=' + rr.t; break; }
+      }
+    }
+    ok('ROW-ACCESSOR: engine.rowAt(c, t) returns the row for month t, for every cohort and every month',
+       !raBad && raChecked > 0, raBad || (raChecked + ' lookups over ' + BASE.cohorts.length + ' cohorts, ' + raNull + ' correctly outside a cohort life'));
+
     return out;
   }
 

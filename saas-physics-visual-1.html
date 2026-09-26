@@ -1613,7 +1613,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           /* v2 Gate C — invoice this cohort: anchored at birth (acquisition
              cohorts) or staggered from M1 (opening base); the run-rate is the
              opening MRR of the month; the revenue is what this row recognised */
-          var bl = CA.bill(c.billingUnits, BT, BTIM, c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth, openingC, revenue);
+          var bl = CA.bill(c.billingUnits, BT, BTIM, rowIndexAt(c, t), openingC, revenue);
           c.rows[c.rows.length - 1].cash = { billings: bl.billings, deferredClosing: bl.deferred };
           totBillings += bl.billings; totDeferred += bl.deferred;
         }
@@ -1923,6 +1923,20 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   /* ------------------------------------------------------------------ *
    * Read helpers used by both the UI and the reports
    * ------------------------------------------------------------------ */
+  /* Row lookup — THE definition. The base cohort's rows start at t=1; an
+     acquisition cohort's rows start at t = its acquisition month. Every reader
+     (kpi, capital, systemstate, pulse, the UI, the suites) resolves a cohort row
+     through these, so the indexing rule has one owner and can change in one place.
+     Held by ROW-ACCESSOR in integrity.js. */
+  function rowIndexAt(c, t) {
+    return c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+  }
+
+  function rowAt(c, t) {
+    var idx = rowIndexAt(c, t);
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
   function bridge(res, t) {
     var m = res.months[t - 1];
     return {
@@ -1941,9 +1955,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     for (var i = 0; i < res.cohorts.length; i++) {
       var c = res.cohorts[i];
       if (c.acquisitionMonth > t) continue;
-      /* base cohort rows start at t=1; acquisition cohorts start at t=acquisitionMonth */
-      var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-      var row = c.rows[idx];
+      var row = rowAt(c, t);
       if (!row) continue;
       out.push({
         id: c.id,
@@ -2211,6 +2223,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     realiseCohort: realiseCohort,
     cacPerMRR: cacPerMRR,
     run: run,
+    rowIndexAt: rowIndexAt,
+    rowAt: rowAt,
     bridge: bridge,
     cohortSnapshot: cohortSnapshot,
     arrMix: arrMix,
@@ -2239,19 +2253,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
  * where the difference is made computable rather than assumed away.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsKPI = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsKPI = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
   var WINDOW = 12;
 
-  /* Row lookup: the base cohort's rows start at t=1; an acquisition cohort's rows
-     start at t = its acquisition month. */
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * CANONICAL R12M MEASUREMENT
@@ -2781,15 +2791,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
  * from the cohort's creation month, not from the spend month.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsCapital = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsCapital = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * One cohort, from capital deployment through recovery.
@@ -2945,9 +2953,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
  * see intraMonthLaw() for the declared sequence and its conventions.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsPulse = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsPulse = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
   /* ------------------------------------------------------------------ *
@@ -2980,10 +2988,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       note:'Frozen simplification: no working capital, deferred revenue, tax or capex.' }
   ];
 
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * One month, absolute. Cohort-anchored first, aggregates second — the
