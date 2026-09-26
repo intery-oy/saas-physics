@@ -23,17 +23,14 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const SYS = { W: 1260, H: 770 };
 const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
+H.suite('customers-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
   const open = async (w, h, pack) => {
-    const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+    const pg = await t.browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     pg.on('pageerror', e => errs.push(w + 'x' + h + '/' + pack + ': ' + e.message));
     await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
     await pg.evaluate(() => document.getElementById('welcome-enter').click());
@@ -238,10 +235,4 @@ const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
     await pg.close();
   }
 
-  rec('no page errors in any world, month or viewport', errs.length === 0, errs.slice(0, 4).join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' customers-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

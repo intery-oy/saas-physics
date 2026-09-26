@@ -20,14 +20,11 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
+H.suite('v2-hierarchy-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = async (w, h) => { const pg = await t.browser.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
     await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); window.__SP_DEBUG.useBase('arr'); }); await pg.waitForTimeout(400); return pg; };   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */
   const click = async (pg, sel) => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(350); };
   const scrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
@@ -195,10 +192,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     rec('RESPONSIVE ' + w + ': the preset list, the preset on Compare and the machine render at this width without page-level horizontal scroll', pl && sx.eb === 'Preset 14 · A retention programme' && !sx.hscroll && sy.fh >= 240 && !sy.notes && !sy.hscroll, JSON.stringify({ sx, sy }));
     await q.close();
   }
-  rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' v2-hierarchy-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

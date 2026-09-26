@@ -24,8 +24,6 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 const openLedger = async (pg, pack) => {
@@ -47,10 +45,9 @@ const readTable = pg => pg.evaluate(() => {
 const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s)) return null;
   const v = parseFloat(String(s).replace(/[€,×%\s]/g, '').replace('−', '-')); return isFinite(v) ? v : null; };
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1600, height: 950 } });
+H.suite('ledger-accept', async (SP) => {
+  const rec = SP.rec, errs = SP.errs;
+  const pg = await SP.browser.newPage({ viewport: { width: 1600, height: 950 } });
   pg.on('pageerror', e => errs.push(e.message));
   await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700);
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(400);
@@ -324,7 +321,7 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
      the table built all 60 rows and the reader saw an empty panel. Built is not shown. */
   const vis = {};
   for (const [w, h, name] of [[1600, 950, 'desktop'], [1280, 800, 'laptop'], [1024, 1366, 'tablet portrait'], [1180, 820, 'tablet landscape']]) {
-    const q = await br.newPage({ viewport: { width: w, height: h } });
+    const q = await SP.browser.newPage({ viewport: { width: w, height: h } });
     q.on('pageerror', e => errs.push(name + ': ' + e.message));
     await q.goto(URL); await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.waitForTimeout(700);
     await q.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await q.waitForTimeout(450);
@@ -350,10 +347,4 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       Object.values(vis).every(v => v.rows === 60 && v.area > 200000 && v.onScreen && v.firstCellPainted && v.headerPainted && v.pinned !== null),
       JSON.stringify(vis));
 
-  rec('no page errors', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' ledger-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

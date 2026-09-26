@@ -14,14 +14,11 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path'), fs = require('fs');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const open = async (pk, w, h) => { const p = await br.newPage({ viewport: { width: w || 1440, height: h || 900 } }); p.on('pageerror', e => errs.push(String(e)));
+H.suite('laws-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = async (pk, w, h) => { const p = await t.browser.newPage({ viewport: { width: w || 1440, height: h || 900 } }); p.on('pageerror', e => errs.push(String(e)));
     await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
     await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.waitForTimeout(300);
     await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(200);
@@ -98,10 +95,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('FROZEN BASE (source): the Base is assigned only where it is declared and in adoptFrozenBase — Freeze Base is the one way it changes',
       [...baseWriters].every(f => ['(top)', 'adoptFrozenBase'].includes(f)) && baseWriters.has('adoptFrozenBase'), JSON.stringify([...baseWriters]));
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' laws-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

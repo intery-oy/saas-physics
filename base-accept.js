@@ -19,14 +19,11 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app';
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const open = async () => { const p = await br.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
+H.suite('base-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = async () => { const p = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
     await p.goto(URL); await p.waitForTimeout(600); return p; };
   const D = (p, f, a) => p.evaluate(f, a);
   const slide = (p, id, v) => D(p, ([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
@@ -131,10 +128,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
     nav: [...document.querySelectorAll('.head .nav > .btn')].map(b => b.id).join(',') }));
   rec('NO WORLDS: no World menu or world switch remains; the header reads Base Settings · Company · Experiment · Compare', !nw.btn && !nw.menu && !nw.text && nw.nav === 'nav-base,nav-company,rail-toggle,nav-compare', JSON.stringify(nw));
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' base-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

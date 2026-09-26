@@ -13,15 +13,12 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const LENSES = ['company', 'customers', 'growth', 'monetization', 'cash'];
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const open = async pk => { const p = await br.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
+H.suite('company-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = async pk => { const p = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
     await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
     await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.waitForTimeout(300);
     await p.evaluate(() => { for (const [k, f] of [['sm', 1.4], ['grossMargin', 0.9], ['cacPerARR', 0.8]]) { const i = document.getElementById('f-' + k); i.value = +i.value * f; i.dispatchEvent(new Event('input', { bubbles: true })); } });
@@ -77,10 +74,4 @@ const LENSES = ['company', 'customers', 'growth', 'monetization', 'cash'];
   rec('INSPECT: a pinned cohort\'s figure and dossier match the single-world page — no Base ghost line, no "Base: same" / "Base age" payback text',
       iX.k !== null && iX.k === iQ.k && iX.canvas === iQ.canvas && !/Base: same|Base age|Base: not reached/.test(iX.txt), JSON.stringify({ k: iX.k, canvas: iX.canvas === iQ.canvas }));
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' company-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

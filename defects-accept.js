@@ -20,15 +20,12 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
+H.suite('defects-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
   const open = async (w, h) => {
-    const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+    const pg = await t.browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     pg.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message));
     await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
     return pg;
@@ -190,7 +187,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
         top.overflows && top.cls && top.opacity === 1 && top.pe === 'none' && !bottom.cls && bottom.opacity === 0,
         JSON.stringify({ top, bottom }));
     /* tall viewport: nothing overflows, so nothing is claimed */
-    const tall = await br.newPage({ viewport: { width: 1440, height: 1400 } });
+    const tall = await t.browser.newPage({ viewport: { width: 1440, height: 1400 } });
     await tall.goto(URL); await tall.evaluate(() => window.__SP_DEBUG.useBase('wA')); await tall.waitForTimeout(600);
     const noOverflow = await tall.evaluate(() => { const w = document.getElementById('welcome'); return { overflows: w.scrollHeight - w.clientHeight > 6, cls: w.classList.contains('scrolls') }; });
     rec('CUE · honest: on a viewport tall enough to hold the whole pane the cue is not shown, so it means "there is more" rather than "this is a pane"',
@@ -199,10 +196,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     await pg.close();
   }
 
-  rec('no page errors across the whole run', errs.length === 0, errs.slice(0, 4).join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' defects-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

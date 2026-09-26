@@ -25,8 +25,6 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 /* the product's own formatters, replicated so the test asserts what the reader sees */
@@ -35,10 +33,9 @@ const mrr = v => eur(v / 12);                       /* the default basis is MRR;
 /* the value the reader sees beside a named right-edge label on chart `i` */
 const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === name)[0]; return p ? p[1] : null; };
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1440, height: 1000 } });
+H.suite('v2-cohort-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const pg = await t.browser.newPage({ viewport: { width: 1440, height: 1000 } });
   pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
@@ -278,7 +275,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
   /* ---------- LABELS: the cohort figure stays legible at desktop, tablet and phone ---------- */
   const widths = {};
   for (const w of [1440, 1024, 768, 390]) {
-    const p2 = await br.newPage({ viewport: { width: w, height: 900 } });
+    const p2 = await t.browser.newPage({ viewport: { width: w, height: 900 } });
     p2.on('pageerror', e => errs.push(w + ': ' + String(e)));
     await p2.goto(URL); await p2.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p2.waitForTimeout(700);
     await p2.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p2.waitForTimeout(200);
@@ -308,7 +305,7 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
    * figure in its place. That hold belongs to Company. Nothing released it on the way out, so a
    * cohort left pinned followed the reader to System and Compare as a display:none
    * they never set, blanking whatever those layers draw in the box. */
-  const p3 = await br.newPage({ viewport: { width: 1440, height: 900 } });
+  const p3 = await t.browser.newPage({ viewport: { width: 1440, height: 900 } });
   p3.on('pageerror', e => errs.push('scope: ' + e.message));
   await p3.goto(URL); await p3.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p3.waitForTimeout(700);
   await p3.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p3.waitForTimeout(500);
@@ -332,10 +329,4 @@ const val = (f, i, name) => { const p = (f.pairs[i] || []).filter(q => q[0] === 
       scope.back.canvas === 0 && scope.back.cohortFigure && scope.back.dossier && scope.back.pinned === scope.pinned.pinned,
       JSON.stringify(scope));
 
-  rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' v2-cohort-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

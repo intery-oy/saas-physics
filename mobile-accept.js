@@ -17,15 +17,12 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const PHONES = [[360, 740, 'small android'], [390, 844, 'iPhone 14'], [430, 932, 'iPhone Pro Max']];
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const phone = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+H.suite('mobile-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const phone = async (w, h) => { const pg = await t.browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
     await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700); return pg; };
 
@@ -125,10 +122,4 @@ const PHONES = [[360, 740, 'small android'], [390, 844, 'iPhone 14'], [430, 932,
       Object.values(reach).every(r => r.dvhRules && r.appFromDvh && r.onScreen && !r.hs && r.scrub > 120 && r.play >= 32),
       JSON.stringify(reach));
 
-  rec('no page errors on any phone', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' mobile-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

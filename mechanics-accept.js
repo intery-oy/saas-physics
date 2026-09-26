@@ -13,18 +13,11 @@
  *   NOTES        mechanism notes only — no stock or flow tables, no "Why this surface exists"
  */
 const H = require('./accept-harness.js');
-const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
-const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app';
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1440, height: 900 } }); pg.on('pageerror', e => errs.push(String(e)));
-  await pg.goto(URL); await pg.waitForTimeout(500);
+H.suite('mechanics-accept', async (t) => {
+  const rec = t.rec;
+  const pg = await t.open({ url: H.URL + '#app', world: 'wA' });
   const D = (f, a) => pg.evaluate(f, a);
-  await D(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400);
 
   /* ---- NAVIGATION ---- */
   const nav = await D(() => { document.getElementById('menu-mech').click();
@@ -59,7 +52,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
 
   /* ---- ONE WORLD: Base is the frozen Base ---- */
   await D(() => { document.getElementById('nav-company').click(); const i = document.getElementById('f-sm'); i.value = 1400000; i.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('menu-mech').click(); });
-  await pg.waitForTimeout(300);
+  await pg.settle();
   const w = await D(() => { const X = window.__SP_DEBUG; const ctl = !!document.querySelector('#viewing-sys [data-vw="base"]');
     const ex = X.pulseState ? null : null; document.querySelector('#viewing-sys [data-vw="base"]').click();
     const onBase = { viewed: X.viewedWorld, stateSm: X.expRes && X.selectedMonth() };
@@ -75,10 +68,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
     return { key: h.key, open: document.querySelector('.app').classList.contains('rail-open'), same: JSON.stringify(X.expA) === before }; });
   rec('READ-ONLY: a law on a mechanism opens the Experiment drawer at that law and changes nothing', !!law && law.open && law.same, JSON.stringify(law));
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' mechanics-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+});

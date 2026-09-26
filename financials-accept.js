@@ -17,14 +17,11 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
+H.suite('financials-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = async (w, h) => { const pg = await t.browser.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
     await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
   const D = (pg, f, a) => pg.evaluate(f, a);
   const pack = async (pg, id) => { await D(pg, id => window.__SP_DEBUG.useBase(id), id); await pg.waitForTimeout(400); };
@@ -120,10 +117,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('MOBILE: with the period row hidden, the year in progress reads "Y4 YTD" (working capital "Y4 M40") and the page does not scroll sideways', mob.sub === 'none' && mob.top[3] === 'Y4 YTD' && mob.wc[3] === 'Y4 M40' && mob.top[4] === 'Y5' && !mob.hs, JSON.stringify(mob));
   await mb.close();
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' financials-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

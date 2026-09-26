@@ -29,8 +29,6 @@ const H = require('./accept-harness.js');
 const path = require('path');
 const E = require('./engine.js');
 
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const BASIS = /^(M\d+( · month)?|R12M|CUM · M1–M\d+|M60|age \d+|Y1–Y5)$/;   /* Y1–Y5: Financials reads the five model years */
 
 /* everything inside `root` must sit inside root's box, and siblings in the
@@ -60,12 +58,11 @@ const OVERFLOW_PROBE = `(function(rootSel, sibSels){
 })`;
 const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.mech', '.comp-l', '.lens-head', '.fig-t', '.force-top', '.srow', '.pl', '.exp-row', '.lensnav', '.ident', '.vflow', '.mrow', '.marks', '.paths', '.engine', '.two'];
 
-(async () => {
-  const b = await H.launch();
+H.suite('v2-legibility-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
   const file = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
-  const errs = [];
   async function open(w, h, keepWelcome){
-    const pg = await b.newPage({ viewport: { width: w, height: h } });
+    const pg = await t.browser.newPage({ viewport: { width: w, height: h } });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
     pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push(w + ': console: ' + msg.text()); });
     await pg.goto(file); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
@@ -272,11 +269,6 @@ const SIBLINGS = ['.lrow', '.tiles', '.chain', '.desc', '.hero', '.readouts', '.
     }
     await q.close();
   }
-  await b.close();
-
+  
   rec('no page or console errors across the whole run', errs.length === 0, errs.slice(0, 3).join(' | '));
-  let pass = 0;
-  P.forEach(([n, ok, d]) => { pass += ok ? 1 : 0; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); });
-  console.log('\n' + pass + ' / ' + P.length + ' v2-legibility-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})();
+});

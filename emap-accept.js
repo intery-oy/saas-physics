@@ -11,14 +11,11 @@
  */
 const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app';
 
-(async () => {
-  const br = await H.launch();
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1440, height: 900 } }); pg.on('pageerror', e => errs.push(String(e)));
+H.suite('emap-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const pg = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto(URL); await pg.waitForTimeout(500);
   const D = (f, a) => pg.evaluate(f, a);
   const map = () => D(() => { const o = {}; document.querySelectorAll('#emap-grid .emap-b').forEach(b => { o[b.dataset.b] = { off: b.classList.contains('off'),
@@ -75,10 +72,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
   rec('DRAFT vs FROZEN: the Frozen Base map is read-only and unchanged by the draft edit until Freeze Base',
       /^Frozen Base · economic map · read-only/.test(mfz.title) && val(mfz, 'econ', 'Gross margin') === '78.0%' && fr === 0.78 && JSON.stringify(mfz.blocks) === JSON.stringify(mf.blocks), JSON.stringify({ t: mfz.title, gm: val(mfz, 'econ', 'Gross margin') }));
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' emap-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

@@ -22,8 +22,6 @@
 const H = require('./accept-harness.js');
 const path = require('path');
 const fs = require('fs');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const SHOTS = path.resolve(__dirname, '.visual');
 
@@ -64,19 +62,14 @@ async function look(pg, buf) {
   }, 'data:image/png;base64,' + buf.toString('base64'));
 }
 
-(async () => {
+H.suite('visual-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
   fs.mkdirSync(SHOTS, { recursive: true });
-  const br = await H.launch();
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1440, height: 900 } });
-  pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
-  await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
-  await pg.waitForTimeout(500);
+  const pg = await t.open({ world: 'wA' });
   await pg.evaluate(() => { const p = document.getElementById('play'); if (p.classList.contains('play')) p.click(); });
   await pg.waitForTimeout(300);
   /* a scratch page whose only job is to decode the screenshots */
-  const eye = await br.newPage();
+  const eye = await t.browser.newPage();
   await eye.goto('about:blank');
 
   const surfaces = [
@@ -117,9 +110,4 @@ async function look(pg, buf) {
       hollow.length === 0, JSON.stringify(Object.keys(seen).map(k => k + ' interior=' + (seen[k].interiorFilled * 100).toFixed(0) + '% (floor ' + (INTERIOR[k] * 100) + '%)')));
 
   rec('NOERR: nothing threw while drawing any surface', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' visual-accept checks passed   (images in .visual/)');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

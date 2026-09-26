@@ -6,13 +6,10 @@
  */
 const H = require('./accept-harness.js');
 
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 
-(async () => {
-  const b = await H.launch();
-  const pg = await b.newPage({ viewport: { width: 1440, height: 900 } });
-  const errs = []; pg.on('pageerror', e => errs.push(e.message));
+H.suite('attribution-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const pg = await t.browser.newPage({ viewport: { width: 1440, height: 900 } });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + ''); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
   await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
@@ -113,11 +110,4 @@ function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
   rec('Scenario 6: attributionValid() correctly reports false (state-dependent construction)', scen6.valid === false, '');
 
   /* ---- no page errors across the whole run ---- */
-  rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
-
-  let pass = 0;
-  P.forEach(([name, ok2, detail]) => { console.log('  ' + (ok2 ? 'PASS' : 'FAIL') + '  ' + name); if (detail) console.log('        ' + detail); if (ok2) pass++; });
-  console.log('\n' + pass + ' / ' + P.length + ' attribution-accept checks passed\n');
-  await b.close();
-  process.exit(pass === P.length ? 0 : 1);
-})();
+});
