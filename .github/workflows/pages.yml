@@ -43,6 +43,8 @@ jobs:
       - run: npm run all
       # The browser suites, in parallel, every failure reported.
       - run: node accept-run.js
+        env:
+          ACCEPT_JOBS: "2"
       - run: npm run build:deploy
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request'

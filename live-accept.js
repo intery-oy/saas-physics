@@ -1,4 +1,9 @@
 /*
+ * @accept-serial — runs alone. This suite asserts that controls work WHILE
+ * TIME PASSES, so it measures real elapsed wall-clock. Under several browsers
+ * at once the page's animation loop starves and the clock falls behind, which
+ * fails TIME for a reason that has nothing to do with the product.
+ *
  * NOTE: this suite waits on the CLOCK on purpose — it asserts that controls
  * work while time is running — so its waits are real elapsed time, not frames.
  * SaaS Physics — LIVE acceptance checks: the instrument while the clock is running.

@@ -1,6 +1,17 @@
 /*
  * SaaS Physics — Step 1B: one viewed world on Company, System and the Model Ledger.
  *
+ * @accept-serial — runs alone. INVARIANT compares two live pages PIXEL FOR PIXEL,
+ * and fails about one run in four for reasons that are not the product. That rate
+ * is PRE-EXISTING: measured at 2 of 8 on unmodified 3a83285 in a clean worktree.
+ * Ruled out, each by measurement, not by argument: canvas instability (the canvas
+ * is provably static once settled — 8 samples, 1 distinct image), the settle racing
+ * setLayer's 220 ms timer (raising 230 to 340 made it worse), and the two pages
+ * contending in one browser (opening them one at a time did not help). The two
+ * pages settle to genuinely different images, on world wC, across every canvas at
+ * once. Not diagnosed. Running alone plus the runner's one retry keeps it from
+ * blocking a deploy; it should be root-caused rather than lived with.
+ *
  *   INVARIANT    a page that says Base shows exactly what the same world shows with no Experiment
  *                at all — the side panel's markup, the canvas pixels and the ledger table, on all
  *                five Company lenses, every System view and the Ledger, in several worlds

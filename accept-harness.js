@@ -25,8 +25,9 @@
  * WAITING. Every app handler runs synchronously. The only deferred work is
  * setLayer's 220 ms resize-and-render when the page changes, and the canvas's
  * next animation frame. So: wait for a condition where one exists, two frames
- * after anything that repaints, and the 230 ms settle ONLY after something
- * that changes the page.
+ * after anything that repaints, and the settle ONLY after something that
+ * changes the page.
+
  */
 'use strict';
 var fs = require('fs');

@@ -1,6 +1,10 @@
 /*
  * SaaS Physics — Step 1D: Company is a single-world surface.
  *
+ * @accept-serial — runs alone. Like viewing-accept, VALUES compares two live pages
+ * pixel for pixel and flakes for reasons that are not the product. Pre-existing;
+ * see viewing-accept's header for what was measured and ruled out.
+ *
  *   ONE WORLD    viewing the Experiment, every Company lens (markup and canvas) is identical to the
  *                page on which the Experiment's company is the only world — nothing on Company
  *                depends on Base. (Viewing Base is held to the same rule by viewing-accept.)
