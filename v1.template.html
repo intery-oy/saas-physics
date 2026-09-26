@@ -1841,7 +1841,7 @@ details.pl .cascade{margin-top:8px}
                      newLogoARPA:'€ / logo', cacPerARR:'€ per € ARR', maxMonthlyNewARR:'€ ARR / mo', acquisitionLagMonths:'months', openingPipelineMonths:'months in flight at M0', grossMargin:'% of revenue', expansionCostPerARR:'€ per € ARR',
                      'monetization.components[0].priceAnnual':'€ / customer / yr', 'monetization.components[0].priceGrowthAnnual':'% / yr', 'monetization.components[1].priceGrowthAnnual':'% / yr',
                      'monetization.components[1].usageGrowthAnnual':'% / yr', 'monetization.components[1].unitsCap':'units', 'monetization.components[1].adoptionAnnual':'% / yr', 'monetization.components[1].penetrationCap':'% of customers',
-                     billingTermMonths:'months', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
+                     billingTermMonths:'months', billingTiming:'advance / arrears', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
                      'interventions[0].durationMonths':'months', 'interventions[0].cost.oneOff':'€', 'interventions[0].cost.monthly':'€ / mo' };
   var FORCE_DIR = { sm:'↑ more new ARR, more cash out', persistenceAnnual:'↑ less leakage', expansionCoefficientAnnual:'↑ more expansion', logoRetentionAnnual:'↑ fewer logos lost', contractionAnnual:'↑ more leakage from survivors',
                     newLogoARPA:'↑ fewer, larger new logos', cacPerARR:'↑ less new ARR per € of S&M', maxMonthlyNewARR:'a ceiling, never a benefit', acquisitionLagMonths:'↑ later cohorts, same spend', openingPipelineMonths:'what the company was already selling',
@@ -1849,8 +1849,38 @@ details.pl .cascade{margin-top:8px}
                     'monetization.components[0].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].usageGrowthAnnual':'↑ more usage expansion, until the cap',
                     'monetization.components[1].unitsCap':'a ceiling on usage', 'monetization.components[1].adoptionAnnual':'↑ more adoption expansion, until the cap', 'monetization.components[1].penetrationCap':'a ceiling on adoption',
                     billingTermMonths:'↑ more invoiced per period', collectionDelayMonths:'↑ later cash, more receivables', 'interventions[0].value':'↑ stronger move of the target' };
-  function forceKind(F){ if(FORCE_KIND[F.k]) return FORCE_KIND[F.k]; if(F.k.indexOf('interventions')===0) return 'hyp'; return 'law'; }
+  /* THE CATALOGUE. A law used to be described by eight tables keyed off the same
+     assumption key — FORCE_KIND, FORCE_UNIT, FORCE_DIR, MEASURED_LABEL, LEVER_UNIT,
+     CAUSAL_LAYER, LABEL, LABEL_FMT — none of them derived from FORCES, so adding or
+     renaming one law meant finding every one of them and a typo in any was silent.
+     They are still written separately, because that is how they read; they are folded
+     into the force itself here, once, and every reader goes through forceOf(k).
+     CATALOGUE-COMPLETE (laws-accept) holds both halves: no force missing a kind or a
+     unit, and no table key that matches no force. */
+  function foldCatalogue(){
+    FORCES.forEach(function(F){
+      F.kind = FORCE_KIND[F.k] || (F.k.indexOf('interventions')===0 ? 'hyp' : 'law');
+      F.unit = FORCE_UNIT[F.k] || null;
+      F.dir  = FORCE_DIR[F.k] || null;
+    });
+  }
+  function forceKind(F){ return F.kind || (FORCE_KIND[F.k] || (F.k.indexOf('interventions')===0 ? 'hyp' : 'law')); }
+  function forceUnit(k){ var F = forceOf(k); return (F && F.unit) || FORCE_UNIT[k] || null; }
+  function forceDir(k){ var F = forceOf(k); return (F && F.dir) || FORCE_DIR[k] || null; }
+  /* every key any table mentions that no force claims — a typo, silent until now */
+  function catalogueOrphans(){
+    var keys = {}; FORCES.forEach(function(F){ keys[F.k] = 1; });
+    var bad = [];
+    [['FORCE_KIND',FORCE_KIND],['FORCE_UNIT',FORCE_UNIT],['FORCE_DIR',FORCE_DIR],
+     ['LEVER_UNIT',typeof LEVER_UNIT!=='undefined'?LEVER_UNIT:{}],
+     ['LABEL_FMT',typeof LABEL_FMT!=='undefined'?LABEL_FMT:{}]].forEach(function(pair){
+      Object.keys(pair[1]).forEach(function(k){ if(!keys[k]) bad.push(pair[0]+'.'+k); });
+    });
+    return bad;
+  }
   function kindGlyph(F){ var k=forceKind(F); return '<span class="kg '+k+'" title="'+(k==='inp'?'input — set externally':k==='cons'?'constraint — a bound':k==='sw'?'switch — a layer on or off':k==='hyp'?'hypothesis — costed, lagged, temporary':'law — an assumption the world obeys')+'">'+(k==='inp'?'▭':k==='cons'?'⌈⌉':k==='sw'?'⏻':k==='hyp'?'↯':'⋈')+'</span>'; }
+  foldCatalogue();
+
   /* the value a slider shows for a nullable force that is currently off */
   function sliderValueFor(F, v){ return (F.nullable && (v===null||v===undefined||typeof v!=='number'||!isFinite(v))) ? (typeof F.onValue==='function' ? 0 : F.onValue) : v; }
 
@@ -1862,12 +1892,12 @@ details.pl .cascade{margin-top:8px}
   function forceRow(F, T){
     var P = T.pre;
     var d=document.createElement('div'); d.className='force';
-    d.title = (FORCE_UNIT[F.k] ? FORCE_UNIT[F.k]+' · ' : '')+F.sub+(FORCE_DIR[F.k] ? ' · '+FORCE_DIR[F.k] : '');
+    d.title = (F.unit ? F.unit+' · ' : '')+F.sub+(F.dir ? ' · '+F.dir : '');
     d.innerHTML='<div class="force-top">'+kindGlyph(F)+'<label for="'+P+'f-'+F.k+'">'+esc(F.label)+'</label>'+
       (F.nullable ? '<button class="btn nulltog" id="'+P+'t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
       ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="'+P+'t-'+F.k+'" title="Switch between the settings">'+esc(T.a() ? String(getK(T.a(),F.k)) : '')+'</button>' : '')+
       '<span class="force-val" id="'+P+'v-'+F.k+'"></span><span class="force-base" id="'+P+'b-'+F.k+'"></span></div>'+
-      '<div class="force-sub">'+(FORCE_UNIT[F.k] && !F.toggleOnly ? '<span class="force-u">'+esc(FORCE_UNIT[F.k])+'</span> &middot; ' : '')+esc(F.sub)+(FORCE_DIR[F.k] ? ' &middot; <span class="force-dir">'+esc(FORCE_DIR[F.k])+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
+      '<div class="force-sub">'+(F.unit && !F.toggleOnly ? '<span class="force-u">'+esc(F.unit)+'</span> &middot; ' : '')+esc(F.sub)+(F.dir ? ' &middot; <span class="force-dir">'+esc(F.dir)+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
       (F.toggleOnly ? '' : '<input type="range" id="'+P+'f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
       d.querySelector('[id="'+P+'t-'+F.k+'"]').addEventListener('click', function(){
@@ -1984,13 +2014,18 @@ details.pl .cascade{margin-top:8px}
   /* syncs one target's rows. The drawer reads its values against the frozen Base ("base …");
      Base Settings reads the draft against the frozen Base ("frozen …"), or against nothing yet. */
   function syncForces(T){
-    var P = T.pre, expA = T.a(), expRes = T.res(), R0 = T.ref(), baseA = R0 ? R0.a : expA, baseRes = R0 ? R0.res : expRes, BL = T.refLabel;
-    if(!expRes) return;
+    /* The control TARGET's world and its REFERENCE, not the Experiment and not the
+       viewed world. This used to bind them to expA/expRes/baseA/baseRes — the same
+       four names the twenty viewed-world functions bind to the VIEW, and the same
+       four names the rest of the file uses for the Experiment. Three meanings, one
+       set of names, nothing at a call site to tell them apart. */
+    var P = T.pre, tgtA = T.a(), tgtRes = T.res(), R0 = T.ref(), refA = R0 ? R0.a : tgtA, refRes = R0 ? R0.res : tgtRes, BL = T.refLabel;
+    if(!tgtRes) return;
     syncLayerHeads(T); if(T===EXP_T) syncSysViews();
-    var monOn = expRes.mechanisms.monetization, monOnB = baseRes.mechanisms.monetization;
+    var monOn = tgtRes.mechanisms.monetization, monOnB = refRes.mechanisms.monetization;
     FORCES.forEach(function(F){
       var el=document.getElementById(P+'f-'+F.k); if(!el && !F.toggleOnly) return;
-      var xv = getK(expA, F.k), bv = getK(baseA, F.k);
+      var xv = getK(tgtA, F.k), bv = getK(refA, F.k);
       if(el) el.value = sliderValueFor(F, xv);
       var v=document.getElementById(P+'v-'+F.k); v.textContent = fmtF(F.f, xv);
       v.className = 'force-val' + (xv===bv ? ' same' : '');
@@ -2001,20 +2036,20 @@ details.pl .cascade{margin-top:8px}
          v2 Gate B — under Monetization it is EMERGENT (mix-dependent), and the
          expansion coefficient and ARR per new logo are bypassed. */
       if(F.k==='persistenceAnnual'){
-        var cuOn = expRes.mechanisms.customerPhysics, cuOnB = baseRes.mechanisms.customerPhysics;
+        var cuOn = tgtRes.mechanisms.customerPhysics, cuOnB = refRes.mechanisms.customerPhysics;
         el.disabled = cuOn; el.style.opacity = cuOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'emergent — set by the revenue mix'; v.className='force-val'; }
-        else if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
+        else if(cuOn){ v.textContent = 'derived '+pct(tgtRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
         if(monOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' emergent';
-        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(refRes.derived.persistenceAnnualEffective,1);
       }
       if(F.k==='expansionCoefficientAnnual'){
         el.disabled = monOn; el.style.opacity = monOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'bypassed — price + usage + adoption'; v.className='force-val'; }
       }
-      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(expRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
+      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(tgtRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
       if(F.needs){
-        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? expRes.mechanisms.cashPhysics : F.needs==='hyp' ? expRes.mechanisms.interventions : true;
+        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? tgtRes.mechanisms.cashPhysics : F.needs==='hyp' ? tgtRes.mechanisms.interventions : true;
         var rowEl = (el || document.getElementById(P+'t-'+F.k)); rowEl = rowEl && rowEl.closest ? rowEl.closest('.force') : null;
         if(rowEl) rowEl.style.display = layerOn ? '' : 'none';         /* restrained: a layer that is off shows only its switch */
       }
@@ -2023,7 +2058,7 @@ details.pl .cascade{margin-top:8px}
         if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = monOnB ? BL+' '+fmtF(F.f, bv) : 'monetization off'; }
       }
       if(F.needs==='hyp'){
-        var hypOn = expRes.mechanisms.interventions;
+        var hypOn = tgtRes.mechanisms.interventions;
         if(el){ el.disabled = !hypOn; el.style.opacity = hypOn ? 1 : 0.35; }
         if(F.cycleFn){ var hb=document.getElementById(P+'t-'+F.k); hb.textContent = hypOn ? hypTargetLabel(xv) : '—'; hb.disabled = !hypOn; hb.style.opacity = hypOn ? 1 : 0.35; }
         if(!hypOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = 'no hypothesis';
@@ -2031,10 +2066,10 @@ details.pl .cascade{margin-top:8px}
         else if(F.nullable){ var ht2=document.getElementById(P+'t-'+F.k); ht2.disabled = false; ht2.style.opacity = 1; }
       }
       if(F.needs==='cash'){
-        var cashOn = expRes.mechanisms.cashPhysics;
+        var cashOn = tgtRes.mechanisms.cashPhysics;
         if(el){ el.disabled = !cashOn; el.style.opacity = cashOn ? 1 : 0.35; }
         if(F.cycle){ var cb=document.getElementById(P+'t-'+F.k); cb.textContent = xv; cb.disabled = !cashOn; cb.style.opacity = cashOn ? 1 : 0.35; }
-        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
+        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = refRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
       }
       if(F.nullable){
         var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv)) || (Array.isArray(xv) && !xv.length);
@@ -4257,15 +4292,24 @@ details.pl .cascade{margin-top:8px}
       var sx=x(sel).toFixed(1); cur+='<line class="cur" x1="'+sx+'" x2="'+sx+'" y1="'+T+'" y2="'+(T+ph)+'"/>';
       var labs=[]; o.series.forEach(function(s){ if(!s.label || s.base) return; var yf = s.axis==='right' ? y2 : y1; var v = s.k==='band' ? s.hi[sel] : s.pts[sel]; if(v===null||v===undefined||!isFinite(v)) return;
         labs.push({ y:yf(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label,
-                    h:22+(String(s.label).split('\n').length-1)*9 }); });   /* a name too long for the margin takes a second line, and its block grows */
+                    h:25+(String(s.label).split('\n').length-1)*9 }); });   /* 25, not 22: a value line and a name line render ~23 units tall, so spacing blocks exactly 22 apart left them touching, and the viewBox scale turned touching into a 0.1-0.2px overlap at 768 and 390 */
       labs.sort(function(a,b){ return a.y-b.y; });
       var top=T+9, bot=T+ph-12;
+      /* Not enough plot height for every value AND its name: the three passes
+         below can only push labels apart into room that exists, so when it does
+         not exist they used to settle on top of one another (17 overlapping
+         label groups at 390, 4 on Customers at 768). Drop the name line rather
+         than print one label over another — the value is the part that cannot
+         be inferred. Held by LABELS in v2-lens-accept and v2-cohort-accept. */
+      var need=0; labs.forEach(function(l){ need+=l.h; });
+      var compact = need > (bot-top+25);
+      if(compact) labs.forEach(function(l){ l.h=15; });
       for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<labs[j-1].h) labs[j].y=labs[j-1].y+labs[j-1].h; }
-      for(var j2=labs.length-1;j2>=0;j2--){ var b2=bot-(labs[j2].h-22); if(labs[j2].y>b2) labs[j2].y=b2; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<labs[j2].h) labs[j2].y=labs[j2+1].y-labs[j2].h; }
+      for(var j2=labs.length-1;j2>=0;j2--){ var b2=bot-(labs[j2].h-25); if(labs[j2].y>b2) labs[j2].y=b2; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<labs[j2].h) labs[j2].y=labs[j2+1].y-labs[j2].h; }
       for(var j3=0;j3<labs.length;j3++){ if(labs[j3].y<top) labs[j3].y=top; if(j3>0 && labs[j3].y-labs[j3-1].y<labs[j3-1].h) labs[j3].y=labs[j3-1].y+labs[j3-1].h; }
       labs.forEach(function(l){ var nl=String(l.n).split('\n');
         cur+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text>'+
-             '<text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+nl.map(function(q,qi){ return '<tspan x="'+(W-R+6)+'" dy="'+(qi?9:0)+'">'+esc(q)+'</tspan>'; }).join('')+'</text></g>'; });
+             (compact ? '' : '<text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+nl.map(function(q,qi){ return '<tspan x="'+(W-R+6)+'" dy="'+(qi?9:0)+'">'+esc(q)+'</tspan>'; }).join('')+'</text>')+'</g>'; });
     }
     /* an event in the series' own history (acquisition, payback): one dotted rule */
     (o.vrules||[]).forEach(function(vr){ var vx=x(vr.m).toFixed(1); cur+='<line class="vr" x1="'+vx+'" x2="'+vx+'" y1="'+T+'" y2="'+(T+ph)+'"/>'; });
@@ -4355,7 +4399,7 @@ details.pl .cascade{margin-top:8px}
     lab.forEach(function(l){ pts+='<text class="bkl" x="'+Math.min(W-R-2, l.x).toFixed(1)+'" y="'+Math.max(T+10, Math.min(T+ph-3, l.y)).toFixed(1)+'" text-anchor="end" fill="'+l.c+'">'+esc(l.t)+'</text>'; });
     /* the readouts in the right margin, at the heights they belong to */
     var rg=(o.right||[]).slice().sort(function(a,b){ return Y(a.v)-Y(b.v); }), ry=[];
-    rg.forEach(function(r2,i2){ var y=Y(r2.v); if(i2 && y-ry[i2-1]<22) y=ry[i2-1]+22; ry.push(Math.max(T+9, Math.min(T+ph-12, y)));
+    rg.forEach(function(r2,i2){ var y=Y(r2.v); if(i2 && y-ry[i2-1]<25) y=ry[i2-1]+25; y=Math.max(T+9, Math.min(T+ph-12, y)); if(i2 && y-ry[i2-1]<25) y=ry[i2-1]+25; ry.push(y);   /* clamp, then re-separate: the clamp alone could push a label back onto the one above it */
       pts+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(ry[i2]+3.5).toFixed(1)+'" fill="'+r2.c+'">'+esc(r2.t)+'</text>'+
            '<text class="rl" x="'+(W-R+6)+'" y="'+(ry[i2]+13).toFixed(1)+'">'+esc(r2.n)+'</text></g>'; });
     return '<svg class="ch" data-x="spend" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+pts+'</svg>';
@@ -4544,7 +4588,7 @@ details.pl .cascade{margin-top:8px}
         var row = document.createElement('button'); row.type='button'; row.className='lever'; row.dataset.k=k; row.dataset.law=k;
         row.title = 'Change '+F.label+' in the Experiment';
         row.innerHTML = '<span class="ll">'+kindGlyph(F)+esc(F.label)+'</span>'+
-          '<span class="lvw"><span class="lv" id="lv-'+k+'"></span><span class="lu">'+esc(LEVER_UNIT[k] || FORCE_UNIT[k] || '')+'</span></span>'+
+          '<span class="lvw"><span class="lv" id="lv-'+k+'"></span><span class="lu">'+esc(LEVER_UNIT[k] || forceUnit(k) || '')+'</span></span>'+
           '<span class="lgo" aria-hidden="true">›</span>';
         bar.appendChild(row);
       });
@@ -6495,6 +6539,8 @@ details.pl .cascade{margin-top:8px}
   })();
 
   window.__SP_DEBUG = {
+    get forces(){ return FORCES.map(function(F){ return { k:F.k, kind:F.kind, unit:F.unit, dir:F.dir, label:F.label, f:F.f }; }); },
+    catalogueOrphans: catalogueOrphans,
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
     get activeScenario(){ return activeScenario; }, get layer(){ return layer; },

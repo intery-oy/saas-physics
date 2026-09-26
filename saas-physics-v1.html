@@ -906,7 +906,7 @@ details.pl .cascade{margin-top:8px}
              one), and the few principles that make the instrument trustworthy. The mechanics live where
              they act: the Experiment drawer, Model Mechanics, the Model Ledger, the presets. -->
         <details class="mabout" id="about">
-          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">bcc5950</span></summary>
+          <summary>About <span class="chip build" id="build-chip" title="The commit this page was built from">ec9764f</span></summary>
           <p><b>Deterministic.</b> A cohort simulation over sixty months — no randomness, no fitted parameters. Company ARR is only ever the sum of its cohorts.</p>
           <p><b>Laws → state → outputs.</b> You set the laws; everything else is a consequence. Retention, NRR and payback are measured from the run, never entered — so a 90% persistence law can measure as 89.6% GRR, and that gap is real, not an error.</p>
           <p><b>Traceable.</b> The engine decides every figure; the words only narrate it. The Model Ledger shows each month as the engine published it, with checks that reconcile.</p>
@@ -1263,7 +1263,13 @@ details.pl .cascade{margin-top:8px}
 });
 
 /*
- * SaaS Physics v2 — CASH PHYSICS (Gate C). Pure billing and collection functions.
+ * SaaS Physics v2 — CASH PHYSICS (Gate C). Billing and collection.
+ *
+ * NOT pure, unlike the other three layer modules: bill() writes the new balance
+ * back into the unit it was handed (see :85) and collect() pushes and shifts the
+ * receivables queue. The engine still owns those objects by identity, so no stock
+ * lives here between calls, but a caller cannot treat these as value functions.
+ * The architecture note used to claim the whole family was pure; it was not.
  *
  * Through Gate B, cash moved with EBITA: FCF = EBITA (FINDINGS #15). Cash
  * Physics separates three things the P&L does not distinguish:
@@ -1339,10 +1345,6 @@ details.pl .cascade{margin-top:8px}
     }
     return out;
   }
-  function openingBalance(T, timing, openingMRR) {
-    var v = openingMRR * (T - 1) / 2;
-    return timing === 'advance' ? v : -v;
-  }
 
   /* One cohort, one month. age = months since the cohort's anchor (0 in the
      birth month); runRate = the MRR the period is invoiced at; revenue = what
@@ -1371,7 +1373,7 @@ details.pl .cascade{margin-top:8px}
     return { collections: collected, receivables: receivables };
   }
 
-  return { enabled: enabled, validate: validate, unitsFor: unitsFor, openingBalance: openingBalance, bill: bill, collect: collect };
+  return { enabled: enabled, validate: validate, unitsFor: unitsFor, bill: bill, collect: collect };
 });
 
 /*
@@ -1561,7 +1563,10 @@ details.pl .cascade{margin-top:8px}
     });
   }
 
-  return { enabled: enabled, validate: validate, resolve: resolve, costAt: costAt, schedule: schedule, activeIn: activeIn, getK: getK, setK: setK };
+  /* activeIn, getK and setK are implementation, not interface: nothing outside
+     this module has ever called them (the UI has its own getK/setK for nested
+     assumption paths). An export nobody calls is a promise nobody asked for. */
+  return { enabled: enabled, validate: validate, resolve: resolve, costAt: costAt, schedule: schedule };
 });
 
 /*
@@ -1636,6 +1641,9 @@ details.pl .cascade{margin-top:8px}
 })(typeof self !== 'undefined' ? self : globalThis, function (deps) {
   'use strict';
 
+  /* One scheme for the four layers: CU/MO/CA/IV for the module, CU_ON/MO_ON/
+     CA_ON/IV_ON for whether it is on. (The mechanisms the run REPORTS keep
+     their published names -- they are in the frozen baselines.) */
   var CU = deps.customers;               /* Gate A — Customer Physics */
   var MO = deps.monetization;            /* Gate B — Monetization Physics */
   var CA = deps.cash;                    /* Gate C — Cash Physics */
@@ -1720,7 +1728,7 @@ details.pl .cascade{margin-top:8px}
        on: expansionCoefficientAnnual, newLogoARPA and start.openingARR are
        NOT READ — revenue is derived from per-customer components. */
     monetization:               null,    // B   null = revenue is a carried balance (v1.3 / Gate A)
-    /* v2 Gate C — CASH PHYSICS, at its NULL setting (cash moves with EBITA).
+    /* v2 Gate C — CA_ON PHYSICS, at its NULL setting (cash moves with EBITA).
        When on: billings = revenue + Δdeferred, collections = billings shifted
        by the delay, cash FCF = collections − cash costs. EBITA is untouched. */
     billingTermMonths:          null,    // C   contract billing period in months; null = Cash Physics off (FCF = EBITA)
@@ -2094,40 +2102,40 @@ details.pl .cascade{margin-top:8px}
        (the null world) lawAt(t) IS the base object, so every per-month
        quantity below is recomputed from the same inputs and is bit-identical
        to the once-computed v1.3 value. */
-    var IVON = IV.enabled(a);
-    function lawAt(t) { return IVON ? IV.resolve(a, t) : { law: a, active: [], changes: [] }; }
+    var IV_ON = IV.enabled(a);
+    function lawAt(t) { return IV_ON ? IV.resolve(a, t) : { law: a, active: [], changes: [] }; }
 
     /* v2 Gate A — CUSTOMER PHYSICS. When on, the cohort transition is
        generated by customers.js and persistenceAnnual is NOT READ: the
        effective annual persistence P is DERIVED, P = L(1 − C). When off (the
        null world) every line below is the v1.3 line. */
-    var CUON = CU.enabled(a);
-    var cuR = CUON ? CU.rates(a) : null;   /* named apart from the loop scalars below */
-    var P = CUON ? cuR.impliedPersistenceAnnual : a.persistenceAnnual;
-    var aEff = CUON ? Object.assign({}, a, { persistenceAnnual: P }) : a;
+    var CU_ON = CU.enabled(a);
+    var cuR = CU_ON ? CU.rates(a) : null;   /* named apart from the loop scalars below */
+    var P = CU_ON ? cuR.impliedPersistenceAnnual : a.persistenceAnnual;
+    var aEff = CU_ON ? Object.assign({}, a, { persistenceAnnual: P }) : a;
     /* v2 Gate B — MONETIZATION PHYSICS. When on, a cohort's revenue is DERIVED
        from per-customer components every month; the generic expansion
        coefficient, newLogoARPA and start.openingARR are NOT READ. Contraction
        reaches variable revenue only, so persistence is EMERGENT (mix-dependent),
        not the Gate A constant. Requires Customer Physics (validated). */
-    var MON = MO.enabled(a);
-    var moSpec = MON ? a.monetization : null;
-    var moR = MON ? MO.rates(moSpec) : null;
+    var MO_ON = MO.enabled(a);
+    var moSpec = MO_ON ? a.monetization : null;
+    var moR = MO_ON ? MO.rates(moSpec) : null;
     /* the per-customer state carries its component kind and caps so a row's
        fixed/variable split can be read without the spec */
     function stampKinds(state, rates) { var rr = rates || moR; return state.map(function (k, i) { return { penetration: k.penetration, units: k.units, price: k.price, fixed: rr[i].fixed, unitsCap: rr[i].unitsCap, penetrationCap: rr[i].penetrationCap }; }); }
-    var moInitial = MON ? stampKinds(MO.initialState(moSpec)) : null;
-    var moNewLogoRevenue = MON ? MO.revenue(moInitial, moR).total : null;
+    var moInitial = MO_ON ? stampKinds(MO.initialState(moSpec)) : null;
+    var moNewLogoRevenue = MO_ON ? MO.revenue(moInitial, moR).total : null;
 
-    /* v2 Gate C — CASH PHYSICS. When on, each cohort carries billing units;
+    /* v2 Gate C — CA_ON PHYSICS. When on, each cohort carries billing units;
        the company carries a receivables queue. Revenue recognition and EBITA
        are untouched; only billings, collections and the cash path exist here. */
-    var CASH = CA.enabled(a);
-    var BT = CASH ? a.billingTermMonths : null, BTIM = a.billingTiming, CDL = CASH ? a.collectionDelayMonths : 0;
+    var CA_ON = CA.enabled(a);
+    var BT = CA_ON ? a.billingTermMonths : null, BTIM = a.billingTiming, CDL = CA_ON ? a.collectionDelayMonths : 0;
     var arQueue = [];
 
-    var gM = MON ? null : toMonthlyPersistence(P);
-    var eM = MON ? null : toMonthlyExpansion(a.expansionCoefficientAnnual);
+    var gM = MO_ON ? null : toMonthlyPersistence(P);
+    var eM = MO_ON ? null : toMonthlyExpansion(a.expansionCoefficientAnnual);
     /* MRR-NATIVE: the state the engine carries forward each month is newMRR;
        newARR (still newARRPerMonth(a), v1.2: through the saturating response)
        is kept as the exact 12x-derived reporting figure every existing caller
@@ -2165,7 +2173,7 @@ details.pl .cascade{margin-top:8px}
     /* v2 Gate B: opening ARR is DERIVED — customers × per-customer revenue of
        the opening components. The arr the caller passed is reported, not read. */
     var openingARRInputIgnored = null;
-    if (MON) {
+    if (MO_ON) {
       openingARRInputIgnored = seed.reduce(function (q, c) { return q + (c.arr || 0); }, 0);
       seed = seed.map(function (c) {
         if (typeof c.customers !== 'number' || !(c.customers > 0))
@@ -2177,7 +2185,7 @@ details.pl .cascade{margin-top:8px}
     /* v2 Gate A: opening customers, opening ARPA, and the € ARR per new logo
        (input, or the opening ARPA when null). Read only when the layer is on. */
     var openingCustomersTotal = null, openingARPA = null, newLogoARPA = null, newLogoARPASource = null;
-    if (CUON) {
+    if (CU_ON) {
       openingCustomersTotal = 0;
       seed.forEach(function (c, i) {
         if (typeof c.customers !== 'number' || !(c.customers > 0))
@@ -2186,7 +2194,7 @@ details.pl .cascade{margin-top:8px}
       });
       var seedARR = seed.reduce(function (q, c) { return q + c.arr; }, 0);
       openingARPA = seedARR / openingCustomersTotal;
-      if (MON) { newLogoARPA = moNewLogoRevenue; newLogoARPASource = 'monetization: per-customer components'; }
+      if (MO_ON) { newLogoARPA = moNewLogoRevenue; newLogoARPASource = 'monetization: per-customer components'; }
       else if (a.newLogoARPA !== null) { newLogoARPA = a.newLogoARPA; newLogoARPASource = 'input'; }
       else { newLogoARPA = openingARPA; newLogoARPASource = 'opening ARPA'; }
     }
@@ -2205,17 +2213,17 @@ details.pl .cascade{margin-top:8px}
         acquisitionCost: null,
         cacPerARRAtCreation: null,
         /* v2 Gate A — customer state; null = Customer Physics off */
-        initialCustomers: CUON ? c.customers : null,
-        customers: CUON ? c.customers : null,
+        initialCustomers: CU_ON ? c.customers : null,
+        customers: CU_ON ? c.customers : null,
         /* v2 Gate B — per-customer component state; null = Monetization off */
-        money: MON ? MO.copyState(moInitial) : null,
+        money: MO_ON ? MO.copyState(moInitial) : null,
         /* v2 Gate C — billing units: the opening base is a staggered book of
            contracts and starts with the deferred balance such a book carries */
-        billingUnits: CASH ? CA.unitsFor(BT, BTIM, c.arr / 12, true) : null,
+        billingUnits: CA_ON ? CA.unitsFor(BT, BTIM, c.arr / 12, true) : null,
         rows: []
       };
     });
-    var openingDeferred = CASH ? cohorts.reduce(function (q, c) { return q + c.billingUnits.reduce(function (w, u) { return w + u.deferred; }, 0); }, 0) : null;
+    var openingDeferred = CA_ON ? cohorts.reduce(function (q, c) { return q + c.billingUnits.reduce(function (w, u) { return w + u.deferred; }, 0); }, 0) : null;
 
     /* ------------------------------------------------------------------ *
      * v1.4 WARM START — the pipeline a going concern is already carrying.
@@ -2273,11 +2281,11 @@ details.pl .cascade{margin-top:8px}
       /* --- v2 Gate D: the law in force THIS month. When it is the base
          object every derived quantity below is the run-level one. --- */
       var rs = lawAt(t), law = rs.law, lawChanged = law !== a;
-      var cuR_t = lawChanged && CUON ? CU.rates(law) : cuR;
-      var bandRates_t = lawChanged ? ratesOfBands(resolveBands(CUON ? Object.assign({}, law, { persistenceAnnual: cuR_t.impliedPersistenceAnnual }) : law)) : bandRates;
-      var moR_t = lawChanged && MON ? MO.rates(law.monetization) : moR;
-      var moInitial_t = lawChanged && MON ? stampKinds(MO.initialState(law.monetization), moR_t) : moInitial;
-      var newLogoARPA_t = !lawChanged ? newLogoARPA : (MON ? MO.revenue(moInitial_t, moR_t).total : (CUON ? (law.newLogoARPA !== null ? law.newLogoARPA : openingARPA) : null));
+      var cuR_t = lawChanged && CU_ON ? CU.rates(law) : cuR;
+      var bandRates_t = lawChanged ? ratesOfBands(resolveBands(CU_ON ? Object.assign({}, law, { persistenceAnnual: cuR_t.impliedPersistenceAnnual }) : law)) : bandRates;
+      var moR_t = lawChanged && MO_ON ? MO.rates(law.monetization) : moR;
+      var moInitial_t = lawChanged && MO_ON ? stampKinds(MO.initialState(law.monetization), moR_t) : moInitial;
+      var newLogoARPA_t = !lawChanged ? newLogoARPA : (MO_ON ? MO.revenue(moInitial_t, moR_t).total : (CU_ON ? (law.newLogoARPA !== null ? law.newLogoARPA : openingARPA) : null));
       var newARR_t = lawChanged ? newARRPerMonth(law) : newARR;
       var LAG_t = law.acquisitionLagMonths;
 
@@ -2301,7 +2309,7 @@ details.pl .cascade{margin-top:8px}
         var br = bandRates_t[bi];
         var openingC  = c.live;
         var retainedC, leakageC, expansionC, closingC, cuRow = null, moRow = null;
-        if (MON) {
+        if (MO_ON) {
           /* v2 Gate B — logo churn from customers.js; survivor revenue from the
              per-customer components: contraction (variable units) → price →
              usage (to cap) → adoption (to cap). The generic expansion
@@ -2321,7 +2329,7 @@ details.pl .cascade{margin-top:8px}
           cuLogoChurnMRR += trc.logoChurnMRR; cuContractionMRR += contrC;
           moPriceMRR += priceC; moUsageMRR += usageC; moAdoptMRR += adoptC;
           moFixedMRR += moRow.fixedARR / 12; moVarMRR += moRow.variableARR / 12;
-        } else if (CUON) {
+        } else if (CU_ON) {
           /* v2 Gate A — the transition is GENERATED by customer mechanics:
              logo survival, then contraction among survivors, then expansion
              among survivors. leakage = logo churn + contraction; the v1.3
@@ -2359,11 +2367,11 @@ details.pl .cascade{margin-top:8px}
           monetization: moRow,                      /* v2 Gate B; null when off */
           cash: null                                /* v2 Gate C; filled below when on */
         });
-        if (CASH) {
+        if (CA_ON) {
           /* v2 Gate C — invoice this cohort: anchored at birth (acquisition
              cohorts) or staggered from M1 (opening base); the run-rate is the
              opening MRR of the month; the revenue is what this row recognised */
-          var bl = CA.bill(c.billingUnits, BT, BTIM, c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth, openingC, revenue);
+          var bl = CA.bill(c.billingUnits, BT, BTIM, rowIndexAt(c, t), openingC, revenue);
           c.rows[c.rows.length - 1].cash = { billings: bl.billings, deferredClosing: bl.deferred };
           totBillings += bl.billings; totDeferred += bl.deferred;
         }
@@ -2394,11 +2402,11 @@ details.pl .cascade{margin-top:8px}
       }
       var realisedARR = 0, realisedMRR = 0, realisedCustomers = 0;
       if (matured.length) {
-        var nc = realiseCohort(t, matured, bandRates_t[0].name, law.grossMargin, MON ? moR_t : null);
+        var nc = realiseCohort(t, matured, bandRates_t[0].name, law.grossMargin, MO_ON ? moR_t : null);
         realisedARR = nc.initialARR; realisedMRR = nc.live;
-        if (CUON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
-        if (MON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }
-        if (CASH) {
+        if (CU_ON) { realisedCustomers = nc.customers; cuClose += nc.customers; }
+        if (MO_ON) { moFixedMRR += nc.rows[0].monetization.fixedARR / 12; moVarMRR += nc.rows[0].monetization.variableARR / 12; }
+        if (CA_ON) {
           /* v2 Gate C — a new cohort: one billing unit anchored at birth; under
              advance billing its first period is invoiced now at the initial run-rate */
           nc.billingUnits = CA.unitsFor(BT, BTIM, nc.live, false);
@@ -2426,7 +2434,7 @@ details.pl .cascade{margin-top:8px}
       var expansionCost = totExpansionCost;
       /* v2 Gate D — the hypotheses' own cost line: one-off at the decision
          month, monthly while the programme runs. 0 with no interventions. */
-      var ivCost = IVON ? IV.costAt(a, t, H) : null;
+      var ivCost = IV_ON ? IV.costAt(a, t, H) : null;
       var interventionCost = ivCost ? ivCost.total : 0;
       var ebita = grossProfit - law.sm - law.rd - law.ga - expansionCost - interventionCost;
 
@@ -2434,7 +2442,7 @@ details.pl .cascade{margin-top:8px}
          v2 Gate C: with Cash Physics on, FCF = collections − cash costs
          = EBITA + Δdeferred − Δreceivables. EBITA itself is untouched. --- */
       var fcf = ebita, caRec = null;
-      if (CASH) {
+      if (CA_ON) {
         var col = CA.collect(arQueue, totBillings, CDL);
         var cashCosts = cogs + law.sm + law.rd + law.ga + expansionCost + interventionCost;
         fcf = col.collections - cashCosts;
@@ -2473,7 +2481,7 @@ details.pl .cascade{margin-top:8px}
 
       /* v2 Gate A — the company customer record: sums of the cohort sub-records */
       var cuRec = null;
-      if (CUON) {
+      if (CU_ON) {
         cumCu.logoChurnARR += cuLogoChurnMRR * 12; cumCu.contractionARR += cuContractionMRR * 12;
         cumCu.newCustomers += realisedCustomers; cumCu.logoChurnCustomers += cuOpen - (cuClose - realisedCustomers);
         cuRec = {
@@ -2489,7 +2497,7 @@ details.pl .cascade{margin-top:8px}
 
       /* v2 Gate B — the company monetization record: sums of the cohort sub-records */
       var moRec = null;
-      if (MON) {
+      if (MO_ON) {
         cumMo.priceARR += moPriceMRR * 12; cumMo.usageARR += moUsageMRR * 12; cumMo.adoptionARR += moAdoptMRR * 12;
         moRec = {
           fixedARR: moFixedMRR * 12, variableARR: moVarMRR * 12,
@@ -2552,7 +2560,7 @@ details.pl .cascade{margin-top:8px}
         cash: caRec,                           /* v2 Gate C; null = Cash Physics off (fcf = ebita) */
         /* v2 Gate D — provenance: which hypotheses were in force, what each
            changed (target: from → to), and what they cost this month */
-        interventions: IVON ? { active: rs.active, changes: rs.changes, cost: interventionCost, costItems: ivCost.items, cumulativeCost: cumIv } : null
+        interventions: IV_ON ? { active: rs.active, changes: rs.changes, cost: interventionCost, costItems: ivCost.items, cumulativeCost: cumIv } : null
       });
     }
 
@@ -2572,8 +2580,8 @@ details.pl .cascade{margin-top:8px}
       co.cumRevenue = cr; co.cumGrossProfit = cg; co.cumExpansionCost = cx;
       co.finalMRR = co.live;
       co.finalARR = co.live * 12;
-      co.finalCustomers = CUON ? co.customers : null;
-      co.finalPerCustomerRevenue = MON ? MO.revenue(co.money, moR).total : null;
+      co.finalCustomers = CU_ON ? co.customers : null;
+      co.finalPerCustomerRevenue = MO_ON ? MO.revenue(co.money, moR).total : null;
     }
     /* v2 Gate B — the emergent monthly multiplier of the opening base in its
        first month (closing ÷ opening), for readers that framed the regime on
@@ -2588,11 +2596,11 @@ details.pl .cascade{margin-top:8px}
         acquisitionSaturation: saturationEnabled(a),
         acquisitionLag: a.acquisitionLagMonths > 0,
         warmStart: PIPE > 0,                        /* v1.4: the pipeline starts loaded */
-        customerPhysics: CUON,                      /* v2 Gate A */
-        monetization: MON,                          /* v2 Gate B */
-        genericExpansionBypassed: MON,              /* v2 Gate B: expansionCoefficientAnnual not read */
-        cashPhysics: CASH,                          /* v2 Gate C: fcf ≠ ebita */
-        interventions: IVON                         /* v2 Gate D: lawAt(t) differs from the base in some month */
+        customerPhysics: CU_ON,                      /* v2 Gate A */
+        monetization: MO_ON,                          /* v2 Gate B */
+        genericExpansionBypassed: MO_ON,              /* v2 Gate B: expansionCoefficientAnnual not read */
+        cashPhysics: CA_ON,                          /* v2 Gate C: fcf ≠ ebita */
+        interventions: IV_ON                         /* v2 Gate D: lawAt(t) differs from the base in some month */
       },
       assumptions: a,
       start: s,
@@ -2611,23 +2619,23 @@ details.pl .cascade{margin-top:8px}
         annualAcquisitionSpend: a.sm * 12,
         cacPerMRR: cacPerMRR(a),                      // € of S&M per €1 of New MRR — DERIVED, = cacPerARR x 12
         cacPaybackMonths: cacPaybackMonths(a),        // EMERGENT — the coefficient's own payback, unchanged value
-        impliedAnnualNRR: MON ? null : P * (1 + a.expansionCoefficientAnnual),
+        impliedAnnualNRR: MO_ON ? null : P * (1 + a.expansionCoefficientAnnual),
         /* v2 Gate A — the persistence actually in force, and where it came from.
            v2 Gate B — under Monetization neither persistence nor expansion is a
            law: both are emergent from the component state and its mix. */
-        persistenceAnnualEffective: MON ? null : P,
-        persistenceSource: MON ? 'emergent: monetization (contraction reaches variable revenue only)' : CUON ? 'derived: L(1 - C)' : 'input',
-        expansionSource: MON ? 'emergent: price + usage + adoption (generic coefficient bypassed)' : 'input',
+        persistenceAnnualEffective: MO_ON ? null : P,
+        persistenceSource: MO_ON ? 'emergent: monetization (contraction reaches variable revenue only)' : CU_ON ? 'derived: L(1 - C)' : 'input',
+        expansionSource: MO_ON ? 'emergent: price + usage + adoption (generic coefficient bypassed)' : 'input',
         emergentMonthlyMultiplier: emergentG,
         /* v2 Gate D — the resolved schedule of every hypothesis */
-        interventions: IVON ? IV.schedule(a, H) : null,
-        cash: CASH ? {
+        interventions: IV_ON ? IV.schedule(a, H) : null,
+        cash: CA_ON ? {
           billingTermMonths: BT, billingTiming: BTIM, collectionDelayMonths: CDL,
           openingDeferredRevenue: openingDeferred,   /* derived: the staggered opening book's balance (negative = contract asset) */
           openingBookStaggered: true,
           fcfDefinition: 'collections - cash costs (COGS, S&M, R&D, G&A, expansion cost when incurred)'
         } : null,
-        monetization: MON ? {
+        monetization: MO_ON ? {
           spec: moSpec,
           newLogoRevenuePerCustomer: moNewLogoRevenue,
           openingARRDerived: openingARRUsed,
@@ -2637,7 +2645,7 @@ details.pl .cascade{margin-top:8px}
           customerLawPersistence: P,             /* L(1 − C): what persistence WOULD be if contraction reached all revenue */
           monthlyRates: moR
         } : null,
-        customers: CUON ? {
+        customers: CU_ON ? {
           logoRetentionAnnual: a.logoRetentionAnnual, contractionAnnual: a.contractionAnnual,
           monthlyLogoRetention: cuR.l, monthlyContraction: cuR.cM,
           impliedPersistenceAnnual: cuR.impliedPersistenceAnnual,
@@ -2673,6 +2681,47 @@ details.pl .cascade{margin-top:8px}
   /* ------------------------------------------------------------------ *
    * Read helpers used by both the UI and the reports
    * ------------------------------------------------------------------ */
+  /* Row lookup — THE definition. The base cohort's rows start at t=1; an
+     acquisition cohort's rows start at t = its acquisition month. Every reader
+     (kpi, capital, systemstate, pulse, the UI, the suites) resolves a cohort row
+     through these, so the indexing rule has one owner and can change in one place.
+     Held by ROW-ACCESSOR in integrity.js. */
+  function rowIndexAt(c, t) {
+    return c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
+  }
+
+  function rowAt(c, t) {
+    var idx = rowIndexAt(c, t);
+    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
+  }
+
+  /* Reconciliation — the P&L and cash identities of one month, computed from the
+     fields the month record publishes and compared with the results it publishes.
+     Not a tautology: it asserts the row is internally consistent.
+
+     This lived outside the engine, in systemstate.js, built from a subset of the
+     terms. It predated the Gate C cash path and never read the Gate D cost line,
+     so it read 0 in the null world and silently non-zero under either — wrong on
+     screen, asserted by nothing. The identity now sits with the terms that make
+     it, and RECONCILIATION in integrity.js holds it under every gate. */
+  function reconcile(res, t) {
+    var m = res.months[t - 1];
+    var expansionCost = m.expansionCost || 0;
+    var interventionCost = m.interventionCost || 0;
+    /* EBITA is untouched by Cash Physics, by construction (Gate C). */
+    var ebitaExpected = m.grossProfit - m.sm - m.rd - m.ga - expansionCost - interventionCost;
+    /* FCF is EBITA until Cash Physics, then collections less cash costs. */
+    var fcfExpected = m.cash ? m.cash.collections - m.cash.cashCosts : m.ebita;
+    return {
+      t: t,
+      arr: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      gp: m.revenue - m.cogs - m.grossProfit,
+      ebita: ebitaExpected - m.ebita,
+      fcf: fcfExpected - m.fcf,
+      cash: m.cashOpening + m.fcf - m.cashClosing
+    };
+  }
+
   function bridge(res, t) {
     var m = res.months[t - 1];
     return {
@@ -2691,9 +2740,7 @@ details.pl .cascade{margin-top:8px}
     for (var i = 0; i < res.cohorts.length; i++) {
       var c = res.cohorts[i];
       if (c.acquisitionMonth > t) continue;
-      /* base cohort rows start at t=1; acquisition cohorts start at t=acquisitionMonth */
-      var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-      var row = c.rows[idx];
+      var row = rowAt(c, t);
       if (!row) continue;
       out.push({
         id: c.id,
@@ -2961,7 +3008,10 @@ details.pl .cascade{margin-top:8px}
     realiseCohort: realiseCohort,
     cacPerMRR: cacPerMRR,
     run: run,
+    rowIndexAt: rowIndexAt,
+    rowAt: rowAt,
     bridge: bridge,
+    reconcile: reconcile,
     cohortSnapshot: cohortSnapshot,
     arrMix: arrMix,
     yearSlice: yearSlice,
@@ -2989,19 +3039,15 @@ details.pl .cascade{margin-top:8px}
  * where the difference is made computable rather than assumed away.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsKPI = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsKPI = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
   var WINDOW = 12;
 
-  /* Row lookup: the base cohort's rows start at t=1; an acquisition cohort's rows
-     start at t = its acquisition month. */
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * CANONICAL R12M MEASUREMENT
@@ -3531,15 +3577,13 @@ details.pl .cascade{margin-top:8px}
  * from the cohort's creation month, not from the spend month.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsCapital = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsCapital = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* ------------------------------------------------------------------ *
    * One cohort, from capital deployment through recovery.
@@ -3704,20 +3748,19 @@ details.pl .cascade{margin-top:8px}
  * SYSTEM-STATE check asserts that agreement value by value.
  */
 ;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.SaaSPhysicsSystemState = factory();
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.SaaSPhysicsSystemState = factory(root.SaaSPhysics);
+})(typeof self !== 'undefined' ? self : globalThis, function (E) {
   'use strict';
 
-  function rowAt(c, t) {
-    var idx = c.acquisitionMonth === 0 ? t - 1 : t - c.acquisitionMonth;
-    return (idx >= 0 && idx < c.rows.length) ? c.rows[idx] : null;
-  }
+  /* The cohort row-indexing rule has one owner: engine.rowAt. */
+  var rowAt = E.rowAt;
 
   /* One month, absolute. Cohort-anchored first, aggregates second — the
      aggregates are literally the sums of the cohort movements above them. */
   function stateAt(res, t) {
     var m = res.months[t - 1];
+    var rec = E.reconcile(res, t);   /* the identity's owner is the engine */
     var cohorts = [], sumLeak = 0, sumExp = 0, sumOpen = 0, sumClose = 0;
     for (var k = 0; k < res.cohorts.length; k++) {
       var c = res.cohorts[k], r = rowAt(c, t);
@@ -3741,7 +3784,7 @@ details.pl .cascade{margin-top:8px}
       t:t, year:m.year, cohorts:cohorts,
       openingARR:m.openingARR, leakage:m.leakage, expansion:m.expansion,
       newARR:m.newARR, closingARR:m.closingARR,
-      arrResidual: m.openingARR + m.newARR + m.expansion - m.leakage - m.closingARR,
+      arrResidual: rec.arr,
       cohortSumResidual: { opening: sumOpen - m.openingARR, closing: sumClose - m.closingARR,
                            leakage: sumLeak - m.leakage, expansion: sumExp - m.expansion },
       midpointARR:(m.openingARR + m.closingARR) / 2,
@@ -3751,9 +3794,10 @@ details.pl .cascade{margin-top:8px}
       acquisitionLawNewARR: m.acquisitionLawNewARR === undefined ? m.newARR : m.acquisitionLawNewARR,
       pendingNewARR: m.pendingNewARR || 0, pendingSpend: m.pendingSpend || 0, pendingCount: m.pendingCount || 0,
       ebita:m.ebita, fcf:m.fcf, cashOpening:m.cashOpening, cashClosing:m.cashClosing,
-      gpResidual: m.revenue - m.cogs - m.grossProfit,
-      fcfResidual: m.grossProfit - m.sm - otherOpex - expansionCost - m.fcf,
-      cashResidual: m.cashOpening + m.fcf - m.cashClosing,
+      gpResidual: rec.gp,
+      ebitaResidual: rec.ebita,
+      fcfResidual: rec.fcf,
+      cashResidual: rec.cash,
       newCohortRevenueThisMonth: newC ? newC.revenue : 0,
       newCohortGPThisMonth: newC ? newC.grossProfit : 0,
       sameMonthReturnOnSM: (newC && m.sm > 0) ? newC.grossProfit / m.sm : 0
@@ -3769,9 +3813,14 @@ details.pl .cascade{margin-top:8px}
                 'cashOpening','cashClosing'];
     var d = { t:t, base:b, experiment:x };
     keys.forEach(function(kk){ d[kk] = x[kk] - b[kk]; });
-    d.arrResidual = d.openingARR + d.newARR + d.expansion - d.leakage - d.closingARR;
-    d.fcfResidual = d.grossProfit - d.sm - d.otherOpex - d.expansionCost - d.fcf;
-    d.cashResidual = d.cashOpening + d.fcf - d.cashClosing;
+    /* The residual of a difference is the difference of the residuals — the
+       identity is linear in the month fields — so the delta reads the same
+       owner rather than re-deriving a second formula that can drift. */
+    d.arrResidual   = x.arrResidual   - b.arrResidual;
+    d.gpResidual    = x.gpResidual    - b.gpResidual;
+    d.ebitaResidual = x.ebitaResidual - b.ebitaResidual;
+    d.fcfResidual   = x.fcfResidual   - b.fcfResidual;
+    d.cashResidual  = x.cashResidual  - b.cashResidual;
     /* per-cohort deltas, so the delta stays cohort-anchored too */
     d.cohorts = x.cohorts.map(function(xc){
       var bc = b.cohorts.filter(function(y){ return y.index===xc.index; })[0];
@@ -4635,7 +4684,7 @@ details.pl .cascade{margin-top:8px}
                      newLogoARPA:'€ / logo', cacPerARR:'€ per € ARR', maxMonthlyNewARR:'€ ARR / mo', acquisitionLagMonths:'months', openingPipelineMonths:'months in flight at M0', grossMargin:'% of revenue', expansionCostPerARR:'€ per € ARR',
                      'monetization.components[0].priceAnnual':'€ / customer / yr', 'monetization.components[0].priceGrowthAnnual':'% / yr', 'monetization.components[1].priceGrowthAnnual':'% / yr',
                      'monetization.components[1].usageGrowthAnnual':'% / yr', 'monetization.components[1].unitsCap':'units', 'monetization.components[1].adoptionAnnual':'% / yr', 'monetization.components[1].penetrationCap':'% of customers',
-                     billingTermMonths:'months', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
+                     billingTermMonths:'months', billingTiming:'advance / arrears', collectionDelayMonths:'months', 'interventions[0].value':'× the law', 'interventions[0].startMonth':'month', 'interventions[0].lagMonths':'months',
                      'interventions[0].durationMonths':'months', 'interventions[0].cost.oneOff':'€', 'interventions[0].cost.monthly':'€ / mo' };
   var FORCE_DIR = { sm:'↑ more new ARR, more cash out', persistenceAnnual:'↑ less leakage', expansionCoefficientAnnual:'↑ more expansion', logoRetentionAnnual:'↑ fewer logos lost', contractionAnnual:'↑ more leakage from survivors',
                     newLogoARPA:'↑ fewer, larger new logos', cacPerARR:'↑ less new ARR per € of S&M', maxMonthlyNewARR:'a ceiling, never a benefit', acquisitionLagMonths:'↑ later cohorts, same spend', openingPipelineMonths:'what the company was already selling',
@@ -4643,8 +4692,38 @@ details.pl .cascade{margin-top:8px}
                     'monetization.components[0].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].priceGrowthAnnual':'↑ more price expansion', 'monetization.components[1].usageGrowthAnnual':'↑ more usage expansion, until the cap',
                     'monetization.components[1].unitsCap':'a ceiling on usage', 'monetization.components[1].adoptionAnnual':'↑ more adoption expansion, until the cap', 'monetization.components[1].penetrationCap':'a ceiling on adoption',
                     billingTermMonths:'↑ more invoiced per period', collectionDelayMonths:'↑ later cash, more receivables', 'interventions[0].value':'↑ stronger move of the target' };
-  function forceKind(F){ if(FORCE_KIND[F.k]) return FORCE_KIND[F.k]; if(F.k.indexOf('interventions')===0) return 'hyp'; return 'law'; }
+  /* THE CATALOGUE. A law used to be described by eight tables keyed off the same
+     assumption key — FORCE_KIND, FORCE_UNIT, FORCE_DIR, MEASURED_LABEL, LEVER_UNIT,
+     CAUSAL_LAYER, LABEL, LABEL_FMT — none of them derived from FORCES, so adding or
+     renaming one law meant finding every one of them and a typo in any was silent.
+     They are still written separately, because that is how they read; they are folded
+     into the force itself here, once, and every reader goes through forceOf(k).
+     CATALOGUE-COMPLETE (laws-accept) holds both halves: no force missing a kind or a
+     unit, and no table key that matches no force. */
+  function foldCatalogue(){
+    FORCES.forEach(function(F){
+      F.kind = FORCE_KIND[F.k] || (F.k.indexOf('interventions')===0 ? 'hyp' : 'law');
+      F.unit = FORCE_UNIT[F.k] || null;
+      F.dir  = FORCE_DIR[F.k] || null;
+    });
+  }
+  function forceKind(F){ return F.kind || (FORCE_KIND[F.k] || (F.k.indexOf('interventions')===0 ? 'hyp' : 'law')); }
+  function forceUnit(k){ var F = forceOf(k); return (F && F.unit) || FORCE_UNIT[k] || null; }
+  function forceDir(k){ var F = forceOf(k); return (F && F.dir) || FORCE_DIR[k] || null; }
+  /* every key any table mentions that no force claims — a typo, silent until now */
+  function catalogueOrphans(){
+    var keys = {}; FORCES.forEach(function(F){ keys[F.k] = 1; });
+    var bad = [];
+    [['FORCE_KIND',FORCE_KIND],['FORCE_UNIT',FORCE_UNIT],['FORCE_DIR',FORCE_DIR],
+     ['LEVER_UNIT',typeof LEVER_UNIT!=='undefined'?LEVER_UNIT:{}],
+     ['LABEL_FMT',typeof LABEL_FMT!=='undefined'?LABEL_FMT:{}]].forEach(function(pair){
+      Object.keys(pair[1]).forEach(function(k){ if(!keys[k]) bad.push(pair[0]+'.'+k); });
+    });
+    return bad;
+  }
   function kindGlyph(F){ var k=forceKind(F); return '<span class="kg '+k+'" title="'+(k==='inp'?'input — set externally':k==='cons'?'constraint — a bound':k==='sw'?'switch — a layer on or off':k==='hyp'?'hypothesis — costed, lagged, temporary':'law — an assumption the world obeys')+'">'+(k==='inp'?'▭':k==='cons'?'⌈⌉':k==='sw'?'⏻':k==='hyp'?'↯':'⋈')+'</span>'; }
+  foldCatalogue();
+
   /* the value a slider shows for a nullable force that is currently off */
   function sliderValueFor(F, v){ return (F.nullable && (v===null||v===undefined||typeof v!=='number'||!isFinite(v))) ? (typeof F.onValue==='function' ? 0 : F.onValue) : v; }
 
@@ -4656,12 +4735,12 @@ details.pl .cascade{margin-top:8px}
   function forceRow(F, T){
     var P = T.pre;
     var d=document.createElement('div'); d.className='force';
-    d.title = (FORCE_UNIT[F.k] ? FORCE_UNIT[F.k]+' · ' : '')+F.sub+(FORCE_DIR[F.k] ? ' · '+FORCE_DIR[F.k] : '');
+    d.title = (F.unit ? F.unit+' · ' : '')+F.sub+(F.dir ? ' · '+F.dir : '');
     d.innerHTML='<div class="force-top">'+kindGlyph(F)+'<label for="'+P+'f-'+F.k+'">'+esc(F.label)+'</label>'+
       (F.nullable ? '<button class="btn nulltog" id="'+P+'t-'+F.k+'" title="Switch this bound off (null) or on">off</button>' : '')+
       ((F.cycle||F.cycleFn) ? '<button class="btn nulltog on" id="'+P+'t-'+F.k+'" title="Switch between the settings">'+esc(T.a() ? String(getK(T.a(),F.k)) : '')+'</button>' : '')+
       '<span class="force-val" id="'+P+'v-'+F.k+'"></span><span class="force-base" id="'+P+'b-'+F.k+'"></span></div>'+
-      '<div class="force-sub">'+(FORCE_UNIT[F.k] && !F.toggleOnly ? '<span class="force-u">'+esc(FORCE_UNIT[F.k])+'</span> &middot; ' : '')+esc(F.sub)+(FORCE_DIR[F.k] ? ' &middot; <span class="force-dir">'+esc(FORCE_DIR[F.k])+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
+      '<div class="force-sub">'+(F.unit && !F.toggleOnly ? '<span class="force-u">'+esc(F.unit)+'</span> &middot; ' : '')+esc(F.sub)+(F.dir ? ' &middot; <span class="force-dir">'+esc(F.dir)+'</span>' : '')+' &middot; <span class="force-base2" data-for="'+F.k+'"></span></div>'+
       (F.toggleOnly ? '' : '<input type="range" id="'+P+'f-'+F.k+'" min="'+F.min+'" max="'+F.max+'" step="'+F.step+'">');
     if(F.nullable){
       d.querySelector('[id="'+P+'t-'+F.k+'"]').addEventListener('click', function(){
@@ -4778,13 +4857,18 @@ details.pl .cascade{margin-top:8px}
   /* syncs one target's rows. The drawer reads its values against the frozen Base ("base …");
      Base Settings reads the draft against the frozen Base ("frozen …"), or against nothing yet. */
   function syncForces(T){
-    var P = T.pre, expA = T.a(), expRes = T.res(), R0 = T.ref(), baseA = R0 ? R0.a : expA, baseRes = R0 ? R0.res : expRes, BL = T.refLabel;
-    if(!expRes) return;
+    /* The control TARGET's world and its REFERENCE, not the Experiment and not the
+       viewed world. This used to bind them to expA/expRes/baseA/baseRes — the same
+       four names the twenty viewed-world functions bind to the VIEW, and the same
+       four names the rest of the file uses for the Experiment. Three meanings, one
+       set of names, nothing at a call site to tell them apart. */
+    var P = T.pre, tgtA = T.a(), tgtRes = T.res(), R0 = T.ref(), refA = R0 ? R0.a : tgtA, refRes = R0 ? R0.res : tgtRes, BL = T.refLabel;
+    if(!tgtRes) return;
     syncLayerHeads(T); if(T===EXP_T) syncSysViews();
-    var monOn = expRes.mechanisms.monetization, monOnB = baseRes.mechanisms.monetization;
+    var monOn = tgtRes.mechanisms.monetization, monOnB = refRes.mechanisms.monetization;
     FORCES.forEach(function(F){
       var el=document.getElementById(P+'f-'+F.k); if(!el && !F.toggleOnly) return;
-      var xv = getK(expA, F.k), bv = getK(baseA, F.k);
+      var xv = getK(tgtA, F.k), bv = getK(refA, F.k);
       if(el) el.value = sliderValueFor(F, xv);
       var v=document.getElementById(P+'v-'+F.k); v.textContent = fmtF(F.f, xv);
       v.className = 'force-val' + (xv===bv ? ' same' : '');
@@ -4795,20 +4879,20 @@ details.pl .cascade{margin-top:8px}
          v2 Gate B — under Monetization it is EMERGENT (mix-dependent), and the
          expansion coefficient and ARR per new logo are bypassed. */
       if(F.k==='persistenceAnnual'){
-        var cuOn = expRes.mechanisms.customerPhysics, cuOnB = baseRes.mechanisms.customerPhysics;
+        var cuOn = tgtRes.mechanisms.customerPhysics, cuOnB = refRes.mechanisms.customerPhysics;
         el.disabled = cuOn; el.style.opacity = cuOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'emergent — set by the revenue mix'; v.className='force-val'; }
-        else if(cuOn){ v.textContent = 'derived '+pct(expRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
+        else if(cuOn){ v.textContent = 'derived '+pct(tgtRes.derived.persistenceAnnualEffective,1)+' = L × (1 − C)'; v.className='force-val'; }
         if(monOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' emergent';
-        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(baseRes.derived.persistenceAnnualEffective,1);
+        else if(cuOnB) document.getElementById(P+'b-'+F.k).textContent = BL+' derived '+pct(refRes.derived.persistenceAnnualEffective,1);
       }
       if(F.k==='expansionCoefficientAnnual'){
         el.disabled = monOn; el.style.opacity = monOn ? 0.35 : 1;
         if(monOn){ v.textContent = 'bypassed — price + usage + adoption'; v.className='force-val'; }
       }
-      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(expRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
+      if(F.k==='newLogoARPA' && monOn){ v.textContent = 'derived — '+eur(tgtRes.derived.monetization.newLogoRevenuePerCustomer)+' from the components'; v.className='force-val'; }
       if(F.needs){
-        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? expRes.mechanisms.cashPhysics : F.needs==='hyp' ? expRes.mechanisms.interventions : true;
+        var layerOn = F.needs==='monetization' ? monOn : F.needs==='cash' ? tgtRes.mechanisms.cashPhysics : F.needs==='hyp' ? tgtRes.mechanisms.interventions : true;
         var rowEl = (el || document.getElementById(P+'t-'+F.k)); rowEl = rowEl && rowEl.closest ? rowEl.closest('.force') : null;
         if(rowEl) rowEl.style.display = layerOn ? '' : 'none';         /* restrained: a layer that is off shows only its switch */
       }
@@ -4817,7 +4901,7 @@ details.pl .cascade{margin-top:8px}
         if(!monOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = monOnB ? BL+' '+fmtF(F.f, bv) : 'monetization off'; }
       }
       if(F.needs==='hyp'){
-        var hypOn = expRes.mechanisms.interventions;
+        var hypOn = tgtRes.mechanisms.interventions;
         if(el){ el.disabled = !hypOn; el.style.opacity = hypOn ? 1 : 0.35; }
         if(F.cycleFn){ var hb=document.getElementById(P+'t-'+F.k); hb.textContent = hypOn ? hypTargetLabel(xv) : '—'; hb.disabled = !hypOn; hb.style.opacity = hypOn ? 1 : 0.35; }
         if(!hypOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = 'no hypothesis';
@@ -4825,10 +4909,10 @@ details.pl .cascade{margin-top:8px}
         else if(F.nullable){ var ht2=document.getElementById(P+'t-'+F.k); ht2.disabled = false; ht2.style.opacity = 1; }
       }
       if(F.needs==='cash'){
-        var cashOn = expRes.mechanisms.cashPhysics;
+        var cashOn = tgtRes.mechanisms.cashPhysics;
         if(el){ el.disabled = !cashOn; el.style.opacity = cashOn ? 1 : 0.35; }
         if(F.cycle){ var cb=document.getElementById(P+'t-'+F.k); cb.textContent = xv; cb.disabled = !cashOn; cb.style.opacity = cashOn ? 1 : 0.35; }
-        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = baseRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
+        if(!cashOn){ v.textContent = '—'; v.className='force-val same'; document.getElementById(P+'b-'+F.k).textContent = refRes.mechanisms.cashPhysics ? BL+' '+fmtF(F.f, bv) : 'cash physics off'; }
       }
       if(F.nullable){
         var off = xv===null || xv===undefined || (typeof xv==='number' && !isFinite(xv)) || (Array.isArray(xv) && !xv.length);
@@ -7051,15 +7135,24 @@ details.pl .cascade{margin-top:8px}
       var sx=x(sel).toFixed(1); cur+='<line class="cur" x1="'+sx+'" x2="'+sx+'" y1="'+T+'" y2="'+(T+ph)+'"/>';
       var labs=[]; o.series.forEach(function(s){ if(!s.label || s.base) return; var yf = s.axis==='right' ? y2 : y1; var v = s.k==='band' ? s.hi[sel] : s.pts[sel]; if(v===null||v===undefined||!isFinite(v)) return;
         labs.push({ y:yf(s.k==='band' ? (s.lo[sel]+s.hi[sel])/2 : v), t:(s.fmt||fmt)(s.k==='band' ? s.hi[sel]-s.lo[sel] : v), c:s.color||'var(--exp)', n:s.label,
-                    h:22+(String(s.label).split('\n').length-1)*9 }); });   /* a name too long for the margin takes a second line, and its block grows */
+                    h:25+(String(s.label).split('\n').length-1)*9 }); });   /* 25, not 22: a value line and a name line render ~23 units tall, so spacing blocks exactly 22 apart left them touching, and the viewBox scale turned touching into a 0.1-0.2px overlap at 768 and 390 */
       labs.sort(function(a,b){ return a.y-b.y; });
       var top=T+9, bot=T+ph-12;
+      /* Not enough plot height for every value AND its name: the three passes
+         below can only push labels apart into room that exists, so when it does
+         not exist they used to settle on top of one another (17 overlapping
+         label groups at 390, 4 on Customers at 768). Drop the name line rather
+         than print one label over another — the value is the part that cannot
+         be inferred. Held by LABELS in v2-lens-accept and v2-cohort-accept. */
+      var need=0; labs.forEach(function(l){ need+=l.h; });
+      var compact = need > (bot-top+25);
+      if(compact) labs.forEach(function(l){ l.h=15; });
       for(var j=1;j<labs.length;j++){ if(labs[j].y-labs[j-1].y<labs[j-1].h) labs[j].y=labs[j-1].y+labs[j-1].h; }
-      for(var j2=labs.length-1;j2>=0;j2--){ var b2=bot-(labs[j2].h-22); if(labs[j2].y>b2) labs[j2].y=b2; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<labs[j2].h) labs[j2].y=labs[j2+1].y-labs[j2].h; }
+      for(var j2=labs.length-1;j2>=0;j2--){ var b2=bot-(labs[j2].h-25); if(labs[j2].y>b2) labs[j2].y=b2; if(j2<labs.length-1 && labs[j2+1].y-labs[j2].y<labs[j2].h) labs[j2].y=labs[j2+1].y-labs[j2].h; }
       for(var j3=0;j3<labs.length;j3++){ if(labs[j3].y<top) labs[j3].y=top; if(j3>0 && labs[j3].y-labs[j3-1].y<labs[j3-1].h) labs[j3].y=labs[j3-1].y+labs[j3-1].h; }
       labs.forEach(function(l){ var nl=String(l.n).split('\n');
         cur+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(l.y+3.5).toFixed(1)+'" fill="'+l.c+'">'+esc(l.t)+'</text>'+
-             '<text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+nl.map(function(q,qi){ return '<tspan x="'+(W-R+6)+'" dy="'+(qi?9:0)+'">'+esc(q)+'</tspan>'; }).join('')+'</text></g>'; });
+             (compact ? '' : '<text class="rl" x="'+(W-R+6)+'" y="'+(l.y+13).toFixed(1)+'">'+nl.map(function(q,qi){ return '<tspan x="'+(W-R+6)+'" dy="'+(qi?9:0)+'">'+esc(q)+'</tspan>'; }).join('')+'</text>')+'</g>'; });
     }
     /* an event in the series' own history (acquisition, payback): one dotted rule */
     (o.vrules||[]).forEach(function(vr){ var vx=x(vr.m).toFixed(1); cur+='<line class="vr" x1="'+vx+'" x2="'+vx+'" y1="'+T+'" y2="'+(T+ph)+'"/>'; });
@@ -7149,7 +7242,7 @@ details.pl .cascade{margin-top:8px}
     lab.forEach(function(l){ pts+='<text class="bkl" x="'+Math.min(W-R-2, l.x).toFixed(1)+'" y="'+Math.max(T+10, Math.min(T+ph-3, l.y)).toFixed(1)+'" text-anchor="end" fill="'+l.c+'">'+esc(l.t)+'</text>'; });
     /* the readouts in the right margin, at the heights they belong to */
     var rg=(o.right||[]).slice().sort(function(a,b){ return Y(a.v)-Y(b.v); }), ry=[];
-    rg.forEach(function(r2,i2){ var y=Y(r2.v); if(i2 && y-ry[i2-1]<22) y=ry[i2-1]+22; ry.push(Math.max(T+9, Math.min(T+ph-12, y)));
+    rg.forEach(function(r2,i2){ var y=Y(r2.v); if(i2 && y-ry[i2-1]<25) y=ry[i2-1]+25; y=Math.max(T+9, Math.min(T+ph-12, y)); if(i2 && y-ry[i2-1]<25) y=ry[i2-1]+25; ry.push(y);   /* clamp, then re-separate: the clamp alone could push a label back onto the one above it */
       pts+='<g class="rg"><text class="rv" x="'+(W-R+6)+'" y="'+(ry[i2]+3.5).toFixed(1)+'" fill="'+r2.c+'">'+esc(r2.t)+'</text>'+
            '<text class="rl" x="'+(W-R+6)+'" y="'+(ry[i2]+13).toFixed(1)+'">'+esc(r2.n)+'</text></g>'; });
     return '<svg class="ch" data-x="spend" viewBox="0 0 '+W+' '+Hh+'" data-l="'+L+'" data-r="'+R+'" role="img" aria-label="'+esc(o.aria||'')+'">'+g+body+pts+'</svg>';
@@ -7338,7 +7431,7 @@ details.pl .cascade{margin-top:8px}
         var row = document.createElement('button'); row.type='button'; row.className='lever'; row.dataset.k=k; row.dataset.law=k;
         row.title = 'Change '+F.label+' in the Experiment';
         row.innerHTML = '<span class="ll">'+kindGlyph(F)+esc(F.label)+'</span>'+
-          '<span class="lvw"><span class="lv" id="lv-'+k+'"></span><span class="lu">'+esc(LEVER_UNIT[k] || FORCE_UNIT[k] || '')+'</span></span>'+
+          '<span class="lvw"><span class="lv" id="lv-'+k+'"></span><span class="lu">'+esc(LEVER_UNIT[k] || forceUnit(k) || '')+'</span></span>'+
           '<span class="lgo" aria-hidden="true">›</span>';
         bar.appendChild(row);
       });
@@ -9289,6 +9382,8 @@ details.pl .cascade{margin-top:8px}
   })();
 
   window.__SP_DEBUG = {
+    get forces(){ return FORCES.map(function(F){ return { k:F.k, kind:F.kind, unit:F.unit, dir:F.dir, label:F.label, f:F.f }; }); },
+    catalogueOrphans: catalogueOrphans,
     get expRes(){ return expRes; }, get baseRes(){ return baseRes; },
     get expA(){ return expA; }, get baseA(){ return baseA; }, SS: SS, K: K,
     get activeScenario(){ return activeScenario; }, get layer(){ return layer; },

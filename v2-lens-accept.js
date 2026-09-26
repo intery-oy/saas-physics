@@ -21,20 +21,16 @@
  *   LABELS      no right-edge label collisions at 1440, 1024 and 768
  *   OFF         null-physics fallbacks render but are not the acceptance state
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
-(async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const errs = [];
-  const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
-  const click = async (pg, sel) => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(350); };
-  const scrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
-  const world = async (pg) => { await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(pg, 36); };
+H.suite('v2-lens-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = (w, h) => t.open({ viewport: { width: w, height: h }, world: 'wA', label: String(w) });
+  const click = (pg, sel) => pg.hit(sel);
+  const scrub = (pg, v) => pg.month(v);
+  const world = async (pg) => { await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle(); await scrub(pg, 36); };
   const D = (pg, f, a) => pg.evaluate(f, a);
   /* what is actually on the page for one lens: the visible lens body, its charts, and anything beneath it */
   const page = (pg, id) => D(pg, id => { const l = document.getElementById('lens-' + id); const svgs = [...l.querySelectorAll('svg.ch')];
@@ -158,7 +154,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       Math.abs(1 / curve.op.dn - eng.marg) < 1e-9 && Math.abs(curve.op.n / curve.op.sm - 1 / eng.avg) < 1e-12 && curve.op.dn < curve.op.n / curve.op.sm,
       JSON.stringify({ slopes: curve.slopes, dn: curve.op.dn, chord: curve.op.n / curve.op.sm }));
   rec('GROWTH ENGINE · on Base no dashed Base lines are drawn; Experiment lines are solid', gr.baseLines.every(n => n === 0) && gr.solid.every(Boolean) && !/Base/.test(gr.legend.join('|')), JSON.stringify({ baseLines: gr.baseLines, legend: gr.legend }));
-  await D(pg, () => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.settle();
   const gr2 = await page(pg, 'growth');
   const q2 = await D(pg, () => ({ sm: window.__SP_DEBUG.expA.sm, avg: window.__SP_DEBUG.expRes.derived.acquisition.averageCAC, marg: window.__SP_DEBUG.expRes.derived.acquisition.marginalCAC }));
   const c2 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
@@ -171,11 +167,11 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
       gr2.rv.indexOf((q2.avg * 12 / eng.gm).toFixed(1) + ' mo') >= 0 && !/Base/.test(gr2.legend.join('|')),
       JSON.stringify({ q2, op: c2.op, base: c2.base, lawMoved: c2.lawMoved, dots: c2.dots, mark: c2.mark, legend: gr2.legend }));
   /* the law itself: a cheaper floor lifts the whole curve, a lower capacity bends it sooner */
-  await D(pg, () => { const i = document.getElementById('f-cacPerARR'); i.value = 0.8; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-cacPerARR'); i.value = 0.8; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.settle();
   const c3 = await D(pg, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), c = window.__SP_DEBUG.acqCurve;
     const law = sm => c.enabled ? sm / (c.floor + sm / c.cap) : sm / c.floor;
     return { floor: c.floor, lawMoved: c.lawMoved, baseCurves: s.querySelectorAll('path.ln.base').length, n: c.op.n, worst: c.samples.reduce((a, [sm, n]) => Math.max(a, Math.abs(n - law(sm))), 0) }; });
-  await D(pg, () => { const i = document.getElementById('f-maxMonthlyNewARR'); i.value = 600000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-maxMonthlyNewARR'); i.value = 600000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.settle();
   const c4 = await D(pg, () => { const c = window.__SP_DEBUG.acqCurve; return { cap: c.cap, used: c.op.used, marg: c.op.marg, n: c.op.n }; });
   rec('GROWTH ENGINE · changing the law changes the CURVE: a cheaper CAC floor lifts it (more new ARR for the same spend), with no Base law drawn beside it on Company; a lower capacity bends it sooner, so the same spend buys less and marginal CAC climbs',
       c3.floor === 0.8 && !c3.lawMoved && c3.baseCurves === 0 && c3.n > c2.op.n && c3.worst < 1e-6 &&
@@ -189,7 +185,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   const vShare = eng.variable / (eng.fixed + eng.variable);
   rec('MONETIZATION · structure: question · headline (ARR, ARR/customer, fixed %, variable %) · control strip (platform fee, usage growth, adoption) · ONE composition chart · nothing else', /What are customers paying for\?/.test(mo.q) && mo.hl.join('|') === 'MRR|MRR per customer|fixed revenue|variable revenue' && mo.txt.includes(Math.round((1 - vShare) * 100) + '%\nfixed revenue') && mo.levers.join('|') === 'monetization.components[0].priceAnnual|monetization.components[1].usageGrowthAnnual|monetization.components[1].adoptionAnnual' && mo.blocks.join(',') === 'lens-head,hl,lever-slot,chb' && mo.charts === 1 && !mo.figVisible && !mo.stripVisible && mo.prose === 0, JSON.stringify(mo.blocks));
   rec('MONETIZATION · the chart stacks exactly FIXED and VARIABLE (the engine\'s components) over 60 months; right-edge values are the month\'s fixed and variable ARR with their shares and the total', mo.titles[0] === 'MRR composition over time' && mo.legend.join('|').indexOf('fixed') >= 0 && mo.legend.join('|').indexOf('variable') >= 0 && !/platform|usage|AI|process/.test(mo.legend.join('|')) && mo.rv.indexOf(mrr(eng.fixed)) >= 0 && mo.rv.indexOf(mrr(eng.variable)) >= 0 && mo.rv.indexOf(mrr(eng.fixed + eng.variable)) >= 0 && /fixed · \d+%/.test(mo.rl.join('|')) && /variable · \d+%/.test(mo.rl.join('|')), JSON.stringify({ rv: mo.rv, rl: mo.rl, legend: mo.legend }));
-  await D(pg, () => { const i = document.getElementById('f-monetization.components[1].usageGrowthAnnual'); i.value = 0.30; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(450);
+  await D(pg, () => { const i = document.getElementById('f-monetization.components[1].usageGrowthAnnual'); i.value = 0.30; i.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.settle();
   const mo2 = await page(pg, 'monetization');
   const v2 = await D(pg, () => { const W = window.__SP_DEBUG, m = W.selectedMonth(), x = W.expRes.months[m - 1].monetization; return { share: x.variableARR / (x.fixedARR + x.variableARR) }; });
   rec('MONETIZATION · the usage-growth lever reshapes the composition (variable share rises); Company shows one world, so no Base total is drawn', v2.share > vShare + 0.005 && mo2.baseLines[0] === 0 && !/Base/.test(mo2.legend.join('|')), JSON.stringify({ v2, vShare, baseLines: mo2.baseLines }));
@@ -222,7 +218,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   await scrub(pg, 48);
   const moved = await D(pg, () => ({ curX: [...document.querySelectorAll('#side svg.ch:not([data-x]) .cur')].map(c => c.getAttribute('x1')), tags: [...document.querySelectorAll('#side .lens-head .basis')].map(e => e.textContent), legend: window.__SP_DEBUG.figLegend }));
   rec('TIME · moving the global month moves every chart\'s cursor together, every lens\'s basis tag and the formation legend', moved.curX.every(x => x === moved.curX[0]) && moved.curX[0] !== all.curX[0] && moved.tags.join('|') === 'M48|M48|M48|M48|Y1–Y5', JSON.stringify(moved));
-  await D(pg, () => { const s = document.querySelector('#lens-cash svg.ch'); const r = s.getBoundingClientRect(); s.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * 0.5, clientY: r.top + r.height * 0.5 })); }); await pg.waitForTimeout(300);
+  await D(pg, () => { const s = document.querySelector('#lens-cash svg.ch'); const r = s.getBoundingClientRect(); s.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + r.width * 0.5, clientY: r.top + r.height * 0.5 })); }); await pg.paint();
   const clicked = await D(pg, () => window.__SP_DEBUG.selectedMonth());
   rec('TIME · clicking a chart moves the global month there', clicked > 20 && clicked < 40, String(clicked));
   await scrub(pg, 36);
@@ -241,7 +237,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
     const curveLab = {};
     for (const sm of [0, 700000, 1500000, 2500000]) {
       await D(q, v => { const i = document.getElementById('f-sm'); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }, sm);
-      await q.waitForTimeout(320);
+      await q.paint();
       curveLab['sm' + sm] = await D(q, () => { const s = document.querySelector('#lens-growth svg.ch[data-x="spend"]'), box = s.getBoundingClientRect();
         const els = [...s.querySelectorAll('g.rg, text.bkl, text.mk, text.capl, text.axcap, text.ax')];
         let c = 0; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { const a = els[i].getBoundingClientRect(), d = els[j].getBoundingClientRect();
@@ -254,14 +250,8 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   }
 
   /* ---- OFF (fallback only) ---- */
-  const o = await open(1440, 900); await o.evaluate(() => window.__SP_DEBUG.useBase('arr')); await o.waitForTimeout(400); await scrub(o, 36);
+  const o = await open(1440, 900); await o.evaluate(() => window.__SP_DEBUG.useBase('arr')); await o.settle(); await scrub(o, 36);
   const off = await D(o, () => ({ cu: document.getElementById('lens-customers').innerText, mo: document.getElementById('lens-monetization').innerText, cuCharts: document.querySelectorAll('#lens-customers svg.ch').length, moCharts: document.querySelectorAll('#lens-monetization svg.ch').length, moLevers: document.querySelectorAll('#lens-monetization .lever').length, notes: [...document.querySelectorAll('#side .offnote')].map(e => e.innerText.length) }));
   rec('OFF · with the layers off each lens still renders (one short line says what is not modelled; charts reduce to what exists); this is a fallback, not the acceptance state', /Customer physics off/i.test(off.cu) && off.cuCharts === 1 && /Monetization physics off/i.test(off.mo) && off.moCharts === 1 && off.moLevers === 0 && off.notes.every(n => n < 160), JSON.stringify({ cuCharts: off.cuCharts, moCharts: off.moCharts, notes: off.notes }));
   await o.close();
-  rec('no page errors across the whole run', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' v2-lens-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

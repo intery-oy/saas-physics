@@ -22,18 +22,16 @@
  *
  * Run: node ledger-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 const openLedger = async (pg, pack) => {
-  if (pack) { await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack); await pg.waitForTimeout(500); }
-  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);
+  if (pack) { await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack); await pg.settle(); }
+  await pg.hit('menu-mech');
+  await pg.hit('menu-ledger');
 };
-const setView = async (pg, v) => { await pg.evaluate(x => document.getElementById('ldg-' + x).click(), v); await pg.waitForTimeout(500); };
+const setView = (pg, v) => pg.hit('ldg-' + v);
 
 /* read the whole table out of the DOM, as a reader sees it */
 const readTable = pg => pg.evaluate(() => {
@@ -47,14 +45,9 @@ const readTable = pg => pg.evaluate(() => {
 const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s)) return null;
   const v = parseFloat(String(s).replace(/[€,×%\s]/g, '').replace('−', '-')); return isFinite(v) ? v : null; };
 
-(async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1600, height: 950 } });
-  pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700);
-  await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(400);
-  await pg.evaluate(() => { const p = document.getElementById('play'); if (p.classList.contains('play')) p.click(); }); await pg.waitForTimeout(250);
+H.suite('ledger-accept', async (SP) => {
+  const rec = SP.rec, errs = SP.errs;
+  const pg = await SP.open({ viewport: { width: 1600, height: 950 }, world: 'wA' });
 
   /* ---- REACHABLE ---- */
   const views = await pg.evaluate(() => [...document.querySelectorAll('#sysviews .btn')].map(b => b.textContent));
@@ -294,13 +287,13 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
     tab: !!document.getElementById('sysview-ledger'), viewsShown: getComputedStyle(document.getElementById('sysviews')).display !== 'none', title: (document.querySelector('.ledgerbar .eyebrow') || {}).textContent }));
   const leak = {};
   for (const nav of ['nav-company', 'nav-compare']) {
-    await pg.evaluate(n => document.getElementById(n).click(), nav); await pg.waitForTimeout(400);
+    await pg.evaluate(n => document.getElementById(n).click(), nav); await pg.settle();
     leak[nav] = await pg.evaluate(() => { const e = document.getElementById('ledger'), r = e.getBoundingClientRect();
       return { hidden: e.hidden, display: getComputedStyle(e).display, area: Math.round(r.width * r.height) }; });
   }
-  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(400);
+  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.settle();
   const sys = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, ledger: !document.getElementById('ledger').hidden, sysLit: (window.__SP_DEBUG.layer === 'flow' && window.__SP_DEBUG.sysView !== 'ledger') }));
-  await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);
+  await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.settle();
   const back = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, shown: !document.getElementById('ledger').hidden,
     table: !!document.querySelector('table.ldg') }));
   /* the ledger sits INSIDE the figure box, over the canvas, and nothing else moved into it:
@@ -324,17 +317,17 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
      the table built all 60 rows and the reader saw an empty panel. Built is not shown. */
   const vis = {};
   for (const [w, h, name] of [[1600, 950, 'desktop'], [1280, 800, 'laptop'], [1024, 1366, 'tablet portrait'], [1180, 820, 'tablet landscape']]) {
-    const q = await br.newPage({ viewport: { width: w, height: h } });
+    const q = await SP.browser.newPage({ viewport: { width: w, height: h } });
     q.on('pageerror', e => errs.push(name + ': ' + e.message));
-    await q.goto(URL); await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.waitForTimeout(700);
-    await q.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await q.waitForTimeout(450);
+    await q.goto(URL); await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.settle();
+    await q.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await q.settle();
     /* pin a cohort first — the state that used to blank it — then go and open the ledger */
     await q.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 84);
       for (let y = 30; y < r.height * 0.7; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
         if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
-    await q.waitForTimeout(600);
-    await q.evaluate(() => document.getElementById('menu-mech').click()); await q.waitForTimeout(400);
-    await q.evaluate(() => document.getElementById('menu-ledger').click()); await q.waitForTimeout(700);
+    await q.settle();
+    await q.evaluate(() => document.getElementById('menu-mech').click()); await q.settle();
+    await q.evaluate(() => document.getElementById('menu-ledger').click()); await q.settle();
     vis[name] = await q.evaluate(() => {
       const led = document.getElementById('ledger'), tb = document.querySelector('table.ldg');
       const lr = led.getBoundingClientRect();
@@ -350,10 +343,4 @@ const num = s => { if (s === '—' || s === '' || /pre-window|off|FCF|^M/.test(s
       Object.values(vis).every(v => v.rows === 60 && v.area > 200000 && v.onScreen && v.firstCellPainted && v.headerPainted && v.pinned !== null),
       JSON.stringify(vis));
 
-  rec('no page errors', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' ledger-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

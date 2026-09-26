@@ -1,6 +1,17 @@
 /*
  * SaaS Physics — Step 1B: one viewed world on Company, System and the Model Ledger.
  *
+ * @accept-serial — runs alone. INVARIANT compares two live pages PIXEL FOR PIXEL,
+ * and fails about one run in four for reasons that are not the product. That rate
+ * is PRE-EXISTING: measured at 2 of 8 on unmodified 3a83285 in a clean worktree.
+ * Ruled out, each by measurement, not by argument: canvas instability (the canvas
+ * is provably static once settled — 8 samples, 1 distinct image), the settle racing
+ * setLayer's 220 ms timer (raising 230 to 340 made it worse), and the two pages
+ * contending in one browser (opening them one at a time did not help). The two
+ * pages settle to genuinely different images, on world wC, across every canvas at
+ * once. Not diagnosed. Running alone plus the runner's one retry keeps it from
+ * blocking a deploy; it should be root-caused rather than lived with.
+ *
  *   INVARIANT    a page that says Base shows exactly what the same world shows with no Experiment
  *                at all — the side panel's markup, the canvas pixels and the ledger table, on all
  *                five Company lenses, every System view and the Ledger, in several worlds
@@ -13,10 +24,8 @@
  *   LIFECYCLE    viewing never changes either world; editing any law returns the view to the
  *                Experiment; with no Experiment there is no control; Compare has none
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 /* the build before Step 1B, taken from git: UNCHANGED and COMPARE hold this step to "viewing the
    Experiment is exactly what it was". A migration guard — later steps may change these pages. */
@@ -25,14 +34,13 @@ const PREV_FILE = path.join(require('os').tmpdir(), 'saas-physics-' + PREV_COMMI
 require('fs').writeFileSync(PREV_FILE, require('child_process').execSync('git show ' + PREV_COMMIT + ':saas-physics-v1.html', { cwd: __dirname, maxBuffer: 1 << 26 }));
 const PREV = 'file://' + PREV_FILE;
 
-(async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const errs = [];
+H.suite('viewing-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
   /* Wait for the page, not the clock. Every app handler here runs synchronously; the only deferred work
      is setLayer's 220 ms resize-and-render when the page changes, and the canvas's next animation frame. */
   const frames = p => p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   const settle = p => p.evaluate(() => new Promise(r => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 230)));
-  const open = async (url, pk, exp, view) => { const p = await br.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
+  const open = async (url, pk, exp, view) => { const p = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
     await p.goto(url); await p.evaluate(() => document.fonts.ready);
     await p.waitForFunction(() => window.__SP_DEBUG && document.getElementById('welcome-enter'));
     await p.evaluate(() => window.__SP_DEBUG.useBase && window.__SP_DEBUG.useBase('wA'));
@@ -133,10 +141,4 @@ const PREV = 'file://' + PREV_FILE;
   k1.panel = noAttr(k1.panel); k0.panel = noAttr(k0.panel);
   rec('COMPARE: unchanged from the previous build (bar the corrected attribution) — the causal panel and the Base-and-Experiment figure — even when Base was the world being viewed before opening it', k1.panel === k0.panel && k1.canvas === k0.canvas && k1.panel.length > 200, JSON.stringify({ panel: k1.panel === k0.panel, canvas: k1.canvas === k0.canvas }));
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' viewing-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

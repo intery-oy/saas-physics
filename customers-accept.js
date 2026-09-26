@@ -21,31 +21,18 @@
  *
  * Run: node customers-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 const SYS = { W: 1260, H: 770 };
 const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
 
-(async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const errs = [];
+H.suite('customers-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
   const open = async (w, h, pack) => {
-    const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
-    pg.on('pageerror', e => errs.push(w + 'x' + h + '/' + pack + ': ' + e.message));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
-    await pg.evaluate(() => document.getElementById('welcome-enter').click());
-    await pg.waitForTimeout(300);
-    await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack);
-    await pg.waitForTimeout(300);
-    await pg.evaluate(() => document.getElementById('menu-mech').click());   /* Model Mechanics, under ⋯ */
-    await pg.waitForTimeout(200);
-    await pg.evaluate(() => document.getElementById('sysview-customers').click());
-    await pg.waitForTimeout(200);
-    await pg.evaluate(() => { const b = document.getElementById('play'); if (b && b.classList.contains('play')) b.click(); });
-    await pg.waitForTimeout(150);
+    const pg = await t.open({ viewport: { width: w, height: h }, world: pack, label: w + 'x' + h + '/' + pack });
+    await pg.hit('menu-mech');            /* Model Mechanics, under the header's more menu */
+    await pg.hit('sysview-customers');    /* and its Customers view */
     return pg;
   };
   /* move the portal to month m and hand back BOTH what was drawn and what the engine holds */
@@ -238,10 +225,4 @@ const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
     await pg.close();
   }
 
-  rec('no page errors in any world, month or viewport', errs.length === 0, errs.slice(0, 4).join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' customers-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

@@ -185,5 +185,8 @@
     });
   }
 
-  return { enabled: enabled, validate: validate, resolve: resolve, costAt: costAt, schedule: schedule, activeIn: activeIn, getK: getK, setK: setK };
+  /* activeIn, getK and setK are implementation, not interface: nothing outside
+     this module has ever called them (the UI has its own getK/setK for nested
+     assumption paths). An export nobody calls is a promise nobody asked for. */
+  return { enabled: enabled, validate: validate, resolve: resolve, costAt: costAt, schedule: schedule };
 });

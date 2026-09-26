@@ -1,4 +1,11 @@
 /*
+ * @accept-serial — runs alone. This suite asserts that controls work WHILE
+ * TIME PASSES, so it measures real elapsed wall-clock. Under several browsers
+ * at once the page's animation loop starves and the clock falls behind, which
+ * fails TIME for a reason that has nothing to do with the product.
+ *
+ * NOTE: this suite waits on the CLOCK on purpose — it asserts that controls
+ * work while time is running — so its waits are real elapsed time, not frames.
  * SaaS Physics — LIVE acceptance checks: the instrument while the clock is running.
  *
  * Time running used to make the portal unusable. The clock rebuilds the stage's markup about
@@ -20,10 +27,8 @@
  *
  * Run: node live-accept.js
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 /* a real press: down, a human-length hold, up — the sequence the bug ate. Playwright's click()
@@ -40,10 +45,9 @@ const running = pg => pg.evaluate(() => document.getElementById('play').classLis
 async function run(pg, want) { const is = await running(pg);
   if (is !== want) { await pg.evaluate(() => document.getElementById('play').click()); await pg.waitForTimeout(250); } }
 
-(async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const errs = [];
-  const pg = await br.newPage({ viewport: { width: 1440, height: 900 } });
+H.suite('live-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const pg = await t.browser.newPage({ viewport: { width: 1440, height: 900 } });
   pg.on('pageerror', e => errs.push(e.message));
   await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700);
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
@@ -149,10 +153,4 @@ async function run(pg, want) { const is = await running(pg);
       routed.open && routed.row === 'sm' && !!before && !!during && during !== before, JSON.stringify({ routed, before, during }));
   await pg.evaluate(() => document.getElementById('rail-close').click());
 
-  rec('no page errors', errs.length === 0, errs.join(' | '));
-  await br.close();
-
-  let pass = 0; for (const [n, ok, d] of P) { if (ok) pass++; console.log((ok ? '  PASS  ' : '  FAIL  ') + n + (ok || !d ? '' : '\n        ' + d)); }
-  console.log(pass + ' / ' + P.length + ' live-accept checks passed');
-  process.exit(pass === P.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(2); });
+  });

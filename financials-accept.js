@@ -15,27 +15,24 @@
  *                the chart's paths are not rebuilt; a structural change forces a build
  *   MOBILE       with the period row hidden, the year in progress still reads YTD
  */
-const { chromium } = require('playwright');
+const H = require('./accept-harness.js');
 const path = require('path');
-const P = [];
-function rec(name, pass, detail) { P.push([name, pass, detail || '']); }
 const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
-(async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const errs = [];
-  const open = async (w, h) => { const pg = await br.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.waitForTimeout(200); return pg; };
+H.suite('financials-accept', async (t) => {
+  const rec = t.rec, errs = t.errs;
+  const open = async (w, h) => { const pg = await t.browser.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle(); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await pg.paint(); return pg; };
   const D = (pg, f, a) => pg.evaluate(f, a);
-  const pack = async (pg, id) => { await D(pg, id => window.__SP_DEBUG.useBase(id), id); await pg.waitForTimeout(400); };
-  const lens = async (pg, id) => { await D(pg, id => document.querySelector('.lensnav .btn[data-lens="' + id + '"]').click(), id); await pg.waitForTimeout(250); };
-  const experiment = async pg => { await D(pg, () => { const i = document.querySelector('input[data-k="sm"], #f-sm'); i.value = +i.value * 1.4; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(400); };
+  const pack = async (pg, id) => { await D(pg, id => window.__SP_DEBUG.useBase(id), id); await pg.settle(); };
+  const lens = async (pg, id) => { await D(pg, id => document.querySelector('.lensnav .btn[data-lens="' + id + '"]').click(), id); await pg.paint(); };
+  const experiment = async pg => { await D(pg, () => { const i = document.querySelector('input[data-k="sm"], #f-sm'); i.value = +i.value * 1.4; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.settle(); };
   /* Base / Experiment is the page-level viewing control (Step 1B); Company, Financials included, shows one world (Step 1D) */
   const view = async (pg, v) => { await D(pg, v => { const q = s => document.querySelector(s);
     if (v === 'base') { q('[data-vw="base"]').click(); return; }
     q('[data-vw="exp"]').click();
     const on = q('[data-finv="exp"]');                     /* present only while Δ is on */
-    if (v === 'exp' && on) on.click(); }, v); await pg.waitForTimeout(200); };
+    if (v === 'exp' && on) on.click(); }, v); await pg.paint(); };
   /* scrub the way the transport does, then report whether the month was a tick */
   const scrub = (pg, m) => D(pg, m => { const s = window.__SP_DEBUG.finStats, b = s.builds, t = s.ticks, sc = document.getElementById('scrub');
     sc.value = String(m); sc.dispatchEvent(new Event('input', { bubbles: true })); return { tick: s.ticks === t + 1 && s.builds === b }; }, m);
@@ -120,10 +117,4 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
   rec('MOBILE: with the period row hidden, the year in progress reads "Y4 YTD" (working capital "Y4 M40") and the page does not scroll sideways', mob.sub === 'none' && mob.top[3] === 'Y4 YTD' && mob.wc[3] === 'Y4 M40' && mob.top[4] === 'Y5' && !mob.hs, JSON.stringify(mob));
   await mb.close();
 
-  rec('No page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
-  await br.close();
-  let ok = 0; for (const [n, p, d] of P) { console.log((p ? '  PASS  ' : '  FAIL  ') + n + (d && !p ? '\n        ' + d : '')); if (p) ok++; }
-  console.log('========================================================================================');
-  console.log(ok + ' / ' + P.length + ' financials-accept checks passed');
-  process.exit(ok === P.length ? 0 : 1);
-})();
+  });

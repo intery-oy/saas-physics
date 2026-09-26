@@ -1,11 +1,16 @@
-# Deploys the validated static build to GitHub Pages. Downstream of the normal
-# product build: npm run build:deploy → dist/index.html, the same bytes as
-# saas-physics-v1.html. No framework, no server, no secrets.
+# Deploys the validated static build to GitHub Pages.
+#
+# The build used to run AFTER the tests and be deployed without the browser
+# suites ever running: `npm run test` was the Node suites only, so 4,000 lines
+# and 346 browser assertions never ran in CI, and the bytes that shipped were
+# bytes no test had opened. Now the order is build -> node -> browser -> deploy,
+# and every step gates the one after it.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -22,19 +27,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # viewing-accept.js compares the current build against a pinned
+          # earlier one with `git show <sha>:saas-physics-v1.html`, so the
+          # default depth-1 checkout is not enough.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm run test
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      # The artifact must be current with its modules before anything is tested.
+      - run: node build.js
+      # The economic suites: engine, KPI, integrity, build.
+      - run: npm run all
+      # The browser suites, in parallel, every failure reported.
+      - run: node accept-run.js
+        env:
+          ACCEPT_JOBS: "2"
       - run: npm run build:deploy
       - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
         with:
           enablement: true
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: dist
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
