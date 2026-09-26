@@ -71,6 +71,29 @@ B.OUTPUTS.forEach(function (f) {
 ok('FRESH', 'the committed HTML is what the current modules build — a module changed without a rebuild used to leave the Node suites testing one engine and the browser suites testing another, both green',
    stale.length === 0, stale.join(' | ') || B.OUTPUTS.length + ' artifacts current');
 
+/* ---- SURFACE ----
+   An export nobody calls is a promise nobody asked for. cash.js shipped
+   openingBalance and interventions.js shipped activeIn, getK and setK with
+   zero callers anywhere in the repo -- exported because the module author
+   exported everything, not because a seam asked for them. This keeps it
+   that way. */
+var LAYERS = ['customers.js', 'monetization.js', 'cash.js', 'interventions.js'];
+var everythingElse = fs.readdirSync(__dirname)
+  .filter(function (f) { return /\.js$/.test(f) && LAYERS.indexOf(f) < 0; })
+  .map(function (f) { return fs.readFileSync(path.join(__dirname, f), 'utf8'); })
+  .concat([fs.readFileSync(path.join(__dirname, 'v1.template.html'), 'utf8')])
+  .join('\n');
+var orphans = [];
+LAYERS.forEach(function (f) {
+  var mod = require('./' + f);
+  Object.keys(mod).forEach(function (name) {
+    /* a call through any alias: CU.name, MO.name, deps.customers.name, ... */
+    if (!new RegExp('\\.' + name + '\\s*\\(').test(everythingElse)) orphans.push(f + ': ' + name);
+  });
+});
+ok('SURFACE', 'every function the four layer modules export is called by something outside that module — a layer\'s interface is what the engine asks for, not everything its implementation happens to define',
+   orphans.length === 0, orphans.join(' | ') || LAYERS.length + ' modules, no unused exports');
+
 /* ---- DEPLOY ---- */
 var deploySrc = fs.readFileSync(path.join(__dirname, 'deploy-build.js'), 'utf8');
 ok('DEPLOY', 'deploy-build packages the product byte for byte and refuses an incomplete build',

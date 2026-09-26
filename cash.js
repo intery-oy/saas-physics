@@ -1,5 +1,11 @@
 /*
- * SaaS Physics v2 — CASH PHYSICS (Gate C). Pure billing and collection functions.
+ * SaaS Physics v2 — CASH PHYSICS (Gate C). Billing and collection.
+ *
+ * NOT pure, unlike the other three layer modules: bill() writes the new balance
+ * back into the unit it was handed (see :85) and collect() pushes and shifts the
+ * receivables queue. The engine still owns those objects by identity, so no stock
+ * lives here between calls, but a caller cannot treat these as value functions.
+ * The architecture note used to claim the whole family was pure; it was not.
  *
  * Through Gate B, cash moved with EBITA: FCF = EBITA (FINDINGS #15). Cash
  * Physics separates three things the P&L does not distinguish:
@@ -75,10 +81,6 @@
     }
     return out;
   }
-  function openingBalance(T, timing, openingMRR) {
-    var v = openingMRR * (T - 1) / 2;
-    return timing === 'advance' ? v : -v;
-  }
 
   /* One cohort, one month. age = months since the cohort's anchor (0 in the
      birth month); runRate = the MRR the period is invoiced at; revenue = what
@@ -107,5 +109,5 @@
     return { collections: collected, receivables: receivables };
   }
 
-  return { enabled: enabled, validate: validate, unitsFor: unitsFor, openingBalance: openingBalance, bill: bill, collect: collect };
+  return { enabled: enabled, validate: validate, unitsFor: unitsFor, bill: bill, collect: collect };
 });
