@@ -18,17 +18,17 @@ H.suite('clarity-accept', async (t) => {
   const pg = await t.browser.newPage({ viewport: { width: 1440, height: 900 } });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html') + ''); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
-  await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
+  await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.settle();
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
-  await pg.waitForTimeout(900);
+  await pg.settle();
 
   /* ---- DISPLAY-RECONCILIATION: same quantity, same month, two surfaces ---- */
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 30; s.dispatchEvent(new Event('input')); });
-  await pg.waitForTimeout(300);
+  await pg.paint();
   const companyMRR = await pg.evaluate(() => document.querySelector('.side .hero .hv').textContent);
-  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.settle();
   const systemStock = await pg.evaluate(() => {
     const c = document.getElementById('scene'); return null; // canvas text isn't DOM-readable
   });
@@ -48,15 +48,15 @@ H.suite('clarity-accept', async (t) => {
   });
   rec('DISPLAY-RECONCILIATION: Company Cash === System STOCK CASH at month t',
       tieCash.company === tieCash.system, JSON.stringify(tieCash));
-  await jsClick('#nav-company'); await pg.waitForTimeout(400);
+  await jsClick('#nav-company'); await pg.settle();
 
   /* ---- DELTA-CASH: the displayed ΔCash equals Experiment − Base, exactly ---- */
-  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
+  await jsClick('#nav-scen'); await pg.paint();
   await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="retention"]').click(), document.getElementById('nav-compare').click()));
-  await pg.waitForTimeout(400);
-  await jsClick('#nav-company'); await pg.waitForTimeout(400);
+  await pg.settle();
+  await jsClick('#nav-company'); await pg.settle();
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 45; s.dispatchEvent(new Event('input')); });
-  await pg.waitForTimeout(400);
+  await pg.settle();
   const deltaCash = await pg.evaluate(() => {
     const t = 45;
     const exp = __SP_DEBUG.expRes.months[t - 1].cashClosing, base = __SP_DEBUG.baseRes.months[t - 1].cashClosing;
@@ -86,7 +86,7 @@ H.suite('clarity-accept', async (t) => {
   /* ---- KPI-MEASUREMENT: measured GRR/Expansion/NRR beneath the coefficients
      equal K.measureR12M exactly ---- */
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 24; s.dispatchEvent(new Event('input')); });
-  await pg.waitForTimeout(400);
+  await pg.settle();
   const shown = await pg.evaluate(() => ({
     grr: document.getElementById('mk-persistenceAnnual-grr').textContent,
     exp: document.getElementById('mk-expansionCoefficientAnnual-expansionRate').textContent,
@@ -103,34 +103,34 @@ H.suite('clarity-accept', async (t) => {
 
   /* ---- BASIS-INVARIANCE: switching MRR/ARR must not change the Experiment ---- */
   const beforeARR = await pg.evaluate(() => __SP_DEBUG.expRes.months[23].closingARR);
-  await jsClick('#basis-arr'); await pg.waitForTimeout(300);
+  await jsClick('#basis-arr'); await pg.paint();
   const afterARR = await pg.evaluate(() => __SP_DEBUG.expRes.months[23].closingARR);
   rec('BASIS-INVARIANCE: toggling MRR/ARR does not re-simulate or change the economics',
       beforeARR === afterARR, '');
-  await jsClick('#basis-mrr'); await pg.waitForTimeout(200);
+  await jsClick('#basis-mrr'); await pg.paint();
 
   /* ---- leakage-shadow default off, toggles to an outline (§4) ---- */
   const leakLabelOff = await pg.evaluate(() => document.getElementById('leak-toggle').textContent);
   rec('leakage-shadow defaults OFF', leakLabelOff.includes('Off'), leakLabelOff);
-  await jsClick('#leak-toggle'); await pg.waitForTimeout(300);
+  await jsClick('#leak-toggle'); await pg.paint();
   const leakLabelOn = await pg.evaluate(() => document.getElementById('leak-toggle').textContent);
   rec('leakage-shadow toggles on and relabels', leakLabelOn.includes('On'), leakLabelOn);
-  await jsClick('#leak-toggle'); await pg.waitForTimeout(200);
+  await jsClick('#leak-toggle'); await pg.paint();
 
   /* ---- Experiment summary answers "why" instantly ---- */
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#reset'); await pg.paint();
   const zeroChanged = await pg.evaluate(() => document.getElementById('experiment-summary').innerText);
   rec('Experiment summary: 0 changed at Base', zeroChanged.includes('0 assumptions changed'), '');
   await pg.evaluate(() => { const i = document.getElementById('f-grossMargin'); i.value = 0.7; i.dispatchEvent(new Event('input')); });
-  await pg.waitForTimeout(300);
+  await pg.paint();
   const oneChanged = await pg.evaluate(() => document.getElementById('experiment-summary').innerText);
   rec('Experiment summary: shows the changed assumption with from -> to',
       /1 assumption changed/.test(oneChanged) && /Gross margin/.test(oneChanged) && /→/.test(oneChanged), oneChanged.slice(0, 80));
 
   /* ---- waterfall reconciles on screen, for a scenario with S&M != 0 ---- */
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#reset'); await pg.paint();
   await pg.evaluate(() => { const s = document.getElementById('scrub'); s.value = 40; s.dispatchEvent(new Event('input')); });
-  await pg.waitForTimeout(300);
+  await pg.paint();
   const wf = await pg.evaluate(() => {
     const rows = [...document.querySelectorAll('.cascade .crow.wf .cv')].map(e => e.textContent);
     return rows;

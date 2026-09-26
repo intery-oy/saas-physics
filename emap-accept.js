@@ -16,7 +16,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
 H.suite('emap-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const pg = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); pg.on('pageerror', e => errs.push(String(e)));
-  await pg.goto(URL); await pg.waitForTimeout(500);
+  await pg.goto(URL); await pg.settle();
   const D = (f, a) => pg.evaluate(f, a);
   const map = () => D(() => { const o = {}; document.querySelectorAll('#emap-grid .emap-b').forEach(b => { o[b.dataset.b] = { off: b.classList.contains('off'),
     rows: [...b.querySelectorAll('.emap-r')].map(r => r.querySelector('.k').textContent + '=' + r.querySelector('.v').textContent.replace(/\s*•/, '').trim()) }; });
@@ -61,7 +61,7 @@ H.suite('emap-accept', async (t) => {
   rec('READ-ONLY: the map holds no input, and clicking every block and link writes nothing', ro.inputs === 0 && ro.same, JSON.stringify(ro));
 
   /* ---- DRAFT vs FROZEN ---- */
-  await D(() => document.getElementById('base-freeze').click()); await pg.waitForTimeout(300);
+  await D(() => document.getElementById('base-freeze').click()); await pg.paint();
   const mf = await D(() => (document.getElementById('nav-base').click(), 0)).then(map);
   await D(() => { const i = document.getElementById('bs-f-grossMargin'); i.value = 0.6; i.dispatchEvent(new Event('input', { bubbles: true })); });
   const md = await map(), dot = await D(() => { const r = [...document.querySelectorAll('#emap-grid [data-b="econ"] .emap-r')].find(x => /Gross margin/.test(x.textContent)); return { dot: !!r.querySelector('.chg'), title: r.title }; });

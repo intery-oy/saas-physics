@@ -1,4 +1,6 @@
 /*
+ * NOTE: this suite waits on the CLOCK on purpose — it asserts that controls
+ * work while time is running — so its waits are real elapsed time, not frames.
  * SaaS Physics — LIVE acceptance checks: the instrument while the clock is running.
  *
  * Time running used to make the portal unusable. The clock rebuilds the stage's markup about

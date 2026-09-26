@@ -24,7 +24,7 @@ H.suite('mobile-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const phone = async (w, h) => { const pg = await t.browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(700); return pg; };
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle(); return pg; };
 
   /* ---- VIEWPORT: the root cause, guarded ---- */
   const pg = await phone(390, 844);
@@ -39,7 +39,7 @@ H.suite('mobile-accept', async (t) => {
     return { top: Math.round(r.top), h: Math.round(r.height), w: Math.round(r.width), inFirstScreen: r.top >= 0 && r.bottom <= innerHeight,
       onTop: (document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)) || {}).id,
       welcomeShown: document.getElementById('welcome').classList.contains('on') }; });
-  await pg.tap('#welcome-enter'); await pg.waitForTimeout(500);
+  await pg.tap('#welcome-enter'); await pg.settle();
   const entered = await pg.evaluate(() => ({ shown: document.getElementById('welcome').classList.contains('on'),
     app: !!document.querySelector('.app') && document.querySelector('.app').getBoundingClientRect().height > 100 }));
   rec('ENTRY: on a first visit the opening page\'s Enter button sits inside the first screen at a real size, nothing covers it, and one tap reaches the portal',
@@ -50,7 +50,7 @@ H.suite('mobile-accept', async (t) => {
   const targets = await pg.evaluate(() => { const vis = e => { const r = e.getBoundingClientRect(); return r.height > 0 && r.width > 0 && getComputedStyle(e).display !== 'none'; };
     const btns = [...document.querySelectorAll('.btn')].filter(vis).map(e => ({ id: e.id || e.textContent.trim().slice(0, 14), h: Math.round(e.getBoundingClientRect().height) }));
     return { small: btns.filter(b => b.h < 32), n: btns.length, coarse: matchMedia('(pointer:coarse)').matches }; });
-  await pg.tap('#rail-toggle'); await pg.waitForTimeout(500);
+  await pg.tap('#rail-toggle'); await pg.settle();
   const sliders = await pg.evaluate(() => { const s = [...document.querySelectorAll('.rail input[type=range]')].filter(e => e.getBoundingClientRect().height > 0)
       .map(e => ({ k: e.id, h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width) }));
     return { n: s.length, small: s.filter(x => x.h < 28 || x.w < 120), railOpen: document.querySelector('.app').classList.contains('rail-open') }; });
@@ -59,18 +59,18 @@ H.suite('mobile-accept', async (t) => {
       JSON.stringify({ buttons: targets.n, tooSmall: targets.small.slice(0, 4), sliders: sliders.n, slidersTooSmall: sliders.small.slice(0, 3) }));
 
   /* ---- WORKS: the portal responds to taps ---- */
-  await pg.evaluate(() => { const b = document.getElementById('rail-close'); if (b) b.click(); }); await pg.waitForTimeout(400);
+  await pg.evaluate(() => { const b = document.getElementById('rail-close'); if (b) b.click(); }); await pg.settle();
   const lensOrder = ['customers', 'growth', 'monetization', 'cash', 'company'];
   const lensSeen = [];
-  for (const id of lensOrder) { await pg.tap('.lensnav .btn[data-lens="' + id + '"]'); await pg.waitForTimeout(400);
+  for (const id of lensOrder) { await pg.tap('.lensnav .btn[data-lens="' + id + '"]'); await pg.settle();
     lensSeen.push(await pg.evaluate(() => document.getElementById('side').dataset.active)); }
   rec('WORKS: each of the five lenses opens on a tap', lensSeen.join('|') === lensOrder.join('|'), lensSeen.join('|'));
 
   const box = await pg.evaluate(() => { const r = document.getElementById('scene').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; });
-  await pg.tap('#scene', { position: { x: Math.round(box.w * 0.5), y: Math.round(box.h * 0.75) } }); await pg.waitForTimeout(600);
+  await pg.tap('#scene', { position: { x: Math.round(box.w * 0.5), y: Math.round(box.h * 0.75) } }); await pg.settle();
   const pinned = await pg.evaluate(() => ({ k: window.__SP_DEBUG.pinned, dossier: !!document.querySelector('.dossier'),
     life: !document.getElementById('cohort-life').hidden }));
-  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(400);
+  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.settle();
   const back = await pg.evaluate(() => ({ k: window.__SP_DEBUG.pinned, life: document.getElementById('cohort-life').hidden }));
   rec('WORKS: tapping the formation pins that cohort — the provenance chain and the cohort figure open — and ‹ Company returns',
       pinned.k !== null && pinned.dossier && pinned.life && back.k === null && back.life, JSON.stringify({ pinned, back }));
@@ -80,7 +80,7 @@ H.suite('mobile-accept', async (t) => {
   const fits = {};
   for (const [w, h, name] of PHONES) {
     const q = await phone(w, h);
-    await q.tap('#welcome-enter'); await q.waitForTimeout(500);
+    await q.tap('#welcome-enter'); await q.settle();
     fits[name] = await q.evaluate(() => { const over = [...document.querySelectorAll('.head, .transport, .stagecol, #side, .figwrap, #scene, .lensnav, .cascade')]
         .filter(e => e.getBoundingClientRect().right > innerWidth + 1).map(e => e.id || e.className.split(' ')[0]);
       return { hs: document.documentElement.scrollWidth > innerWidth + 1, over, transport: document.querySelector('.transport').getBoundingClientRect().bottom <= innerHeight + 1,
@@ -99,7 +99,7 @@ H.suite('mobile-accept', async (t) => {
   const reach = {};
   for (const [w, h, name] of TABLETS) {
     const q = await phone(w, h);
-    await q.tap('#welcome-enter'); await q.waitForTimeout(500);
+    await q.tap('#welcome-enter'); await q.settle();
     reach[name] = await q.evaluate(() => {
       const probe = document.createElement('div');
       probe.style.cssText = 'position:absolute;top:-9999px;left:0;width:1px;height:100dvh';

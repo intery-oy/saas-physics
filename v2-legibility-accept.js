@@ -65,17 +65,17 @@ H.suite('v2-legibility-accept', async (t) => {
     const pg = await t.browser.newPage({ viewport: { width: w, height: h } });
     pg.on('pageerror', e => errs.push(w + ': ' + e.message));
     pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push(w + ': console: ' + msg.text()); });
-    await pg.goto(file); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
+    await pg.goto(file); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle();
     if(!keepWelcome) await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
     if(!keepWelcome) await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks pick their worlds explicitly, starting from ARR physics; the portal itself opens on the Enterprise world */
     return pg;
   }
-  const setScrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
-  const pack = async (pg, id) => { await pg.evaluate(id => window.__SP_DEBUG.useBase(id), id); await pg.waitForTimeout(400); };
+  const setScrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.settle(); };
+  const pack = async (pg, id) => { await pg.evaluate(id => window.__SP_DEBUG.useBase(id), id); await pg.settle(); };
   const sideText = pg => pg.evaluate(() => document.getElementById('side').innerText);
   const clickModel = async (pg, mx, my) => { await pg.evaluate(([mx, my]) => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
       const s = Math.min(r.width / 1260, r.height / 770), ox = (r.width - 1260 * s) / 2, oy = (r.height - 770 * s) / 2;
-      cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + ox + mx * s, clientY: r.top + oy + my * s, bubbles: true })); }, [mx, my]); await pg.waitForTimeout(300); };
+      cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + ox + mx * s, clientY: r.top + oy + my * s, bubbles: true })); }, [mx, my]); await pg.settle(); };
 
   /* ---- OPENING PAGE ---- */
   const w0 = await open(1440, 900, true);
@@ -86,19 +86,19 @@ H.suite('v2-legibility-accept', async (t) => {
       appHidden: document.elementFromPoint(720, 450) && !!document.elementFromPoint(720, 450).closest('#welcome') }; }); }
   rec('OPENING PAGE: a first visit lands on the opening page — what this is and is not, the six parts of the portal, the marks, the time basis, three ways to start, and a statement that the data is illustrative — covering the app beneath',
       wl.shown && wl.title && wl.what && wl.portal && wl.marks && wl.time && wl.start && wl.noreal && wl.appHidden, JSON.stringify(wl));
-  await w0.evaluate(() => document.getElementById('welcome-enter').click()); await w0.waitForTimeout(200);
+  await w0.evaluate(() => document.getElementById('welcome-enter').click()); await w0.settle();
   const entered = await w0.evaluate(() => ({ hidden: getComputedStyle(document.getElementById('welcome')).display === 'none', flag: localStorage.getItem('saas-physics-welcomed') }));
-  await w0.reload(); await w0.waitForTimeout(800);
+  await w0.reload(); await w0.settle();
   const again = await w0.evaluate(() => getComputedStyle(document.getElementById('welcome')).display === 'none');
-  await w0.evaluate(() => document.getElementById('guidebtn').click()); await w0.waitForTimeout(200);
+  await w0.evaluate(() => document.getElementById('guidebtn').click()); await w0.settle();
   const reopened = await w0.evaluate(() => getComputedStyle(document.getElementById('welcome')).display !== 'none');
   rec('OPENING PAGE: Enter hides it and remembers the visit; a reload goes straight to the portal; Guide in the header brings it back', entered.hidden && entered.flag === '1' && again && reopened, JSON.stringify({ entered, again, reopened }));
-  await w0.evaluate(() => document.getElementById('welcome-tour').click()); await w0.waitForTimeout(400);
+  await w0.evaluate(() => document.getElementById('welcome-tour').click()); await w0.settle();
   /* a reload has no frozen Base: the tour reads a company, so it waits on Base Settings for the first freeze */
   const pending = await w0.evaluate(() => ({ layer: window.__SP_DEBUG.layer, card: document.getElementById('tourcard').classList.contains('on') }));
-  await w0.evaluate(() => document.getElementById('base-freeze').click()); await w0.waitForTimeout(400);
+  await w0.evaluate(() => document.getElementById('base-freeze').click()); await w0.settle();
   const tour = [];
-  for (let i = 0; i < 6; i++) { tour.push(await w0.evaluate(() => ({ step: document.getElementById('tour-step').textContent, hl: (document.querySelector('.tour-on') || {}).id || (document.querySelector('.tour-on') || {}).className || null, on: document.getElementById('tourcard').classList.contains('on') }))); await w0.evaluate(() => document.getElementById('tour-next').click()); await w0.waitForTimeout(250); }
+  for (let i = 0; i < 6; i++) { tour.push(await w0.evaluate(() => ({ step: document.getElementById('tour-step').textContent, hl: (document.querySelector('.tour-on') || {}).id || (document.querySelector('.tour-on') || {}).className || null, on: document.getElementById('tourcard').classList.contains('on') }))); await w0.evaluate(() => document.getElementById('tour-next').click()); await w0.settle(); }
   const tourEnd = await w0.evaluate(() => ({ card: document.getElementById('tourcard').classList.contains('on'), hl: !!document.querySelector('.tour-on'), welcome: getComputedStyle(document.getElementById('welcome')).display === 'none' }));
   rec('OPENING PAGE: with no Base frozen the tour waits on Base Settings and starts at the first freeze; it walks six stops — surfaces, Base Settings, Change, the figure, the lenses, time — highlighting each region, and leaves nothing behind when done',
       pending.layer === 'base' && !pending.card && tour.length === 6 && tour.every((s, i) => s.on && s.step.startsWith('Tour · ' + (i + 1) + ' of 6')) && tour[3].hl === 'scene' && tour[4].hl === 'side' && !tourEnd.card && !tourEnd.hl && tourEnd.welcome, JSON.stringify({ pending, tour, tourEnd }));
@@ -156,7 +156,7 @@ H.suite('v2-legibility-accept', async (t) => {
   await setScrub(pg, 24);
 
   /* ---- HIERARCHY (Compare) ---- */
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);   /* a preset loads from the drawer; Compare analyses it */
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.settle();   /* a preset loads from the drawer; Compare analyses it */
   const spine = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); if (!s) return null;
     const causes = [...s.querySelectorAll('.cause')].map(c => ({ lvl: [...c.classList].filter(x => /^l\d$/.test(x))[0], head: (c.querySelector('.eyebrow, h5, .ch') || c).innerText.split('\n')[0] }));
     const layers = [...s.querySelectorAll('.cause.l1 .exp-layer, .cause.l1 .mh, .cause.l1 .eyebrow')].map(e => e.textContent);
@@ -167,12 +167,12 @@ H.suite('v2-legibility-accept', async (t) => {
   const cmpTxt = await sideText(pg);
   rec('HIERARCHY: the changed assumptions are grouped under their causal layer and the emerged company states ARR M60, customers M60, cash trough and ending cash',
       /CUSTOMERS/.test(cmpTxt) && /Logo retention/.test(cmpTxt) && /ARR M60|MRR M60/.test(cmpTxt) && /customers M60/.test(cmpTxt) && /cash trough/.test(cmpTxt) && /ending cash/.test(cmpTxt), cmpTxt.slice(0, 200).replace(/\n/g, ' | '));
-  await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
-  await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
+  await pg.evaluate(() => document.getElementById('reset').click()); await pg.settle();
+  await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.settle();
 
   /* ---- DRILL-DOWN (System) ---- */
   await pack(pg, 'full'); await setScrub(pg, 20);
-  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(500);
+  await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.settle();
   const v0 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 30 + 2 * 150 + 64, 330 + 56); const v1 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 1260 - 55, 22); const v2 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
@@ -182,7 +182,7 @@ H.suite('v2-legibility-accept', async (t) => {
   await clickModel(pg, 1260 - 55, 22);
   rec('DRILL-DOWN: Model Mechanics opens on the Overview; CUSTOMERS opens the customer layer, BILLING the cash layer; the hypotheses box opens nothing (there is no Hypotheses view); ‹ Overview returns each time',
       v0 === 'ontology' && v1 === 'customers' && v2 === 'ontology' && v3 === 'cash' && v4 === 'ontology' && v5 === 'ontology', JSON.stringify([v0, v1, v2, v3, v4, v5]));
-  await pack(pg, 'arr'); await pg.waitForTimeout(200);
+  await pack(pg, 'arr'); await pg.settle();
   const vOff0 = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   await clickModel(pg, 30 + 2 * 150 + 64, 330 + 56); const vOff = await pg.evaluate(() => window.__SP_DEBUG.sysView);
   rec('DRILL-DOWN: in the ARR-only world an off node (CUSTOMERS, dotted) opens nothing — absent mechanisms are shown, never navigable', vOff0 === 'ontology' && vOff === 'ontology', JSON.stringify([vOff0, vOff]));
@@ -190,13 +190,13 @@ H.suite('v2-legibility-accept', async (t) => {
   /* the list is the Overview, then the three layer mechanisms; the Model Ledger is the proof layer, under ⋯ */
   rec('DRILL-DOWN: the Model Mechanics view list is Overview · Customers · Monetization · Cash — mechanisms only, no Flows, no Hypotheses, no Model Ledger',
       views.join('|') === 'Overview|Customers|Monetization|Cash', views.join('|'));
-  await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
+  await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.settle();
 
   /* ---- PROVENANCE (Inspect) ---- */
   await pack(pg, 'full'); await setScrub(pg, 20);
   const pin = await pg.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (9 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.6; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return y; } } return null; });
-  await pg.waitForTimeout(500);
+  await pg.settle();
   const prov = await pg.evaluate(() => { const d = document.querySelector('.dossier'); if (!d) return null; d.querySelectorAll('details').forEach(x => { x.open = true; });   /* the disclosed rows are part of the chain */
     return { steps: [...d.querySelectorAll('.pstep .pl')].map(e => e.textContent.replace(/M\d+.*$|age \d+$|CUM.*$/, '').trim()), off: [...d.querySelectorAll('.pstep.off')].length, txt: d.innerText, tags: [...d.querySelectorAll('.pstep .pl .basis')].map(e => e.textContent) }; });
   rec('PROVENANCE: a pinned cohort reads as one chain — Company → Cohort → Customer economics → Monetization components → Contract · billing → Cash — every step with its own time basis',
@@ -207,11 +207,11 @@ H.suite('v2-legibility-accept', async (t) => {
   await pack(pg, 'arr'); await setScrub(pg, 20);
   await pg.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (9 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.6; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
-  await pg.waitForTimeout(500);
+  await pg.settle();
   const provOff = await pg.evaluate(() => { const d = document.querySelector('.dossier'); return d ? { off: [...d.querySelectorAll('.pstep.off .ph')].map(e => e.textContent) } : null; });
   rec('PROVENANCE: in the ARR-only world the customer, monetization and billing steps say what the cohort is instead (one balance, one coefficient, cash moves with EBITA) — never omitted',
       provOff && provOff.off.length === 3 && /no customer layer/.test(provOff.off[0]) && /one coefficient/.test(provOff.off[1]) && /no contract book/.test(provOff.off[2]), JSON.stringify(provOff));
-  await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
+  await pg.evaluate(() => document.getElementById('reset').click()); await pg.settle();
 
   /* ---- WORLDS ---- */
   for (const [id, name, want] of [['wA', 'A · enterprise SaaS', { custLo: 100, custHi: 400, term: 12, timing: 'advance', lag: 4 }], ['wB', 'B · usage-heavy AI', { custLo: 2000, custHi: 8000, term: 1, timing: 'arrears', lag: 0 }], ['wC', 'SMB', { custLo: 6000, custHi: 12000, term: 1, timing: 'advance', lag: 0 }]]) {
@@ -227,16 +227,16 @@ H.suite('v2-legibility-accept', async (t) => {
     if (id === 'wB') rec('WORLD B: variable (usage) revenue is the material part of the mix (> 50% of ARR at M24)', w.varShare > 0.5, 'variable share ' + w.varShare.toFixed(2));
     if (id === 'wA') rec('WORLD A: the enterprise mix is platform-led (usage < 50% of ARR at M24)', w.varShare < 0.5, 'variable share ' + w.varShare.toFixed(2));
     /* one change → Compare reads; System ontology draws every node on */
-    await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = Math.round(parseFloat(i.value) * 1.3 / 25000) * 25000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400);
-    await pg.evaluate(() => document.getElementById('nav-compare').click()); await pg.waitForTimeout(400);
+    await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = Math.round(parseFloat(i.value) * 1.3 / 25000) * 25000; i.dispatchEvent(new Event('input')); }); await pg.settle();
+    await pg.evaluate(() => document.getElementById('nav-compare').click()); await pg.settle();
     const cmp = await pg.evaluate(() => { const s = document.querySelector('#side .spine'); return s ? s.innerText : ''; });
-    await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(300);
+    await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.settle();
     rec('WORLD ' + name + ': one change to S&M reads as a causal comparison (changed → system → company) in this world', /S&M/.test(cmp) && /new (MRR|ARR) per month/.test(cmp) && /(MRR|ARR) M60/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' | '));
-    await pg.evaluate(() => document.getElementById('reset').click()); await pg.waitForTimeout(300);
-    await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.waitForTimeout(500);
+    await pg.evaluate(() => document.getElementById('reset').click()); await pg.settle();
+    await pg.evaluate(() => document.getElementById('menu-mech').click()); await pg.settle();
     const onto = await pg.evaluate(() => ({ view: window.__SP_DEBUG.sysView, side: document.getElementById('side').innerText.slice(0, 80) }));
     rec('WORLD ' + name + ': System opens on the ontology with every layer present', onto.view === 'ontology', JSON.stringify(onto));
-    await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.waitForTimeout(400);
+    await pg.evaluate(() => document.getElementById('nav-company').click()); await pg.settle();
   }
   await pg.close();
 
@@ -247,11 +247,11 @@ H.suite('v2-legibility-accept', async (t) => {
     const geo = await q.evaluate(() => { const r = e => document.querySelector(e).getBoundingClientRect();
       return { scrollW: document.documentElement.scrollWidth, innerW: innerWidth, stage: r('.stage'), side: r('.side'), rail: r('.rail'), toggle: getComputedStyle(document.getElementById('rail-toggle')).display, open: document.querySelector('.app').classList.contains('rail-open') }; });
     const probeSide = await q.evaluate(OVERFLOW_PROBE + '("#side", ' + JSON.stringify(SIBLINGS) + ')');
-    await q.evaluate(() => document.getElementById('rail-toggle').click()); await q.waitForTimeout(350);
+    await q.evaluate(() => document.getElementById('rail-toggle').click()); await q.settle();
     const probeRail = await q.evaluate(OVERFLOW_PROBE + '(".rail", ' + JSON.stringify(SIBLINGS) + ')');
     const railGeo = await q.evaluate(() => document.querySelector('.rail').getBoundingClientRect().left);
     const railW = await q.evaluate(() => document.querySelector('.rail').getBoundingClientRect().width);
-    await q.evaluate(() => document.getElementById('rail-close').click()); await q.waitForTimeout(300);
+    await q.evaluate(() => document.getElementById('rail-close').click()); await q.settle();
     rec('INTEGRITY ' + w + '×' + h + ': no element in the lenses or the rail leaves its container, no siblings overlap, no horizontal page scroll',
         probeSide.out.length === 0 && probeSide.overlap.length === 0 && probeRail.out.length === 0 && probeRail.overlap.length === 0 && geo.scrollW <= geo.innerW, JSON.stringify({ side: probeSide, rail: probeRail, scrollW: geo.scrollW }).slice(0, 600));
     /* one hierarchy at every width: hero, then lens navigation, then the active lens, in one column; Change is a drawer opened on purpose */
@@ -263,7 +263,7 @@ H.suite('v2-legibility-accept', async (t) => {
         hier.heroTop < hier.navTop && hier.navTop < hier.figTop && hier.visibleLenses === 0 && hier.figOpen && Math.abs(hier.heroLeft - hier.navLeft) < 2 && hier.heroW <= hier.stageW && geo.rail.left < 0 && railGeo === 0 && geo.toggle !== 'none' && (w > 760 || (railW >= w - 1 && hier.sceneH <= 300)),
         JSON.stringify({ hier, railClosed: geo.rail.left, railOpen: railGeo, railW, toggle: geo.toggle }));
     if (w === 390) {
-      await q.evaluate(() => document.getElementById('menu-mech').click()); await q.waitForTimeout(500);
+      await q.evaluate(() => document.getElementById('menu-mech').click()); await q.settle();
       const sys = await q.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(), s = document.querySelector('.stage'); return { cw: c.width, ch: c.height, scroll: s.scrollWidth > s.clientWidth, pageW: document.documentElement.scrollWidth }; });
       rec('LAYOUT 390 · System: the ontology keeps its size inside a horizontally scrolling frame (never shrunk to illegibility); the page itself does not scroll sideways', sys.cw >= 1000 && sys.ch >= 600 && sys.scroll && sys.pageW <= 390, JSON.stringify(sys));
     }

@@ -24,7 +24,7 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html') + '#app'
 H.suite('base-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const open = async () => { const p = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(URL); await p.waitForTimeout(600); return p; };
+    await p.goto(URL); await p.settle(); return p; };
   const D = (p, f, a) => p.evaluate(f, a);
   const slide = (p, id, v) => D(p, ([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
 
@@ -40,7 +40,7 @@ H.suite('base-accept', async (t) => {
   rec('NO HIDDEN BASE: Company cannot be opened before a freeze', (await D(pg, () => window.__SP_DEBUG.layer)) === 'base', '');
 
   /* ---- FREEZE ---- */
-  await D(pg, () => document.getElementById('base-freeze').click()); await pg.waitForTimeout(300);
+  await D(pg, () => document.getElementById('base-freeze').click()); await pg.paint();
   const fz = await D(pg, () => { 'use strict'; const X = window.__SP_DEBUG, F = X.frozenBase;
     let threw = false; try { (function(){ 'use strict'; F.a.sm = 1; })(); } catch (e) { threw = true; }
     let deep = false; try { (function(){ 'use strict'; F.a.monetization.components[1].unitsCap = 1; })(); } catch (e) { deep = true; }
@@ -72,10 +72,10 @@ H.suite('base-accept', async (t) => {
   const s3 = await snap(pg);
   rec('RE-FREEZE: with an Experiment it asks "Freeze new Base? This replaces the current baseline and resets the Experiment."; Cancel changes nothing outside the draft',
       ask.shown && /Freeze new Base\?/.test(ask.text) && /replaces the current baseline and resets the Experiment/.test(ask.text) && s3.base === s0.base && s3.exp === s2.exp && s3.draft === s1.draft, JSON.stringify(ask));
-  await D(pg, () => { document.getElementById('base-freeze').click(); document.getElementById('freeze-yes').click(); }); await pg.waitForTimeout(300);
+  await D(pg, () => { document.getElementById('base-freeze').click(); document.getElementById('freeze-yes').click(); }); await pg.paint();
   const rf = await D(pg, () => { const X = window.__SP_DEBUG; return { n: X.frozenBase.n, sm: X.baseA.sm, cash: X.baseStart.openingCash, exp: JSON.stringify(X.expA) === JSON.stringify(X.frozenBase.a), chip: document.getElementById('rail-toggle').textContent, preset: X.activeScenario }; });
   rec('RE-FREEZE: Confirm replaces the Base with the draft (laws and opening state) and resets the Experiment to it', rf.n === 2 && rf.sm === 1500000 && rf.cash === 20000000 && rf.exp && rf.chip === 'Experiment' && rf.preset === null, JSON.stringify(rf));
-  await D(pg, () => { document.getElementById('nav-base').click(); document.getElementById('tpl-wC').click(); document.getElementById('base-freeze').click(); }); await pg.waitForTimeout(300);
+  await D(pg, () => { document.getElementById('nav-base').click(); document.getElementById('tpl-wC').click(); document.getElementById('base-freeze').click(); }); await pg.paint();
   const quiet = await D(pg, () => ({ n: window.__SP_DEBUG.frozenBase.n, asked: !document.getElementById('freeze-confirm').hidden, src: window.__SP_DEBUG.baseSource }));
   rec('RE-FREEZE: with no Experiment there is nothing to lose, so it does not ask', quiet.n === 3 && !quiet.asked && quiet.src === 'wC', JSON.stringify(quiet));
 
@@ -117,8 +117,8 @@ H.suite('base-accept', async (t) => {
   const ledgerOf = async (change, view) => { const p = await open();
     await D(p, () => { window.__SP_DEBUG.useBase('wA'); });
     if (change) await slide(p, 'f-sm', 1400000);
-    await D(p, () => document.getElementById('menu-ledger').click()); await p.waitForTimeout(300);
-    if (view) await D(p, v => window.__SP_DEBUG.setViewed(v), view); await p.waitForTimeout(300);
+    await D(p, () => document.getElementById('menu-ledger').click()); await p.paint();
+    if (view) await D(p, v => window.__SP_DEBUG.setViewed(v), view); await p.paint();
     const h = await D(p, () => document.getElementById('ledgerscroll').innerHTML); await p.close(); return h; };
   const lb = await ledgerOf(true, 'base'), l0 = await ledgerOf(false, null), le = await ledgerOf(true, 'exp');
   rec('VIEWING BASE: the Ledger under Base is exactly the Ledger of the frozen Base itself, and differs from the Experiment\'s', lb === l0 && lb !== le && lb.length > 5000, JSON.stringify({ same: lb === l0, differs: lb !== le }));

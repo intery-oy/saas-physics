@@ -24,16 +24,16 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 
 H.suite('v2-hierarchy-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
-  const open = async (w, h) => { const pg = await t.browser.newPage({ viewport: { width: w, height: h } }); pg.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800); await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); window.__SP_DEBUG.useBase('arr'); }); await pg.waitForTimeout(400); return pg; };   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */
-  const click = async (pg, sel) => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(350); };
-  const scrub = async (pg, v) => { await pg.evaluate(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(250); };
+  /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */
+  const open = (w, h) => t.open({ viewport: { width: w, height: h }, world: 'arr', label: String(w) });
+  const click = (pg, sel) => pg.hit(sel);
+  const scrub = (pg, v) => pg.month(v);
   const vis = (pg, sel) => pg.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; }, sel);
   const rect = (pg, sel) => pg.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, sel);
   const sideText = pg => pg.evaluate(() => document.getElementById('side').innerText);
 
   const pg = await open(1440, 900);
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(pg, 36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle(); await scrub(pg, 36);
 
   /* ---- CHANGE: a drawer ---- */
   const r0 = await rect(pg, '.rail'), open0 = await pg.evaluate(() => document.querySelector('.app').classList.contains('rail-open'));
@@ -48,13 +48,13 @@ H.suite('v2-hierarchy-accept', async (t) => {
   rec('CHANGE: definitions are behind Details — hidden in the compact default, shown when Details is on', detailOff === 'none' && detailOn !== 'none', detailOff + ' → ' + detailOn);
   await click(pg, '#rail-close');
   const open2 = await pg.evaluate(() => document.querySelector('.app').classList.contains('rail-open'));
-  await click(pg, '#rail-toggle'); await pg.keyboard.press('Escape'); await pg.waitForTimeout(250);
+  await click(pg, '#rail-toggle'); await pg.keyboard.press('Escape'); await pg.paint();
   const open3 = await pg.evaluate(() => document.querySelector('.app').classList.contains('rail-open'));
-  await click(pg, '#rail-toggle'); await pg.evaluate(() => document.getElementById('scrim').click()); await pg.waitForTimeout(250);
+  await click(pg, '#rail-toggle'); await pg.evaluate(() => document.getElementById('scrim').click()); await pg.paint();
   const open4 = await pg.evaluate(() => document.querySelector('.app').classList.contains('rail-open'));
   rec('CHANGE: Close, Escape and the scrim each close the drawer', !open2 && !open3 && !open4, JSON.stringify([open2, open3, open4]));
   const label0 = await pg.evaluate(() => document.getElementById('rail-toggle').textContent);
-  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close');
+  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input')); }); await pg.settle(); await click(pg, '#rail-close');
   const label1 = await pg.evaluate(() => document.getElementById('rail-toggle').textContent);
   rec('CHANGE: the entry point names the state — "Experiment" when it equals Base, "Experiment · n change(s)" when it differs', /^Experiment$/.test(label0) && /^Experiment · 1 change$/.test(label1), label0 + ' → ' + label1);
   /* the header reads in the order of the journey: world, then see → change → compare → understand, then ⋯ */
@@ -105,7 +105,7 @@ H.suite('v2-hierarchy-accept', async (t) => {
   rec('MECHANICS: drill-down into Cash and back to the Overview through the view list', drill.view === 'cash' && drill.on === 'Cash' && back === 'ontology', JSON.stringify({ drill, back }));
 
   /* ---- PRESETS: a browser inside the Experiment drawer; Compare analyses the loaded preset ---- */
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(300);   /* recipes are written for the reference model's laws */
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.paint();   /* recipes are written for the reference model's laws */
   await click(pg, '#rail-toggle'); await click(pg, '#nav-scen');
   const idx = await pg.evaluate(() => { const l = document.getElementById('preset-list'), rows = [...l.querySelectorAll('.prow')].filter(r => !r.hidden && !r.disabled);
     return { inRail: !!l.closest('.rail'), shown: !l.hidden, rows: rows.length, ids: rows.map(r => r.dataset.id).join(','), full: rows.every(r => r.querySelector('.pname').textContent && r.querySelector('.ptitle').textContent && r.querySelector('.plesson').textContent && r.querySelector('.pchg').textContent),
@@ -121,7 +121,7 @@ H.suite('v2-hierarchy-accept', async (t) => {
   rec('PRESETS: a recipe that would not mean what its lesson says on this Base is offered but disabled with the reason; examples are never presets — freezing an example Base sets up its matched Experiment, and the frozen Base is never written',
       gate.onA.ret && /customer laws/.test(gate.onA.why) && gate.onA.ex && gate.onEx.shown && gate.applied === 'customers' && gate.baseSame && gate.baseIsFrozen, JSON.stringify(gate));
   const layer0 = await pg.evaluate(() => window.__SP_DEBUG.layer);
-  await pg.evaluate(() => document.querySelector('#preset-list .prow[data-id="hypothesis"]').click()); await pg.waitForTimeout(400);
+  await pg.evaluate(() => document.querySelector('#preset-list .prow[data-id="hypothesis"]').click()); await pg.settle();
   const ld = await pg.evaluate(() => ({ id: window.__SP_DEBUG.activeScenario && window.__SP_DEBUG.activeScenario.id, listHidden: document.getElementById('preset-list').hidden, railOpen: document.querySelector('.app').classList.contains('rail-open'),
     chip: document.getElementById('rail-toggle').textContent, layer: window.__SP_DEBUG.layer, viewed: window.__SP_DEBUG.viewedWorld }));
   rec('PRESETS: choosing one loads it, closes the list and the drawer, keeps the page and views the Experiment; the chip names the preset', ld.id === 'hypothesis' && ld.listHidden && !ld.railOpen && /A retention programme/.test(ld.chip) && ld.layer === layer0 && ld.viewed === 'exp', JSON.stringify(ld));
@@ -145,7 +145,7 @@ H.suite('v2-hierarchy-accept', async (t) => {
   rec('COMPARE: secondary effects are collapsed under one summary whose counts equal the rows inside; nothing is dropped', cmp && cmp.secOpen === false && /^Secondary effects · /.test(cmp.sum) && (n ? +n[1] : 0) === secMoved && (u ? +u[1] : 0) === secSame && cmp.secRows.length > 0, JSON.stringify({ sum: cmp && cmp.sum, secMoved, secSame }));
   await click(pg, '#reset'); await click(pg, '#nav-company');
   /* a change that enters at acquisition: acquisition rows primary, everything else secondary */
-  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input')); }); await pg.waitForTimeout(400); await click(pg, '#rail-close'); await click(pg, '#nav-compare');
+  await click(pg, '#rail-toggle'); await pg.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1200000; i.dispatchEvent(new Event('input')); }); await pg.settle(); await click(pg, '#rail-close'); await click(pg, '#nav-compare');
   const cmp2 = await pg.evaluate(() => { const l2 = document.querySelector('#compare-panel .cause.l2'); return { heads: [...l2.querySelectorAll(':scope > .mech .mh')].map(e => e.textContent), sec: [...l2.querySelectorAll('details.bnd.sec .mech .mh')].map(e => e.textContent), sum: l2.querySelector('details.bnd.sec summary').textContent }; });
   rec('COMPARE: for an S&M change the primary rows are the acquisition section; the installed base moves only as a secondary effect', cmp2.heads.join('|') === 'acquisition' && cmp2.sec.indexOf('installed base') >= 0 && /additional change/.test(cmp2.sum), JSON.stringify(cmp2));
   await click(pg, '#reset'); await click(pg, '#nav-company');
@@ -155,7 +155,7 @@ H.suite('v2-hierarchy-accept', async (t) => {
   await scrub(pg, 36);
   const pin = await pg.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (22 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.6; y += 2) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return y; } } return null; });
-  await pg.waitForTimeout(500);
+  await pg.settle();
   const insp = await pg.evaluate(() => { const d = document.querySelector('.dossier'); if (!d) return null; const steps = [...d.querySelectorAll('.pstep')].map(s => ({ rows: [...s.querySelectorAll(':scope > .srow')].length, more: s.querySelectorAll('details.more').length, moreOpen: [...s.querySelectorAll('details.more')].some(x => x.open) }));
     return { active: document.getElementById('side').dataset.active, back: !!document.getElementById('inspect-back'), hero: !!document.querySelector('#lens-company .hero'), tabs: [...document.querySelectorAll('#side .lens.tab')].filter(e => getComputedStyle(e).display !== 'none').length, steps, bought: /Bought under/.test(d.innerText), spend: /Spend incurred/.test(d.innerText), spendAll: /Spend incurred/.test(d.textContent) }; });
   rec('INSPECT: pinning a cohort makes Inspect the surface — hero kept, lenses replaced by the chain and a ‹ Company return', pin !== null && insp && insp.active === 'inspect' && insp.back && insp.hero && insp.tabs === 0, JSON.stringify(insp && { active: insp.active, back: insp.back, tabs: insp.tabs }));
@@ -179,13 +179,13 @@ H.suite('v2-hierarchy-accept', async (t) => {
     const q = await open(w, h);
     await click(q, '#rail-toggle');
     const rr = await rect(q, '.rail');
-    await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.waitForTimeout(400); await click(q, '#rail-close'); await scrub(q, 36);
+    await q.evaluate(() => window.__SP_DEBUG.useBase('wA')); await q.settle(); await click(q, '#rail-close'); await scrub(q, 36);
     const st = await q.evaluate(() => { const nav = ['nav-company', 'nav-compare', 'nav-scen', 'rail-toggle'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth; });
       const h = document.querySelector('#lens-company').getBoundingClientRect(), n = document.querySelector('.lensnav').getBoundingClientRect(), f = document.getElementById('figwrap').getBoundingClientRect();
       return { nav, order: h.top < n.top && n.top < f.top, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, stageScroll: document.querySelector('.stage').scrollWidth > document.querySelector('.stage').clientWidth + 1, open: document.querySelector('.app').classList.contains('rail-open') }; });
     rec('RESPONSIVE ' + w + ': the four surfaces and Change are reachable; the drawer opens ' + (w <= 760 ? 'full width' : 'as a 460px drawer') + ' and closes; hero → lenses → figure; no horizontal scroll', st.nav.every(Boolean) && (w <= 760 ? Math.abs(rr.w - w) <= 1 : rr.w >= 400 && rr.w < w) && !st.open && st.order && !st.hscroll && !st.stageScroll, JSON.stringify({ rail: rr.w, st }));
     await q.evaluate(() => window.__SP_DEBUG.useBase('arr')); await click(q, '#rail-toggle'); await click(q, '#nav-scen'); const pl = await q.evaluate(() => { const r = document.querySelector('#preset-list .prow').getBoundingClientRect(); return r.width > 0 && r.right <= window.innerWidth + 1; });
-    await q.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await q.waitForTimeout(500);
+    await q.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await q.settle();
     const sx = await q.evaluate(() => ({ pl: 0, eb: document.querySelector('#compare-panel h4').textContent, hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }));
     await click(q, '#menu-mech');
     const sy = await q.evaluate(() => { const fb = document.querySelector('.figbox').getBoundingClientRect(); return { fh: fb.height, notes: document.querySelector('.app').classList.contains('notes'), hscroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 }; });

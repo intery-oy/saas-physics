@@ -67,7 +67,7 @@ H.suite('visual-accept', async (t) => {
   fs.mkdirSync(SHOTS, { recursive: true });
   const pg = await t.open({ world: 'wA' });
   await pg.evaluate(() => { const p = document.getElementById('play'); if (p.classList.contains('play')) p.click(); });
-  await pg.waitForTimeout(300);
+  await pg.paint();
   /* a scratch page whose only job is to decode the screenshots */
   const eye = await t.browser.newPage();
   await eye.goto('about:blank');
@@ -87,7 +87,7 @@ H.suite('visual-accept', async (t) => {
 
   const seen = {};
   for (const [name, go, sel] of surfaces) {
-    await go(); await pg.waitForTimeout(900);
+    await go(); await pg.settle();
     const buf = await pg.locator(sel).screenshot();
     fs.writeFileSync(path.join(SHOTS, name + '.png'), buf);
     seen[name] = await look(eye, buf);

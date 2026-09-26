@@ -19,11 +19,11 @@ const LENSES = ['company', 'customers', 'growth', 'monetization', 'cash'];
 H.suite('company-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const open = async pk => { const p = await t.browser.newPage({ viewport: { width: 1440, height: 900 } }); p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
-    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.waitForTimeout(300);
+    await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.settle();
+    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.paint();
     await p.evaluate(() => { for (const [k, f] of [['sm', 1.4], ['grossMargin', 0.9], ['cacPerARR', 0.8]]) { const i = document.getElementById('f-' + k); i.value = +i.value * f; i.dispatchEvent(new Event('input', { bubbles: true })); } });
-    await p.waitForTimeout(300);
-    await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(200);
+    await p.paint();
+    await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.paint();
     return p; };
   const cap = (p, canvas) => p.evaluate(canvas => { const sd = document.getElementById('side').cloneNode(true);
     sd.querySelectorAll('.viewing').forEach(e => e.remove());
@@ -33,9 +33,9 @@ H.suite('company-accept', async (t) => {
   /* ---- ONE WORLD ---- */
   const one = {};
   for (const pk of ['wA', 'wC', 'arr']) {
-    const X = await open(pk), Q = await open(pk); await Q.evaluate(() => window.__SP_DEBUG.rebaseToExperiment()); await Q.waitForTimeout(250);
+    const X = await open(pk), Q = await open(pk); await Q.evaluate(() => window.__SP_DEBUG.rebaseToExperiment()); await Q.paint();
     const bad = [];
-    for (const L of LENSES) { for (const p of [X, Q]) await lens(p, L); await X.waitForTimeout(250); await Q.waitForTimeout(250);
+    for (const L of LENSES) { for (const p of [X, Q]) await lens(p, L); await X.paint(); await Q.paint();
       const a = await cap(X, L === 'company'), b = await cap(Q, L === 'company');
       for (const k of Object.keys(a)) if (a[k] !== b[k]) { let i = 0; while (i < a[k].length && a[k][i] === b[k][i]) i++; bad.push(L + '·' + k + '@' + i + ': ' + a[k].slice(Math.max(0, i - 50), i + 50)); } }
     one[pk] = bad; await X.close(); await Q.close();
@@ -63,13 +63,13 @@ H.suite('company-accept', async (t) => {
       vals.e === vals.eWant && vals.b === vals.bWant && vals.e !== vals.b, JSON.stringify(vals));
 
   /* ---- HOVER and INSPECT ---- */
-  const X = await open('wC'), Q = await open('wC'); await Q.evaluate(() => window.__SP_DEBUG.rebaseToExperiment()); await Q.waitForTimeout(250);
-  const probe = async p => { await lens(p, 'company'); await p.waitForTimeout(200); const r = await p.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(); return { x: c.left, y: c.top, w: c.width, h: c.height }; }); const out = [];
-    for (let i = 0; i < 14; i++) { await p.mouse.move(r.x + r.w * 0.52, r.y + r.h * (0.2 + i * 0.05)); await p.waitForTimeout(30); out.push(await p.evaluate(() => window.__SP_DEBUG.hover)); } return out; };
+  const X = await open('wC'), Q = await open('wC'); await Q.evaluate(() => window.__SP_DEBUG.rebaseToExperiment()); await Q.paint();
+  const probe = async p => { await lens(p, 'company'); await p.paint(); const r = await p.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(); return { x: c.left, y: c.top, w: c.width, h: c.height }; }); const out = [];
+    for (let i = 0; i < 14; i++) { await p.mouse.move(r.x + r.w * 0.52, r.y + r.h * (0.2 + i * 0.05)); await p.paint(); out.push(await p.evaluate(() => window.__SP_DEBUG.hover)); } return out; };
   const hX = await probe(X), hQ = await probe(Q);
   rec('HOVER: hovering the formation resolves, pixel for pixel, to the cohorts of the company on screen', JSON.stringify(hX) === JSON.stringify(hQ) && hX.some(v => v !== null), JSON.stringify({ exp: hX, only: hQ }));
   const pin = async p => { const r = await p.evaluate(() => { const c = document.getElementById('scene').getBoundingClientRect(); return { x: c.left + c.width * 0.52, y: c.top + c.height * 0.45 }; });
-    await p.mouse.click(r.x, r.y); await p.waitForTimeout(400); return p.evaluate(() => ({ k: window.__SP_DEBUG.pinned, canvas: document.getElementById('scene').toDataURL(), txt: document.getElementById('side').innerText })); };
+    await p.mouse.click(r.x, r.y); await p.settle(); return p.evaluate(() => ({ k: window.__SP_DEBUG.pinned, canvas: document.getElementById('scene').toDataURL(), txt: document.getElementById('side').innerText })); };
   const iX = await pin(X), iQ = await pin(Q);
   rec('INSPECT: a pinned cohort\'s figure and dossier match the single-world page — no Base ghost line, no "Base: same" / "Base age" payback text',
       iX.k !== null && iX.k === iQ.k && iX.canvas === iQ.canvas && !/Base: same|Base age|Base: not reached/.test(iX.txt), JSON.stringify({ k: iX.k, canvas: iX.canvas === iQ.canvas }));

@@ -27,15 +27,15 @@ H.suite('defects-accept', async (t) => {
   const open = async (w, h) => {
     const pg = await t.browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     pg.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
+    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle();
     return pg;
   };
-  const enter = async pg => { await pg.evaluate(() => document.getElementById('welcome-enter').click()); await pg.waitForTimeout(300); };
-  const pack = async (pg, p) => { await pg.evaluate(x => window.__SP_DEBUG.useBase(x), p); await pg.waitForTimeout(350); };
-  const nav = async (pg, t) => { await pg.evaluate(x => { const b = [...document.querySelectorAll('button')].find(q => q.textContent.trim() === x); if (b) b.click(); }, t); await pg.waitForTimeout(300); };
-  const sys = async (pg, v) => { await pg.evaluate(x => { const b = document.getElementById('sysview-' + x); if (b && !b.disabled) b.click(); }, v); await pg.waitForTimeout(400); };
-  const month = async (pg, m) => { await pg.evaluate(mm => { const p = document.getElementById('play'); if (p && p.classList.contains('play')) p.click(); const s = document.getElementById('scrub'); s.value = mm; s.dispatchEvent(new Event('input', { bubbles: true })); }, m); await pg.waitForTimeout(350); };
-  const setBasis = async (pg, b) => { await pg.evaluate(x => document.getElementById('basis-' + x).click(), b); await pg.waitForTimeout(400); };
+  const enter = async pg => { await pg.evaluate(() => document.getElementById('welcome-enter').click()); await pg.settle(); };
+  const pack = async (pg, p) => { await pg.evaluate(x => window.__SP_DEBUG.useBase(x), p); await pg.settle(); };
+  const nav = async (pg, t) => { await pg.evaluate(x => { const b = [...document.querySelectorAll('button')].find(q => q.textContent.trim() === x); if (b) b.click(); }, t); await pg.settle(); };
+  const sys = async (pg, v) => { await pg.evaluate(x => { const b = document.getElementById('sysview-' + x); if (b && !b.disabled) b.click(); }, v); await pg.settle(); };
+  const month = async (pg, m) => { await pg.evaluate(mm => { const p = document.getElementById('play'); if (p && p.classList.contains('play')) p.click(); const s = document.getElementById('scrub'); s.value = mm; s.dispatchEvent(new Event('input', { bubbles: true })); }, m); await pg.settle(); };
+  const setBasis = async (pg, b) => { await pg.evaluate(x => document.getElementById('basis-' + x).click(), b); await pg.settle(); };
 
   /* ---------------- BASIS: one quantity, one basis, a named period ---------------- */
   {
@@ -62,7 +62,7 @@ H.suite('defects-accept', async (t) => {
     /* Inspect: pin a cohort and read the monetization headline in both bases */
     await setBasis(pg, 'mrr'); await nav(pg, 'Company'); await month(pg, 36);
     const boxc = await pg.evaluate(() => { const c = document.querySelector('.stage canvas'); const r = c.getBoundingClientRect(); return { x: r.left + r.width * 0.45, y: r.top + r.height * 0.72 }; });
-    await pg.mouse.click(boxc.x, boxc.y); await pg.waitForTimeout(600);
+    await pg.mouse.click(boxc.x, boxc.y); await pg.settle();
     const grab = () => pg.evaluate(() => {
       const t = document.getElementById('side').innerText;
       const per = /([\d.,€]+)\s*per customer \/ (yr|mo)/.exec(t);
@@ -70,7 +70,7 @@ H.suite('defects-accept', async (t) => {
       return { pinned: window.__SP_DEBUG.pinned !== null && window.__SP_DEBUG.pinned !== undefined,
                per: per && { v: per[1], period: per[2] }, arpa: arpa && arpa[1] };
     });
-    const iM = await grab(); await setBasis(pg, 'arr'); await pg.waitForTimeout(400); const iA = await grab();
+    const iM = await grab(); await setBasis(pg, 'arr'); await pg.settle(); const iA = await grab();
     rec('BASIS · Inspect: the per-customer line follows the basis switch and names its period — "/ mo" in MRR, "/ yr" in ARR — so it can no longer be read as a second, larger quantity beside the ARPA two rows above it',
         !!(iM.pinned && iM.per && iA.per && iM.per.period === 'mo' && iA.per.period === 'yr' && iM.per.v !== iA.per.v),
         JSON.stringify({ mrr: iM.per, arr: iA.per }));
@@ -79,8 +79,8 @@ H.suite('defects-accept', async (t) => {
 
   /* ---------------- OPAQUE: the Guide pane hides what is behind it (Method is gone, Step 2B) ---------------- */
   {
-    const pg = await open(1440, 900); await enter(pg); await nav(pg, 'Scenarios'); await pg.waitForTimeout(300);
-    await pg.evaluate(() => document.getElementById('guidebtn').click()); await pg.waitForTimeout(400);
+    const pg = await open(1440, 900); await enter(pg); await nav(pg, 'Scenarios'); await pg.settle();
+    await pg.evaluate(() => document.getElementById('guidebtn').click()); await pg.settle();
     const o = await pg.evaluate(() => {
       const k = document.getElementById('welcome'), cs = getComputedStyle(k);
       const m = /rgba?\(([^)]+)\)/.exec(cs.backgroundColor);
@@ -107,7 +107,7 @@ H.suite('defects-accept', async (t) => {
 
   /* ---------------- LEDGER: the marked month is in view ---------------- */
   {
-    const pg = await open(1440, 900); await enter(pg); await pack(pg, 'wA'); await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.waitForTimeout(400);   /* ⋯ → Model Ledger (Step 2A) */
+    const pg = await open(1440, 900); await enter(pg); await pack(pg, 'wA'); await pg.evaluate(() => document.getElementById('menu-ledger').click()); await pg.settle();   /* ⋯ → Model Ledger (Step 2A) */
     const at = async m => { await month(pg, m); return pg.evaluate(() => {
       const host = document.getElementById('ledgerscroll'); const tr = host.querySelector('tr.on');
       if (!tr) return { marked: false };
@@ -129,7 +129,7 @@ H.suite('defects-accept', async (t) => {
     const over = [];
     for (const lens of ['company', 'customers', 'growth', 'monetization', 'cash']) {
       await pg.evaluate(l => { const b = document.querySelector('[data-lens="' + l + '"]'); if (b) b.click(); }, lens);
-      await pg.waitForTimeout(400);
+      await pg.settle();
       const bad = await pg.evaluate(l => {
         const out = [];
         document.querySelectorAll('svg.ch').forEach(sv => {
@@ -151,7 +151,7 @@ H.suite('defects-accept', async (t) => {
   /* ---------------- GUTTER: the drawer has one left edge ---------------- */
   {
     const pg = await open(1440, 900); await enter(pg); await pack(pg, 'wA');
-    await pg.evaluate(() => document.getElementById('rail-toggle').click()); await pg.waitForTimeout(500);
+    await pg.evaluate(() => document.getElementById('rail-toggle').click()); await pg.settle();
     const rows = await pg.evaluate(() => {
       const rail = document.querySelector('.rail'), rr = rail.getBoundingClientRect();
       return [...rail.querySelectorAll('.layerhead, .rail-legend, .force, .grp > .eyebrow')]
@@ -181,14 +181,14 @@ H.suite('defects-accept', async (t) => {
     });
     const top = await state();
     await pg.evaluate(() => { const w = document.getElementById('welcome'); w.scrollTop = w.scrollHeight; });
-    await pg.waitForTimeout(300);
+    await pg.settle();
     const bottom = await state();
     rec('CUE · Welcome: the pane that overflows shows the cue at the top and withdraws it at the bottom, and the cue never takes a click',
         top.overflows && top.cls && top.opacity === 1 && top.pe === 'none' && !bottom.cls && bottom.opacity === 0,
         JSON.stringify({ top, bottom }));
     /* tall viewport: nothing overflows, so nothing is claimed */
     const tall = await t.browser.newPage({ viewport: { width: 1440, height: 1400 } });
-    await tall.goto(URL); await tall.evaluate(() => window.__SP_DEBUG.useBase('wA')); await tall.waitForTimeout(600);
+    await tall.goto(URL); await tall.evaluate(() => window.__SP_DEBUG.useBase('wA')); await tall.settle();
     const noOverflow = await tall.evaluate(() => { const w = document.getElementById('welcome'); return { overflows: w.scrollHeight - w.clientHeight > 6, cls: w.classList.contains('scrolls') }; });
     rec('CUE · honest: on a viewport tall enough to hold the whole pane the cue is not shown, so it means "there is more" rather than "this is a pane"',
         !noOverflow.overflows && !noOverflow.cls, JSON.stringify(noOverflow));

@@ -85,7 +85,10 @@ function attach(p, errs, label) {
     errs.push((label ? label + ': ' : '') + 'console: ' + txt);
   });
 
-  p.frames2 = function () { return frames(p); };
+  /* Named paint() and hit(), not frames() and press(): Page.frames() and
+     Page.press() are Playwright's own, and shadowing Page.tap() once already
+     turned mobile-accept's real touch taps into synthetic clicks. */
+  p.paint = function () { return frames(p); };
   p.settle = function () { return settle(p); };
 
   /* window.__SP_DEBUG, passed in, so `D` never means two things again. */
@@ -124,8 +127,10 @@ function attach(p, errs, label) {
     }).then(function () { return frames(p); });
   };
 
-  /* A click that may change the page: settle, not a guess. */
-  p.tap = function (sel) {
+  /* A click that may change the page: settle, not a guess. Named `press`,
+     not `tap`, because Page.tap() is Playwright's real touch tap and
+     mobile-accept depends on it. */
+  p.hit = function (sel) {
     return p.evaluate(function (s) {
       var el = typeof s === 'string' ? (document.getElementById(s.replace(/^#/, '')) || document.querySelector(s)) : null;
       if (!el) throw new Error('no element ' + s);
@@ -150,8 +155,7 @@ function suite(name, body) {
   function open(opts) {
     opts = opts || {};
     return (function () {
-      return browser.newPage({ viewport: opts.viewport || VIEWPORT }).then(function (p) {
-        attach(p, errs, opts.label);
+      return browser.newPage({ viewport: opts.viewport || VIEWPORT, label: opts.label }).then(function (p) {
         return p.goto(opts.url || URL)
           .then(function () { return p.evaluate(function () { return document.fonts.ready; }); })
           /* the hook and the opening pane exist before anything is clickable */
@@ -194,6 +198,13 @@ function suite(name, body) {
   var started = Date.now();
   return launch().then(function (b) {
     browser = b;
+    /* Every page carries the suite verbs, however it was made: a suite that
+       still calls browser.newPage for a second viewport gets settle(), month(),
+       setLaw() and tap() without knowing the harness made it. */
+    var rawNewPage = b.newPage.bind(b);
+    b.newPage = function (o) {
+      return rawNewPage(o).then(function (p) { return attach(p, errs, o && o.label); });
+    };
     return body(t);
   }).then(function () {
     /* One error check, in one place, for every suite. */

@@ -26,12 +26,12 @@ H.suite('v2-accept', async (t) => {
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html')); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
-  await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
+  await pg.evaluate(() => { window.__SP_DEBUG.useBase('arr'); });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.settle();
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
-  await pg.waitForTimeout(900);
-  const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(250); };
+  await pg.settle();
+  const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.paint(); };
   const setScrub = async v => setSlider('scrub', v);
   const side = async () => pg.evaluate(() => document.getElementById('side').innerText);
 
@@ -46,7 +46,7 @@ H.suite('v2-accept', async (t) => {
   rec('A · CONTROLS: the three customer controls exist in their own "Customer physics" group, read null (logo retention off, ARR per new logo = opening ARPA), and persistence is an ordinary input',
       c0.L && c0.C && c0.K && c0.tog === 'off' && c0.Lv === '' && c0.Kv === 'opening ARPA' && c0.Pv === '90.0%' && !c0.Pdis && c0.A.logoRetentionAnnual === null && c0.mech.customerPhysics === false && c0.group.includes('Customer physics'),
       JSON.stringify({ tog: c0.tog, Lv: c0.Lv, Kv: c0.Kv, Pv: c0.Pv, groups: c0.group }));
-  await jsClick('#t-logoRetentionAnnual'); await pg.waitForTimeout(300);
+  await jsClick('#t-logoRetentionAnnual'); await pg.paint();
   await setSlider('f-contractionAnnual', 0.05);
   const c1 = await pg.evaluate(() => ({
     A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, P: window.__SP_DEBUG.expRes.derived.persistenceAnnualEffective,
@@ -75,7 +75,7 @@ H.suite('v2-accept', async (t) => {
       Math.abs((icm.dollarChurnFromLogosR12M + icm.dollarChurnFromContractionR12M) - (1 - ikpi.grr)) < 1e-9, '');
 
   /* ---- A · INSPECT: pin a cohort ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
+  await jsClick('#nav-company'); await pg.paint();
   await setScrub(24);
   const pinned = await pg.evaluate(() => {
     const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
@@ -92,15 +92,15 @@ H.suite('v2-accept', async (t) => {
       pinned.hit === null ? 'no cohort hit' : pinned.txt.slice(pinned.txt.indexOf('Customer base'), pinned.txt.indexOf('Customer base') + 200).replace(/\n/g, ' | '));
 
   /* ---- A · SYSTEM ---- */
-  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.settle();
   const sys = await pg.evaluate(() => ({ txt: (document.getElementById('sysview-customers').click(), document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), chips: ['logoRetentionAnnual', 'contractionAnnual'].map(k => !!document.getElementById('f-' + k)   /* the map's valves route here (laws-accept) */) }));
   rec('A · MECHANICS · Customers: the notes derive persistence from the customer layer\'s live laws; the map\'s customer valves lead to their laws in the Experiment drawer',
       sys.txt.includes('logo retention 92.0% × (1 − contraction 5.0%) = 87.4%') && sys.chips.every(Boolean), sys.txt.slice(sys.txt.indexOf('derived'), sys.txt.indexOf('derived') + 160).replace(/\n/g, ' | '));
   rec('A · MECHANICS: no Delta mode on the layer', !(await pg.evaluate(() => !!document.getElementById('cmp-delta'))), '');
 
   /* ---- A · SCENARIO 10 ---- */
-  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await jsClick('#nav-scen'); await pg.paint();
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-customers'), document.getElementById('nav-compare').click())); await pg.settle();
   const s10 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     b: window.__SP_DEBUG.baseRes.months[59].closingARR, x: window.__SP_DEBUG.expRes.months[59].closingARR,
     cb: window.__SP_DEBUG.baseRes.months[59].customers.closing, cx: window.__SP_DEBUG.expRes.months[59].customers.closing }));
@@ -112,8 +112,8 @@ H.suite('v2-accept', async (t) => {
       (await pg.evaluate(() => document.getElementById('side').textContent)).includes('continuous cohort count with one ARPA per cohort'), '');
 
   /* ---- NULL ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr'));   /* the preset above ran on its own example Base, and Reset returns to that Base: the layer-off world is the ARR-physics Base */ await pg.waitForTimeout(300);
+  await jsClick('#nav-company'); await pg.paint();
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr'));   /* the preset above ran on its own example Base, and Reset returns to that Base: the layer-off world is the ARR-physics Base */ await pg.paint();
   const nul = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-logoRetentionAnnual').textContent,
     Pv: document.getElementById('v-persistenceAnnual').textContent, Pdis: document.getElementById('f-persistenceAnnual').disabled, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   await setScrub(36);
@@ -123,7 +123,7 @@ H.suite('v2-accept', async (t) => {
       !nulTxt.includes('CUSTOMER BASE DEVELOPMENT') && !/\ncustomers\n/.test(nulTxt) && /Customer physics off/i.test(nulTxt) && /are not modelled/.test(nulTxt) && nulTxt.includes('Installed-base net'), '');
 
   /* ---- B · CONTROLS ---- */
-  await jsClick('#t-monetization'); await pg.waitForTimeout(400);
+  await jsClick('#t-monetization'); await pg.settle();
   const b0 = await pg.evaluate(() => ({
     A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent,
     Lt: document.getElementById('t-logoRetentionAnnual').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled,
@@ -161,20 +161,20 @@ H.suite('v2-accept', async (t) => {
       bo.txt.slice(bo.txt.indexOf('COMPOSITION'), bo.txt.indexOf('COMPOSITION') + 260).replace(/\n/g, ' | '));
 
   /* ---- B · SYSTEM ---- */
-  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.settle();
   const bs = await pg.evaluate(() => document.getElementById('side').innerText);
   rec('B · MECHANICS · Overview: the rate note says expansion is component state repriced, used and adopted — no longer a coefficient',
       bs.includes('repriced, used more and adopted more') && bs.includes('departing customers') && !bs.includes('Expansion is the retained balance ×'), bs.slice(bs.indexOf('Leakage'), bs.indexOf('Leakage') + 160).replace(/\n/g, ' | '));
   
 
   /* ---- B · SCENARIOS 11, 12 ---- */
-  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-monetization'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await jsClick('#nav-scen'); await pg.paint();
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-monetization'), document.getElementById('nav-compare').click())); await pg.settle();
   const s11 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), bm: window.__SP_DEBUG.baseRes.mechanisms, xm: window.__SP_DEBUG.expRes.mechanisms, b0: window.__SP_DEBUG.baseRes.months[0].openingARR, x0: window.__SP_DEBUG.expRes.months[0].openingARR }));
   rec('B · SCENARIO 11: Base is the customer world with a coefficient, Experiment the same customers priced as components (same €20m opening); the panel shows cumulative price/usage/adoption effects, the R12M decomposition and the headroom used',
       !s11.bm.monetization && s11.xm.monetization && s11.b0 === 20000000 && s11.x0 === 20000000 && /MONETIZATION\nMonetization · off → on/.test(s11.txt) && /price effect CUM\n— → €[\d.]+[km]\nnew/.test(s11.txt) && /usage effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /adoption effect CUM\n— → €[\d.]+[km]/.test(s11.txt) && /variable share M60\n— → [\d.]+%/.test(s11.txt) && /expansion CUM\n€[\d.]+[km] → €[\d.]+[km]/.test(s11.txt),
       s11.txt.slice(s11.txt.indexOf('CONSEQUENCE'), s11.txt.indexOf('CONSEQUENCE') + 200).replace(/\n/g, ' | '));
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-mix'), document.getElementById('nav-compare').click())); await pg.settle();
   const s12 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), b: window.__SP_DEBUG.baseRes, x: window.__SP_DEBUG.expRes }));
   const gb12 = await pg.evaluate(() => { const D = window.__SP_DEBUG; return { gb: D.K.measureR12M(D.baseRes, 12).grr, gx: D.K.measureR12M(D.expRes, 12).grr, cb: D.baseRes.months[0].monetization.contractionARR, cx: D.expRes.months[0].monetization.contractionARR, ob: D.baseRes.months[0].openingARR, ox: D.expRes.months[0].openingARR }; });
   rec('B · SCENARIO 12: same opening ARR, customers and laws; contraction €0 in the all-platform Base and > 0 in the mixed Experiment; GRR differs; the match block is on screen',
@@ -184,14 +184,14 @@ H.suite('v2-accept', async (t) => {
       (await pg.evaluate(() => document.getElementById('side').textContent)).includes('no price elasticity'), '');
 
   /* ---- B · NULL ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr'));   /* the preset above ran on its own example Base, and Reset returns to that Base: the layer-off world is the ARR-physics Base */ await pg.waitForTimeout(300);
+  await jsClick('#nav-company'); await pg.paint();
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr'));   /* the preset above ran on its own example Base, and Reset returns to that Base: the layer-off world is the ARR-physics Base */ await pg.paint();
   const bn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-monetization').textContent, Xv: document.getElementById('v-expansionCoefficientAnnual').textContent, Xdis: document.getElementById('f-expansionCoefficientAnnual').disabled, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   rec('B · NULL-ON-SCREEN: Reset switches Monetization off; the expansion coefficient is an input again (10.0%, enabled); no composition block on screen',
       bn.A.monetization === null && !bn.mech.monetization && bn.tog === 'off' && bn.Xv === '10.0%' && !bn.Xdis && !bn.txt.includes('WHERE THE MRR COMES FROM'), '');
 
   /* ---- C · CONTROLS ---- */
-  await jsClick('#t-billingTermMonths'); await pg.waitForTimeout(400);
+  await jsClick('#t-billingTermMonths'); await pg.settle();
   const c0b = await pg.evaluate(() => ({
     A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-billingTermMonths').textContent, Tv: document.getElementById('v-billingTermMonths').textContent,
     tim: document.getElementById('t-billingTiming').textContent, Dv: document.getElementById('v-collectionDelayMonths').textContent, Ddis: document.getElementById('f-collectionDelayMonths').disabled,
@@ -200,13 +200,13 @@ H.suite('v2-accept', async (t) => {
   rec('C · CONTROLS: the billing-term toggle switches Cash Physics on at 12 months in advance; the timing button and delay slider enable; the opening book\'s deferred balance is derived (€9.17m); the summary names the change',
       c0b.A.billingTermMonths === 12 && c0b.A.billingTiming === 'advance' && c0b.mech.cashPhysics && c0b.tog === 'on' && c0b.Tv === '12 mo' && c0b.tim === 'advance' && !c0b.Ddis && c0b.Dv === '0 mo' &&
       Math.abs(c0b.opening - 20e6 / 12 * 11 / 2) < 1e-6 && /Billing term\s+off → 12 mo/.test(c0b.summary), JSON.stringify({ Tv: c0b.Tv, tim: c0b.tim, Dv: c0b.Dv }));
-  await jsClick('#t-billingTiming'); await pg.waitForTimeout(300);
+  await jsClick('#t-billingTiming'); await pg.paint();
   await setSlider('f-collectionDelayMonths', 2);
   const c1b = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, tim: document.getElementById('t-billingTiming').textContent, opening: window.__SP_DEBUG.expRes.derived.cash.openingDeferredRevenue, summary: document.getElementById('experiment-summary').innerText }));
   rec('C · CONTROLS: the timing button cycles to arrears (the opening balance becomes a contract asset, −€9.17m) and the delay slider drives the engine; the summary lists all three',
       c1b.A.billingTiming === 'arrears' && c1b.A.collectionDelayMonths === 2 && c1b.tim === 'arrears' && Math.abs(c1b.opening + 20e6 / 12 * 11 / 2) < 1e-6 && /3 assumptions changed/.test(c1b.summary) && /Billing timing\s+in advance → in arrears/.test(c1b.summary) && /Collection delay\s+0 mo → 2 mo/.test(c1b.summary),
       c1b.summary.replace(/\n/g, ' | '));
-  await jsClick('#t-billingTiming'); await pg.waitForTimeout(300);
+  await jsClick('#t-billingTiming'); await pg.paint();
   await setSlider('f-collectionDelayMonths', 1);
 
   /* ---- C · OBSERVE + WATERFALL ---- */
@@ -225,7 +225,7 @@ H.suite('v2-accept', async (t) => {
       co.wf.length === 10 && co.wf[6] === '= EBITA' && /Δ deferred revenue$/.test(co.wf[7]) && /Δ receivables$/.test(co.wf[8]) && co.wf[9] === '= Cash FCF' && co.wfv[9] === fmtC(co.fcf) && Math.abs(co.fcf - co.ebita) > 1000, JSON.stringify(co.wf) + ' ' + co.wfv[9]);
 
   /* ---- C · INSPECT: a cohort's invoicing ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
+  await jsClick('#nav-company'); await pg.paint();
   await setScrub(24);
   const pinC = await pg.evaluate(() => {
     const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
@@ -243,15 +243,15 @@ H.suite('v2-accept', async (t) => {
   await pg.evaluate(() => { const cv = document.getElementById('scene'); cv.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
   /* ---- C · SYSTEM ---- */
-  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.settle();
   const cs = await pg.evaluate(() => (document.getElementById('sysview-cash').click(), document.getElementById('side').innerText));
   rec('C · MECHANICS · Cash: the notes state the billing policy and the identity cash FCF − EBITA = Δdeferred − Δreceivables',
       cs.includes('cash FCF − EBITA = Δdeferred − Δreceivables') && cs.includes('12-month period') && cs.includes('collected exactly 1 month later'), cs.slice(cs.indexOf('EBITA'), cs.indexOf('EBITA') + 200).replace(/\n/g, ' | '));
   
 
   /* ---- C · SCENARIO 13 ---- */
-  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="billing"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await jsClick('#nav-scen'); await pg.paint();
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="billing"]').click(), document.getElementById('nav-compare').click())); await pg.settle();
   const s13 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let wE = 0; for (let t = 0; t < 60; t++) wE = Math.max(wE, Math.abs(D.expRes.months[t].ebita - D.baseRes.months[t].ebita));
     return { txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), wE, xm: D.expRes.mechanisms, bm: D.baseRes.mechanisms, bc: D.baseRes.months[59].cashClosing, xc: D.expRes.months[59].cashClosing }; });
   rec('C · SCENARIO 13: Base FCF = EBITA, Experiment billed annually in advance and collected a month later; EBITA identical every month, ending cash differs; the match block and the cash rows are on screen',
@@ -260,14 +260,14 @@ H.suite('v2-accept', async (t) => {
   rec('C · SCENARIO 13: the FCF boundary reads the live billing policy', (await pg.evaluate(() => document.getElementById('side').textContent)).includes('billed per the 12-month term in advance and collected 1 months later'), '');
 
   /* ---- C · NULL ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#nav-company'); await pg.paint();
+  await jsClick('#reset'); await pg.paint();
   const cn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-billingTermMonths').textContent, wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent), txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) }));
   rec('C · NULL-ON-SCREEN: Reset switches Cash Physics off; the waterfall ends at "= Modeled FCF (= EBITA)" (7 steps); no cash block on screen',
       cn.A.billingTermMonths === null && cn.A.collectionDelayMonths === 0 && !cn.mech.cashPhysics && cn.tog === 'off' && cn.wf.length === 7 && cn.wf[6] === '= Modeled FCF (= EBITA)' && !cn.txt.includes('CASH BENEATH EBITA'), JSON.stringify(cn.wf));
 
   /* ---- D · CONTROLS ---- */
-  await jsClick('#t-interventions'); await pg.waitForTimeout(400);
+  await jsClick('#t-interventions'); await pg.settle();
   const d0 = await pg.evaluate(() => ({
     A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, Hv: document.getElementById('v-interventions').textContent,
     tgt: document.getElementById('t-interventions[0].target').textContent, Ev: document.getElementById('v-interventions[0].value').textContent, Edis: document.getElementById('f-interventions[0].value').disabled,
@@ -277,15 +277,15 @@ H.suite('v2-accept', async (t) => {
   rec('D · CONTROLS: the Hypothesis toggle switches one costed programme on (persistence × 1.05, decided M6, lag 3, 24 months); the target button, effect, timing and cost sliders enable; the schedule is resolved (in force M9–M32); the summary states the programme (target, effect, timing, duration)',
       d0.A.interventions.length === 1 && d0.A.interventions[0].target === 'persistenceAnnual' && d0.mech.interventions && d0.tog === 'on' && d0.Hv === '1 active' && d0.tgt === 'persistence' && d0.Ev === '1.05×' && !d0.Edis && d0.Dv === '24 mo' && d0.Dt === 'on' &&
       d0.sched[0].effectiveFrom === 9 && d0.sched[0].effectiveTo === 32 && /Hypothesis\s+↯ Hypothesis · persistence × 1\.05 · M6 \+3 lag · 24 mo · €200k \+ €50k\/mo/.test(d0.summary), JSON.stringify({ Hv: d0.Hv, tgt: d0.tgt, Ev: d0.Ev, Dv: d0.Dv }));
-  await jsClick('[id="t-interventions[0].target"]'); await pg.waitForTimeout(300);
+  await jsClick('[id="t-interventions[0].target"]'); await pg.paint();
   const d1 = await pg.evaluate(() => ({ t: window.__SP_DEBUG.expA.interventions[0].target, tgt: document.getElementById('t-interventions[0].target').textContent }));
   rec('D · CONTROLS: the target button cycles to the next law that is on (persistence → expansion coefficient, since the customer layer is off)', d1.t === 'expansionCoefficientAnnual' && d1.tgt === 'expansion coefficient', JSON.stringify(d1));
   /* cycle back to persistence */
-  for (let i = 0; i < 6; i++) { const t = await pg.evaluate(() => window.__SP_DEBUG.expA.interventions[0].target); if (t === 'persistenceAnnual') break; await jsClick('[id="t-interventions[0].target"]'); await pg.waitForTimeout(150); }
-  await jsClick('[id="t-interventions[0].durationMonths"]'); await pg.waitForTimeout(300);
+  for (let i = 0; i < 6; i++) { const t = await pg.evaluate(() => window.__SP_DEBUG.expA.interventions[0].target); if (t === 'persistenceAnnual') break; await jsClick('[id="t-interventions[0].target"]'); await pg.paint(); }
+  await jsClick('[id="t-interventions[0].durationMonths"]'); await pg.paint();
   const d2 = await pg.evaluate(() => ({ d: window.__SP_DEBUG.expA.interventions[0].durationMonths, Dv: document.getElementById('v-interventions[0].durationMonths').textContent, to: window.__SP_DEBUG.expRes.derived.interventions[0].effectiveTo }));
   rec('D · CONTROLS: the duration toggle switches the programme to permanent (null, the value reads "permanent"): the schedule runs to the horizon', d2.d === null && d2.Dv === 'permanent' && d2.to === 60, JSON.stringify(d2));
-  await jsClick('[id="t-interventions[0].durationMonths"]'); await pg.waitForTimeout(300);
+  await jsClick('[id="t-interventions[0].durationMonths"]'); await pg.paint();
 
   /* ---- D · OBSERVE + WATERFALL ---- */
   await setScrub(20);
@@ -298,14 +298,14 @@ H.suite('v2-accept', async (t) => {
       dob.wf.includes('− Hypothesis cost') && dob.wfv[dob.wf.indexOf('− Hypothesis cost')] === '−€50k', JSON.stringify(dob.wf));
 
   /* ---- D · SYSTEM ---- */
-  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.settle();
   const ds = await pg.evaluate(() => ({ view: !!document.getElementById('sysview-hypotheses'), txt: document.getElementById('side').innerText }));
   rec('D · MECHANICS: no Hypotheses view — the hypothesis is set in the Experiment drawer and read on Compare; the Overview only marks where it enters',
       !ds.view && /the stock sets its own rates/i.test(ds.txt), '');
   
 
   /* ---- D · INSPECT: a cohort's provenance ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
+  await jsClick('#nav-company'); await pg.paint();
   await setScrub(24);
   const pinD = await pg.evaluate(() => {
     const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
@@ -322,8 +322,8 @@ H.suite('v2-accept', async (t) => {
   await pg.evaluate(() => { const cv = document.getElementById('scene'); cv.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
   /* ---- D · SCENARIO 14 ---- */
-  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await jsClick('#nav-scen'); await pg.paint();
+  await pg.evaluate(() => (document.querySelector('#preset-list .prow[data-id="hypothesis"]').click(), document.getElementById('nav-compare').click())); await pg.settle();
   const s14 = await pg.evaluate(() => { const D = window.__SP_DEBUG; let same = true; for (let t = 0; t < 8; t++) if (D.expRes.months[t].closingARR !== D.baseRes.months[t].closingARR) same = false;
     return { txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), same, bm: D.baseRes.mechanisms, xm: D.expRes.mechanisms, cost: D.K.interventionMeasures(D.expRes, 60).cumulativeCost }; });
   rec('D · SCENARIO 14: Base has no hypothesis, Experiment the retention programme; months 1–8 identical; the panel shows the window, the cost (€1.55m), the month cash overtakes Base and the boundary',
@@ -332,8 +332,8 @@ H.suite('v2-accept', async (t) => {
   rec('D · SCENARIO 14: the boundary states what a hypothesis cannot do', (await pg.evaluate(() => document.getElementById('side').textContent)).includes('cannot switch a layer on or off'), '');
 
   /* ---- D · NULL ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#nav-company'); await pg.paint();
+  await jsClick('#reset'); await pg.paint();
   const dn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-interventions').textContent, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].map(e => e.textContent) }));
   rec('D · NULL-ON-SCREEN: Reset removes the hypothesis; no Hypotheses block, no cost step', dn.A.interventions.length === 0 && !dn.mech.interventions && dn.tog === 'off' && !dn.txt.includes('HYPOTHESES') && !dn.wf.includes('− Hypothesis cost'), '');
 
@@ -343,21 +343,21 @@ H.suite('v2-accept', async (t) => {
   rec('FINAL · RAIL: the Change surface is grouped by layer in order (ARR physics → Customer → Monetization → Cash → Hypotheses) with a header per layer stating on/off; the financial levers sit inside the ARR layer; a layer that is off shows only its switch',
       rail.heads.length === 5 && /ARR physics/.test(rail.heads[0]) && /Customer physics.*off/.test(rail.heads[1]) && /Monetization physics.*off/.test(rail.heads[2]) && /Cash physics.*off/.test(rail.heads[3]) && /Hypotheses.*off/.test(rail.heads[4]) &&
       rail.kinds.indexOf('Financial levers') < rail.kinds.indexOf('Customer physics') && rail.hidden.every(Boolean), JSON.stringify(rail.heads));
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('full')); await pg.waitForTimeout(400); await pg.waitForTimeout(500);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('full')); await pg.settle(); await pg.settle();
   const pk = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.baseSource, mech: window.__SP_DEBUG.expRes.mechanisms, bmech: window.__SP_DEBUG.baseRes.mechanisms, summary: document.getElementById('experiment-summary').innerText,
     heads: [...document.querySelectorAll('.rail .layerhead .lh-name')].map(e => e.textContent), shown: document.getElementById('f-collectionDelayMonths').closest('.force').style.display !== 'none' }));
   rec('FINAL · PACKS: "+ Hypothesis" sets Base = Experiment = every layer on with a costed programme (0 assumptions changed); every layer header reads on; the dependent controls appear',
       pk.pack === 'full' && pk.mech.customerPhysics && pk.mech.monetization && pk.mech.cashPhysics && pk.mech.interventions && pk.bmech.interventions && /0 assumptions changed/.test(pk.summary) && pk.heads.every(h => !/off/.test(h)) && pk.shown, JSON.stringify(pk.mech));
   await setSlider('f-sm', 1200000);
-  await jsClick('#reset'); await pg.waitForTimeout(400);
+  await jsClick('#reset'); await pg.settle();
   const pk2 = await pg.evaluate(() => ({ pack: window.__SP_DEBUG.baseSource, sm: window.__SP_DEBUG.expA.sm, mech: window.__SP_DEBUG.expRes.mechanisms }));
   rec('FINAL · PACKS: Reset returns to the active pack\'s world (S&M back to €900k, every layer still on), not to the v1.3 Base', pk2.pack === 'full' && pk2.sm === 900000 && pk2.mech.cashPhysics && pk2.mech.interventions, JSON.stringify(pk2));
-  await jsClick('#menu-mech'); await pg.waitForTimeout(400);
+  await jsClick('#menu-mech'); await pg.settle();
   const viewsOK = [];
-  for (const v of ['customers', 'monetization', 'cash', 'ontology']) { await jsClick('#sysview-' + v); await pg.waitForTimeout(350); viewsOK.push(await pg.evaluate(() => window.__SP_DEBUG.sysView)); }
+  for (const v of ['customers', 'monetization', 'cash', 'ontology']) { await jsClick('#sysview-' + v); await pg.paint(); viewsOK.push(await pg.evaluate(() => window.__SP_DEBUG.sysView)); }
   rec('FINAL · MECHANICS: a view per layer that is on; each renders without a page error and the Overview returns', viewsOK.join(',') === 'customers,monetization,cash,ontology' && errs.length === 0, viewsOK.join(','));
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(400); await pg.waitForTimeout(400);
+  await jsClick('#nav-company'); await pg.paint();
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.settle(); await pg.settle();
   const disabled = await pg.evaluate(() => ['customers', 'monetization', 'cash'].map(v => document.getElementById('sysview-' + v).disabled));
   rec('FINAL · MECHANICS: on the ARR-physics Base the layer views are disabled (nothing to draw) and the Overview remains', disabled.every(Boolean) && (await pg.evaluate(() => window.__SP_DEBUG.sysView)) === 'ontology', '');
 

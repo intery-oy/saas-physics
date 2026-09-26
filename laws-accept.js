@@ -19,9 +19,9 @@ const URL = 'file://' + path.resolve(__dirname, 'saas-physics-v1.html');
 H.suite('laws-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const open = async (pk, w, h) => { const p = await t.browser.newPage({ viewport: { width: w || 1440, height: h || 900 } }); p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.waitForTimeout(600);
-    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.waitForTimeout(300);
-    await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(200);
+    await p.goto(URL); await p.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p.settle();
+    await p.evaluate(pk => { document.getElementById('welcome-enter').click(); document.getElementById('play').click(); window.__SP_DEBUG.useBase(pk); }, pk); await p.settle();
+    await p.evaluate(() => { const s = document.getElementById('scrub'); s.value = '36'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await p.settle();
     return p; };
   const worlds = p => p.evaluate(() => { const D = window.__SP_DEBUG; return JSON.stringify([D.expA, D.baseA]); });
   const focusState = p => p.evaluate(() => { const f = document.querySelector('.force.law-focus'), c = f && f.querySelector('[id^="f-"],[id^="t-"]');
@@ -32,12 +32,12 @@ H.suite('laws-accept', async (t) => {
   const pg = await open('wA');
   const comp = {}, w0 = await worlds(pg);
   for (const lens of ['growth', 'monetization']) {
-    await pg.evaluate(l => document.querySelector('.lensnav .btn[data-lens="' + l + '"]').click(), lens); await pg.waitForTimeout(250);
+    await pg.evaluate(l => document.querySelector('.lensnav .btn[data-lens="' + l + '"]').click(), lens); await pg.settle();
     const keys = await pg.evaluate(l => [...document.querySelectorAll('#lens-' + l + ' .lever')].map(b => b.dataset.law), lens);
     for (const k of keys) {
       const box = await pg.evaluate(k => { const b = document.querySelector('.lever[data-law="' + k + '"]'); b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }, k);
-      await pg.mouse.click(box.x, box.y); await pg.waitForTimeout(300);
-      comp[k] = await focusState(pg); await closeDrawer(pg); await pg.waitForTimeout(150);
+      await pg.mouse.click(box.x, box.y); await pg.settle();
+      comp[k] = await focusState(pg); await closeDrawer(pg); await pg.settle();
     }
   }
   const w1 = await worlds(pg);
@@ -48,15 +48,15 @@ H.suite('laws-accept', async (t) => {
 
   /* ---- SYSTEM ---- */
   const clickHit = async (p, h) => { const pt = await p.evaluate(h => { const c = document.getElementById('scene').getBoundingClientRect(), f = window.__SP_DEBUG.sysFit;
-      return { x: c.left + f.ox + h.x * f.s, y: c.top + f.oy + h.y * f.s }; }, h); await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(300); };
+      return { x: c.left + f.ox + h.x * f.s, y: c.top + f.oy + h.y * f.s }; }, h); await p.mouse.click(pt.x, pt.y); await p.settle(); };
   const sys = {}, sysNo = {};
   for (const v of ['customers', 'monetization']) {
-    await pg.evaluate(v => { document.getElementById('menu-mech').click(); document.getElementById('sysview-' + v).click(); }, v); await pg.waitForTimeout(500);
+    await pg.evaluate(v => { document.getElementById('menu-mech').click(); document.getElementById('sysview-' + v).click(); }, v); await pg.settle();
     const hits = await pg.evaluate(() => { const D = window.__SP_DEBUG; return D.valveHits.map(h => ({ key: h.key, x: h.x, y: h.y })).concat(D.lawHits.map(h => ({ key: h.key, x: h.x + h.w / 2, y: h.y + h.h / 2 }))); });
     sysNo[v] = await pg.evaluate(() => document.querySelectorAll('.figbox input[type=range], #lawhost *').length);
     for (const h of hits) { if (sys[v + ':' + h.key]) continue;
       await clickHit(pg, h); const s = await focusState(pg), ring = await pg.evaluate(() => window.__SP_DEBUG.openChip);
-      sys[v + ':' + h.key] = { ok: s.open && s.row === h.key && ring === h.key, row: s.row }; await closeDrawer(pg); await pg.waitForTimeout(150); }
+      sys[v + ':' + h.key] = { ok: s.open && s.row === h.key && ring === h.key, row: s.row }; await closeDrawer(pg); await pg.settle(); }
   }
   const w2 = await worlds(pg);
   rec('MECHANICS: every valve and law mark on the Customers and Monetization mechanisms opens the Experiment drawer at its law, rings it on the map while open, and writes nothing',
@@ -66,16 +66,16 @@ H.suite('laws-accept', async (t) => {
 
   /* ---- BASE ---- */
   const b = await open('wA');
-  await b.evaluate(() => { const i = document.getElementById('f-rd'); i.value = +i.value * 1.2; i.dispatchEvent(new Event('input', { bubbles: true })); }); await b.waitForTimeout(250);
-  await b.evaluate(() => { document.querySelector('[data-vw="base"]').click(); document.querySelector('.lensnav .btn[data-lens="growth"]').click(); }); await b.waitForTimeout(250);
+  await b.evaluate(() => { const i = document.getElementById('f-rd'); i.value = +i.value * 1.2; i.dispatchEvent(new Event('input', { bubbles: true })); }); await b.settle();
+  await b.evaluate(() => { document.querySelector('[data-vw="base"]').click(); document.querySelector('.lensnav .btn[data-lens="growth"]').click(); }); await b.settle();
   const baseBefore = await b.evaluate(() => JSON.stringify(window.__SP_DEBUG.baseA)), expBefore = await b.evaluate(() => JSON.stringify(window.__SP_DEBUG.expA));
   const lvBase = await b.evaluate(() => document.getElementById('lv-sm').textContent);
   const box = await b.evaluate(() => { const e = document.querySelector('.lever[data-law="sm"]'); const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
-  await b.mouse.click(box.x, box.y); await b.waitForTimeout(300);
+  await b.mouse.click(box.x, box.y); await b.settle();
   const routed = await focusState(b), baseAfterRoute = await b.evaluate(() => JSON.stringify(window.__SP_DEBUG.baseA)), expAfterRoute = await b.evaluate(() => JSON.stringify(window.__SP_DEBUG.expA));
-  await b.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1500000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await b.waitForTimeout(300);
+  await b.evaluate(() => { const i = document.getElementById('f-sm'); i.value = 1500000; i.dispatchEvent(new Event('input', { bubbles: true })); }); await b.settle();
   const after = await b.evaluate(() => { const D = window.__SP_DEBUG; return { base: JSON.stringify(D.baseA), sm: D.expA.sm, view: D.viewedWorld }; });
-  await closeDrawer(b); await b.waitForTimeout(150);
+  await closeDrawer(b); await b.settle();
   const lvExp = await b.evaluate(() => document.getElementById('lv-sm').textContent);
   rec('BASE: from a Base page a law opens the Experiment at that law with Base and the Experiment untouched and the view still Base; the edit then changes only the Experiment and returns the view to it',
       routed.open && routed.row === 'sm' && routed.view === 'base' && baseAfterRoute === baseBefore && expAfterRoute === expBefore && after.base === baseBefore && after.sm === 1500000 && after.view === 'exp',

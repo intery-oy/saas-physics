@@ -30,12 +30,12 @@ H.suite('physics-accept', async (t) => {
   pg.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource|net::ERR/.test(msg.text())) errs.push('console: ' + msg.text()); });
   await pg.goto('file://' + require('path').resolve(__dirname, 'saas-physics-v1.html')); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA'));
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });   /* the opening page: enter the portal */
-  await pg.evaluate(() => { (window.__SP_DEBUG.useBase('arr'), 0)   /* a world change over an Experiment asks first */ });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.waitForTimeout(400);
+  await pg.evaluate(() => { (window.__SP_DEBUG.useBase('arr'), 0)   /* a world change over an Experiment asks first */ });   /* these checks read the ARR-physics world; the portal now opens on the Enterprise world */ await pg.settle();
   /* the Change rail is a drawer and lenses show one at a time: checks click through the DOM and read every lens */
   const jsClick = async sel => { await pg.evaluate(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); };
   await pg.evaluate(() => { document.getElementById('side').dataset.reading = 'all'; });
-  await pg.waitForTimeout(900);
-  const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.waitForTimeout(250); };
+  await pg.settle();
+  const setSlider = async (id, v) => { await pg.evaluate(([id, v]) => { const i = document.getElementById(id); i.value = v; i.dispatchEvent(new Event('input')); }, [id, v]); await pg.paint(); };
   const setScrub = async v => setSlider('scrub', v);
   const side = async () => pg.evaluate(() => document.getElementById('side').innerText);
 
@@ -53,7 +53,7 @@ H.suite('physics-accept', async (t) => {
   rec('CONTROLS: the page\'s Experiment assumptions carry the null settings the engine defaults to',
       ctrls.A.expansionCostPerARR === 0 && ctrls.A.maxMonthlyNewARR === null && ctrls.A.acquisitionLagMonths === 0, '');
 
-  await jsClick('#t-maxMonthlyNewARR'); await pg.waitForTimeout(300);
+  await jsClick('#t-maxMonthlyNewARR'); await pg.paint();
   const capOn = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA.maxMonthlyNewARR, tog: document.getElementById('t-maxMonthlyNewARR').textContent, val: document.getElementById('v-maxMonthlyNewARR').textContent, mech: window.__SP_DEBUG.expRes.mechanisms }));
   rec('CONTROLS: the capacity toggle switches the bound on at the slider value, and the run reports the mechanism on',
       capOn.A === 2000000 && capOn.tog === 'on' && capOn.val === '€2.00m/mo' && capOn.mech.acquisitionSaturation === true, JSON.stringify(capOn));
@@ -99,7 +99,7 @@ H.suite('physics-accept', async (t) => {
   rec('WATERFALL: the printed cost step equals the engine\'s month field', wfTie.shown === '−' + fmtEur(wfTie.engine), JSON.stringify(wfTie));
 
   /* ---- INSPECT: a lagged cohort ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(200);
+  await jsClick('#nav-company'); await pg.paint();
   await setScrub(20);
   const dossier = await pg.evaluate(() => {
     const D = window.__SP_DEBUG;
@@ -122,7 +122,7 @@ H.suite('physics-accept', async (t) => {
     }
     return { hit, txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText) };
   });
-  await pg.waitForTimeout(300);
+  await pg.paint();
   const dText = pinned.txt;
   rec('INSPECT (screen): the pinned cohort\'s dossier shows when the spend was incurred, how long it was pending, and when the cohort was created',
       pinned.hit !== null && /Spend incurred\s+month \d+ · pending 6 months/.test(dText) && /Cohort created\s+month \d+/.test(dText) && /Cohort CAC \(realised\)/.test(dText),
@@ -130,18 +130,18 @@ H.suite('physics-accept', async (t) => {
 
   /* ---- CAC-UNITS: the pinned cohort's CAC does not change when the display basis changes ---- */
   const cacMRR = await pg.evaluate(() => { const t = (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText); const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
-  await jsClick('#basis-arr'); await pg.waitForTimeout(300);
+  await jsClick('#basis-arr'); await pg.paint();
   const cacARR = await pg.evaluate(() => { const t = (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText); const m = t.match(/Cohort CAC \(realised\)\s+([^\n]+)/); return m ? m[1] : null; });
-  await jsClick('#basis-mrr'); await pg.waitForTimeout(200);
+  await jsClick('#basis-mrr'); await pg.paint();
   rec('CAC-UNITS: switching the MRR/ARR display basis leaves the cohort CAC string unchanged (CAC is per €1 of ARR, never ×12)',
       cacMRR !== null && cacMRR === cacARR && /1\.65× · CAC floor 1\.20×/.test(cacMRR), 'MRR basis: ' + cacMRR + ' | ARR basis: ' + cacARR);
   await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); });   /* Inspect is its own surface: back to the lenses */
-  await pg.waitForTimeout(300);
+  await pg.paint();
   const alive = await pg.evaluate(() => { const m = String(window.__SP_DEBUG.figLegend).match(/OPENING BASE \+ (\d+) COHORTS/); return m ? +m[1] + 1 : null; });   /* the formation legend counts the cohorts drawn */
   rec('OBSERVE (screen): the Growth engine\'s cohort node at month 20 under a 6-month lag counts the opening base + 14 realised cohorts alive, not 20', alive === 15, 'shown ' + alive);
 
   /* ---- SYSTEM ---- */
-  await jsClick('#menu-mech'); await pg.waitForTimeout(500);
+  await jsClick('#menu-mech'); await pg.settle();
   const sysAbs = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, pending: window.__SP_DEBUG.SS.stateAt(window.__SP_DEBUG.expRes, window.__SP_DEBUG.selectedMonth()).pendingNewARR }));
   rec('MECHANICS: the Overview notes explain structure only — the stock setting its own rates and the links the engine does not have — and leave the live settings to the drawer and Compare',
       !sysAbs.txt.includes('Mechanisms on the map') && sysAbs.txt.includes('The stock sets its own rates') && sysAbs.txt.includes('Two links the engine does not have'), '');
@@ -151,10 +151,10 @@ H.suite('physics-accept', async (t) => {
   rec('MECHANICS: no Delta mode and no stock or flow tables — Compare owns Base against Experiment, Company and the Ledger own the figures', !sysDelta.delta && !sysDelta.tables, JSON.stringify(sysDelta));
 
   /* ---- SCENARIOS 7–9 ---- */
-  await jsClick('#nav-company'); await pg.waitForTimeout(400);   /* the Forces rail (and Reset) is hidden on the System layer */
-  await jsClick('#reset'); await pg.waitForTimeout(300);
-  await jsClick('#nav-scen'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-expcost'), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await jsClick('#nav-company'); await pg.settle();   /* the Forces rail (and Reset) is hidden on the System layer */
+  await jsClick('#reset'); await pg.paint();
+  await jsClick('#nav-scen'); await pg.paint();
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('ex-expcost'), document.getElementById('nav-compare').click())); await pg.settle();
   const s7 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, bA: window.__SP_DEBUG.baseA, xA: window.__SP_DEBUG.expA,
     dARR: Math.max(...window.__SP_DEBUG.expRes.months.map((m, i) => Math.abs(m.closingARR - window.__SP_DEBUG.baseRes.months[i].closingARR))),
     dCash: window.__SP_DEBUG.expRes.months[59].cashClosing - window.__SP_DEBUG.baseRes.months[59].cashClosing }));
@@ -163,12 +163,12 @@ H.suite('physics-accept', async (t) => {
       'max ΔARR ' + s7.dARR.toExponential(1) + ', ΔCash M60 ' + s7.dCash.toFixed(0));
   rec('SCENARIO 7: the panel proves the match on screen (GRR 96/90, NRR equal, max |ΔMRR| shown) and lists the cost consequence',
       s7.txt.includes('The two worlds agree on ARR and NRR') && s7.txt.includes('expansion realisation cost') && /R12M NRR at M12105\.6000% · 105\.6000%/.test(s7.txt) && s7.txt.includes('Same ARR, different system'), s7.txt.slice(0, 160).replace(/\n/g, ' | '));
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('arr'), document.querySelector('#preset-list .prow[data-id="bounded"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('arr'), document.querySelector('#preset-list .prow[data-id="bounded"]').click(), document.getElementById('nav-compare').click())); await pg.settle();
   const s8 = await pg.evaluate(() => ({ txt: document.getElementById('side').textContent, cap: window.__SP_DEBUG.expA.maxMonthlyNewARR, q: window.__SP_DEBUG.expRes.derived.acquisition }));
   rec('SCENARIO 8: the bound is on at €2.0m, the panel shows average vs marginal CAC and the response-curve table, and no optimum is declared',
       s8.cap === 2000000 && s8.txt.includes('Average CAC') && s8.txt.includes('Marginal CAC') && s8.txt.includes('Floor payback') && s8.txt.includes('Average payback') && s8.txt.includes('Marginal payback') && s8.txt.includes('Acquisition response in the Experiment') &&
       s8.txt.includes(s8.q.marginalCAC.toFixed(2) + '×') && !/optimal|should stop|should invest/i.test(s8.txt), s8.txt.slice(0, 100).replace(/\n/g, ' | '));
-  await pg.evaluate(() => (document.getElementById('reset').click(), document.querySelector('#preset-list .prow[data-id="lag"]').click(), document.getElementById('nav-compare').click())); await pg.waitForTimeout(500);
+  await pg.evaluate(() => (document.getElementById('reset').click(), document.querySelector('#preset-list .prow[data-id="lag"]').click(), document.getElementById('nav-compare').click())); await pg.settle();
   const s9 = await pg.evaluate(() => ({ txt: (document.querySelectorAll('#side details').forEach(function(d){ d.open = true; }), document.getElementById('side').innerText), lag: window.__SP_DEBUG.expA.acquisitionLagMonths, pend: window.__SP_DEBUG.expRes.pendingAtHorizon.newARR }));
   rec('SCENARIO 9: lag 6 is on; the spine shows the first cohort M1 → M7 (+6 mo), the pending stock at M60 and the cash-trough shift',
       s9.lag === 6 && /first cohort\nM1 → M7\n\+6 mo/.test(s9.txt) && /pending at M60\n€0 → €375k/.test(s9.txt) && /cash trough\n€6\.10m M13 → €[\d.]+m M\d+/.test(s9.txt) && Math.abs(s9.pend - 6 * 750000) < 1e-6, s9.txt.slice(s9.txt.indexOf('ACQUISITION'), s9.txt.indexOf('ACQUISITION') + 160).replace(/\n/g, ' | '));
@@ -180,9 +180,9 @@ H.suite('physics-accept', async (t) => {
 
   /* ---- WARM START: the pipeline a going concern opens with ---- */
   await jsClick('#nav-company');   /* the earlier sections left the portal on another layer */
-  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(200);
-  await jsClick('#reset'); await pg.waitForTimeout(300);
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('wA'), 0)   /* a world change over an Experiment asks first */); await pg.waitForTimeout(600);
+  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.paint();
+  await jsClick('#reset'); await pg.paint();
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('wA'), 0)   /* a world change over an Experiment asks first */); await pg.settle();
   const warm = await pg.evaluate(() => { const D = window.__SP_DEBUG, M = D.expRes.months;
     return { pipe: D.expRes.derived.openingPipelineMonths, lag: D.expRes.derived.acquisitionLagMonths, mech: D.expRes.mechanisms.warmStart,
       inFlight: D.expRes.derived.openingPipelineARR, priorSM: D.expRes.derived.openingPipelinePriorSM,
@@ -195,7 +195,7 @@ H.suite('physics-accept', async (t) => {
       Math.abs(warm.pending1 - 4 * warm.first[0]) < 1e-6 && Math.abs(warm.inFlight - 4 * warm.first[0]) < 1e-6 && warm.priorSM === 4 * 700000,
       JSON.stringify({ pipe: warm.pipe, ctl: warm.ctl, tog: warm.tog, first: warm.first.map(Math.round), inFlight: Math.round(warm.inFlight) }));
 
-  const coldAgain = await (async () => { await pg.evaluate(() => { const t = document.getElementById('t-openingPipelineMonths'); if (t) t.click(); }); await pg.waitForTimeout(500);
+  const coldAgain = await (async () => { await pg.evaluate(() => { const t = document.getElementById('t-openingPipelineMonths'); if (t) t.click(); }); await pg.settle();
     return pg.evaluate(() => { const D = window.__SP_DEBUG, M = D.expRes.months;
       return { pipe: D.expRes.derived.openingPipelineMonths, mech: D.expRes.mechanisms.warmStart, first: M.slice(0, 5).map(m => m.newARR),
         cumSM: M[59].cumulative.sm, m60: M[59].closingARR, cohorts: D.expRes.cohorts.length }; }); })();
@@ -204,15 +204,15 @@ H.suite('physics-accept', async (t) => {
       coldAgain.cumSM === warm.cumSM && coldAgain.cohorts === warm.cohorts - 4 && coldAgain.m60 < warm.m60,
       JSON.stringify({ pipe: coldAgain.pipe, first: coldAgain.first.map(Math.round), cohorts: coldAgain.cohorts, m60: [Math.round(warm.m60), Math.round(coldAgain.m60)] }));
 
-  await pg.evaluate(() => { const t = document.getElementById('t-openingPipelineMonths'); if (t) t.click(); }); await pg.waitForTimeout(400);
-  await setSlider('f-acquisitionLagMonths', 0); await pg.waitForTimeout(400);
+  await pg.evaluate(() => { const t = document.getElementById('t-openingPipelineMonths'); if (t) t.click(); }); await pg.settle();
+  await setSlider('f-acquisitionLagMonths', 0); await pg.settle();
   const clamped = await pg.evaluate(() => ({ pipe: window.__SP_DEBUG.expA.openingPipelineMonths, lag: window.__SP_DEBUG.expA.acquisitionLagMonths,
     tog: (document.getElementById('t-openingPipelineMonths') || {}).textContent }));
   rec('WARM START: dropping the lag to zero under a loaded pipeline empties the pipeline instead of raising the engine\'s boundary error — there is no pipeline without a lag',
       clamped.lag === 0 && (clamped.pipe === null || clamped.pipe === 0) && errs.length === 0, JSON.stringify(clamped));
 
   /* a cohort bought out of the opening pipeline says so, and has no cost inside the window to recover */
-  await pg.evaluate(() => (window.__SP_DEBUG.useBase('wA'), 0)   /* a world change over an Experiment asks first */); await pg.waitForTimeout(600);
+  await pg.evaluate(() => (window.__SP_DEBUG.useBase('wA'), 0)   /* a world change over an Experiment asks first */); await pg.settle();
   await setScrub(36);
   /* the newest stratum at month 2 IS a pipeline cohort: scan down from the top of the mass */
   const pre = await pg.evaluate(() => { const D = window.__SP_DEBUG, cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
@@ -226,17 +226,17 @@ H.suite('physics-accept', async (t) => {
       if (D.pinned !== null) cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
     }
     return null; });
-  await pg.waitForTimeout(500);
+  await pg.settle();
   const preTxt = await pg.evaluate(() => { const d = document.querySelector('.dossier'); if (!d) return ''; d.querySelectorAll('details').forEach(x => { x.open = true; }); return d.innerText; });
   rec('WARM START: a cohort bought out of the opening pipeline carries no acquisition cost and no realised CAC, and the Inspect chain says the spend happened before month 1 rather than calling it an opening base',
       pre !== null && pre.cost === null && pre.cac === null && /before month 1/.test(preTxt) && /outside this window/.test(preTxt) &&
       /bought out of the opening pipeline/.test(preTxt) && !/predates the simulation/.test(preTxt),
       JSON.stringify(pre) + ' | ' + preTxt.slice(preTxt.indexOf('Spend incurred'), preTxt.indexOf('Spend incurred') + 160).replace(/\n/g, ' | '));
-  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.waitForTimeout(300);
-  await pg.evaluate(() => { (window.__SP_DEBUG.useBase('arr'), 0)   /* a world change over an Experiment asks first */ }); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { const b = document.getElementById('inspect-back'); if (b) b.click(); }); await pg.paint();
+  await pg.evaluate(() => { (window.__SP_DEBUG.useBase('arr'), 0)   /* a world change over an Experiment asks first */ }); await pg.settle();
 
   /* ---- NULL-ON-SCREEN ---- */
-  await jsClick('#reset'); await pg.waitForTimeout(300);
+  await jsClick('#reset'); await pg.paint();
   const nul = await pg.evaluate(() => ({ A: window.__SP_DEBUG.expA, mech: window.__SP_DEBUG.expRes.mechanisms, tog: document.getElementById('t-maxMonthlyNewARR').textContent,
     wf: [...document.querySelectorAll('.cascade .crow.wf .cl')].length }));
   rec('NULL-ON-SCREEN: Reset returns every mechanism to null (cost 0, capacity off, lag 0), the run reports none on, and the waterfall is back to 7 steps',

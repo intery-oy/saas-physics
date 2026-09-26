@@ -37,14 +37,14 @@ H.suite('v2-cohort-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const pg = await t.browser.newPage({ viewport: { width: 1440, height: 1000 } });
   pg.on('pageerror', e => errs.push(String(e)));
-  await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(800);
+  await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle();
   await pg.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); });
-  await pg.waitForTimeout(200);
+  await pg.paint();
   const D = (f, a) => pg.evaluate(f, a);
-  const scrub = async v => { await D(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.waitForTimeout(300); };
-  const click = async sel => { await D(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.waitForTimeout(400); };
+  const scrub = async v => { await D(v => { const s = document.getElementById('scrub'); s.value = v; s.dispatchEvent(new Event('input')); }, v); await pg.paint(); };
+  const click = async sel => { await D(s => { const el = document.querySelector(s); if (!el) throw new Error('no element ' + s); el.click(); }, sel); await pg.settle(); };
 
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle(); await scrub(36);
 
   /* ---------- the formation, before any cohort is chosen ---------- */
   const before = await D(() => ({ canvasH: document.querySelector('.figbox').getBoundingClientRect().height,
@@ -59,7 +59,7 @@ H.suite('v2-cohort-accept', async (t) => {
       cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return y; }
     } return null; });
-  await pg.waitForTimeout(600);
+  await pg.settle();
 
   /* everything the figure shows about this one cohort */
   const fig = () => D(() => {
@@ -211,7 +211,7 @@ H.suite('v2-cohort-accept', async (t) => {
   /* a click on a cohort chart is the same clock as the transport */
   await D(() => { const s = document.querySelector('#cohort-life svg.ch'), r = s.getBoundingClientRect();
     s.dispatchEvent(new MouseEvent('click', { clientX: r.left + r.width * 0.75, clientY: r.top + r.height * 0.5, bubbles: true })); });
-  await pg.waitForTimeout(400);
+  await pg.settle();
   const fClick = await fig();
   rec('TIME: clicking inside a cohort chart moves the global month there and keeps the cohort selected',
       fClick.pinned === f36.pinned && fClick.cl.m > 38 && fClick.cl.m === await D(() => window.__SP_DEBUG.selectedMonth()) &&
@@ -221,7 +221,7 @@ H.suite('v2-cohort-accept', async (t) => {
   /* ---------- RETURN ---------- */
   await scrub(36);
   await click('#inspect-back');
-  await pg.waitForTimeout(400);
+  await pg.settle();
   const after = await D(() => ({ pinned: window.__SP_DEBUG.pinned, life: document.getElementById('cohort-life').hidden,
     canvasH: document.querySelector('.figbox').getBoundingClientRect().height, ctlH: document.querySelector('.figctl').getBoundingClientRect().height,
     title: document.getElementById('fig-title').textContent, hint: document.getElementById('fig-hint').textContent,
@@ -239,7 +239,7 @@ H.suite('v2-cohort-accept', async (t) => {
       cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer' && window.__SP_DEBUG.expRes.cohorts[0]) { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return window.__SP_DEBUG.pinned; }
     } return null; });
-  await pg.waitForTimeout(500);
+  await pg.settle();
   const fBase = await fig();
   rec('OPENING BASE: the oldest stratum still gets its own life chart, and the capital-recovery chart is replaced by the reason it cannot be drawn — no stamped acquisition cost',
       pinBase === 0 && fBase.cl.acquisitionMonth === 0 && fBase.charts === 1 && fBase.titles.join('|') === 'Cohort MRR life|Capital recovery' &&
@@ -254,14 +254,14 @@ H.suite('v2-cohort-accept', async (t) => {
 
   /* ---------- the ARR-only world: one combined flow, and it says so ---------- */
   await click('#inspect-back');
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.waitForTimeout(400); await scrub(36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('arr')); await pg.settle(); await scrub(36);
   const pinArr = await D(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect();
     const x = 64 + (20 / 60) * (r.width - 64 - 78);
     for (let y = 26; y < r.height * 0.85; y += 3) {
       cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return window.__SP_DEBUG.pinned; }
     } return null; });
-  await pg.waitForTimeout(600);
+  await pg.settle();
   const fArr = await fig(), eArr = await eng();
   rec('DECOMPOSITION · CUSTOMER PHYSICS OFF: the life chart falls back to two layers — expansion above the original and one combined leakage below it — the readout and the Inspect panel say leakage, and original + expansion − leakage = cohort ARR at every month',
       pinArr !== null && !eArr.split && fArr.areas[0].length === 2 && fArr.areas[0][1] === 'var(--out)@0.22' &&
@@ -270,23 +270,23 @@ H.suite('v2-cohort-accept', async (t) => {
       /Leakage −/.test(fArr.rows[0]) && /− leakage, cumulative/.test(fArr.dossier) && !/churn/i.test(fArr.dossier) && eArr.identityWorst < 1e-6,
       JSON.stringify({ areas: fArr.areas[0], labels: fArr.pairs[0], row: fArr.rows[0], worst: eArr.identityWorst }));
   await click('#inspect-back');
-  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(400); await scrub(36);
+  await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.settle(); await scrub(36);
 
   /* ---------- LABELS: the cohort figure stays legible at desktop, tablet and phone ---------- */
   const widths = {};
   for (const w of [1440, 1024, 768, 390]) {
     const p2 = await t.browser.newPage({ viewport: { width: w, height: 900 } });
     p2.on('pageerror', e => errs.push(w + ': ' + String(e)));
-    await p2.goto(URL); await p2.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p2.waitForTimeout(700);
-    await p2.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p2.waitForTimeout(200);
-    await p2.evaluate(() => { const s = document.getElementById('scrub'); s.value = 40; s.dispatchEvent(new Event('input')); }); await p2.waitForTimeout(300);
+    await p2.goto(URL); await p2.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p2.settle();
+    await p2.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p2.paint();
+    await p2.evaluate(() => { const s = document.getElementById('scrub'); s.value = 40; s.dispatchEvent(new Event('input')); }); await p2.paint();
     const k = await p2.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 142);
       for (let y = 26; y < r.height * 0.85; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
         if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return window.__SP_DEBUG.pinned; } } return null; });
-    await p2.waitForTimeout(400);
+    await p2.settle();
     let coll = 0, narrow = 0, hs = false;
     for (const m of [12, 24, 36, 48, 60]) {
-      await p2.evaluate(m => { const s = document.getElementById('scrub'); s.value = m; s.dispatchEvent(new Event('input')); }, m); await p2.waitForTimeout(200);
+      await p2.evaluate(m => { const s = document.getElementById('scrub'); s.value = m; s.dispatchEvent(new Event('input')); }, m); await p2.paint();
       const r = await p2.evaluate(() => { const svgs = [...document.querySelectorAll('#cohort-life svg.ch')]; let c = 0;
         svgs.forEach(s => { const els = [...s.querySelectorAll('g.rg, text.bkl, text.mk')].map(e => e.getBoundingClientRect());
           for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { const a = els[i], b2 = els[j]; if (a.top < b2.bottom && b2.top < a.bottom && a.left < b2.right && b2.left < a.right) c++; } });
@@ -307,20 +307,20 @@ H.suite('v2-cohort-accept', async (t) => {
    * they never set, blanking whatever those layers draw in the box. */
   const p3 = await t.browser.newPage({ viewport: { width: 1440, height: 900 } });
   p3.on('pageerror', e => errs.push('scope: ' + e.message));
-  await p3.goto(URL); await p3.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p3.waitForTimeout(700);
-  await p3.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p3.waitForTimeout(500);
+  await p3.goto(URL); await p3.evaluate(() => window.__SP_DEBUG.useBase('wA')); await p3.settle();
+  await p3.evaluate(() => { const b = document.getElementById('welcome-enter'); if (b) b.click(); }); await p3.settle();
   await p3.evaluate(() => { const cv = document.getElementById('scene'), r = cv.getBoundingClientRect(); const x = 64 + (20 / 60) * (r.width - 84);
     for (let y = 30; y < r.height * 0.7; y += 3) { cv.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
       if (cv.style.cursor === 'pointer') { cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + x, clientY: r.top + y, bubbles: true })); return; } } });
-  await p3.waitForTimeout(700);
+  await p3.settle();
   const look = () => p3.evaluate(() => { const cv = document.getElementById('scene').getBoundingClientRect(), cl = document.getElementById('cohort-life');
     return { pinned: window.__SP_DEBUG.pinned, canvas: Math.round(cv.width * cv.height), cohortFigure: !cl.hidden, dossier: !!document.querySelector('.dossier') }; });
   const scope = { pinned: await look() };
   for (const nav of ['menu-mech', 'nav-compare']) {
-    await p3.evaluate(n => document.getElementById(n).click(), nav); await p3.waitForTimeout(600);
+    await p3.evaluate(n => document.getElementById(n).click(), nav); await p3.settle();
     scope[nav] = await look();
   }
-  await p3.evaluate(() => document.getElementById('nav-company').click()); await p3.waitForTimeout(700);
+  await p3.evaluate(() => document.getElementById('nav-company').click()); await p3.settle();
   scope.back = await look();
   await p3.close();
   rec('SCOPE: a cohort left pinned does not follow the reader out of Company — System and Compare each get their own figure back, the cohort figure steps aside, and returning to Company restores Inspect exactly as it was',

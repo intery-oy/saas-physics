@@ -30,19 +30,9 @@ const near = (a, b, tol) => Math.abs(a - b) <= (tol === undefined ? 1e-6 : tol);
 H.suite('customers-accept', async (t) => {
   const rec = t.rec, errs = t.errs;
   const open = async (w, h, pack) => {
-    const pg = await t.browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
-    pg.on('pageerror', e => errs.push(w + 'x' + h + '/' + pack + ': ' + e.message));
-    await pg.goto(URL); await pg.evaluate(() => window.__SP_DEBUG.useBase('wA')); await pg.waitForTimeout(500);
-    await pg.evaluate(() => document.getElementById('welcome-enter').click());
-    await pg.waitForTimeout(300);
-    await pg.evaluate(p => window.__SP_DEBUG.useBase(p), pack);
-    await pg.waitForTimeout(300);
-    await pg.evaluate(() => document.getElementById('menu-mech').click());   /* Model Mechanics, under ⋯ */
-    await pg.waitForTimeout(200);
-    await pg.evaluate(() => document.getElementById('sysview-customers').click());
-    await pg.waitForTimeout(200);
-    await pg.evaluate(() => { const b = document.getElementById('play'); if (b && b.classList.contains('play')) b.click(); });
-    await pg.waitForTimeout(150);
+    const pg = await t.open({ viewport: { width: w, height: h }, world: pack, label: w + 'x' + h + '/' + pack });
+    await pg.hit('menu-mech');            /* Model Mechanics, under the header's more menu */
+    await pg.hit('sysview-customers');    /* and its Customers view */
     return pg;
   };
   /* move the portal to month m and hand back BOTH what was drawn and what the engine holds */
